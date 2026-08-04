@@ -540,6 +540,27 @@ class AdminCog(commands.Cog, name="Admin"):
         e.add_field(name="DB backend", value=getattr(db, "BACKEND", "?"),
                     inline=True)
 
+        # Which commit the auto-updater last installed. This is the other half
+        # of "did my upload land?": VERSION above is what the RUNNING code says
+        # it is, this is what is on DISK. They disagree when an update has been
+        # downloaded but the bot hasn't been restarted yet.
+        try:
+            from utils import updater
+            st = updater.status()
+            if st.get("sha"):
+                e.add_field(
+                    name="📥 Auto-update",
+                    value=(f"`{st['sha'][:7]}` on `{st.get('branch', '?')}`\n"
+                           f"{(st.get('message') or '')[:70]}\n"
+                           f"*applied {st.get('applied_at', '?')}*"),
+                    inline=False)
+            else:
+                e.add_field(name="📥 Auto-update",
+                            value="Never run — set `GITHUB_TOKEN` to enable.",
+                            inline=False)
+        except Exception:                            # noqa: BLE001
+            pass
+
         if rep["parity_gaps"]:
             e.add_field(
                 name="❌ Store mismatch",

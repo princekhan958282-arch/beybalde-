@@ -28,3 +28,30 @@ GEMINI_MODEL = ""
 # rebuild. Leave blank to keep everything in the local SQLite file.
 # Accepts mysql://... or the jdbc:mysql://... string panels usually give you.
 MYSQL_URL = ""
+
+# ── Auto-update from GitHub ───────────────────────────────────────────────────
+# Fill this in and the bot pulls the latest code from GitHub every time it
+# starts, so you stop re-uploading zips. Leave blank to turn the whole thing
+# off — with no token the updater logs one line and does nothing.
+#
+# The repo is private, so you need a token:
+#   1. github.com  →  Settings  →  Developer settings
+#                  →  Personal access tokens  →  Fine-grained tokens
+#   2. "Generate new token", pick ONLY the beybalde- repository
+#   3. Repository permissions  →  Contents: Read-only          ← nothing else
+#   4. Generate, copy the github_pat_... string, paste it below
+#
+# Read-only Contents is all it needs. Do not give it write access: this token
+# only ever downloads.
+GITHUB_TOKEN = ""
+
+# Optional. Which repo and branch to track. Defaults: the repo this code ships
+# from, and the "main" branch.
+#
+# ⚠️  SET GITHUB_BRANCH if your code lives on a branch that hasn't been merged
+#     into main yet, or the updater will track main and try to install whatever
+#     is there instead. (The updater refuses any download with no app.py in it,
+#     so a near-empty main can't wipe your install — but it also means nothing
+#     will ever update until you point this at the right branch.)
+GITHUB_REPO = ""
+GITHUB_BRANCH = ""
