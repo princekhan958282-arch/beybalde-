@@ -153,7 +153,7 @@ CHAPTERS: dict[int, dict] = {
             {
                 "id": "3-3", "name": "Warden Kael", "emoji": "⛓️",
                 "difficulty": "legend", "type": "defense",
-                "hp": 900, "attack": 128, "defense": 118, "stamina": 106,
+                "hp": 900, "attack": 124, "defense": 118, "stamina": 106,
                 "colour": 0x2C3E50,
                 "persona": "almost never wrong",
                 "blurb": "Blunders 4% of the time. That is your whole opening.",
@@ -163,7 +163,7 @@ CHAPTERS: dict[int, dict] = {
             {
                 "id": "3-4", "name": "Crown Sovereign Astra", "emoji": "🌟",
                 "difficulty": "legend", "type": "balance",
-                "hp": 880, "attack": 124, "defense": 122, "stamina": 120,
+                "hp": 900, "attack": 132, "defense": 122, "stamina": 120,
                 "colour": 0xFFD700,
                 "persona": "the reason the crown exists",
                 "blurb": "The end of the road. An avatar is not optional here.",
