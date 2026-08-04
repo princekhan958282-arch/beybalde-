@@ -254,7 +254,7 @@ CHAPTERS: dict[int, dict] = {
                 "boss": False,
             },
             {
-                "id": "3-4", "name": "Crown Sovereign Astra", "emoji": "🌟", "level": 48,
+                "id": "3-4", "name": "Crown Sovereign Astra", "emoji": "🌟", "level": 46,
                 "difficulty": "veteran", "type": "balance",
                 "colour": 0xFFD700,
                 "persona": "the reason the crown exists",
