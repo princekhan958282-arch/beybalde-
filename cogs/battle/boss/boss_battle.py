@@ -44,9 +44,11 @@ TURN_SECONDS   = 60
 log = logging.getLogger("beyblade_bot.boss")
 
 # ── System lock ───────────────────────────────────────────────────────────────
-# The boss system is closed to players. Flip to False to reopen — nothing else
-# needs changing, the fights themselves are intact underneath.
-BOSS_SYSTEM_LOCKED = True
+# Reopened. Note the bosses are now 10,000 HP: that is an endgame wall, not a
+# mid-game fight — a base-stats player deals roughly 50 damage a turn and will
+# not finish one. Flip back to True to close the system again; nothing else
+# needs changing either way.
+BOSS_SYSTEM_LOCKED = False
 LOCK_TITLE   = "🔒 Boss Battles are closed"
 LOCK_MESSAGE = ("Boss Battles are being reworked and will **open in the next "
                 "update**.\n\nYour boss copies are safe — `;copies` still "
@@ -248,6 +250,66 @@ def bcopy_embed(c: dict, prof: dict) -> discord.Embed:
         )
     e.set_footer(text="Boss copy · rolled once, never repeats · not in the Beypedia")
     return e
+
+
+def boss_theme(key: str) -> tuple[str, str, str, str]:
+    """(art_src, accent, glow, tint) for a boss, from its info-registry entry.
+
+    Shared by the battle card and the lobby card so a boss looks like itself on
+    both, rather than the lobby inventing its own palette.
+    """
+    prof = binfo.REGISTRY.get(key) or {}
+    theme = prof.get("card_theme") or {}
+    art = ""
+    try:
+        from utils import info_card as _ic
+        art = _ic._art_src({"name": BOSSES[key]["name"],
+                            "image_url": prof.get("image_url") or ""})
+    except Exception:                                # noqa: BLE001
+        art = ""
+    return (art,
+            theme.get("accent", "#c77dff"),
+            theme.get("glow", "#6a0dad"),
+            theme.get("tint", "#140a1e"))
+
+
+def lobby_card_state(key: str, party: list = None, footer: str = "") -> dict:
+    """State for boss_card.render_lobby() — the pre-fight card.
+
+    Quotes the boss AT THE PARTY'S SIZE, so the HP and attack shown are the
+    numbers the fight will actually use rather than the solo figures. That
+    matters more now bosses are 10,000 HP and each extra player adds another
+    100% of it.
+    """
+    cfg = BOSSES[key]
+    prof = binfo.REGISTRY.get(key) or {}
+    party = list(party or [])
+    extra = max(0, len(party) - 1)
+    art, accent, glow, tint = boss_theme(key)
+
+    hp = scaled_boss_hp(cfg, extra)
+    atk = cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra)
+    reward = cfg.get("reward", {})
+
+    stats = [
+        ("HP",        f"{hp:,}"),
+        ("Attack",    f"{atk:.0f}"),
+        ("Defense",   f"{cfg['defense']}"),
+        ("Stamina",   f"{cfg['stamina']}"),
+        ("Difficulty", str(cfg.get("difficulty", "")).title()),
+        ("Reward",    f"{reward.get('coins', 0):,} coins"),
+    ]
+    return {
+        "boss_name": cfg["name"],
+        "tier":      prof.get("rarity", cfg.get("difficulty", "boss")),
+        "blurb":     cfg.get("blurb", ""),
+        "art_src":   art,
+        "accent":    accent, "glow": glow, "tint": tint,
+        "stats":     stats,
+        "party":     [m.display_name for m in party],
+        "max_party": MAX_PARTY,
+        "footer":    footer,
+    }
 
 
 def _module_for(cfg: dict):
@@ -894,6 +956,45 @@ class BossLobbyView(discord.ui.View):
         self.started = False
         self.message: Optional[discord.Message] = None
 
+    async def card_file(self) -> Optional[discord.File]:
+        """The lobby card, or None to fall back to build_embed().
+
+        Never raises: a card is decoration, and a failed render must not stop
+        anyone starting a fight.
+        """
+        if not USE_CARD:
+            return None
+        try:
+            buf = await bcard.render_lobby(lobby_card_state(
+                self.key, self.party,
+                footer=f"Each player adds +{int(BOSS_HP_PER_JOIN * 100)}% boss HP "
+                       f"and +{int(BOSS_ATK_PER_JOIN * 100)}% attack  ·  "
+                       f"starts in {LOBBY_SECONDS}s"))
+            if buf is None:
+                return None
+            return discord.File(buf, filename=getattr(buf, "name", "boss.png"))
+        except Exception:                            # noqa: BLE001
+            log.debug("[boss] lobby card failed", exc_info=True)
+            return None
+
+    async def send(self, ctx) -> None:
+        """Post the lobby — card when one renders, embed when it doesn't."""
+        f = await self.card_file()
+        if f is not None:
+            self.message = await ctx.send(file=f, view=self)
+        else:
+            self.message = await ctx.send(embed=self.build_embed(), view=self)
+
+    async def refresh(self, interaction: discord.Interaction) -> None:
+        """Redraw after someone joins. Swaps the attachment, not just the embed."""
+        f = await self.card_file()
+        if f is not None:
+            await interaction.response.edit_message(
+                embed=None, attachments=[f], view=self)
+        else:
+            await interaction.response.edit_message(
+                embed=self.build_embed(), attachments=[], view=self)
+
     def build_embed(self) -> discord.Embed:
         cfg = BOSSES[self.key]
         extra = len(self.party) - 1
@@ -942,7 +1043,7 @@ class BossLobbyView(discord.ui.View):
 
         self.party.append(interaction.user)
         self.cog._active.add(interaction.user.id)
-        await interaction.response.edit_message(embed=self.build_embed(), view=self)
+        await self.refresh(interaction)
 
     @discord.ui.button(label="Start", emoji="▶", style=discord.ButtonStyle.primary)
     async def start(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -1243,7 +1344,7 @@ class BossCog(commands.Cog, name="Boss"):
 
         self._active.add(player.id)
         lobby = BossLobbyView(self, player, key)
-        await interaction.response.edit_message(embed=lobby.build_embed(), view=lobby)
+        await lobby.refresh(interaction)
         try:
             lobby.message = await interaction.original_response()
         except Exception:
@@ -1297,7 +1398,7 @@ class BossCog(commands.Cog, name="Boss"):
             self._active.add(ctx.author.id)
             lobby = BossLobbyView(self, ctx.author, key)
             try:
-                lobby.message = await ctx.send(embed=lobby.build_embed(), view=lobby)
+                await lobby.send(ctx)
             except discord.DiscordException:
                 self._active.discard(ctx.author.id)
             return
@@ -1336,7 +1437,25 @@ class BossCog(commands.Cog, name="Boss"):
                    "bought, traded or spawned."),
             inline=False,
         )
-        view.message = await ctx.send(embed=e, view=view)
+        # Feature the boss they should fight next as a card above the roster.
+        # The roster itself stays an embed — per-boss lock/cooldown status is
+        # genuinely textual and reads better as a list than as artwork.
+        featured = next((k for k in BOSSES if k not in cleared), None) \
+            or next(iter(BOSSES))
+        card = None
+        if USE_CARD:
+            try:
+                buf = await bcard.render_lobby(lobby_card_state(
+                    featured, footer="Pick a boss from the menu below"))
+                if buf is not None:
+                    card = discord.File(buf, filename=getattr(buf, "name", "boss.png"))
+            except Exception:                        # noqa: BLE001
+                log.debug("[boss] picker card failed", exc_info=True)
+
+        if card is not None:
+            view.message = await ctx.send(embed=e, file=card, view=view)
+        else:
+            view.message = await ctx.send(embed=e, view=view)
 
     @commands.command(name="bossinfo", aliases=["bossbey", "bossblade"])
     async def bossinfo(self, ctx: commands.Context, *, name: str = None):
