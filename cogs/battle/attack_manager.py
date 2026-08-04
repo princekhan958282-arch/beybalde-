@@ -560,7 +560,11 @@ class AttackManager:
         from cogs.abilities.type_system import resolve_active_bonuses
         sm         = self.session.stamina_manager
         ab_eng     = self.session.ability
-        hits, per_hit, flavour, ignores_def = resolve_special(mblade)
+        # The effective special stat scales the authored damage — this is what
+        # makes a Special grow with the bey's level. Absent (older sessions,
+        # tests) it resolves to the printed damage exactly.
+        _spc = getattr(self.session, "special_stats", {}).get(mkey)
+        hits, per_hit, flavour, ignores_def = resolve_special(mblade, _spc)
         # Abilities can grant extra hits (e.g. a max-stack payoff). Consumed
         # here so it applies to exactly one Special, then clears.
         _extra = 0

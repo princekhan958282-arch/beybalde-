@@ -18,11 +18,13 @@ Two things worth knowing before tuning
    preserves the game's current balance as the floor. Set to 1 here; flip it
    for the literal reading.
 
-2. The 300 cap binds early on high-base beys. Attack archetypes grow at 3.0/level,
-   and this roster's attack stats already average 97 and reach 160, so those
-   beys hit 300 attack somewhere around level 45-60 and gain nothing from the
-   levels after that. `report_cap_pressure()` prints exactly where, per bey, so
-   the cap and growth rates can be set against real numbers rather than guesses.
+2. STAT_CAP has to clear the whole growth curve or it silently deletes the top
+   of the game. Attack archetypes grow at 3.0/level and this roster's attack
+   stats already average 97 and reach 160, so a 300 cap was reached around
+   level 45-60 and every level after that was dead. Worse, once most blades sit
+   ON the cap they are all the same blade. `report_cap_pressure()` prints
+   exactly where each stat caps, per bey, so this can be checked against real
+   numbers rather than guessed — run it after any growth-rate change.
 
 IVs are per OWNED bey, not per species: two players' copies of the same blade
 differ. They're rolled once, on first sight, and stored in the profile.
@@ -35,7 +37,18 @@ import random
 from typing import Optional
 
 MAX_LEVEL = 100
-STAT_CAP = 300
+# Raised from 300, which was binding hard enough to erase the roster. Measured
+# across all 78 blades at level 100: at 300, HP had thirteen distinct values
+# with 51 blades sitting exactly on the cap, and attack had 53 of 78 capped —
+# every maxed bey was effectively the same bey. At 500 nothing caps at all
+# (0/78 on hp, attack and defence; 1/78 on stamina) and the distinct-value
+# counts run 50-65. 600 was measured too and buys exactly one more blade, so
+# 500 is where the cap stops mattering.
+#
+# The growth rates below were NOT changed: the cap was the problem, not the
+# curve, and lowering growth to fit a small cap would have flattened the
+# archetypes instead.
+STAT_CAP = 500
 IV_MAX = 10
 LEVEL_OFFSET = 1          # see note 1 above
 
@@ -45,14 +58,20 @@ LEVEL_OFFSET = 1          # see note 1 above
 # for a 100-level ceiling.
 XP_BASE = 8
 
-STATS = ("hp", "attack", "defense", "stamina")
+STATS = ("hp", "attack", "defense", "stamina", "special")
 
 # Growth per level, by type. These are the archetypes as specified.
+#
+# `special` was added later. It used to be excluded from STATS, so it was the
+# one stat that never grew — and since damage_rules.resolve_special read a
+# hardcoded number out of beyblades.json rather than the stat, growing it alone
+# would have changed nothing. Both halves are needed; see resolve_special.
+# Attack archetypes grow it fastest, matching how they already lead on attack.
 GROWTH = {
-    "attack":  {"hp": 1.5, "attack": 3.0, "defense": 0.8, "stamina": 1.2},
-    "defense": {"hp": 2.8, "attack": 1.0, "defense": 3.0, "stamina": 1.5},
-    "stamina": {"hp": 2.2, "attack": 1.3, "defense": 1.5, "stamina": 3.2},
-    "balance": {"hp": 2.0, "attack": 2.0, "defense": 2.0, "stamina": 2.0},
+    "attack":  {"hp": 1.5, "attack": 3.0, "defense": 0.8, "stamina": 1.2, "special": 2.6},
+    "defense": {"hp": 2.8, "attack": 1.0, "defense": 3.0, "stamina": 1.5, "special": 1.6},
+    "stamina": {"hp": 2.2, "attack": 1.3, "defense": 1.5, "stamina": 3.2, "special": 1.8},
+    "balance": {"hp": 2.0, "attack": 2.0, "defense": 2.0, "stamina": 2.0, "special": 2.0},
 }
 DEFAULT_GROWTH = GROWTH["balance"]
 
@@ -118,9 +137,9 @@ def stat_at(base: float, growth: float, level: int, iv: int) -> int:
 def stats_at(blade: dict, level: int, ivs: Optional[dict] = None) -> dict[str, int]:
     """Every stat for a blade at a level.
 
-    Stats the blade has but the growth table doesn't cover (`special`) are
-    passed through unchanged rather than dropped — losing them here would
-    silently disarm Specials.
+    Any stat the blade carries that the growth table doesn't cover is passed
+    through unchanged rather than dropped — losing one here would silently
+    disarm whatever reads it.
     """
     base = dict(blade.get("stats") or {})
     g = growth_for(blade)

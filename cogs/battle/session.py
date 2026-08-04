@@ -62,6 +62,22 @@ def _bey_xp(profile: dict, blade: Optional[dict], won: bool) -> Optional[dict]:
     except Exception:                                # noqa: BLE001
         return None
 
+
+def _effective_special(user_id, blade: Optional[dict]) -> int:
+    """This player's SPECIAL stat with level, parts and avatar folded in.
+
+    Falls back to the blade's printed value, which makes resolve_special's
+    scale exactly 1.0 — i.e. the Special behaves as it always has. A broken
+    profile must never stop a battle starting.
+    """
+    printed = int(((blade or {}).get("stats") or {}).get("special", 0) or 0)
+    try:
+        from utils.loadout import effective_blade
+        eff, _breakdown, _av = effective_blade(int(user_id), blade=blade)
+        return int((eff.get("stats") or {}).get("special", printed) or printed)
+    except Exception:                                # noqa: BLE001
+        return printed
+
 from utils.database import (
     get_user, update_user, grant_xp,
     level_from_xp, xp_to_next_level, MAX_LEVEL,
@@ -266,6 +282,21 @@ class BattleSession:
         self.battle_stats: dict[str, dict[str, int]] = {
             str(p1.id): _start_stats(str(p1.id), blade1),
             str(p2.id): _start_stats(str(p2.id), blade2),
+        }
+
+        # ── Effective SPECIAL stat (levelled + parts + avatar) ────────────────
+        # Resolved once at battle start and handed to damage_rules.resolve_special
+        # so a Special scales with the bey's level instead of being the flat
+        # number printed in beyblades.json. Read through loadout.effective_blade
+        # because that is the only place bey levels are folded in — the stats on
+        # `self.blades` are the printed ones.
+        #
+        # Not part of battle_stats/_effective_stats: those are recomputed every
+        # round for the attack/defence/stamina exchange, and a Special's scale
+        # has no per-round buff to track.
+        self.special_stats: dict[str, int] = {
+            str(p1.id): _effective_special(p1.id, blade1),
+            str(p2.id): _effective_special(p2.id, blade2),
         }
 
         # ── Sub-module initialisation ─────────────────────────────────────────

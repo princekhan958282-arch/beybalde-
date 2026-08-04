@@ -312,9 +312,16 @@ def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
         from utils.loadout import effective_hp
         hp = effective_hp(user_id, hp, av)
 
+    # Specials scale with the bey's `special` stat — see boss_ai._raw_damage.
+    # _breakdown carries both the printed and the levelled value already.
+    _spc = (_breakdown or {}).get("special") or {}
+    _spc_base, _spc_total = float(_spc.get("base", 0) or 0), float(_spc.get("total", 0) or 0)
+    special_mult = max(1.0, _spc_total / _spc_base) if _spc_base > 0 and _spc_total > 0 else 1.0
+
     f  = ai.Fighter(name or "Unequipped", hp, hp,
                     atk * mult, dfn * mult, sta * mult, sp=10.0,
-                    dmg_mult=ai.type_damage_mult((blade or {}).get("type")))
+                    dmg_mult=ai.type_damage_mult((blade or {}).get("type")),
+                    special_mult=special_mult)
     return f, (blade or {})
 
 

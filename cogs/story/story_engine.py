@@ -121,8 +121,24 @@ def build_player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
         name or "Unequipped", hp, hp,
         atk * mult, dfn * mult, sta * mult, sp=10.0,
         dmg_mult=ai.type_damage_mult((blade or {}).get("type")),
+        special_mult=_special_mult(breakdown),
     )
     return fighter, (blade or {})
+
+
+def _special_mult(breakdown: dict) -> float:
+    """How far the bey's `special` stat has grown past its printed value.
+
+    effective_blade's breakdown already carries both numbers, so this needs no
+    second lookup. 1.0 for an unlevelled bey, which leaves Specials exactly as
+    they were.
+    """
+    spc = (breakdown or {}).get("special") or {}
+    base = float(spc.get("base", 0) or 0)
+    total = float(spc.get("total", 0) or 0)
+    if base <= 0 or total <= 0:
+        return 1.0
+    return max(1.0, total / base)
 
 
 def build_opponent(stage: dict) -> ai.Fighter:
