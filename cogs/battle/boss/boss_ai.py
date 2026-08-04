@@ -141,6 +141,12 @@ class Fighter:
     defense: float
     stamina_stat: float
     sp:      float = 10.0          # battle stamina resource
+    # Per-fighter stamina ceiling. Defaults to the module STAMINA_MAX so every
+    # boss behaves exactly as before — boss_battle deliberately opens its
+    # bosses ABOVE the ceiling as a one-off reserve, and regen only ever adds,
+    # so a boss must keep the shared value. Players get a bar derived from
+    # their stamina stat instead, matching the PvP StaminaManager.
+    sp_max:  float = STAMINA_MAX
     gauge:   float = 0.0
     is_boss: bool = False
     heal_streak: float = 0.0       # Stamina pressure — see HEAL_DECAY. Float
@@ -148,6 +154,10 @@ class Fighter:
     healed_total: float = 0.0      # spent against HEAL_BUDGET_FRACTION
     dmg_mult: float = 1.0          # blade-type damage multiplier — see
                                    # TYPE_DAMAGE_MULT. 1.0 for bosses.
+    # Multiplier applied to Specials only, carrying the wielder's `special`
+    # stat. 1.0 leaves the Special exactly as it was, which is what every boss
+    # uses — a boss has no special stat and its damage is authored directly.
+    special_mult: float = 1.0
     # Only NEMESIS-class bosses carry this. None for everything else, so the
     # ordinary bosses behave exactly as they did before.
     state:   Optional[BossState] = None   # keep last: positional order matters
@@ -176,10 +186,12 @@ class Fighter:
         return Fighter(name=self.name, hp=self.hp, max_hp=self.max_hp,
                        attack=self.attack, defense=self.defense,
                        stamina_stat=self.stamina_stat, sp=self.sp,
+                       sp_max=self.sp_max,
                        gauge=self.gauge, is_boss=self.is_boss,
                        heal_streak=self.heal_streak,
                        healed_total=self.healed_total,
                        dmg_mult=self.dmg_mult,
+                       special_mult=self.special_mult,
                        state=self.state.copy() if self.state else None)
 
     # ── Stance-adjusted stats (plain fighters are unaffected) ────────────────
@@ -214,7 +226,12 @@ def type_damage_mult(blade_type: Optional[str]) -> float:
 
 def _raw_damage(src: Fighter, special: bool = False) -> float:
     base = src.eff_attack * DMG_SCALE * src.dmg_mult
-    return base * (SPECIAL_MULT if special else 1.0)
+    if not special:
+        return base
+    # special_mult is the wielder's `special` stat relative to its printed
+    # value, so a levelled bey's Special grows. Applied on this branch only —
+    # ordinary attacks must not inherit it.
+    return base * SPECIAL_MULT * max(1.0, src.special_mult)
 
 
 def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
@@ -348,10 +365,10 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
         # current) means regen can only ever add, which is what regeneration
         # is supposed to mean.
         if mv == MOVE_STAMINA:
-            f.sp = min(max(STAMINA_MAX, f.sp), f.sp + 2.5)
+            f.sp = min(max(f.sp_max, f.sp), f.sp + 2.5)
             f.heal_streak += 1
         else:
-            f.sp = min(max(STAMINA_MAX, f.sp), f.sp + 0.5)
+            f.sp = min(max(f.sp_max, f.sp), f.sp + 0.5)
             if mv in (MOVE_ATTACK, MOVE_SPECIAL):
                 # Walk the streak back rather than clearing it — see
                 # HEAL_STREAK_RECOVERY.

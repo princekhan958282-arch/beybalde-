@@ -230,8 +230,27 @@ def _render(blade: dict, parts: dict) -> io.BytesIO:
     pill_t = _TYPE_LABEL.get(blade.get("type"), f"{str(blade.get('type', '')).upper()} TYPE")
     pf = _font(19)
     pw = _tw(d, pill_t, pf) + 44
-    _rr(d, ((W - pw) // 2, y_pill, (W + pw) // 2, y_pill + 38), 10, fill=accent)
-    d.text(((W - pw) // 2 + 22, y_pill + 8), pill_t, font=pf, fill=(23, 19, 10))
+
+    # Bey level, drawn as a chip to the right of the type pill. Present only
+    # when loadout.effective_blade supplied one — a bare species lookup has no
+    # level and must not claim one. The pair is centred as a unit so the type
+    # pill stays where it is on a card that has no level.
+    try:
+        lvl = int(blade.get("level") or 0)
+    except (TypeError, ValueError):
+        lvl = 0
+    lvl_txt = f"LV {lvl}" if lvl > 0 else ""
+    lw = (_tw(d, lvl_txt, pf) + 32) if lvl_txt else 0
+    gap = 10 if lvl_txt else 0
+    total = pw + gap + lw
+    x0 = (W - total) // 2
+
+    _rr(d, (x0, y_pill, x0 + pw, y_pill + 38), 10, fill=accent)
+    d.text((x0 + 22, y_pill + 8), pill_t, font=pf, fill=(23, 19, 10))
+    if lvl_txt:
+        lx = x0 + pw + gap
+        _rr(d, (lx, y_pill, lx + lw, y_pill + 38), 10, outline=accent, width=2)
+        d.text((lx + 16, y_pill + 8), lvl_txt, font=pf, fill=accent)
 
     if booster_h:
         bt = "📦 BOOSTER EXCLUSIVE"

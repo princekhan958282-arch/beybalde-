@@ -42,6 +42,22 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from utils import bootstrap as _bootstrap        # noqa: E402
 _bootstrap.ensure()
 
+# Pull the latest code from GitHub, if a GITHUB_TOKEN is configured. Runs after
+# bootstrap (so dependencies exist) and before any cog is imported.
+#
+# It deliberately does NOT restart: the files land on disk and take effect on
+# the NEXT restart. An updater that relaunches the process mid-boot can put a
+# host into a restart loop when the new code is broken, and that is not
+# recoverable remotely. It logs loudly when an update is waiting.
+#
+# Never raises — a failed update must not stop the bot booting. Disable with
+# BEYCORD_AUTO_UPDATE=0.
+try:
+    from utils import updater as _updater        # noqa: E402
+    _updater.check_and_apply()
+except Exception as _exc:                        # noqa: BLE001
+    print(f"[update] skipped: {type(_exc).__name__}: {_exc}")
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv

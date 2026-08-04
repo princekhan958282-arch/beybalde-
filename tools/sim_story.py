@@ -25,6 +25,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from cogs.avatar import avatar_engine                      # noqa: E402
+from cogs.battle import stamina_manager as _SM             # noqa: E402
 from cogs.battle.boss import boss_ai as ai                 # noqa: E402
 from cogs.story import story_data, story_engine            # noqa: E402
 
@@ -69,7 +70,13 @@ def _install_stubs() -> None:
         dfn = float(av.apply_defence_bonus(BASE_DEF))
         sta = float(av.apply_stamina_bonus(BASE_STA))
         hp = float(av.apply_hp_bonus(BASE_HP))
-        return ai.Fighter("SimBlade", hp, hp, atk, dfn, sta, sp=10.0,
+        # Stamina bar derived from the stat, mirroring the real builder — the
+        # flat sp=10.0 this used to pass stopped matching once bars became
+        # per-bey, and would have hidden the change from every fight here.
+        sp_max = _SM.max_stamina_for(sta)
+        return ai.Fighter("SimBlade", hp, hp, atk, dfn, sta,
+                          sp=_SM.StaminaManager._initial_stamina(int(sta), sp_max),
+                          sp_max=sp_max,
                           dmg_mult=ai.type_damage_mult("balance")), {}
 
     story_engine.build_player_fighter = _player
@@ -201,7 +208,9 @@ def check_progression(fights: int) -> None:
     for st in story_data.all_stages():
         rate, turns, _ = win_rate(st["id"], None, fights, seed=5)
         rates.append((st["id"], rate, turns))
-        print(f"     {st['id']}  {st['name'][:26]:<26} "
+        s = st["stats"]
+        print(f"     {st['id']}  {st['name'][:24]:<24} Lv{st['level']:>3}  "
+              f"{s['hp']:>5}hp {s['attack']:>4}a {s['defense']:>4}d {s['stamina']:>4}s  "
               f"{rate:>5.0%}  ~{turns:.0f} turns")
 
     first, last = rates[0][1], rates[-1][1]
@@ -214,6 +223,43 @@ def check_progression(fights: int) -> None:
           all(r > 0.0 for _, r, _ in rates))
     check("fights resolve well inside the turn cap",
           all(t < story_engine.TURN_CAP * 0.8 for _, _, t in rates))
+
+
+def check_levels() -> None:
+    """Opponent levels must climb, and drive the stats they are supposed to."""
+    print("\n▸ opponent level system")
+    stages = story_data.all_stages()
+    levels = [s["level"] for s in stages]
+    check("opponent level rises every stage",
+          all(b > a for a, b in zip(levels, levels[1:])),
+          " → ".join(str(v) for v in levels))
+    # Compared within an archetype, not between neighbours: consecutive stages
+    # are usually different archetypes, so a naive neighbour check would find
+    # no comparable pairs and pass vacuously.
+    by_type: dict[str, list[dict]] = {}
+    for st in stages:
+        by_type.setdefault(st["type"], []).append(st)
+    check("attack rises with level within every archetype",
+          all(b["stats"]["attack"] > a["stats"]["attack"]
+              for group in by_type.values()
+              for a, b in zip(group, group[1:])),
+          f"{len(by_type)} archetypes, "
+          f"{sum(len(g) - 1 for g in by_type.values())} comparisons")
+    # HP deliberately grows far more slowly than the offensive stats — that is
+    # what keeps every stage inside the same turn window instead of making the
+    # late campaign merely longer.
+    check("HP growth rate is well under the stat growth rate",
+          story_data.HP_GROWTH < story_data.STAT_GROWTH / 2,
+          f"{story_data.HP_GROWTH} vs {story_data.STAT_GROWTH}")
+    first, last = stages[0]["stats"], stages[-1]["stats"]
+    hp_ratio = last["hp"] / first["hp"]
+    atk_ratio = last["attack"] / first["attack"]
+    check("realised HP spread is smaller than the attack spread",
+          hp_ratio < atk_ratio,
+          f"hp x{hp_ratio:.2f} vs atk x{atk_ratio:.2f}")
+    check("a level change moves the stats",
+          story_data.opponent_stats({"type": "balance", "level": 40})["attack"]
+          > story_data.opponent_stats({"type": "balance", "level": 10})["attack"])
 
 
 def check_unlocks() -> None:
@@ -249,6 +295,7 @@ def main() -> int:
         check_progression(args.fights)
     else:
         check_unlocks()
+        check_levels()
         check_effects_fire(max(60, args.fights // 3))
         check_progression(args.fights)
         check_avatar_lift(args.fights)

@@ -23,6 +23,7 @@ import logging
 import random
 from typing import Optional
 
+from cogs.battle import stamina_manager as _SM
 from cogs.battle.boss import boss_ai as ai
 from cogs.battle.boss import boss_copy as bcopy
 
@@ -31,19 +32,21 @@ from .story_avatar import AvatarLayer, Exchange
 
 log = logging.getLogger("beyblade_bot.story")
 
-# Story Mode runs a much smaller HP pool than boss_battle's BASE_PLAYER_HP
-# (4000). At 4000 the player's bar is ~50 turns deep against any statline a
-# story opponent can plausibly carry, so every fight hit the turn cap and no
-# opponent could ever actually threaten the player. A story stage is meant to
-# be a 12-25 turn fight you can lose, and that means both bars have to be
-# roughly the same depth. Avatar and level HP bonuses scale on top of this, so
-# they are proportionally MORE valuable here than in a boss fight, not less.
-BASE_PLAYER_HP = 1500
+# Story Mode runs a smaller HP pool than boss_battle's BASE_PLAYER_HP (4000).
+# At 4000 the player's bar is ~50 turns deep against any statline a story
+# opponent can plausibly carry, so every fight hit the turn cap and no opponent
+# could ever actually threaten the player. A story stage is meant to be a
+# 15-30 turn fight you can lose, and that means both bars have to be roughly
+# the same depth. Avatar and level HP bonuses scale on top of this, so they are
+# proportionally MORE valuable here than in a boss fight, not less.
+BASE_PLAYER_HP = 2000
 
 # Anti-stall. boss_ai's heal budget makes an infinite fight very unlikely, but
 # "very unlikely" is not "impossible", and a Discord view cannot run forever.
-# A fight that reaches this is a draw and pays nothing.
-TURN_CAP = 45
+# A fight that reaches this is a draw and pays nothing. Set well clear of the
+# ~30 turns a late-campaign stage actually takes: a cap that a legitimate fight
+# can reach turns a win the player earned into a draw that pays nothing.
+TURN_CAP = 55
 
 MOVE_LABELS = {
     ai.MOVE_ATTACK:  ("⚔️", "Attack"),
@@ -115,20 +118,49 @@ def build_player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
         from utils.loadout import effective_hp
         hp = effective_hp(user_id, hp, av)
 
+    # Stamina bar from the stamina stat, same derivation PvP uses, instead of a
+    # flat 10 for everyone. A stamina blade now carries a visibly deeper bar
+    # here too, and the stat keeps paying past the old flat ceiling.
+    eff_sta = sta * mult
+    sp_max = _SM.max_stamina_for(eff_sta)
+    sp_now = _SM.StaminaManager._initial_stamina(int(eff_sta), sp_max)
+
     fighter = ai.Fighter(
         name or "Unequipped", hp, hp,
-        atk * mult, dfn * mult, sta * mult, sp=10.0,
+        atk * mult, dfn * mult, eff_sta, sp=sp_now, sp_max=sp_max,
         dmg_mult=ai.type_damage_mult((blade or {}).get("type")),
+        special_mult=_special_mult(breakdown),
     )
     return fighter, (blade or {})
 
 
+def _special_mult(breakdown: dict) -> float:
+    """How far the bey's `special` stat has grown past its printed value.
+
+    effective_blade's breakdown already carries both numbers, so this needs no
+    second lookup. 1.0 for an unlevelled bey, which leaves Specials exactly as
+    they were.
+    """
+    spc = (breakdown or {}).get("special") or {}
+    base = float(spc.get("base", 0) or 0)
+    total = float(spc.get("total", 0) or 0)
+    if base <= 0 or total <= 0:
+        return 1.0
+    return max(1.0, total / base)
+
+
 def build_opponent(stage: dict) -> ai.Fighter:
-    """The stage's opponent. No BossState — story opponents have no gimmick."""
-    hp = float(stage["hp"])
+    """The stage's opponent, at its level.
+
+    Stats come from story_data.opponent_stats — archetype base scaled by the
+    stage's level — so a stage's difficulty is one number, not four. No
+    BossState: story opponents have no gimmick.
+    """
+    stats = stage.get("stats") or story_data.opponent_stats(stage)
+    hp = float(stats["hp"])
     return ai.Fighter(
         stage["name"], hp, hp,
-        float(stage["attack"]), float(stage["defense"]), float(stage["stamina"]),
+        float(stats["attack"]), float(stats["defense"]), float(stats["stamina"]),
         sp=10.0, is_boss=True,
         dmg_mult=ai.type_damage_mult(stage.get("type")),
     )
@@ -158,6 +190,17 @@ class StoryFight:
         self.npc = build_opponent(stage)
         self.avatar = AvatarLayer(_avatar_bonuses(user_id))
 
+        # ── Levels, both sides ───────────────────────────────────────────────
+        # The player's is not new — the bey's level already reaches the fighter
+        # through bey_levels.stats_at inside effective_blade, and the trainer
+        # level through get_stat_multiplier. Story Mode simply never showed it,
+        # so a player levelling up saw no acknowledgement anywhere. These read
+        # what is already applied; they do not apply anything themselves, which
+        # is what keeps the scaling from being counted twice.
+        self.npc_level = int(stage.get("level", 1))
+        self.bey_level = int((self.blade or {}).get("level", 1) or 1)
+        self.trainer_level = _trainer_level(user_id)
+
         self.model = ai.OpponentModel()
         self.rng = rng or random.Random()
         self.turn = 0
@@ -183,12 +226,23 @@ class StoryFight:
     def legal_moves(self) -> list[str]:
         return self.foe.legal_moves()
 
+    @property
+    def level_gap(self) -> int:
+        """Opponent level minus the player's bey level.
+
+        Positive means you are under-levelled for this stage — the one number
+        that tells a player 'go and level up' rather than 'try again harder'.
+        """
+        return self.npc_level - self.bey_level
+
     def state(self) -> dict:
         return {
             "npc_hp_pct":  self.npc.hp / self.npc.max_hp * 100,
             "foe_hp_pct":  self.foe.hp / self.foe.max_hp * 100,
             "turn":        self.turn,
             "foe_habit":   self.foe_habit(),
+            "npc_level":   self.npc_level,
+            "bey_level":   self.bey_level,
         }
 
     # ── The turn ─────────────────────────────────────────────────────────────
@@ -324,3 +378,13 @@ def _avatar_bonuses(user_id: int):
     except Exception as exc:                             # noqa: BLE001
         log.debug("avatar bonuses unavailable for %s: %s", user_id, exc)
         return None
+
+
+def _trainer_level(user_id: int) -> int:
+    """The player's trainer level. Never raises — display only."""
+    try:
+        from utils.database import get_user
+        return int(get_user(user_id).get("level", 0) or 0)
+    except Exception as exc:                             # noqa: BLE001
+        log.debug("trainer level unavailable for %s: %s", user_id, exc)
+        return 0

@@ -43,6 +43,7 @@ DEFENSE SYSTEM  (replaces old flat-mitigation approach)
 
 import math
 import random
+from typing import Optional
 
 from .constants import (
     MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_SPECIAL, MOVE_CHARGE,
@@ -142,16 +143,50 @@ def _grind_duration(def_stat: int) -> int:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def resolve_special(blade: dict) -> tuple[int, int, list[str], bool]:
+def special_scale(blade: dict, special_stat: Optional[float]) -> float:
+    """How much to multiply a blade's authored Special damage by.
+
+    Specials used to be a flat number out of beyblades.json, which meant the
+    `special` stat on every blade fed nothing in combat and levelling never
+    touched a Special. This is the hook that connects them: damage scales by
+    how far the blade's CURRENT special stat has grown past its printed one.
+
+    Returns exactly 1.0 when the stat is absent, unknown or still at its
+    printed value — so a level-1 blade deals precisely its authored damage and
+    nothing about the existing roster is rebalanced by this landing.
+    """
+    if special_stat is None:
+        return 1.0
+    try:
+        base = float((blade.get("stats") or {}).get("special") or 0.0)
+        now = float(special_stat)
+    except (TypeError, ValueError):
+        return 1.0
+    if base <= 0.0 or now <= 0.0:
+        return 1.0
+    # Never scale DOWN. A debuff that drops the stat below its printed value
+    # should not also retroactively weaken the authored Special.
+    return max(1.0, now / base)
+
+
+def resolve_special(blade: dict,
+                    special_stat: Optional[float] = None
+                    ) -> tuple[int, int, list[str], bool]:
     """Return (hits, damage_per_hit, flavour_texts, ignores_defense).
 
     Preserves multi-hit structure so the ability engine can apply per-hit
     modifiers (passives, rage stacks, ATK buffs, etc.) to each individual
     hit rather than a pre-collapsed total.
 
+    ``special_stat`` is the wielder's EFFECTIVE special stat — levelled, with
+    parts and avatar folded in. Pass it and the Special scales with it; omit it
+    and you get the authored damage unchanged. `blade` must carry its PRINTED
+    stats for the ratio to mean anything, which is what session.blades holds.
+
     ``ignores_defense`` is True when the special_move block carries
     ``"ignores_defense": true`` (e.g. Xcalibur Dragon Cleave).
     """
+    scale = special_scale(blade, special_stat)
     sm = blade.get("special_move")
     if sm:
         hits = sm.get("hits", 1)
@@ -173,6 +208,10 @@ def resolve_special(blade: dict) -> tuple[int, int, list[str], bool]:
                     per_hit = int(raw_per_hit)
                 except (TypeError, ValueError):
                     per_hit = 25
+        # Applied here, before the flavour text is built, so an auto-generated
+        # line quotes the damage the hit will actually deal.
+        if scale > 1.0:
+            per_hit = max(1, math.ceil(per_hit * scale))
         # Accept both "flavour_texts" (list) and "flavour_text" (str, legacy)
         flavour = sm.get("flavour_texts") or sm.get("flavour_text")
         if isinstance(flavour, str):
@@ -186,7 +225,7 @@ def resolve_special(blade: dict) -> tuple[int, int, list[str], bool]:
     # rather than hardcoded: it used to be a flat 360, which was 60% of the
     # old 600 HP bar and became 9% of the 4000 one — a blade with missing
     # special data silently lost its Special the moment HP was rescaled.
-    fallback = max(5, math.ceil(BASE_HP * SPECIAL_FALLBACK_HP_FRACTION))
+    fallback = max(5, math.ceil(BASE_HP * SPECIAL_FALLBACK_HP_FRACTION * scale))
     return 1, fallback, [f"🌟 Special move deals **{fallback} damage**!"], False
 
 

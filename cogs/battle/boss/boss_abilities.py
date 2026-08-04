@@ -362,7 +362,8 @@ NEMESIS = {
     "difficulty": "legend",
     "persona":    ("an ancient divine arbiter who speaks in verdicts, not threats; "
                    "utterly certain, never raises its voice"),
-    "hp":         1600,
+    # Endgame wall — see BOSSES["nemesis"]["hp_cap"] in boss_battle.
+    "hp":         10000,
     "attack":     146,
     "defense":    165,
     "stamina":    130,

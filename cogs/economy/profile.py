@@ -143,6 +143,39 @@ def _beypedia_hp_bar(blade: dict, bar_len: int = 14) -> str:
     return f"`{bar}` **{hp}**"
 
 
+def _with_viewer_level(user_id, blade: dict) -> dict:
+    """A copy of `blade` at the level THIS viewer has raised it to.
+
+    `;info <name>` used to render the raw species entry, so a bey the player had
+    levelled to 60 showed its printed level-1 stats and no level at all. This
+    attaches both, using the same bey_levels helpers loadout.effective_blade
+    uses, so the two surfaces agree.
+
+    Parts and avatar are deliberately NOT folded in: those belong to whatever
+    blade is currently equipped, and this one may not be it.
+
+    Never raises — a lookup must not fail because a profile is malformed.
+    """
+    try:
+        from utils import bey_levels as _BL
+        name = blade.get("name")
+        if not name:
+            return blade
+        profile = get_user(user_id)
+        entry = (profile.get("bey_progress") or {}).get(str(name))
+        if not entry:
+            return blade                      # never raised → no level to show
+        level = _BL.level_from_xp(int(entry.get("xp", 0)))
+        if level <= 1:
+            return blade
+        out = dict(blade)
+        out["stats"] = _BL.stats_at(blade, level, entry.get("ivs"))
+        out["level"] = level
+        return out
+    except Exception:                                # noqa: BLE001
+        return blade
+
+
 def _viewer_parts(user_id) -> dict:
     """The viewer's equipped ratchet/bit for the card's parts strip.
 
@@ -288,12 +321,20 @@ def build_profile_embed(
     embed.add_field(name="─────────────────────────────", value="", inline=False)
 
     # ── Active blade ───────────────────────────────────────────────────────
+    # The bey's own level, set by loadout.effective_blade. Distinct from the
+    # trainer level shown above, hence the explicit "Bey Level" label.
+    try:
+        _bey_level = int(active_blade.get("level") or 0)
+    except (TypeError, ValueError):
+        _bey_level = 0
+
     embed.add_field(
         name  = f"{r_emoji} Active Beyblade",
         value = (
             f"### {active_blade['name']}\n"
             f"{r_banner}\n"
             f"{t_emoji} **Type:** {btype}"
+            + (f"　·　🌀 **Bey Level:** {_bey_level}" if _bey_level > 0 else "")
         ),
         inline=False,
     )
@@ -520,8 +561,16 @@ def build_beypedia_embed(blade: dict) -> discord.Embed:
     r_emoji  = RARITY_EMOJIS.get(rarity, "⚪")
     t_emoji  = TYPE_EMOJIS.get(btype, "⚖️")
 
+    # Level is present only when the blade came through loadout.effective_blade
+    # (i.e. it is a player's own bey); a bare species lookup has none.
+    try:
+        _bey_level = int(blade.get("level") or 0)
+    except (TypeError, ValueError):
+        _bey_level = 0
+
     embed = discord.Embed(
-        title = f"📚 Beypedia: {blade['name']}",
+        title = (f"📚 Beypedia: {blade['name']}"
+                 + (f"  •  Lv {_bey_level}" if _bey_level > 0 else "")),
         color = _rarity_color(rarity),
     )
 
@@ -920,6 +969,13 @@ class ProfileCog(commands.Cog, name="Profile"):
                 pass
 
             blade = fuzzy_find_beyblade(name)
+            if blade is not None:
+                # Show the VIEWER's copy of this bey, not the species sheet:
+                # if they have levelled it, the card should say so and quote the
+                # levelled stats. effective_blade can't be reused here — it
+                # gates levelling behind include_parts, and this blade may not
+                # be the one their parts are equipped to.
+                blade = _with_viewer_level(ctx.author.id, blade)
             if blade is None:
                 # Boss-only blades aren't in beyblades.json — that absence is
                 # what keeps them out of ;list, spawns, the shop, boosters, the

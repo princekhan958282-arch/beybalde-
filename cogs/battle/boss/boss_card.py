@@ -142,6 +142,78 @@ def build_html(state: dict) -> str:
 </div></body></html>"""
 
 
+def build_lobby_html(state: dict) -> str:
+    """The PRE-fight card: roster preview and party lobby.
+
+    `;boss` used to open on a bare dropdown and `;boss <name>` on a plain
+    embed — the only boss surfaces with no artwork, while ;bossinfo and ;info
+    both had full cards. This is the same visual language as the battle card
+    (same width, same palette keys) so the two read as one screen before and
+    during the fight.
+    """
+    accent = state.get("accent", "#c77dff")
+    glow   = state.get("glow", "#6a0dad")
+    tint   = state.get("tint", "#140a1e")
+
+    art = state.get("art_src") or ""
+    art_html = (f'<img class="art" src="{art}" alt="">' if art
+                else '<div class="art noart"></div>')
+
+    stats_html = "".join(
+        f'<div class="srow"><span class="slabel">{_esc(k)}</span>'
+        f'<span class="sval">{_esc(v)}</span></div>'
+        for k, v in state.get("stats", []))
+
+    party = state.get("party") or []
+    party_html = ""
+    if party:
+        party_html = (
+            f'<div class="sect">Party ({len(party)}/{state.get("max_party", 4)})</div>'
+            + "".join(f'<div class="pline">• {_esc(p)}</div>' for p in party))
+
+    blurb = (f'<div class="blurb">{_esc(state["blurb"])}</div>'
+             if state.get("blurb") else "")
+    footer = (f'<div class="foot">{_esc(state["footer"])}</div>'
+              if state.get("footer") else "")
+
+    return f"""<!doctype html><html><head><meta charset="utf-8">
+<style>
+  *{{box-sizing:border-box;margin:0;padding:0}}
+  body{{background:transparent;font-family:'DejaVu Sans',system-ui,sans-serif}}
+  .card{{width:{CARD_WIDTH}px;background:linear-gradient(160deg,{tint},#05070c 72%);
+        border:1px solid {accent}55;border-radius:18px;padding:22px 22px 18px;
+        color:#e8ecf4;box-shadow:0 0 46px {glow}33 inset;text-align:center}}
+  .art{{width:150px;height:150px;border-radius:50%;object-fit:cover;
+       border:3px solid {accent};box-shadow:0 0 30px {glow}}}
+  .noart{{background:#11151f;display:inline-block}}
+  .bname{{margin-top:14px;font-size:32px;font-weight:800;letter-spacing:.4px;
+         color:#fff;text-shadow:0 0 20px {glow}}}
+  .tag{{display:inline-block;margin-top:8px;padding:4px 16px;border-radius:999px;
+       background:{accent}22;border:1.5px solid {accent}88;color:{accent};
+       font-size:12px;letter-spacing:1.8px;text-transform:uppercase;font-weight:700}}
+  .blurb{{margin-top:12px;font-size:13px;font-style:italic;color:#c9d3e4}}
+  .stats{{margin-top:16px;text-align:left}}
+  .srow{{display:flex;justify-content:space-between;padding:6px 2px;
+        border-bottom:1px solid #161b26;font-size:13px}}
+  .srow:last-child{{border-bottom:none}}
+  .slabel{{color:#8d99ad;letter-spacing:.4px}}
+  .sval{{color:#e8ecf4;font-weight:700}}
+  .sect{{margin-top:16px;text-align:left;font-size:11px;letter-spacing:1.6px;
+        color:{accent};text-transform:uppercase}}
+  .pline{{text-align:left;font-size:13px;color:#dce3ef;padding:3px 2px}}
+  .foot{{margin-top:14px;font-size:10.5px;color:#5d6a7a;letter-spacing:.6px}}
+</style></head><body>
+<div class="card">
+  {art_html}
+  <div class="bname">{_esc(state.get("boss_name", ""))}</div>
+  <div class="tag">{_esc(state.get("tier", "boss"))}</div>
+  {blurb}
+  <div class="stats">{stats_html}</div>
+  {party_html}
+  {footer}
+</div></body></html>"""
+
+
 _context = None
 _lock = None
 
@@ -184,9 +256,37 @@ async def _get_context():
 
 
 async def render(state: dict) -> Optional[io.BytesIO]:
-    """PNG bytes, or None if rendering isn't available. Never raises."""
+    """The in-fight card. PNG bytes, or None. Never raises."""
+    buf = await _shoot(build_html(state))
+    if buf is not None:
+        return buf
+    # Chromium unavailable or timed out — draw it with Pillow rather than
+    # dropping the card entirely, which is what used to happen.
+    return _pillow("render_battle_pillow", state)
+
+
+async def render_lobby(state: dict) -> Optional[io.BytesIO]:
+    """The pre-fight roster / lobby card. PNG bytes, or None. Never raises."""
+    buf = await _shoot(build_lobby_html(state))
+    if buf is not None:
+        return buf
+    return _pillow("render_lobby_pillow", state)
+
+
+def _pillow(fn_name: str, state: dict) -> Optional[io.BytesIO]:
+    """Call into the Pillow fallback. Never raises; None means 'use the embed'."""
     try:
-        html = build_html(state)
+        from . import boss_card_pillow
+        return getattr(boss_card_pillow, fn_name)(state)
+    except Exception as exc:                         # noqa: BLE001
+        log.debug(f"[boss_card] pillow fallback failed: "
+                  f"{type(exc).__name__}: {exc}")
+        return None
+
+
+async def _shoot(html: str) -> Optional[io.BytesIO]:
+    """Screenshot `.card` out of `html` via the shared browser."""
+    try:
         ctx = await _get_context()
         page = await ctx.new_page()
         try:

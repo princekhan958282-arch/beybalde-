@@ -69,6 +69,25 @@ def stats_of(profile: dict) -> dict:
     return {"wins": int(s.get("wins", 0)), "losses": int(s.get("losses", 0))}
 
 
+def _bey_level_of(profile: dict) -> int:
+    """The equipped bey's level, for comparing against a stage's level.
+
+    Reads the same bey_progress row bey_levels uses, so the number shown here
+    is the one that actually reached the fighter through effective_blade. An
+    equipped boss copy has no progress row and does not level — it reads as 1.
+    """
+    try:
+        name = profile.get("active_beyblade")
+        if not name or profile.get("active_copy"):
+            return 1
+        entry = (profile.get("bey_progress") or {}).get(str(name))
+        if not entry:
+            return 1
+        return int(_BL.level_from_xp(int(entry.get("xp", 0))))
+    except Exception:                                    # noqa: BLE001
+        return 1
+
+
 def _bar(cur: float, mx: float, width: int = 10) -> str:
     filled = max(0, min(width, int(round((cur / mx) * width)))) if mx else 0
     return "█" * filled + "░" * (width - filled)
@@ -82,7 +101,8 @@ def _stage_line(st: dict, cleared: set[str]) -> str:
     else:
         mark = "🔒"
     boss = " 👑" if st.get("boss") else ""
-    return (f"{mark} **{st['id']}** {st['emoji']} {st['name']}{boss}\n"
+    return (f"{mark} **{st['id']}** {st['emoji']} {st['name']}"
+            f"  `Lv {st['level']}`{boss}\n"
             f"　*{st['blurb']}*")
 
 
@@ -162,14 +182,14 @@ class StoryFightView(discord.ui.View):
             color=st["colour"],
         )
         e.add_field(
-            name=f"{st['emoji']} {st['name']}",
+            name=f"{st['emoji']} {st['name']}  `Lv {f.npc_level}`",
             value=(f"`{_bar(f.npc.hp, f.npc.max_hp)}` {f.npc.hp:.0f}\n"
                    f"🌀 {int(f.npc.gauge)}/{ai.SPECIAL_GAUGE_MAX} · "
                    f"💨 {f.npc.sp:.1f}"),
             inline=True,
         )
         e.add_field(
-            name=f"🌀 {f.foe.name}",
+            name=f"🌀 {f.foe.name}  `Lv {f.bey_level}`",
             value=(f"`{_bar(f.foe.hp, f.foe.max_hp)}` {f.foe.hp:.0f}\n"
                    f"🌀 {int(f.foe.gauge)}/{ai.SPECIAL_GAUGE_MAX} · "
                    f"💨 {f.foe.sp:.1f}"),
@@ -185,7 +205,10 @@ class StoryFightView(discord.ui.View):
         if f.finished:
             e.add_field(name="Result", value=RESULT_TEXT[f.result], inline=False)
 
-        foot = f"Turn {f.turn} · difficulty: {f.difficulty}"
+        foot = (f"Turn {f.turn} · difficulty: {f.difficulty} · "
+                f"Trainer Lv {f.trainer_level}")
+        if f.level_gap > 0:
+            foot += f" · ⚠️ {f.level_gap} levels under"
         if not f.avatar_active:
             foot += " · no avatar equipped (;avatarshop)"
         e.set_footer(text=foot)
@@ -487,11 +510,22 @@ class StoryCog(commands.Cog, name="Story"):
                     inline=True)
         e.add_field(name="Difficulty", value=st["difficulty"].title(), inline=True)
         e.add_field(name="Type", value=st["type"].title(), inline=True)
+
+        stats = st["stats"]
+        bey_level = _bey_level_of(profile)
         e.add_field(
-            name="Opponent",
-            value=(f"❤️ {st['hp']:,} HP\n"
-                   f"⚔️ {st['attack']} ATK · 🛡️ {st['defense']} DEF · "
-                   f"🌀 {st['stamina']} STA"),
+            name=f"Opponent — Level {st['level']}",
+            value=(f"❤️ {stats['hp']:,} HP\n"
+                   f"⚔️ {stats['attack']} ATK · 🛡️ {stats['defense']} DEF · "
+                   f"🌀 {stats['stamina']} STA"),
+            inline=False,
+        )
+        gap = st["level"] - bey_level
+        e.add_field(
+            name="Your blade",
+            value=(f"Lv {bey_level}"
+                   + (f" — ⚠️ **{gap} levels under**, expect a hard fight"
+                      if gap > 0 else " — level advantage 👍")),
             inline=False,
         )
         r = st["reward"]
@@ -535,12 +569,23 @@ class StoryCog(commands.Cog, name="Story"):
                            + (f" · {stats['wins'] / played:.0%} win rate"
                               if played else "")),
                     inline=False)
+        bey_level = _bey_level_of(profile)
+        e.add_field(
+            name="Levels",
+            value=(f"🌀 Blade **Lv {bey_level}**"
+                   f"　·　⭐ Trainer **Lv {int(profile.get('level', 0) or 0)}**"),
+            inline=False)
         nxt = story_data.first_uncleared(cleared)
         if nxt:
             nst = story_data.stage(nxt)
+            gap = nst["level"] - bey_level
             e.add_field(name="▶️ Up next",
-                        value=f"**{nxt}** {nst['emoji']} {nst['name']} — "
-                              f"`;story {nxt}`", inline=False)
+                        value=(f"**{nxt}** {nst['emoji']} {nst['name']} "
+                               f"`Lv {nst['level']}` — `;story {nxt}`"
+                               + (f"\n⚠️ You are **{gap} levels under** — "
+                                  f"battles and `;story` replays both level "
+                                  f"your blade." if gap > 0 else "")),
+                        inline=False)
         else:
             e.add_field(name="👑 Complete", value="Every stage cleared.",
                         inline=False)

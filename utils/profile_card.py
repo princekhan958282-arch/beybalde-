@@ -365,13 +365,29 @@ def _loadout(img, draw, x, y, w, h, blade):
     nf = _fit_text(draw, name, w - 40, 34, floor=19)
     _centre(draw, name, nf, cx, ny, TEXT)
 
-    # rarity + type chips, centred as a pair
+    # rarity + type + level chips, centred as a group.
+    # The level comes from loadout.effective_blade, so it is present whenever
+    # the card is showing a player's own bey. The header's LV chip is the
+    # TRAINER level — a different number — so this one is labelled "BEY LV" to
+    # keep the two from being read as the same thing.
     f = _font(19)
+    try:
+        bey_level = int(blade.get("level") or 0)
+    except (TypeError, ValueError):
+        bey_level = 0
+    lvl_txt = f"BEY LV {bey_level}" if bey_level > 0 else ""
+
     rw = _text_w(draw, str(rarity).upper(), f) + 22
     tw = _text_w(draw, str(btype).upper(), f) + 22
-    start = cx - (rw + 10 + tw) // 2
+    lw = (_text_w(draw, lvl_txt, f) + 22) if lvl_txt else 0
+    gap = 10
+    total = rw + gap + tw + ((gap + lw) if lvl_txt else 0)
+    start = cx - total // 2
     _chip(img, draw, start, ny + 44, str(rarity).upper(), col, 19)
-    _chip(img, draw, start + rw + 10, ny + 44, str(btype).upper(), (147, 197, 253), 19)
+    _chip(img, draw, start + rw + gap, ny + 44, str(btype).upper(), (147, 197, 253), 19)
+    if lvl_txt:
+        _chip(img, draw, start + rw + gap + tw + gap, ny + 44, lvl_txt,
+              (253, 224, 71), 19)
 
     # stat bars
     stats = blade.get("stats", {}) or {}

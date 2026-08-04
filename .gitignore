@@ -11,6 +11,12 @@ data/tournaments.db-wal
 data/tournaments.db-shm
 data/*.backup.*.json
 
+# Auto-updater: which commit is installed, and the files it replaced.
+# Host-local state — must never travel in the repo or an update would
+# overwrite the record of what is actually installed.
+.update_state.json
+.update_backup/
+
 # Python
 __pycache__/
 *.pyc
