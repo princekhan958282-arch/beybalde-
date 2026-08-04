@@ -45,13 +45,21 @@ MYSQL_URL = ""
 # only ever downloads.
 GITHUB_TOKEN = ""
 
-# Optional. Which repo and branch to track. Defaults: the repo this code ships
-# from, and the "main" branch.
+# Optional. Which repo to pull from. Leave blank and it uses the repo this
+# code ships from, which is almost certainly what you want.
 #
-# ⚠️  SET GITHUB_BRANCH if your code lives on a branch that hasn't been merged
-#     into main yet, or the updater will track main and try to install whatever
-#     is there instead. (The updater refuses any download with no app.py in it,
-#     so a near-empty main can't wipe your install — but it also means nothing
-#     will ever update until you point this at the right branch.)
+# If you do set it, paste the link in whatever form you have it — the browser
+# URL, the clone link, or just owner/repo. All of these work:
+#     princekhan958282-arch/beybalde-
+#     https://github.com/princekhan958282-arch/beybalde-
+#     https://github.com/princekhan958282-arch/beybalde-.git
+#     git@github.com:princekhan958282-arch/beybalde-.git
 GITHUB_REPO = ""
+
+# Which branch to track. Defaults to "main".
+#
+# ⚠️  SET THIS if your code lives on a branch that hasn't been merged into main
+#     yet, or the updater tracks main and installs whatever is there instead.
+#     (Any download with no app.py in it is refused, so a near-empty main can't
+#     wipe your install — but nothing will ever update either.)
 GITHUB_BRANCH = ""

@@ -142,6 +142,44 @@ def _cfg(name: str, default: str = "") -> str:
         return (os.environ.get(name) or default).strip()
 
 
+def normalise_repo(value: str) -> str:
+    """Accept whatever form of 'the repo' someone pastes, return `owner/repo`.
+
+    The API wants `owner/repo`, but nobody has that on their clipboard — what
+    you copy off GitHub is a URL, and what a panel asks for is usually the
+    clone link. Pasting either used to produce a 404 that read like a
+    permissions problem, so all the usual shapes are accepted:
+
+        princekhan958282-arch/beybalde-
+        https://github.com/princekhan958282-arch/beybalde-
+        https://github.com/princekhan958282-arch/beybalde-.git
+        git@github.com:princekhan958282-arch/beybalde-.git
+        github.com/princekhan958282-arch/beybalde-/tree/main
+    """
+    v = (value or "").strip().strip("<>").rstrip("/")
+    if not v:
+        return ""
+    if v.startswith("git@"):                       # scp-style clone URL
+        v = v.split(":", 1)[-1]
+    for prefix in ("https://", "http://", "ssh://", "git://"):
+        if v.startswith(prefix):
+            v = v[len(prefix):]
+            break
+    if v.startswith("www."):
+        v = v[4:]
+    if v.startswith("github.com/"):
+        v = v[len("github.com/"):]
+    if v.endswith(".git"):
+        v = v[:-4]
+    parts = [p for p in v.split("/") if p]
+    if len(parts) < 2:
+        return v                                   # let the caller 404 on it
+    # Trim anything after owner/repo — /tree/main, /blob/..., ?query, #frag
+    owner, repo = parts[0], parts[1]
+    repo = repo.split("?")[0].split("#")[0]
+    return f"{owner}/{repo}"
+
+
 # ── github ───────────────────────────────────────────────────────────────────
 
 def _request(url: str, token: str, accept: str) -> bytes:
@@ -305,7 +343,7 @@ def check_and_apply() -> None:
         log.info("[update] disabled (%s=0)", _OPT_OUT)
         return
 
-    repo = _cfg("GITHUB_REPO", DEFAULT_REPO)
+    repo = normalise_repo(_cfg("GITHUB_REPO", DEFAULT_REPO)) or DEFAULT_REPO
     branch = _cfg("GITHUB_BRANCH", DEFAULT_BRANCH)
     token = _cfg("GITHUB_TOKEN")
 
