@@ -6,6 +6,9 @@ config_local.py
 data/users.db
 data/users.db-wal
 data/users.db-shm
+data/tournaments.db
+data/tournaments.db-wal
+data/tournaments.db-shm
 data/*.backup.*.json
 
 # Python

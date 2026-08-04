@@ -271,6 +271,9 @@ def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
     # the raw blade, so equipping either changed nothing here — a player could
     # kit out completely and see no difference against a boss.
     av = None
+    # Bound before the branch: the else path below reads _breakdown, so a player
+    # with neither an equipped blade nor a copy raised UnboundLocalError here.
+    _breakdown: dict = {}
     if blade:
         from utils.loadout import effective_blade
         blade, _breakdown, av = effective_blade(

@@ -7,6 +7,7 @@ CATEGORIES = {
     "start":       {"emoji": "🌟",  "color": 0x2ECC71, "label": "Getting Started"},
     "clans":       {"emoji": "🛡️",  "color": 0x9B59B6, "label": "Clans"},
     "mastery":     {"emoji": "🔰",  "color": 0x1ABC9C, "label": "Mastery & Badges"},
+    "story":       {"emoji": "📖",  "color": 0x3498DB, "label": "Story Mode"},
     "boss":        {"emoji": "👹",  "color": 0x8E44AD, "label": "Boss Battles"},
     "battle":      {"emoji": "⚔️",  "color": 0x7B68EE, "label": "Battle"},
     "marketplace": {"emoji": "🛒",  "color": 0x9B59B6, "label": "Marketplace"},
@@ -136,6 +137,14 @@ PRO_TIPS = {
 
 # ── Static command data (mirrors the React preview) ────────────────────────────
 COMMAND_DATA = {
+    "story": [
+        (";story",             "📖 Pick a Story Mode stage and fight it"),
+        (";story <stage>",     "Jump straight in, e.g. `;story 1-2` or `;story kenta`"),
+        (";storymap",          "Every chapter, every stage, and how far you've got"),
+        (";storyinfo <stage>", "Opponent stats, rewards and whether it's unlocked"),
+        (";storystats",        "Your Story Mode record and next unlock"),
+        ("/story play",        "The same thing as a slash command, with autocomplete"),
+    ],
     "battle": [
         (";battle @user",   "Challenge another blader to a 1v1 match"),
         (";battlestats",    "View your full battle history & win/loss record"),
@@ -276,7 +285,7 @@ def build_main_embed() -> discord.Embed:
             "Select a category below to see its commands.\n"
             "You can also type `;help <category>` directly.\n\n"
             "**New here? Run `;start`.**\n\n"
-            "**Categories:** start · clans · boss · mastery · battle · marketplace · shop · "
+            "**Categories:** start · story · clans · boss · mastery · battle · marketplace · shop · "
             "leaderboard · boosters · spawncog · casino · avatar\n"
             "**Advanced:** ;help moves · ;help matchups · ;help tips"
         ),
@@ -552,7 +561,7 @@ class HelpCog(commands.Cog):
         else:
             await ctx.send(
                 f"❌ Unknown help topic: `{args[0]}`\n"
-                f"Available: **battle** · **marketplace** · **shop** · **leaderboard** · **boosters** · **spawncog** · **casino** · **avatar** · **moves** · **matchups** · **tips**"
+                f"Available: **story** · **battle** · **marketplace** · **shop** · **leaderboard** · **boosters** · **spawncog** · **casino** · **avatar** · **moves** · **matchups** · **tips**"
             )
 
 async def setup(bot: commands.Bot):

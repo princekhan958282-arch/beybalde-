@@ -117,6 +117,7 @@ COGS = [
     "cogs.economy.wallet_card",
     "cogs.codes.redeem",
     "cogs.battle.boss.boss_battle",
+    "cogs.story",            # solo chapter/stage campaign
     "cogs.clans.clan",
     "cogs.clans.clan_war",
     "cogs.extras.mastery",
