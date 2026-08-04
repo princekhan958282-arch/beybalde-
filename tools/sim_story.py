@@ -25,6 +25,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from cogs.avatar import avatar_engine                      # noqa: E402
+from cogs.battle import stamina_manager as _SM             # noqa: E402
 from cogs.battle.boss import boss_ai as ai                 # noqa: E402
 from cogs.story import story_data, story_engine            # noqa: E402
 
@@ -69,7 +70,13 @@ def _install_stubs() -> None:
         dfn = float(av.apply_defence_bonus(BASE_DEF))
         sta = float(av.apply_stamina_bonus(BASE_STA))
         hp = float(av.apply_hp_bonus(BASE_HP))
-        return ai.Fighter("SimBlade", hp, hp, atk, dfn, sta, sp=10.0,
+        # Stamina bar derived from the stat, mirroring the real builder — the
+        # flat sp=10.0 this used to pass stopped matching once bars became
+        # per-bey, and would have hidden the change from every fight here.
+        sp_max = _SM.max_stamina_for(sta)
+        return ai.Fighter("SimBlade", hp, hp, atk, dfn, sta,
+                          sp=_SM.StaminaManager._initial_stamina(int(sta), sp_max),
+                          sp_max=sp_max,
                           dmg_mult=ai.type_damage_mult("balance")), {}
 
     story_engine.build_player_fighter = _player
