@@ -163,10 +163,20 @@ BOSSES = {
         "difficulty": dk.DRAKOS["difficulty"],
         "persona":    dk.DRAKOS["persona"],
         "hp":         dk.DRAKOS["hp"],
-        # Ceiling on party scaling. At +100% per extra player a 4-player Drakos
-        # was 5,000 HP and unbounded beyond that, which turns the fight into an
-        # attrition slog rather than a harder fight.
-        "hp_cap":     4200,
+        # Ceiling on party scaling. At +100% per extra player a 4-player boss is
+        # unbounded, which turns the fight into an attrition slog rather than a
+        # harder fight.
+        #
+        # Raised with the base HP. This cap MUST stay above cfg["hp"] or
+        # scaled_boss_hp clamps a SOLO boss straight back down and the base
+        # value silently does nothing — at the old 4,200 a 10,000 HP Drakos
+        # would have fought as a 4,200 HP one.
+        #
+        # On 10,000 itself: a base-stats player deals roughly 50 damage a turn,
+        # so this is a ~200-turn fight and effectively unwinnable. A level-100
+        # player with the raised STAT_CAP deals about five times that and lands
+        # it near 40 turns. This is deliberately endgame content.
+        "hp_cap":     25000,
         "attack":     dk.DRAKOS["attack"],
         "defense":    dk.DRAKOS["defense"],
         "stamina":    dk.DRAKOS["stamina"],
@@ -182,10 +192,10 @@ BOSSES = {
         "difficulty": ab.NEMESIS["difficulty"],
         "persona":    ab.NEMESIS["persona"],
         "hp":         ab.NEMESIS["hp"],
-        # Party scaling doubles HP per extra player, so 4p was 6,400 — a wall
-        # that made the fight longer rather than harder, on top of NEMESIS
-        # already being the boss nobody could beat. Capped like Drakos.
-        "hp_cap":     4800,
+        # Party scaling doubles HP per extra player, so this has to be capped
+        # like Drakos — and, like Drakos, the cap has to sit above the base HP
+        # or a solo NEMESIS is clamped back down to it.
+        "hp_cap":     28000,
         "attack":     ab.NEMESIS["attack"],
         "defense":    ab.NEMESIS["defense"],
         "stamina":    ab.NEMESIS["stamina"],
