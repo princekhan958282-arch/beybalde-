@@ -1,0 +1,9 @@
+# 2.6+ required for Components V2 (ui.LayoutView / Container / TextDisplay).
+# cogs/tournament/ui_v2.py falls back to embeds below 2.6, so the bot still
+# runs on 2.3 — it just draws the flatter card.
+discord.py>=2.6.0
+python-dotenv==1.0.1
+playwright>=1.40.0
+audioop-lts
+pillow
+PyMySQL==1.1.1

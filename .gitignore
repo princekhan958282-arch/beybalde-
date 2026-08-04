@@ -1,0 +1,17 @@
+# Secrets — never commit these
+.env
+config_local.py
+
+# Data
+data/users.db
+data/users.db-wal
+data/users.db-shm
+data/tournaments.db
+data/tournaments.db-wal
+data/tournaments.db-shm
+data/*.backup.*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
