@@ -367,6 +367,16 @@ def build_html(blade: dict, parts: Optional[dict] = None) -> str:
     abils  = _collect_abilities(blade)
     n_ab   = len(abils)
 
+    # `level` is set by loadout.effective_blade, so it is present when the card
+    # is rendering a PLAYER's bey and absent for a bare species lookup. Only
+    # showing it when it exists keeps the card from claiming a level that the
+    # viewer does not actually have on that blade.
+    try:
+        _lvl = int(blade.get("level") or 0)
+    except (TypeError, ValueError):
+        _lvl = 0
+    level_pill = f'<div class="lvl-pill">LV {_lvl}</div>' if _lvl > 0 else ""
+
     # Type scale steps down as the ability list grows — this is the whole
     # "auto adjust for 1 / 2 / 3" behaviour.
     ab_name_size = {0: 21, 1: 22, 2: 21, 3: 19}[n_ab]
@@ -478,6 +488,17 @@ def build_html(blade: dict, parts: Optional[dict] = None) -> str:
   }}
   .spin-icon {{ font-size:23px; line-height:1; }}
   .badge.spin {{ color: var(--text); }}
+
+  /* Bey level. Only rendered when the blade carries one — a species lookup
+     has no level, and printing "LV 1" there would be a lie. */
+  .lvl-pill {{
+    display:inline-block; margin-top: 10px;
+    padding: 7px 20px; border-radius: 999px;
+    border: 2px solid var(--accent);
+    background: rgba(0,0,0,.45);
+    font-size: 22px; font-weight: 900; letter-spacing: 1.4px;
+    color: var(--accent);
+  }}
 
   /* ── Art ────────────────────────────────────────────────────── */
   .art {{
@@ -655,6 +676,7 @@ def build_html(blade: dict, parts: Optional[dict] = None) -> str:
 
     <div class="name" id="bname">{_esc(blade.get('name', 'Unknown'))}</div>
     <div class="type-pill">{_esc(_TYPE_LABEL.get(btype, str(btype).upper() + ' TYPE'))}</div>
+    {level_pill}
     {booster}
 
     <section class="parts-wrap">
