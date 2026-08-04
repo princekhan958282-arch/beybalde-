@@ -249,17 +249,27 @@ def head_commit(repo: str, branch: str, token: str) -> Optional[dict]:
             "date": data.get("commit", {}).get("committer", {}).get("date", ""),
         }
     except urllib.error.HTTPError as exc:
-        if exc.code in (401, 403):
-            log.error("[update] GitHub rejected the token (HTTP %s). A private "
-                      "repo needs GITHUB_TOKEN with read-only Contents access.",
-                      exc.code)
+        # The reason is recorded as well as logged, so ;version can name it on
+        # a host whose console you can't read.
+        if exc.code == 401:
+            detail = ("token rejected (401) — most likely EXPIRED. "
+                      "Fine-grained tokens default to 30 days; generate a new "
+                      "one and update GITHUB_TOKEN.")
+        elif exc.code == 403:
+            detail = ("token refused (403) — it can reach GitHub but not this "
+                      "repo. Check it has Contents: Read-only and lists "
+                      f"{repo} under 'Only select repositories'.")
         elif exc.code == 404:
-            log.error("[update] %s@%s not found — check GITHUB_REPO/GITHUB_BRANCH, "
-                      "or the token can't see this repo.", repo, branch)
+            detail = (f"{repo}@{branch} not found — check GITHUB_REPO and "
+                      f"GITHUB_BRANCH, or the token can't see this repo.")
         else:
-            log.error("[update] GitHub error HTTP %s", exc.code)
+            detail = f"GitHub returned HTTP {exc.code}"
+        log.error("[update] %s", detail)
+        _record_attempt("failed", detail)
     except Exception as exc:                         # noqa: BLE001
-        log.error("[update] couldn't reach GitHub: %s", exc)
+        detail = f"couldn't reach GitHub: {type(exc).__name__}: {exc}"
+        log.error("[update] %s", detail)
+        _record_attempt("failed", detail)
     return None
 
 
@@ -402,7 +412,12 @@ def check_and_apply() -> None:
     head = head_commit(repo, branch, token)
     if not head or not head.get("sha"):
         log.warning("[update] could not read the branch head — keeping current files.")
-        _record_attempt("failed", f"could not read {repo}@{branch} — see console")
+        # head_commit() already recorded WHY on every failure path it has, and
+        # those reasons are far more useful than a generic one — don't overwrite
+        # them. Only the "answered, but with no sha" case reaches here unrecorded.
+        if head is not None:
+            _record_attempt("failed",
+                            f"{repo}@{branch} returned no commit sha")
         return
 
     state = _read_state()

@@ -34,15 +34,26 @@ MYSQL_URL = ""
 # starts, so you stop re-uploading zips. Leave blank to turn the whole thing
 # off — with no token the updater logs one line and does nothing.
 #
-# The repo is private, so you need a token:
+# The repo is private, so you need a token. Sign in as the account that OWNS
+# the repo, then:
+#
 #   1. github.com  →  Settings  →  Developer settings
 #                  →  Personal access tokens  →  Fine-grained tokens
-#   2. "Generate new token", pick ONLY the beybalde- repository
-#   3. Repository permissions  →  Contents: Read-only          ← nothing else
-#   4. Generate, copy the github_pat_... string, paste it below
+#   2. "Generate new token"
+#   3. Expiration      →  pick a long one, or "No expiration".
+#                         The default is 30 days, and when it lapses the bot
+#                         just stops updating — ;version will say "failed",
+#                         and this is the reason nine times out of ten.
+#   4. Resource owner  →  the account that owns beybalde-
+#   5. Repository access → "Only select repositories" → tick beybalde-
+#   6. Repository permissions → Contents: Read-only
+#         GitHub adds "Metadata: Read-only" by itself and will NOT let you
+#         remove it. That is expected — leave it. Contents is the only one
+#         you set yourself.
+#   7. "Generate token", copy the github_pat_... string, paste it below
 #
-# Read-only Contents is all it needs. Do not give it write access: this token
-# only ever downloads.
+# Read-only is all it needs: this token only ever downloads. Never give it
+# write access — anything that can push to the repo can run code on your host.
 GITHUB_TOKEN = ""
 
 # Optional. Which repo to pull from. Leave blank and it uses the repo this
