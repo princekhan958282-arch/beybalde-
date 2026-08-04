@@ -362,8 +362,8 @@ NEMESIS = {
     "difficulty": "legend",
     "persona":    ("an ancient divine arbiter who speaks in verdicts, not threats; "
                    "utterly certain, never raises its voice"),
-    # Endgame wall — see BOSSES["nemesis"]["hp_cap"] in boss_battle.
-    "hp":         10000,
+    # SOLO hp; a party scales it via boss_battle.PARTY_HP_MULT.
+    "hp":         3000,
     "attack":     146,
     "defense":    165,
     "stamina":    130,
