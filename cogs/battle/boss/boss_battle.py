@@ -39,7 +39,10 @@ from . import boss_info as binfo
 from . import drakos as dk
 from . import gemini
 
-BASE_PLAYER_HP = 4000
+# The player's HP pool in a boss fight. Matches PvP (cogs.core.constants
+# BASE_HP) and Story Mode, so a blade's durability means the same thing in
+# every mode rather than doubling the moment you type ;boss.
+BASE_PLAYER_HP = 2000
 TURN_SECONDS   = 60
 log = logging.getLogger("beyblade_bot.boss")
 
@@ -432,6 +435,10 @@ class BossFight:
         self.boss = ai.Fighter(cfg["name"], hp, hp,
                                attack, cfg["defense"], cfg["stamina"],
                                sp=BOSS_START_SP, is_boss=True,
+                               # 340% + 50% of attack. Set only here, so story
+                               # opponents — which are also is_boss=True — keep
+                               # the standard Special and their tuned curve.
+                               special_atk_pct=ai.BOSS_SPECIAL_TOTAL,
                                state=_make_state(cfg))
         self.model   = ai.OpponentModel()
         self.turn    = 0

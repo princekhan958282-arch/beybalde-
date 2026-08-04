@@ -73,6 +73,18 @@ CLASH_SOAK      = 0.30     # Attack vs Attack — both connect, both reduced
 SPECIAL_MULT    = 2.6
 SPECIAL_PIERCE  = 0.5      # Special ignores half of a Defense soak
 
+# ── Boss Special ──────────────────────────────────────────────────────────────
+# A boss Special is a flat multiple of its attack stat: 340% plus a 50% rider,
+# so 390% in total. DMG_SCALE is deliberately NOT applied on this path — the
+# percentages are the whole formula, and folding in another 0.90 would mean the
+# number in the config isn't the number the fight uses.
+#
+# Against the ordinary path (attack x DMG_SCALE x SPECIAL_MULT = attack x 2.34)
+# this is a 1.67x buff. Only fighters that set Fighter.special_atk_pct get it.
+BOSS_SPECIAL_ATK_PCT   = 3.40    # 340% of attack
+BOSS_SPECIAL_ATK_RIDER = 0.50    # + 50% of attack
+BOSS_SPECIAL_TOTAL     = BOSS_SPECIAL_ATK_PCT + BOSS_SPECIAL_ATK_RIDER
+
 # Defence used to be a strict loss: block a hit for 25 instead of trading 51
 # for 51, and you came out 25 behind while dealing nothing. Every policy
 # therefore collapsed into attack-spam and the fight had no decisions in it.
@@ -158,6 +170,15 @@ class Fighter:
     # stat. 1.0 leaves the Special exactly as it was, which is what every boss
     # uses — a boss has no special stat and its damage is authored directly.
     special_mult: float = 1.0
+    # Set to override the Special formula entirely with a flat multiple of the
+    # attack stat (see BOSS_SPECIAL_ATK_PCT). None keeps the standard
+    # DMG_SCALE x SPECIAL_MULT path.
+    #
+    # This exists instead of gating on `is_boss` because STORY opponents are
+    # also is_boss=True — they set it for the tighter heal ceiling — so keying
+    # the buff off that flag would silently re-tune the whole story campaign.
+    # Only real bosses set this.
+    special_atk_pct: Optional[float] = None
     # Only NEMESIS-class bosses carry this. None for everything else, so the
     # ordinary bosses behave exactly as they did before.
     state:   Optional[BossState] = None   # keep last: positional order matters
@@ -192,6 +213,7 @@ class Fighter:
                        healed_total=self.healed_total,
                        dmg_mult=self.dmg_mult,
                        special_mult=self.special_mult,
+                       special_atk_pct=self.special_atk_pct,
                        state=self.state.copy() if self.state else None)
 
     # ── Stance-adjusted stats (plain fighters are unaffected) ────────────────
@@ -228,6 +250,9 @@ def _raw_damage(src: Fighter, special: bool = False) -> float:
     base = src.eff_attack * DMG_SCALE * src.dmg_mult
     if not special:
         return base
+    # Bosses replace the formula outright with a flat percentage of attack.
+    if src.special_atk_pct is not None:
+        return src.eff_attack * src.special_atk_pct * src.dmg_mult
     # special_mult is the wielder's `special` stat relative to its printed
     # value, so a levelled bey's Special grows. Applied on this branch only —
     # ordinary attacks must not inherit it.
