@@ -547,17 +547,28 @@ class AdminCog(commands.Cog, name="Admin"):
         try:
             from utils import updater
             st = updater.status()
-            if st.get("sha"):
-                e.add_field(
-                    name="📥 Auto-update",
-                    value=(f"`{st['sha'][:7]}` on `{st.get('branch', '?')}`\n"
-                           f"{(st.get('message') or '')[:70]}\n"
-                           f"*applied {st.get('applied_at', '?')}*"),
-                    inline=False)
+            if not st:
+                # No state file at all means check_and_apply() has not run on
+                # this host — almost always because the installed code predates
+                # the updater, which is a chicken-and-egg the bot can't solve
+                # for itself.
+                value = ("**Never run on this host.**\n"
+                         "Either `utils/updater.py` isn't installed (upload the "
+                         "current build once by hand), or the bot hasn't been "
+                         "restarted since it was.")
             else:
-                e.add_field(name="📥 Auto-update",
-                            value="Never run — set `GITHUB_TOKEN` to enable.",
-                            inline=False)
+                lines = []
+                if st.get("sha"):
+                    lines.append(f"Installed: `{st['sha'][:7]}` on "
+                                 f"`{st.get('branch', '?')}`")
+                    lines.append(f"{(st.get('message') or '')[:70]}")
+                if st.get("last_outcome"):
+                    lines.append(f"Last check: **{st['last_outcome']}** "
+                                 f"({st.get('last_check', '?')})")
+                if st.get("last_detail"):
+                    lines.append(f"*{st['last_detail'][:150]}*")
+                value = "\n".join(lines) or "No detail recorded."
+            e.add_field(name="📥 Auto-update", value=value, inline=False)
         except Exception:                            # noqa: BLE001
             pass
 

@@ -58,6 +58,7 @@ import os
 import shutil
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from typing import Optional
@@ -133,6 +134,21 @@ def _write_state(state: dict) -> None:
         log.warning("[update] couldn't record state: %s", exc)
 
 
+def _record_attempt(outcome: str, detail: str = "") -> None:
+    """Remember how the last check went, so ;version can report it.
+
+    The console is the natural place for this, but on a hosting panel it is
+    often the one thing you cannot get at — and "the updater isn't working"
+    with no visible reason is the worst possible failure. Merging the outcome
+    into the state file puts it somewhere a Discord command can read it.
+    """
+    state = _read_state()
+    state["last_check"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    state["last_outcome"] = outcome
+    state["last_detail"] = detail[:300]
+    _write_state(state)
+
+
 def _cfg(name: str, default: str = "") -> str:
     """Config via utils.secrets, so GITHUB_* resolve exactly like BOT_TOKEN."""
     try:
@@ -182,6 +198,34 @@ def normalise_repo(value: str) -> str:
 
 # ── github ───────────────────────────────────────────────────────────────────
 
+class _DropAuthOnRedirect(urllib.request.HTTPRedirectHandler):
+    """Strip Authorization when a redirect crosses to another host.
+
+    The zipball endpoint answers with a 302 to codeload.github.com carrying a
+    pre-signed URL. urllib copies every header onto the redirected request, so
+    the Bearer token follows it to a host that never asked for one — and
+    codeload can answer 400 for a credential it did not expect. The download
+    then fails for a reason that looks nothing like its cause.
+
+    Sending a token to a host you were merely redirected to is also just wrong,
+    independently of whether that particular host tolerates it.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is None:
+            return None
+        if urllib.parse.urlsplit(newurl).netloc != urllib.parse.urlsplit(req.full_url).netloc:
+            for key in list(new.headers):
+                if key.lower() == "authorization":
+                    del new.headers[key]
+            new.unredirected_hdrs.pop("Authorization", None)
+        return new
+
+
+_opener = urllib.request.build_opener(_DropAuthOnRedirect)
+
+
 def _request(url: str, token: str, accept: str) -> bytes:
     req = urllib.request.Request(url, headers={
         "Accept": accept,
@@ -189,7 +233,7 @@ def _request(url: str, token: str, accept: str) -> bytes:
         "X-GitHub-Api-Version": "2022-11-28",
         **({"Authorization": f"Bearer {token}"} if token else {}),
     })
-    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
+    with _opener.open(req, timeout=HTTP_TIMEOUT) as resp:
         return resp.read(MAX_ZIP_BYTES + 1)
 
 
@@ -205,17 +249,27 @@ def head_commit(repo: str, branch: str, token: str) -> Optional[dict]:
             "date": data.get("commit", {}).get("committer", {}).get("date", ""),
         }
     except urllib.error.HTTPError as exc:
-        if exc.code in (401, 403):
-            log.error("[update] GitHub rejected the token (HTTP %s). A private "
-                      "repo needs GITHUB_TOKEN with read-only Contents access.",
-                      exc.code)
+        # The reason is recorded as well as logged, so ;version can name it on
+        # a host whose console you can't read.
+        if exc.code == 401:
+            detail = ("token rejected (401) — most likely EXPIRED. "
+                      "Fine-grained tokens default to 30 days; generate a new "
+                      "one and update GITHUB_TOKEN.")
+        elif exc.code == 403:
+            detail = ("token refused (403) — it can reach GitHub but not this "
+                      "repo. Check it has Contents: Read-only and lists "
+                      f"{repo} under 'Only select repositories'.")
         elif exc.code == 404:
-            log.error("[update] %s@%s not found — check GITHUB_REPO/GITHUB_BRANCH, "
-                      "or the token can't see this repo.", repo, branch)
+            detail = (f"{repo}@{branch} not found — check GITHUB_REPO and "
+                      f"GITHUB_BRANCH, or the token can't see this repo.")
         else:
-            log.error("[update] GitHub error HTTP %s", exc.code)
+            detail = f"GitHub returned HTTP {exc.code}"
+        log.error("[update] %s", detail)
+        _record_attempt("failed", detail)
     except Exception as exc:                         # noqa: BLE001
-        log.error("[update] couldn't reach GitHub: %s", exc)
+        detail = f"couldn't reach GitHub: {type(exc).__name__}: {exc}"
+        log.error("[update] %s", detail)
+        _record_attempt("failed", detail)
     return None
 
 
@@ -341,6 +395,7 @@ def check_and_apply() -> None:
 
     if os.environ.get(_OPT_OUT, "").strip() in ("0", "false", "no"):
         log.info("[update] disabled (%s=0)", _OPT_OUT)
+        _record_attempt("disabled", f"{_OPT_OUT}=0")
         return
 
     repo = normalise_repo(_cfg("GITHUB_REPO", DEFAULT_REPO)) or DEFAULT_REPO
@@ -350,18 +405,26 @@ def check_and_apply() -> None:
     if not token:
         log.info("[update] no GITHUB_TOKEN set — skipping. Add one to "
                  "config_local.py or .env to auto-update from %s.", repo)
+        _record_attempt("no token", "set GITHUB_TOKEN in config_local.py or .env")
         return
 
     log.info("[update] checking %s@%s …", repo, branch)
     head = head_commit(repo, branch, token)
     if not head or not head.get("sha"):
         log.warning("[update] could not read the branch head — keeping current files.")
+        # head_commit() already recorded WHY on every failure path it has, and
+        # those reasons are far more useful than a generic one — don't overwrite
+        # them. Only the "answered, but with no sha" case reaches here unrecorded.
+        if head is not None:
+            _record_attempt("failed",
+                            f"{repo}@{branch} returned no commit sha")
         return
 
     state = _read_state()
     current = state.get("sha", "")
     if current == head["sha"]:
         log.info("[update] already up to date (%s).", head["sha"][:7])
+        _record_attempt("up to date", f"{head['sha'][:7]} on {branch}")
         return
 
     log.info("[update] new commit %s — %s", head["sha"][:7], head["message"][:72])
@@ -369,12 +432,14 @@ def check_and_apply() -> None:
     zf = _download_zip(repo, head["sha"], token)
     if zf is None:
         log.warning("[update] download failed — keeping current files.")
+        _record_attempt("failed", "download failed — see console")
         return
 
     try:
         written, skipped = _apply(zf, head["sha"])
     except Exception as exc:                         # noqa: BLE001
         log.error("[update] apply failed, install left untouched: %s", exc)
+        _record_attempt("failed", f"apply failed: {exc}")
         return
     finally:
         try:
@@ -389,6 +454,9 @@ def check_and_apply() -> None:
         "applied_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "repo": repo,
         "branch": branch,
+        "last_check": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "last_outcome": "updated — restart pending",
+        "last_detail": f"{written} file(s) written",
     })
     _prune_backups()
 
