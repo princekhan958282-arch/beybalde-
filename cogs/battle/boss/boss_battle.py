@@ -1079,7 +1079,7 @@ class BossLobbyView(discord.ui.View):
             except Exception as e:                   # noqa: BLE001
                 log.warning("couldn't charge daily for %s: %s", member.id, e)
         view  = BossView(self.cog, fight)
-        fight.line = gemini.canned("intro")
+        fight.line = gemini.canned("intro", fight.cfg["name"])
 
         buf = await bcard.render(fight.card_state()) if USE_CARD else None
         if buf is not None:
