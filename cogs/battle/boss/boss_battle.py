@@ -132,24 +132,35 @@ USE_CARD           = True
 
 LOBBY_SECONDS      = 45      # window for friends to join
 MAX_PARTY          = 4
-# Party damage scales roughly linearly with headcount now that the boss acts
-# once per ROUND, so HP has to scale with it or two players trivialise a boss
-# that's impossible solo. 1.00 keeps the fight honest at every party size.
-BOSS_HP_PER_JOIN   = 1.00    # +100% boss HP per extra player
+
+# Boss HP by party size, as a multiple of the boss's own `hp` (its SOLO value).
+#
+# Party damage scales roughly linearly with headcount, since the boss acts once
+# per ROUND no matter how many people it's facing — so HP has to climb with the
+# party or two players trivialise a boss that's impossible solo.
+#
+# This is an explicit table rather than the old "+100% per extra player, then
+# clamp to hp_cap" pair. Two knobs that fight each other is how a solo 10,000 HP
+# boss ended up silently clamped to a 4,200 cap set when bosses had 1,250 HP;
+# a table can't develop that inconsistency, and you can read the whole curve at
+# a glance instead of deriving it.
+#
+# At the current 3,000 solo base these land on exactly:
+#     1p 3,000    2p 5,000    3p 6,000    4p 10,000
+# The ratios are exact thirds, so those numbers come out whole.
+PARTY_HP_MULT = (1.0, 5 / 3, 2.0, 10 / 3)
 
 
 def scaled_boss_hp(cfg: dict, extra: int) -> int:
-    """Boss HP for a party, honouring the per-boss ceiling.
+    """Boss HP for a party. `extra` is the count BEYOND the host (0 = solo).
 
-    HP doubles per extra player, so a 4-player Drakos was 5,000 and climbing
-    with no upper bound — long past the point where the fight is a war of
-    attrition rather than a fight. `hp_cap` in the boss config is that ceiling.
-    Both the fight and the lobby preview call this, so the number the party is
-    shown is always the number it gets.
+    Both the fight and the lobby preview call this, so the number a party is
+    shown before it starts is always the number it actually gets.
     """
-    hp  = int(cfg["hp"] * (1 + BOSS_HP_PER_JOIN * extra))
-    cap = cfg.get("hp_cap")
-    return min(hp, int(cap)) if cap else hp
+    idx = max(0, min(len(PARTY_HP_MULT) - 1, int(extra)))
+    return int(round(cfg["hp"] * PARTY_HP_MULT[idx]))
+
+
 BOSS_ATK_PER_JOIN  = 0.05    # +5% boss attack per extra player
 
 
@@ -164,21 +175,9 @@ BOSSES = {
         "emoji":      dk.DRAKOS["emoji"],
         "difficulty": dk.DRAKOS["difficulty"],
         "persona":    dk.DRAKOS["persona"],
+        # Solo HP. Party sizes come from PARTY_HP_MULT — there is no separate
+        # cap any more, because the table is bounded by MAX_PARTY already.
         "hp":         dk.DRAKOS["hp"],
-        # Ceiling on party scaling. At +100% per extra player a 4-player boss is
-        # unbounded, which turns the fight into an attrition slog rather than a
-        # harder fight.
-        #
-        # Raised with the base HP. This cap MUST stay above cfg["hp"] or
-        # scaled_boss_hp clamps a SOLO boss straight back down and the base
-        # value silently does nothing — at the old 4,200 a 10,000 HP Drakos
-        # would have fought as a 4,200 HP one.
-        #
-        # On 10,000 itself: a base-stats player deals roughly 50 damage a turn,
-        # so this is a ~200-turn fight and effectively unwinnable. A level-100
-        # player with the raised STAT_CAP deals about five times that and lands
-        # it near 40 turns. This is deliberately endgame content.
-        "hp_cap":     25000,
         "attack":     dk.DRAKOS["attack"],
         "defense":    dk.DRAKOS["defense"],
         "stamina":    dk.DRAKOS["stamina"],
@@ -193,11 +192,7 @@ BOSSES = {
         "emoji":      ab.NEMESIS["emoji"],
         "difficulty": ab.NEMESIS["difficulty"],
         "persona":    ab.NEMESIS["persona"],
-        "hp":         ab.NEMESIS["hp"],
-        # Party scaling doubles HP per extra player, so this has to be capped
-        # like Drakos — and, like Drakos, the cap has to sit above the base HP
-        # or a solo NEMESIS is clamped back down to it.
-        "hp_cap":     28000,
+        "hp":         ab.NEMESIS["hp"],   # solo HP; see PARTY_HP_MULT
         "attack":     ab.NEMESIS["attack"],
         "defense":    ab.NEMESIS["defense"],
         "stamina":    ab.NEMESIS["stamina"],
@@ -488,11 +483,11 @@ class BossFight:
         # The boss acts ONCE per party round, not once per player.
         #
         # With a strict rotation the party's combined damage stayed identical to
-        # a solo run (only one member moves per turn) while boss HP climbed 50%
-        # per member — measured at 97% -> 5% win rate going from 1 to 4 players
-        # against Emberfang. Grouping up was a straight punishment. Now every
-        # member gets a swing and the boss replies once at the end of the round,
-        # so the +50% HP is a counterweight instead of a wall.
+        # a solo run (only one member moves per turn) while boss HP climbed with
+        # every member — measured at 97% -> 5% win rate going from 1 to 4
+        # players against Emberfang. Grouping up was a straight punishment. Now
+        # every member gets a swing and the boss replies once at the end of the
+        # round, so the extra HP (PARTY_HP_MULT) is a counterweight, not a wall.
         alive = self.alive_party
         is_round_end = (len(alive) <= 1) or (self.turn_index % len(alive) == len(alive) - 1)
 
@@ -943,8 +938,9 @@ class BossView(discord.ui.View):
 class BossLobbyView(discord.ui.View):
     """Friends can join before the fight starts.
 
-    Each extra player adds +50% boss HP and +5% boss attack, so bringing a
-    party makes the fight longer rather than free.
+    Boss HP climbs with the party through PARTY_HP_MULT and attack by
+    BOSS_ATK_PER_JOIN, so bringing friends makes the fight bigger rather than
+    free.
     """
 
     def __init__(self, cog, host: discord.Member, key: str):
@@ -967,9 +963,11 @@ class BossLobbyView(discord.ui.View):
         try:
             buf = await bcard.render_lobby(lobby_card_state(
                 self.key, self.party,
-                footer=f"Each player adds +{int(BOSS_HP_PER_JOIN * 100)}% boss HP "
-                       f"and +{int(BOSS_ATK_PER_JOIN * 100)}% attack  ·  "
-                       f"starts in {LOBBY_SECONDS}s"))
+                footer="HP by party size: "
+                       + " / ".join(f"{scaled_boss_hp(BOSSES[self.key], i):,}"
+                                    for i in range(MAX_PARTY))
+                       + f"  ·  +{int(BOSS_ATK_PER_JOIN * 100)}% attack per "
+                         f"player  ·  starts in {LOBBY_SECONDS}s"))
             if buf is None:
                 return None
             return discord.File(buf, filename=getattr(buf, "name", "boss.png"))
@@ -1011,14 +1009,20 @@ class BossLobbyView(discord.ui.View):
             value="\n".join(f"• {m.display_name}" for m in self.party),
             inline=True,
         )
+        # Quote the actual figures rather than a percentage. The old text said
+        # "+50% HP" while the code applied +100%, and once HP came from a table
+        # a single percentage stopped being able to describe the curve at all.
         e.add_field(
             name="Boss scaling",
             value=(f"❤️ {hp:,} HP\n⚔️ {atk:.0f} ATK"
-                   + (f"\n*+{extra * 50}% HP, +{extra * 5}% ATK*" if extra else "")),
+                   + (f"\n*{len(self.party)} players — solo it has "
+                      f"{scaled_boss_hp(cfg, 0):,}*" if extra else "")),
             inline=True,
         )
-        e.set_footer(text=f"Each player adds +50% boss HP and +5% boss attack  •  "
-                          f"starts in {LOBBY_SECONDS}s")
+        e.set_footer(text="HP by party size: "
+                          + " / ".join(f"{scaled_boss_hp(cfg, i):,}"
+                                       for i in range(MAX_PARTY))
+                          + f"  •  starts in {LOBBY_SECONDS}s")
         return e
 
     @discord.ui.button(label="Join", emoji="⚔️", style=discord.ButtonStyle.success)

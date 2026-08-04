@@ -272,9 +272,9 @@ DRAKOS = {
     "difficulty": "elite",
     "persona":    ("a proud celestial dragon, grand and unhurried, who treats the "
                    "duel as a rite rather than a fight"),
-    # Endgame wall. See the note on BOSSES["drakos"]["hp_cap"] in boss_battle
-    # for what 10,000 means against a levelled player versus a fresh one.
-    "hp":         10000,
+    # SOLO hp. A party scales it through boss_battle.PARTY_HP_MULT:
+    # 3,000 solo / 5,000 duo / 6,000 trio / 10,000 at a full party of four.
+    "hp":         3000,
     "attack":     120,
     "defense":    155,
     "stamina":    112,
