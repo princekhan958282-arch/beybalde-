@@ -572,6 +572,33 @@ class AdminCog(commands.Cog, name="Admin"):
         except Exception:                            # noqa: BLE001
             pass
 
+        # Boss dialogue. Worth surfacing because when the Gemini quota runs out
+        # the only in-game symptom is "the boss sounds repetitive" — the fights
+        # themselves are identical either way, so without this the state is
+        # invisible.
+        try:
+            from cogs.battle.boss import gemini as _gm
+            gs = _gm.status()
+            label = {"live":         "✅ live",
+                     "no key":       "➖ no key (canned lines)",
+                     "probing":      "🟡 retrying",
+                     "cooling down": "🟠 canned lines",
+                     "unavailable":  "❌ aiohttp missing"}.get(gs["state"], gs["state"])
+            lines = [f"{label} · model `{gs['model']}`"]
+            if gs["retry_in"]:
+                lines.append(f"Retrying in **{gs['retry_in']}s** — "
+                             f"boss fights are unaffected.")
+            if gs["reason"]:
+                lines.append(f"*{gs['reason'][:150]}*")
+            if gs["calls_ok"] or gs["calls_failed"] or gs["calls_skipped"]:
+                lines.append(f"Calls: {gs['calls_ok']} ok · "
+                             f"{gs['calls_failed']} failed · "
+                             f"{gs['calls_skipped']} skipped")
+            e.add_field(name="🗣️ Boss dialogue", value="\n".join(lines),
+                        inline=False)
+        except Exception:                            # noqa: BLE001
+            pass
+
         if rep["parity_gaps"]:
             e.add_field(
                 name="❌ Store mismatch",
