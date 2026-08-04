@@ -445,7 +445,10 @@ class BattleSession:
             hp_pct    = int(round((hp_now / _max_hp) * 100))
             # Short bars (length=5) + compact numbers — no /MAX denominator
             hp_line   = f"`{hp_visual(hp_now, _max_hp, length=5)}` **{hp_now}** `{hp_pct}%`"
-            sta_line  = f"`{sta_bar(sta_now, length=5)}` {sta_now:g}/{STAMINA_MAX:g}"
+            # Per-player ceiling: stamina bars differ by bey now, so a flat
+            # denominator would misreport every blade that isn't average.
+            _sta_max  = sm.cap_for(key)
+            sta_line  = f"`{sta_bar(sta_now, _sta_max, length=5)}` {sta_now:g}/{_sta_max:g}"
             gauge_line= f"`{gauge_bar(g_now, length=5)}` {int(g_now)}/{SPECIAL_GAUGE_MAX}"
             stab_line = f"`{stability_bar(stab_now, stab_max, length=5)}` {stab_now}/{stab_max}"
 

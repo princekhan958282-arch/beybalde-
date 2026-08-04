@@ -23,6 +23,7 @@ import logging
 import random
 from typing import Optional
 
+from cogs.battle import stamina_manager as _SM
 from cogs.battle.boss import boss_ai as ai
 from cogs.battle.boss import boss_copy as bcopy
 
@@ -117,9 +118,16 @@ def build_player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
         from utils.loadout import effective_hp
         hp = effective_hp(user_id, hp, av)
 
+    # Stamina bar from the stamina stat, same derivation PvP uses, instead of a
+    # flat 10 for everyone. A stamina blade now carries a visibly deeper bar
+    # here too, and the stat keeps paying past the old flat ceiling.
+    eff_sta = sta * mult
+    sp_max = _SM.max_stamina_for(eff_sta)
+    sp_now = _SM.StaminaManager._initial_stamina(int(eff_sta), sp_max)
+
     fighter = ai.Fighter(
         name or "Unequipped", hp, hp,
-        atk * mult, dfn * mult, sta * mult, sp=10.0,
+        atk * mult, dfn * mult, eff_sta, sp=sp_now, sp_max=sp_max,
         dmg_mult=ai.type_damage_mult((blade or {}).get("type")),
         special_mult=_special_mult(breakdown),
     )

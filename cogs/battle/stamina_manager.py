@@ -38,16 +38,43 @@ from .constants import (
 
 
 # ── Per-action stamina costs ──────────────────────────────────────────────────
+# Raised alongside the per-bey bar below. Bars now run ~13 at a low stamina stat
+# to ~26 at a maxed one, where they used to be a flat 15 for everybody; leaving
+# costs at the old 1.5/3.0 would have meant nobody ever runs out and the whole
+# stamina economy quietly stops existing. These are scaled so a BASELINE bey
+# gets about the same number of actions before exhaustion as it does today,
+# while a stamina blade genuinely gets more out of its stat.
 STAMINA_COST: dict[str, float] = {
-    MOVE_ATTACK:  1.5,
-    MOVE_DEFENSE: 1.5,   # lowered from 2.0 — new starting-stamina economy (6-10 range)
-    MOVE_STAMINA: 0.0,
-    MOVE_CHARGE:  1.0,
-    MOVE_SPECIAL: 3.0,
+    MOVE_ATTACK:  2.2,
+    MOVE_DEFENSE: 2.2,
+    MOVE_STAMINA: 0.0,   # the action earns stamina instead
+    MOVE_CHARGE:  1.5,
+    MOVE_SPECIAL: 4.4,
 }
 
 # ── Maximum battle stamina ────────────────────────────────────────────────────
+# THE BUG THIS REPLACES: this used to be a flat 15.0 for every blade, and
+# starting stamina was `3 + stat * 0.05` clamped to it — so any bey with a
+# stamina stat of 240 or more started at exactly 15. At level 100 nearly every
+# bey is over 240, which meant every maxed bey had an identical stamina bar and
+# the stamina stat stopped paying entirely partway up the level curve.
+#
+# The bar is now derived per bey, so the stat keeps mattering all the way to
+# level 100 and a stamina blade visibly out-lasts an attack blade.
+STAMINA_MAX_BASE     = 11.0   # bar for a bey with no stamina stat at all
+STAMINA_MAX_PER_STAT = 0.05   # +1 bar per 20 stat
+STAMINA_MAX_CEILING  = 30.0   # hard stop, so no future stat curve runs away
+
+# Kept as the legacy name at its legacy value. Nothing in the manager uses it
+# any more — it is the fallback for display code that has no per-player bar to
+# read, and boss_ai keeps its own copy for boss fighters.
 STAMINA_MAX = 15.0
+
+
+def max_stamina_for(sta_stat: float) -> float:
+    """The battle stamina ceiling for a bey with this stamina stat."""
+    raw = STAMINA_MAX_BASE + max(0.0, float(sta_stat)) * STAMINA_MAX_PER_STAT
+    return round(min(STAMINA_MAX_CEILING, raw), 2)
 
 # ── Stamina action heal tuning ────────────────────────────────────────────────
 # Base heal = ceil(sta_stat × STAMINA_HEAL_RATIO)
@@ -63,14 +90,26 @@ STAMINA_HEAL_MIN   = 20    # floor so even low-STA blades always get something
 STAMINA_HEAL_INTERRUPT_MULT = 0.5  # heal multiplier when attacked mid-heal
 
 # ── Stamina action recovery tuning ────────────────────────────────────────────
-# Stamina restored by the Stamina move = flat BASE (3).
+# Stamina restored by the Stamina move. This used to be a flat +3 for everyone,
+# with a comment claiming "stat scaling lives in starting stamina" — which was
+# exactly the part that got clamped to 15 and stopped scaling. It scales here
+# now, so a stamina blade recovers faster as well as holding more.
 # Stamina-type bonus (+1) stacks on top when type advantage is active.
-STAMINA_RECOVERY_BASE = 3
+STAMINA_RECOVERY_BASE     = 3.0
+STAMINA_RECOVERY_PER_STAT = 0.012   # +1.2 recovery per 100 stat
+
+# ── Passive regen tuning ──────────────────────────────────────────────────────
+# A small per-round trickle so a bey is never permanently stranded at zero.
+# Deliberately far below the Stamina move's recovery: this is a floor against
+# lockout, not an alternative to actually spending a turn recovering.
+STAMINA_REGEN_BASE     = 0.15
+STAMINA_REGEN_PER_STAT = 0.004      # +0.4 per 100 stat
 
 # ── Starting stamina tuning ───────────────────────────────────────────────────
-# Battle-start stamina = START_BASE + (sta_stat × START_PER_STAT), cap STAMINA_MAX.
+# Battle-start stamina = START_BASE + (sta_stat × START_PER_STAT), clamped to
+# the bey's OWN ceiling (max_stamina_for) rather than a global 15.
 # Continuous per-point scaling: 1 stat = 0.05 stamina, so 20 stat = +1.
-# At STA 1: 3.05  |  STA 28: 4.4  |  STA 100: 8  |  STA 135: 9.75  |  STA 240+: 15 (cap)
+# At STA 1: 3.05 | STA 100: 8 | STA 240: 15 | STA 400: 23 — no longer flat-topped.
 STAMINA_START_BASE     = 3
 STAMINA_START_PER_STAT = 0.05
 
@@ -84,13 +123,15 @@ class StaminaManager:
         # session. When present these override raw blade["stats"] for all
         # stamina-stat reads so boosted blades get their real values.
         self._eff: dict[str, dict] = effective_stats or {}
-        self.stamina: dict[str, float] = {}
-        for key, blade in blades.items():
-            self.stamina[key] = self._initial_stamina(self._sta_stat(key))
-        # Per-player max stamina — session's battle-card renderer reads this
-        # via getattr(sm, "max_stamina", {}); without it the card silently
-        # fell back to a hardcoded 10 (real cap is STAMINA_MAX = 15).
-        self.max_stamina: dict[str, float] = {key: STAMINA_MAX for key in blades}
+        # Per-player max stamina, derived from each bey's own stamina stat.
+        # Must be built BEFORE self.stamina: starting stamina clamps to it.
+        self.max_stamina: dict[str, float] = {
+            key: max_stamina_for(self._sta_stat(key)) for key in blades
+        }
+        self.stamina: dict[str, float] = {
+            key: self._initial_stamina(self._sta_stat(key), self.max_stamina[key])
+            for key in blades
+        }
         # Special Gauge (0–150), keyed by player ID string
         self.gauge: dict[str, int] = {key: 0 for key in blades}
         # Stamina-loss resistance (0–0.9), set by abilities via the
@@ -110,14 +151,22 @@ class StaminaManager:
     # ── Initialisation helper ─────────────────────────────────────────────────
 
     @staticmethod
-    def _initial_stamina(sta_stat: int) -> float:
-        """Battle-start stamina = 3 + (stamina stat × 0.05), capped at STAMINA_MAX.
+    def _initial_stamina(sta_stat: int, ceiling: float | None = None) -> float:
+        """Battle-start stamina = 3 + (stamina stat × 0.05), clamped to `ceiling`.
 
         Continuous scaling — every single stat point counts (1 = +0.05).
-        Rounded to 2 decimals so every single point shows (1 stat = 0.05).
+        Rounded to 2 decimals so every single point shows.
+
+        `ceiling` is the bey's OWN maximum. It used to be the global 15, which
+        is what made every bey above 240 stamina start identically.
         """
+        cap = max_stamina_for(sta_stat) if ceiling is None else float(ceiling)
         start = STAMINA_START_BASE + (float(sta_stat) * STAMINA_START_PER_STAT)
-        return round(min(STAMINA_MAX, start), 2)
+        return round(min(cap, start), 2)
+
+    def cap_for(self, key: str) -> float:
+        """This player's stamina ceiling. Falls back to the legacy flat max."""
+        return float(self.max_stamina.get(key, STAMINA_MAX))
 
     # ── Public: cost deduction ────────────────────────────────────────────────
 
@@ -157,14 +206,17 @@ class StaminaManager:
         blade    = self._blades[key]
         sta_stat = self._sta_stat(key)   # modified stat (parts/avatar/level)
         cap_hp   = int(max_hp) if max_hp else BASE_HP
-        base_recovery = STAMINA_RECOVERY_BASE  # flat +3; stat scaling lives in starting stamina
+        # Scales with the stat now — see STAMINA_RECOVERY_PER_STAT for why the
+        # old flat +3 was wrong.
+        base_recovery = STAMINA_RECOVERY_BASE + sta_stat * STAMINA_RECOVERY_PER_STAT
         type_bonus = 0
         if type_mod is not None and type_active:
             btype = str(self._blades[key].get("type", "")).lower()
             if "stamina" in btype:
                 type_bonus = 1
-        total_recovery = base_recovery + type_bonus
-        self.stamina[key] = round(min(STAMINA_MAX, self.stamina.get(key, 0.0) + total_recovery), 2)
+        total_recovery = round(base_recovery + type_bonus, 2)
+        self.stamina[key] = round(
+            min(self.cap_for(key), self.stamina.get(key, 0.0) + total_recovery), 2)
         hp_ratio  = hp.get(key, 0) / cap_hp if cap_hp else 0.0
         heal_mult = 1.0 + max(0.0, (0.40 - hp_ratio) / 0.40) * 0.2
         # Use type_mod.apply_stamina() to scale heal when the bonus is active
@@ -187,17 +239,31 @@ class StaminaManager:
             + ")!"
         ) if heal_amt > 0 else ""
         return [
-            f"⚡ **{name}** recovers **+{total_recovery}** stamina → `{self.stamina[key]:g}`"
+            f"⚡ **{name}** recovers **+{total_recovery:g}** stamina → "
+            f"`{self.stamina[key]:g}/{self.cap_for(key):g}`"
             + type_note + heal_note
         ]
 
     # ── Public: passive regen ─────────────────────────────────────────────────
     def apply_passive_regen(self, key: str, hp: dict[str, int]) -> list[str]:
-        """Apply passive stamina regeneration.
+        """A small per-round stamina trickle, scaled by the stamina stat.
 
-        Currently a stub - implement if passive regen is needed.
-        TODO: Add passive regen logic based on blade stats or abilities.
+        Was a stub returning [] — it has been called every round from
+        session.py since it was written and did nothing, so the stamina stat
+        had no passive value at all.
+
+        Silent by design: it fires every single round for both players, so
+        logging it would bury the actual exchange under noise. The number shows
+        up in the stamina bar, which is where a player reads it anyway.
         """
+        cap = self.cap_for(key)
+        current = self.stamina.get(key, 0.0)
+        if current >= cap:
+            return []
+        regen = STAMINA_REGEN_BASE + self._sta_stat(key) * STAMINA_REGEN_PER_STAT
+        if regen <= 0:
+            return []
+        self.stamina[key] = round(min(cap, current + regen), 2)
         return []
 
     # ── Public: Special Gauge ─────────────────────────────────────────────────

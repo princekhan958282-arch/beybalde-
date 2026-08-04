@@ -318,8 +318,16 @@ def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
     _spc_base, _spc_total = float(_spc.get("base", 0) or 0), float(_spc.get("total", 0) or 0)
     special_mult = max(1.0, _spc_total / _spc_base) if _spc_base > 0 and _spc_total > 0 else 1.0
 
+    # Stamina bar derived from the stamina stat, matching PvP, instead of a
+    # flat 10 for everyone.
+    from cogs.battle import stamina_manager as _SM
+    _eff_sta = sta * mult
+    _sp_max = _SM.max_stamina_for(_eff_sta)
+
     f  = ai.Fighter(name or "Unequipped", hp, hp,
-                    atk * mult, dfn * mult, sta * mult, sp=10.0,
+                    atk * mult, dfn * mult, _eff_sta,
+                    sp=_SM.StaminaManager._initial_stamina(int(_eff_sta), _sp_max),
+                    sp_max=_sp_max,
                     dmg_mult=ai.type_damage_mult((blade or {}).get("type")),
                     special_mult=special_mult)
     return f, (blade or {})

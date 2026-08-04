@@ -141,6 +141,12 @@ class Fighter:
     defense: float
     stamina_stat: float
     sp:      float = 10.0          # battle stamina resource
+    # Per-fighter stamina ceiling. Defaults to the module STAMINA_MAX so every
+    # boss behaves exactly as before — boss_battle deliberately opens its
+    # bosses ABOVE the ceiling as a one-off reserve, and regen only ever adds,
+    # so a boss must keep the shared value. Players get a bar derived from
+    # their stamina stat instead, matching the PvP StaminaManager.
+    sp_max:  float = STAMINA_MAX
     gauge:   float = 0.0
     is_boss: bool = False
     heal_streak: float = 0.0       # Stamina pressure — see HEAL_DECAY. Float
@@ -180,6 +186,7 @@ class Fighter:
         return Fighter(name=self.name, hp=self.hp, max_hp=self.max_hp,
                        attack=self.attack, defense=self.defense,
                        stamina_stat=self.stamina_stat, sp=self.sp,
+                       sp_max=self.sp_max,
                        gauge=self.gauge, is_boss=self.is_boss,
                        heal_streak=self.heal_streak,
                        healed_total=self.healed_total,
@@ -358,10 +365,10 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
         # current) means regen can only ever add, which is what regeneration
         # is supposed to mean.
         if mv == MOVE_STAMINA:
-            f.sp = min(max(STAMINA_MAX, f.sp), f.sp + 2.5)
+            f.sp = min(max(f.sp_max, f.sp), f.sp + 2.5)
             f.heal_streak += 1
         else:
-            f.sp = min(max(STAMINA_MAX, f.sp), f.sp + 0.5)
+            f.sp = min(max(f.sp_max, f.sp), f.sp + 0.5)
             if mv in (MOVE_ATTACK, MOVE_SPECIAL):
                 # Walk the streak back rather than clearing it — see
                 # HEAL_STREAK_RECOVERY.
