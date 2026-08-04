@@ -18,9 +18,10 @@ app.py.
        you share a build.
 
     3. config_local.py  ← if you really want it hardcoded
-       Copy config_local.example.py to config_local.py and paste your keys in.
-       It is excluded from every zip and listed in .gitignore, so the secret
-       stays on your server.
+       Create config_local.py next to app.py with plain assignments —
+       BOT_TOKEN = "..." and so on. It is excluded from every zip and listed
+       in .gitignore, so the secret stays on your server. INSTALL.md has the
+       full list of keys it can hold.
 
 Why not hardcode straight into app.py: that file goes into every zip, every
 screenshot and every copy you share. A bot token in app.py has already leaked
@@ -121,6 +122,6 @@ def require(name: str) -> Optional[str]:
             f"{name} is not set. Set it in ANY of these:\n"
             f"  1. a .env file next to app.py:   {name}=your_value_here\n"
             f"  2. your panel's Startup variables\n"
-            f"  3. config_local.py (copy config_local.example.py)"
+            f"  3. config_local.py next to app.py:  {name} = \"your_value_here\""
         )
     return value
