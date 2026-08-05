@@ -614,7 +614,21 @@ class AvatarShop(commands.Cog, name="Avatar"):
         owned    = avatar["id"] in owned_ids
         equipped = avatar["id"] == equipped_id
 
-        embed = build_avatar_embed(avatar, owned=owned, equipped=equipped)
+        # Level comes from the VIEWER's profile, so ;ainfo shows their copy of
+        # the card rather than the card in the abstract.
+        lvl, skill_lvls = 1, {}
+        if owned or equipped:
+            try:
+                from utils.database import get_user
+                from . import avatar_progress as AP
+                prof = get_user(ctx.author.id)
+                lvl = AP.card_level(prof, avatar["id"])
+                skill_lvls = AP.card_entry(prof, avatar["id"]).get("skills") or {}
+            except Exception:                            # noqa: BLE001
+                pass
+
+        embed = build_avatar_embed(avatar, owned=owned, equipped=equipped,
+                                   level=lvl, skill_levels=skill_lvls)
 
         # Show image if the avatar has one
         image = avatar.get("image", "")

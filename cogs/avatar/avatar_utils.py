@@ -37,6 +37,33 @@ RARITY_ORDER: list[str] = [
 ]
 
 
+# ── Type config ──────────────────────────────────────────────────────────────
+# The same four types as Beyblades, deliberately — one vocabulary for the whole
+# game rather than a second one that has to be explained.
+
+TYPE_EMOJI: dict[str, str] = {
+    "attack":  "⚔️",
+    "defense": "🛡️",
+    "stamina": "🌀",
+    "balance": "⚖️",
+}
+
+TYPE_LABEL: dict[str, str] = {
+    "attack":  "Attack",
+    "defense": "Defence",
+    "stamina": "Stamina",
+    "balance": "Balance",
+}
+
+VALID_TYPES: list[str] = list(TYPE_LABEL)
+
+
+def format_type(avatar_type: str) -> str:
+    """'attack' -> '⚔️ Attack'. Unknown types render rather than raise."""
+    key = str(avatar_type or "").lower()
+    return f"{TYPE_EMOJI.get(key, '❔')} {TYPE_LABEL.get(key, key.title() or 'Unknown')}"
+
+
 # ── Validation ───────────────────────────────────────────────────────────────
 
 def validate_avatar_data(avatar: dict) -> tuple[bool, str]:
@@ -51,6 +78,15 @@ def validate_avatar_data(avatar: dict) -> tuple[bool, str]:
 
     if avatar["rarity"] not in RARITY_ORDER:
         return False, f"Invalid rarity '{avatar['rarity']}'. Must be one of: {RARITY_ORDER}"
+
+    # `type` is required rather than defaulted. A card with no type would
+    # silently take the Balance growth curve, which is a real balance decision
+    # made by an omission — exactly the kind of thing that is invisible until
+    # somebody spends coins on it. tools/classify_avatars.py derives one.
+    if avatar.get("type") not in VALID_TYPES:
+        return False, (f"Invalid or missing type {avatar.get('type')!r}. "
+                       f"Must be one of: {VALID_TYPES}. "
+                       f"Run tools/classify_avatars.py to derive it.")
 
     if not isinstance(avatar["price"], (int, float)) or avatar["price"] < 0:
         return False, f"Price must be a non-negative number."
@@ -137,10 +173,16 @@ def format_bonuses_summary(bonuses: dict) -> str:
     return "\n".join(lines) if lines else "No stat bonuses."
 
 
-def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False) -> discord.Embed:
+def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False,
+                       level: int = 1, skill_levels: dict | None = None) -> discord.Embed:
     """
     Build a Discord embed for a single avatar.
     Used in shop previews and inventory views.
+
+    `level` is the viewing player's purchased level for THIS card, and defaults
+    to 1 so every existing call site keeps rendering exactly what it rendered
+    before. A shop preview showing somebody else's level would be wrong, so the
+    default is also the correct value there.
     """
     rarity = avatar.get("rarity", "Common")
     color  = RARITY_COLORS.get(rarity, 0xAAAAAA)
@@ -158,7 +200,32 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
         color=color,
     )
     embed.add_field(name="Rarity", value=rarity, inline=True)
+    embed.add_field(name="Type",   value=format_type(avatar.get("type")), inline=True)
     embed.add_field(name="Price",  value=format_price(avatar["price"]), inline=True)
+
+    # Level, and what it is currently worth. Shown for owned cards only — on a
+    # shop preview the player does not own it yet, so "Lv1" would read as a
+    # property of the card rather than of their copy.
+    if owned or equipped:
+        try:
+            from . import avatar_levels as AL
+            lvl = AL.clamp_level(level)
+            gain = AL.card_stat_bonus(avatar.get("type"), lvl)
+            bar = "▰" * lvl + "▱" * (AL.MAX_CARD_LEVEL - lvl)
+            if lvl >= AL.MAX_CARD_LEVEL:
+                nxt = "**MAX**"
+            else:
+                nxt = f"Next: {AL.card_level_cost(lvl, lvl + 1):,} coins"
+            gains = ", ".join(f"+{v} {k[:3].upper()}"
+                              for k, v in gain.items() if v) or "no bonus yet"
+            embed.add_field(
+                name=f"Level {lvl}/{AL.MAX_CARD_LEVEL}",
+                value=f"`{bar}`\n{gains}\n{nxt}",
+                inline=False,
+            )
+        except Exception:                                # noqa: BLE001
+            pass
+
     embed.add_field(
         name="Bonuses",
         value=format_bonuses_summary(avatar.get("bonuses", {})),
@@ -172,8 +239,16 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
     if skills:
         lines = []
         for i, sk in enumerate(skills, 1):
-            lines.append(f"**{i}. {sk.get('name', 'Skill')}**\n"
-                         f"{sk.get('description', '')}")
+            head = f"**{i}. {sk.get('name', 'Skill')}**"
+            if (owned or equipped) and skill_levels:
+                try:
+                    from .avatar_progress import slugify
+                    sl = int(skill_levels.get(slugify(sk.get("name", "")), 1))
+                    if sl > 1:
+                        head += f"  ·  Lv{sl}"
+                except Exception:                        # noqa: BLE001
+                    pass
+            lines.append(f"{head}\n{sk.get('description', '')}")
         embed.add_field(name="⚡ Skills", value="\n\n".join(lines), inline=False)
 
     if avatar.get("limited"):
