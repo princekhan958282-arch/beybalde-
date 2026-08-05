@@ -620,25 +620,60 @@ class AdminCog(commands.Cog, name="Admin"):
     @commands.command(name="servers", aliases=["guilds", "serverlist"], hidden=True)
     @is_master()
     async def servers(self, ctx: commands.Context) -> None:
-        """[Admin] Every server this bot is in.
+        """[Admin] Every server this bot is in, verified against the API.
 
-        bot.guilds is the whole answer — it is the cached list of every guild
-        the bot is a member of. Two things to know: it is only populated after
-        on_ready (before that it is empty, which is why this is a command and
-        not a startup print), and it needs the `guilds` intent, which is on by
-        default. For member counts to be accurate you also need the `members`
-        intent enabled in the Developer Portal.
+        `bot.guilds` is the gateway CACHE, not the truth. It is filled from the
+        READY payload plus a GUILD_CREATE per guild, and if the gateway drops
+        mid-stream — which a small container does regularly — the bot carries on
+        with a short list and nothing in the log says so. That is exactly the
+        failure that reads as "the portal says 21 and ;servers says 10".
+
+        So this asks the REST API too (`GET /users/@me/guilds`, via
+        `fetch_guilds`), which is the same source the Developer Portal counts
+        from, and reconciles the two. When they disagree the listing uses the
+        REST answer and says which guilds the cache was missing.
+
+        The `guilds` intent (on by default) is required for the cache at all;
+        `members` only affects whether member_count is accurate.
         """
-        guilds = sorted(self.bot.guilds, key=lambda g: g.member_count or 0,
-                        reverse=True)
-        if not guilds:
-            return await ctx.send("Not in any servers (or still connecting).")
+        cached = {g.id: g for g in self.bot.guilds}
+
+        # The authoritative list. Bounded because a bot in thousands of guilds
+        # would otherwise page forever inside a command invocation.
+        rest: dict[int, str] = {}
+        rest_error = ""
+        try:
+            async for g in self.bot.fetch_guilds(limit=200):
+                rest[g.id] = g.name
+        except Exception as exc:                         # noqa: BLE001
+            rest_error = f"{type(exc).__name__}: {exc}"
+            logger.warning("fetch_guilds failed: %s", exc)
+
+        missing_from_cache = [gid for gid in rest if gid not in cached]
+        missing_from_rest = [gid for gid in cached if gid not in rest]
+
+        # Prefer the cached Guild object (it carries member_count); fall back to
+        # a REST-only stub for anything the gateway never delivered.
+        order = list(rest) if rest else list(cached)
+        guilds = [cached.get(gid) for gid in order]
+        guilds = [g for g in guilds if g is not None]
+        guilds.sort(key=lambda g: g.member_count or 0, reverse=True)
+
+        if not guilds and not rest:
+            return await ctx.send(
+                "Not in any servers (or still connecting)."
+                + (f"\nREST check also failed — `{rest_error}`" if rest_error else ""))
 
         total = sum(g.member_count or 0 for g in guilds)
         lines = [
             f"`{i:>3}.` **{g.name}** — `{g.id}` · {g.member_count or 0:,} members"
             for i, g in enumerate(guilds, 1)
         ]
+        # Guilds the API knows about but the gateway never sent. Listed rather
+        # than counted, because "which ones" is the thing you need in order to
+        # go and look at them.
+        for gid in missing_from_cache:
+            lines.append(f"`  ?` **{rest[gid]}** — `{gid}` · ⚠️ not in gateway cache")
 
         # Embed descriptions cap at 4096 characters, so page rather than let a
         # long list fail the send outright once the bot is in many servers.
@@ -657,15 +692,49 @@ class AdminCog(commands.Cog, name="Admin"):
         if buf:
             pages.append(buf)
 
+        headline = len(rest) if rest else len(cached)
+        drifted = bool(missing_from_cache or missing_from_rest)
+
         for n, page in enumerate(pages, 1):
             e = discord.Embed(
-                title=f"🌐 Servers ({len(guilds)})"
+                title=f"🌐 Servers ({headline})"
                       + (f" — page {n}/{len(pages)}" if len(pages) > 1 else ""),
                 description=page,
-                colour=0x5865F2,
+                colour=0xE67E22 if drifted else 0x5865F2,
             )
             if n == len(pages):
-                e.set_footer(text=f"{total:,} members across {len(guilds)} servers")
+                # The reconciliation, spelled out. Without this the only symptom
+                # of a half-filled cache is a number that looks wrong, and the
+                # obvious conclusion ("the command is broken") is the wrong one.
+                diag = [f"API: **{len(rest) if not rest_error else '?'}** · "
+                        f"gateway cache: **{len(cached)}**"]
+                if rest_error:
+                    diag.append(f"⚠️ API check failed — `{rest_error[:120]}`")
+                elif missing_from_cache:
+                    diag.append(
+                        f"⚠️ **{len(missing_from_cache)}** server(s) the API knows "
+                        f"about never arrived over the gateway. That is a dropped "
+                        f"connection during startup, not a missing intent — "
+                        f"restarting the bot usually refills the cache.")
+                elif missing_from_rest:
+                    diag.append(
+                        f"⚠️ **{len(missing_from_rest)}** server(s) are cached but "
+                        f"the API no longer lists them — the bot was removed while "
+                        f"it was offline or mid-session.")
+                else:
+                    diag.append("✅ API and cache agree.")
+
+                shards = getattr(self.bot, "shard_count", None)
+                if shards:
+                    diag.append(f"Shards: {shards}")
+                intents = self.bot.intents
+                if not intents.guilds:
+                    diag.append("❌ The `guilds` intent is OFF — the cache cannot fill.")
+                if not intents.members:
+                    diag.append("ℹ️ `members` intent off — member counts are approximate.")
+
+                e.add_field(name="Diagnosis", value="\n".join(diag), inline=False)
+                e.set_footer(text=f"{total:,} members across {headline} servers")
             await ctx.send(embed=e)
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception) -> None:

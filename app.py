@@ -260,6 +260,51 @@ class BeybladeBot(commands.Bot):
         if not getattr(self, "_commands_reconciled", False):
             self._commands_reconciled = True
             await self._reconcile_commands()
+            await self._verify_guild_cache()
+
+    async def _verify_guild_cache(self) -> None:
+        """Compare the gateway's guild cache against the REST API.
+
+        `self.guilds` is filled from the READY payload plus one GUILD_CREATE per
+        guild. If the gateway drops part-way through that stream — which a small
+        container does regularly — the bot carries on serving a short list and
+        NOTHING says so. The only symptom is `;servers` disagreeing with the
+        Developer Portal, weeks later, and looking like a broken command.
+
+        This is a report, not a repair: discord.py has no supported way to inject
+        a guild into the cache, and a reconnect refills it properly. One warning
+        at boot is enough to turn an invisible problem into an obvious one.
+        """
+        try:
+            rest = {g.id async for g in self.fetch_guilds(limit=200)}
+        except Exception as exc:                         # noqa: BLE001
+            logger.debug(f"guild cache check skipped: {exc}")
+            return
+
+        cached = {g.id for g in self.guilds}
+        missing = rest - cached
+        stale = cached - rest
+        if missing:
+            logger.warning(
+                f"⚠️  Guild cache is INCOMPLETE: the API lists {len(rest)} servers "
+                f"but the gateway delivered {len(cached)}. Missing "
+                f"{len(missing)}: {sorted(missing)}. This is a dropped gateway "
+                f"connection during startup, not a missing intent — restart to "
+                f"refill. Commands scoped to those servers will not work.")
+        elif stale:
+            logger.info(
+                f"Guild cache holds {len(stale)} server(s) the API no longer "
+                f"lists (removed while offline): {sorted(stale)}")
+        else:
+            logger.info(f"   Guild cache verified against the API: {len(rest)} server(s)")
+
+    async def on_guild_join(self, guild: discord.Guild) -> None:
+        logger.info(f"➕ Joined {guild.name} ({guild.id}) — "
+                    f"now in {len(self.guilds)} server(s)")
+
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        logger.info(f"➖ Removed from {guild.name} ({guild.id}) — "
+                    f"now in {len(self.guilds)} server(s)")
 
     async def on_command_error(
         self,
