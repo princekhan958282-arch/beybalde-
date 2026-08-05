@@ -274,6 +274,10 @@ COMMAND_DATA = {
         (";unequipavatar  or  ;unequipa",        "Unequip current avatar"),
         # Packs
         (";avatarpacks  or  ;apacks",   "View packs and their prices"),
+        # Levelling
+        (";avatarupgrade [name] [n]  or  ;aup", "Buy levels for an avatar card"),
+        (";avatarcost  or  ;acost",     "The full upgrade curve and what it buys"),
+        (";avatarreset <name>  or  ;areset", "Reset to Lv1, refund 70% of the spend"),
     ],
 }
 

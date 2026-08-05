@@ -316,6 +316,34 @@ class AvatarEngine:
     def get_equipped_avatar_id(self, player_id: int) -> Optional[str]:
         return get_equipped_avatar(player_id)
 
+    # ── Card levels ───────────────────────────────────────────────────────────
+
+    def card_level(self, player_id: int, avatar_id: str) -> int:
+        """This player's purchased level for one card. 1 when never bought."""
+        try:
+            from utils.database import get_user
+            from . import avatar_progress as AP
+            return AP.card_level(get_user(player_id), avatar_id)
+        except Exception:                                # noqa: BLE001
+            return 1
+
+    def _level_bonus(self, player_id: int, avatar_id: str,
+                     avatar: dict) -> dict:
+        """Flat stat lines from the card's level. Zero for an unlevelled card.
+
+        Swallows everything: a missing progress block, an unreadable profile or
+        a type that isn't in the growth table must all degrade to "no bonus"
+        rather than stopping a battle from starting.
+        """
+        try:
+            from . import avatar_levels as AL
+            level = self.card_level(player_id, avatar_id)
+            if level <= 1:
+                return {"attack": 0, "defense": 0, "stamina": 0}
+            return AL.card_stat_bonus(avatar.get("type", "balance"), level)
+        except Exception:                                # noqa: BLE001
+            return {"attack": 0, "defense": 0, "stamina": 0}
+
     # ── Battle API (the only method session.py needs to call) ─────────────────
 
     def get_battle_bonuses(self, player_id: int) -> AvatarBonuses:
@@ -323,6 +351,17 @@ class AvatarEngine:
         Called ONCE at battle start by session.py.
         Returns an AvatarBonuses snapshot for the entire fight.
         If no avatar is equipped, returns NULL_BONUSES (no effect).
+
+        The card's LEVEL is folded in here, and deliberately only here. Every
+        consumer of avatar bonuses — PvP, boss, Story, both card renderers and
+        their fallback embed paths — reaches them through this one method via
+        `loadout.avatar_bonuses()`, so levelling lands everywhere at once. That
+        is the same reasoning `utils/loadout.py` exists for: v55–v58 shipped
+        avatar bonuses that applied in PvP but not in boss fights and not on
+        either card, because four callers each did their own resolution.
+
+        A level-1 card adds exactly zero, so this changes nothing for a player
+        who has not spent coins.
         """
         avatar_id = self.get_equipped_avatar_id(player_id)
         if not avatar_id:
@@ -333,12 +372,13 @@ class AvatarEngine:
             return NULL_BONUSES
 
         b = avatar["bonuses"]
+        level_bonus = self._level_bonus(player_id, avatar_id, avatar)
         return AvatarBonuses(
-            attack_flat=b.get("attack_flat", 0.0),
+            attack_flat=b.get("attack_flat", 0.0) + level_bonus["attack"],
             attack_percent=b.get("attack_percent", 0.0),
-            defence_flat=b.get("defence_flat", 0.0),
+            defence_flat=b.get("defence_flat", 0.0) + level_bonus["defense"],
             defence_percent=b.get("defence_percent", 0.0),
-            stamina_flat=b.get("stamina_flat", 0.0),
+            stamina_flat=b.get("stamina_flat", 0.0) + level_bonus["stamina"],
             stamina_percent=b.get("stamina_percent", 0.0),
             stability_flat=b.get("stability_flat", 0.0),
             stability_percent=b.get("stability_percent", 0.0),

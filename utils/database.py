@@ -353,6 +353,31 @@ def update_user(user_id: int, profile: dict) -> None:
         USER_STORE.put_one(str(user_id), profile)
 
 
+def mutate_user(user_id: int, fn):
+    """Read-modify-write one profile atomically. Returns whatever `fn` returns.
+
+    `get_user()` then `update_user()` is a race: the profile can change between
+    the two calls and the write silently discards the change. That is tolerable
+    for a coin reward — worst case somebody is paid twice — and NOT tolerable
+    for a purchase, where the two halves are "take the coins" and "grant the
+    thing". A crash or a concurrent write between them is the one bug in a
+    shop that cannot be reconstructed afterwards without logs.
+
+    `fn(profile)` receives the live profile and mutates it in place. It must not
+    call get_user/update_user itself — `_users_lock` is a plain Lock, so a
+    nested call deadlocks. Raising from `fn` abandons the write entirely, which
+    is the desired behaviour for "you cannot afford this".
+    """
+    with _users_lock:
+        uid = str(user_id)
+        prof = USER_STORE.get_one(uid)
+        if prof is None:
+            prof = _default_profile(uid)
+        result = fn(prof)
+        USER_STORE.put_one(uid, prof)
+        return result
+
+
 def touch_user(user_id: int) -> None:
     """Record activity without rewriting the profile blob."""
     prof = USER_STORE.get_one(str(user_id))
