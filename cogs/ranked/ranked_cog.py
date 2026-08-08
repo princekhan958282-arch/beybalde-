@@ -217,6 +217,30 @@ class RankedCog(commands.Cog, name="Ranked"):
 
         act = str(action or "").lower()
 
+        # Two locks, not one. Owner-only answers "who", the control server
+        # answers "where" — the bot is in many servers and a settings command
+        # that works in all of them has that many doors. `status` is exempt so
+        # the owner can always find out WHICH server is the control server; it
+        # only reads.
+        gid = ctx.guild.id if ctx.guild else None
+        if act != "status":
+            why = RK.control_error(gid)
+            # A lock pointing at a server the bot cannot see is unenforceable
+            # and would brick the settings permanently — the owner could not
+            # even run `control unlock`, because that command is behind this
+            # same gate. So an unreachable lock is treated as no lock, loudly.
+            locked = RK.control_guild_id()
+            if why and locked is not None and self.bot.get_guild(locked) is None:
+                await ctx.send(
+                    f"⚠️ Settings are locked to `{locked}`, but I'm not in that "
+                    f"server — the lock is unenforceable, so I'm allowing this. "
+                    f"Run `;rankadmin control {gid}` to fix it." if gid else
+                    f"⚠️ Settings are locked to `{locked}`, which I can't see. "
+                    f"Run `;rankadmin control <guild_id>` from a server I'm in.")
+                why = ""
+            if why:
+                return await ctx.send(f"❌ {why}")
+
         if act == "status":
             cfg = RK.get_config()
             gid = cfg.get("verify_guild_id")
@@ -236,8 +260,21 @@ class RankedCog(commands.Cog, name="Ranked"):
                         inline=False)
             verified = sum(1 for u in _all_users() if u.get(RK.K_VERIFIED))
             e.add_field(name="Verified players", value=f"{verified:,}", inline=True)
-            e.set_footer(text=";rankadmin on | off | server <id> | invite <url> "
-                              "| reset <board>")
+
+            cid = RK.control_guild_id()
+            cg = self.bot.get_guild(cid) if cid else None
+            if cid is None:
+                ctrl = ("**Any server** — not locked yet.\n"
+                        "Locks automatically when you set the verify server.")
+            elif cg is None:
+                ctrl = (f"`{cid}` — ⚠️ I'm not in it, so the lock is "
+                        f"unenforceable and is being ignored.")
+            else:
+                ctrl = f"🔒 **{cg.name}** (`{cid}`) only"
+            e.add_field(name="Settings changeable from", value=ctrl, inline=False)
+
+            e.set_footer(text=";rankadmin on | off | server <id> | control <id> "
+                              "| invite <url> | reset <board>")
             return await ctx.send(embed=e)
 
         if act in ("on", "enable"):
@@ -255,14 +292,52 @@ class RankedCog(commands.Cog, name="Ranked"):
         if act == "server":
             if not value or not value.strip().isdigit():
                 return await ctx.send("Usage: `;rankadmin server <guild_id>`")
-            gid = int(value.strip())
-            g = self.bot.get_guild(gid)
-            RK.save_config({"verify_guild_id": gid})
+            target = int(value.strip())
+            g = self.bot.get_guild(target)
+            changes = {"verify_guild_id": target}
+            # Setting the verification server also CLOSES the bootstrap window:
+            # from here on, settings can only be changed from the server this
+            # command was run in. Done automatically so there is no state where
+            # verification is configured but the settings are still open to
+            # every server the bot is in.
+            locked_now = ""
+            if RK.control_guild_id() is None and gid is not None:
+                changes["control_guild_id"] = gid
+                locked_now = (f"\n🔒 Settings are now locked to **this** server "
+                              f"(`{gid}`). Use `;rankadmin control <id>` to move "
+                              f"them.")
+            RK.save_config(changes)
             return await ctx.send(
-                f"✅ Verification server set to **{g.name}** (`{gid}`)." if g else
-                f"⚠️ Set to `{gid}`, but I'm not in that server — I can't check "
-                f"membership until I'm added, so `/verify` will refuse rather "
-                f"than fail players.")
+                (f"✅ Verification server set to **{g.name}** (`{target}`)." if g else
+                 f"⚠️ Set to `{target}`, but I'm not in that server — I can't "
+                 f"check membership until I'm added, so `/verify` will refuse "
+                 f"rather than fail players.") + locked_now)
+
+        if act == "control":
+            if value and value.strip().lower() in ("unlock", "none", "off"):
+                RK.save_config({"control_guild_id": None})
+                return await ctx.send(
+                    "🔓 Settings unlocked — they can be changed from any server "
+                    "again (still owner-only). Re-lock with "
+                    "`;rankadmin control <guild_id>`.")
+            if not value or not value.strip().isdigit():
+                cur = RK.control_guild_id()
+                return await ctx.send(
+                    f"Settings are locked to `{cur}`.\n"
+                    f"Usage: `;rankadmin control <guild_id>` — or "
+                    f"`;rankadmin control unlock` to allow any server again."
+                    if cur else
+                    "Settings are not locked to any server yet.\n"
+                    "Usage: `;rankadmin control <guild_id>`")
+            target = int(value.strip())
+            g = self.bot.get_guild(target)
+            RK.save_config({"control_guild_id": target})
+            return await ctx.send(
+                f"🔒 Ranked settings can now only be changed from "
+                f"**{g.name if g else target}** (`{target}`)."
+                + ("" if g else "\n⚠️ I'm not in that server — you will not be "
+                                "able to change settings until I am. Re-run this "
+                                "from a server I can see if that was a mistake."))
 
         if act == "invite":
             if not value:
@@ -419,6 +494,16 @@ class RankedCommands(commands.Cog, name="Ranked (slash)"):
     async def s_admin_server(self, interaction: discord.Interaction,
                              guild_id: str) -> None:
         await self._run(interaction, "rankadmin", action="server", value=guild_id)
+
+    @rankadmin.command(
+        name="control",
+        description="[Owner] Lock ranked settings to one server")
+    @app_commands.describe(
+        guild_id="Server ID that may change settings, or 'unlock'")
+    async def s_admin_control(self, interaction: discord.Interaction,
+                              guild_id: str) -> None:
+        await self._run(interaction, "rankadmin", action="control",
+                        value=guild_id)
 
     @rankadmin.command(name="invite",
                        description="[Owner] The invite shown to unverified players")
