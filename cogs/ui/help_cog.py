@@ -169,7 +169,7 @@ COMMAND_DATA = {
         ("/leaderboard catches",  "Most Beyblades caught"),
         (";rank  or  /rank",      "Your rank card and board placings"),
         (";verify  or  /verify",  "Verify your account for ranked play"),
-        (";battle @user ranked",  "Play a RANKED match — casual doesn't count"),
+        (";battle @user ranked",  "RANKED match — first to 3 pts, max 2/day vs the same player"),
         (";card",                 "Display your blader profile card"),
     ],
     "boosters": [
