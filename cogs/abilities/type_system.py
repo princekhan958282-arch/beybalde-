@@ -63,20 +63,36 @@ TYPE_BONUS_MAX       = 0.15    # hard cap so modified stats (>100) can't inflate
 ATTRITION_START = 15
 
 # The bleed GROWS each round rather than sitting flat: a flat rate can never
-# out-pace the Stamina move (+3 per press, 0 cost), so a staller just tops the
-# bar back up forever. Each band is (up_to_round, increment_added_each_round):
+# out-pace the Stamina move (0 cost), so a staller just tops the bar back up
+# forever. Each band is (up_to_round, increment_added_each_round):
 #
-#   rounds 15-25  +0.1 per round   ->  r16 = 0.1, r17 = 0.2 ... r25 = 1.0
-#   rounds 25-35  +0.2 per round   ->  r26 = 1.2, r27 = 1.4 ... r35 = 3.0
-#   beyond 35     +0.3 per round   ->  keeps climbing, so it always resolves
+#   rounds 15-25  +0.25 per round  ->  r16 = 0.25, r17 = 0.5 ... r25 = 2.5
+#   rounds 25-35  +0.5  per round  ->  r26 = 3.0,  r27 = 3.5 ... r35 = 7.5
+#   beyond 35     +0.9  per round  ->  keeps climbing, so it always resolves
 #
 # The final band is open-ended, which is what guarantees termination — no
 # separate hard cap is needed.
+#
+# These were 0.1 / 0.2 / 0.3, tuned when the Stamina move restored a FLAT +3
+# and passive regen did nothing. The stamina overhaul made recovery scale with
+# the stat (up to +9) and gave passive regen a real value (up to +2.15), which
+# silently decoupled the two: a staller regenerated 3.95-11.15 per round while
+# attrition still climbed at the old rate, so a stall that used to resolve on
+# round 36 took 46 to 115 rounds depending on the stamina stat. Nobody plays 46
+# rounds of a Discord battle with a 30-second move timer, so in practice it
+# never resolved at all — the fight simply sat there.
 ATTRITION_BANDS: tuple[tuple[int | None, float], ...] = (
-    (25,   0.1),
-    (35,   0.2),
-    (None, 0.3),
+    (25,   0.25),
+    (35,   0.5),
+    (None, 0.9),
 )
+
+# The bleed also scales with the stamina ENGINE it has to out-pace, so this can
+# never decouple again: a blade whose recovery is bigger bleeds proportionally
+# harder. Without this the constants above have to be re-tuned by hand every
+# time a stamina number moves, and the failure mode when somebody forgets is
+# invisible — the game just stops ending.
+ATTRITION_PER_STAMINA_STAT = 0.010
 
 # Stamina types are built to outlast: they take this fraction of the bleed.
 ATTRITION_STAMINA_MULT = 0.5
@@ -108,11 +124,20 @@ def attrition_base_drain(round_no: int) -> float:
     return round(total, 2)
 
 
-def attrition_drain_for(btype: str, round_no: int) -> float:
-    """Stamina this type loses this round. 0 before attrition starts."""
+def attrition_drain_for(btype: str, round_no: int,
+                        sta_stat: float = 0.0) -> float:
+    """Stamina this type loses this round. 0 before attrition starts.
+
+    `sta_stat` is the blade's EFFECTIVE stamina stat — the same number that
+    drives how much the Stamina move restores. Scaling the bleed by it is what
+    keeps attrition tied to the engine it exists to out-pace; leaving it at the
+    default 0 reproduces the old flat behaviour exactly, so an older caller
+    that has not been updated still works.
+    """
     if not attrition_active(round_no):
         return 0.0
     drain = attrition_base_drain(round_no)
+    drain *= 1.0 + max(0.0, float(sta_stat or 0.0)) * ATTRITION_PER_STAMINA_STAT
     if "stamina" in str(btype or "").lower():
         drain *= ATTRITION_STAMINA_MULT
     return round(drain, 2)

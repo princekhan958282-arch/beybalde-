@@ -93,7 +93,18 @@ class AttritionSystem:
                     parts.append(f"{stat[:3].upper()} +{total}")
 
             # ── stamina bite ─────────────────────────────────────────────
-            drain = attrition_drain_for(_type_of(blade), round_no)
+            # Scaled by the blade's own effective stamina stat, which is the
+            # same number StaminaManager uses to decide how much the Stamina
+            # move restores. Reading it from the manager rather than the raw
+            # blade means parts, avatar and bey level all count on both sides
+            # of the race, instead of only on the regen side.
+            sta_stat = 0.0
+            if sm is not None:
+                try:
+                    sta_stat = float(sm._sta_stat(key))
+                except Exception:                        # noqa: BLE001
+                    sta_stat = 0.0
+            drain = attrition_drain_for(_type_of(blade), round_no, sta_stat)
             if drain > 0 and sm is not None:
                 before = sm.stamina.get(key, 0.0)
                 sm.stamina[key] = round(max(0.0, before - drain), 2)

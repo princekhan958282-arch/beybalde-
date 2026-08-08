@@ -61,6 +61,12 @@ SHIELD_GATE_RATIO    = 0.6
 # Flat damage reduction on hits that break through the gate
 SHIELD_FLAT_RATIO    = 0.3
 
+# Fraction of a fully-gated hit that still gets through. Defence stays
+# overwhelmingly strong — 94% of the hit is gone — but "strong" and
+# "mathematically immune" are different things, and only one of them ends a
+# battle. See the comment in _shield_gate for the bug this fixes.
+SHIELD_GATE_CHIP_RATIO = 0.06
+
 # Counter hit: flat base + DEF-scaled bonus (continuous per-point scaling)
 # counter = COUNTER_BASE + min(COUNTER_EXTRA_MAX, def_stat × COUNTER_PER_DEF)
 # 1 DEF = +0.25, so 20 DEF = +5.
@@ -104,8 +110,22 @@ def _shield_gate(raw_hit: int, def_stat: int) -> tuple[int, int]:
     def_stat       = max(0, def_stat)   # negative DEF must never ADD damage
     gate_threshold = def_stat * SHIELD_GATE_RATIO
     if raw_hit < gate_threshold:
-        # Fully blocked
-        return 0, raw_hit
+        # Blocked — but never to literally zero.
+        #
+        # Returning a true 0 made high-DEF blades UNKILLABLE by anything that
+        # could not clear the gate. Against a Nemesis boss copy (DEF 90-147)
+        # the gate sits at 54-88 while a normal Attack lands at
+        # atk x LOSING_PENALTY_MULT, so an attacker needed roughly 135+ ATK to
+        # deal ANY damage at all — on a roster whose blades average 97. Every
+        # other exchange dealt nothing, and with the Stamina move healing ~80
+        # for zero cost the defender's HP simply stopped moving. The reported
+        # symptom was a copy frozen at 223 HP that would not die.
+        #
+        # A percentage of the raw hit rather than a flat number, so a strong
+        # attacker is not reduced to the same trickle as a weak one, and so the
+        # chip scales with any future change to attack values.
+        chip = max(1, math.ceil(raw_hit * SHIELD_GATE_CHIP_RATIO))
+        return chip, max(0, raw_hit - chip)
 
     flat_reduction = math.ceil(def_stat * SHIELD_FLAT_RATIO)
     mitigated      = max(5, raw_hit - flat_reduction)
