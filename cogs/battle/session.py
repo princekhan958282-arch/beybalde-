@@ -112,7 +112,11 @@ from utils.database import (
 )
 from utils.embeds import rarity_colour, RARITY_EMOJIS, hp_bar, level_badge
 from utils.hp_system import max_hp_for_blade, blade_hp_stat
-from utils.ranks import apply_win, apply_loss, tier_for_score, rank_score_for, WIN_SCORE, LOSS_SCORE
+# apply_win / apply_loss are no longer imported here: rank score is now moved
+# only by utils.ranked, which owns the ranked-vs-casual decision. Two callers
+# able to change the same score is how a casual battle would leak onto the
+# ladder again.
+from utils.ranks import tier_for_score, rank_score_for, WIN_SCORE, LOSS_SCORE
 
 
 
@@ -230,11 +234,18 @@ class BattleSession:
         p2:      discord.Member,
         blade1:  dict,
         blade2:  dict,
+        ranked:  bool = False,
     ):
         self.bot     = bot
         self.channel = channel
         self.players = [p1, p2]
         self.blades  = {str(p1.id): blade1, str(p2.id): blade2}
+        # Defaults to False so every existing caller — tournament matches
+        # included — keeps producing casual results until it opts in. A ladder
+        # that counted friendly matches would let two players trade wins to
+        # farm rank score, and a win rate including practice games measures
+        # nothing.
+        self.ranked  = bool(ranked)
 
         # ── Per-blade HP pools ────────────────────────────────────────────────
         # Max HP builds in four additive layers, in this order:
@@ -1021,16 +1032,20 @@ class BattleSession:
             w_name = getattr(winner, "display_name", None) or self.blades[str(winner.id)]["name"]
             l_name = getattr(loser,  "display_name", None) or self.blades[str(loser.id)]["name"]
 
+            from utils import ranked as RK
+
             w_profile          = get_user(winner.id)
+            # `wins` / `losses` stay lifetime-across-everything: the profile
+            # card, achievements and ;audit all read them and none of those is
+            # competitive. Only the ranked keys below drive the ladder.
             w_profile["wins"] += 1
-            w_profile          = apply_win(w_profile)
             w_profile["coins"] = w_profile.get("coins", 0) + COINS_WIN
 
-            # ── Win streak system ─────────────────────────────────────────────
-            streak = w_profile.get("win_streak", 0) + 1
-            w_profile["win_streak"]  = streak
-            w_profile["best_streak"] = max(w_profile.get("best_streak", 0), streak)
-            streak_bonus = _streak_bonus(streak)
+            # ── Rank score + win streak — RANKED battles only ─────────────────
+            streak = 0
+            if self.ranked:
+                streak = RK.apply_ranked_win(w_profile)
+            streak_bonus = _streak_bonus(streak) if streak else 0
             if streak_bonus:
                 w_profile["coins"] += streak_bonus
             # Bey EXP for the blade that actually fought. Awarded on the
@@ -1042,9 +1057,9 @@ class BattleSession:
 
             l_profile            = get_user(loser.id)
             l_profile["losses"] += 1
-            l_profile            = apply_loss(l_profile)
             l_profile["coins"]   = l_profile.get("coins", 0) + COINS_LOSS
-            l_profile["win_streak"] = 0   # streak broken
+            if self.ranked:
+                RK.apply_ranked_loss(l_profile)   # score down, streak broken
             _bey_xp(l_profile, self.blades.get(str(loser.id)), won=False)
             update_user(loser.id, l_profile)
             llvl, _, l_up = grant_xp(loser.id, XP_LOSS)
@@ -1054,19 +1069,28 @@ class BattleSession:
             w_tier   = tier_for_score(rank_score_for(w_profile))
             l_tier   = tier_for_score(rank_score_for(l_profile))
 
+            # The rank line only appears on a ranked match. Printing "+25 pts"
+            # after a casual battle would advertise a score change that did not
+            # happen, which is worse than saying nothing.
+            w_rank = (f" | {w_tier[2]} {w_tier[1]} (+{WIN_SCORE} pts)"
+                      if self.ranked else "")
+            l_rank = (f" | {l_tier[2]} {l_tier[1]} (-{LOSS_SCORE} pts)"
+                      if self.ranked else "")
             embed = discord.Embed(
-                title=f"🏆 {w_name} WINS!",
+                title=f"{'🏅 RANKED — ' if self.ranked else ''}🏆 {w_name} WINS!",
                 description=(
                     f"**{w_blade['name']}** has knocked out the opponent!\n\n"
                     f"🌀 **{w_name}** +{XP_WIN} XP → Level **{wlvl}** "
                     f"{'⬆️ LEVEL UP! ' if w_up else ''}"
-                    f"| {w_tier[2]} {w_tier[1]} (+{WIN_SCORE} pts) | +{COINS_WIN} 💰\n"
+                    f"{w_rank} | +{COINS_WIN} 💰\n"
                     f"💀 **{l_name}** +{XP_LOSS} XP → Level **{llvl}** "
                     f"{'⬆️ LEVEL UP! ' if l_up else ''}"
-                    f"| {l_tier[2]} {l_tier[1]} (-{LOSS_SCORE} pts) | +{COINS_LOSS} 💰"
+                    f"{l_rank} | +{COINS_LOSS} 💰"
                     + (f"\n\n🔥 **{streak} WIN STREAK!** Bonus: **+{streak_bonus}** 💰"
                        if streak_bonus else
                        (f"\n\n🔥 Win streak: **{streak}**" if streak >= 2 else ""))
+                    + ("" if self.ranked else
+                       "\n\n*Casual match — no rank score, win rate or streak.*")
                 ),
                 color=rarity_colour(w_rarity),
             )

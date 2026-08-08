@@ -162,9 +162,15 @@ COMMAND_DATA = {
         (";inventory",      "View your full Beyblade parts inventory"),
     ],
     "leaderboard": [
-        (";leaderboard",    "View the global blader rankings"),
-        (";rank",           "Check your personal rank position"),
-        (";card",           "Display your blader profile card"),
+        ("/leaderboard rank",     "Top bladers by rank score"),
+        ("/leaderboard winrate",  "Best ranked win rate (min 10 games)"),
+        ("/leaderboard wins",     "Most ranked wins"),
+        ("/leaderboard streak",   "Longest ranked win streak"),
+        ("/leaderboard catches",  "Most Beyblades caught"),
+        (";rank  or  /rank",      "Your rank card and board placings"),
+        (";verify  or  /verify",  "Verify your account for ranked play"),
+        (";battle @user ranked",  "Play a RANKED match — casual doesn't count"),
+        (";card",                 "Display your blader profile card"),
     ],
     "boosters": [
         (";booster",        "Purchase and open a booster pack"),

@@ -206,12 +206,27 @@ class BattleCog(commands.Cog, name="Battle"):
         ),
         brief="Challenge a player to a battle! ⚔️",
     )
-    async def battle(self, ctx: commands.Context, opponent: discord.Member) -> None:
+    async def battle(self, ctx: commands.Context, opponent: discord.Member,
+                     mode: str = "casual") -> None:
         # ── Basic validation ──────────────────────────────────────────────────
         if opponent.bot:
             return await ctx.send("❌ You can't battle a bot!")
         if opponent.id == ctx.author.id:
             return await ctx.send("❌ You can't battle yourself!")
+
+        # ── Ranked gate ───────────────────────────────────────────────────────
+        # Checked here, before the challenge is even posted, so a player who
+        # cannot play ranked finds out immediately instead of after their
+        # opponent has accepted.
+        ranked = str(mode).lower().startswith("rank")
+        if ranked:
+            from utils import ranked as RK
+            for member in (ctx.author, opponent):
+                why = RK.eligibility_error(get_user(member.id))
+                if why:
+                    who = ("You are" if member.id == ctx.author.id
+                           else f"{member.display_name} is")
+                    return await ctx.send(f"❌ {who} not verified for ranked.\n{why}")
 
         if ctx.author.id in self.active_battles or opponent.id in self.active_battles:
             return await ctx.send(
@@ -309,6 +324,7 @@ class BattleCog(commands.Cog, name="Battle"):
             p2      = opponent,
             blade1  = blade1,
             blade2  = blade2,
+            ranked  = ranked,
         )
         self.active_battles[ctx.author.id] = session
         self.active_battles[opponent.id]   = session
