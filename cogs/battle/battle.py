@@ -227,6 +227,16 @@ class BattleCog(commands.Cog, name="Battle"):
                     who = ("You are" if member.id == ctx.author.id
                            else f"{member.display_name} is")
                     return await ctx.send(f"❌ {who} not verified for ranked.\n{why}")
+            # Per-opponent daily cap, checked from BOTH sides: the tally is
+            # written to both profiles, so either being full blocks the match.
+            # Checking only the caller's would let them keep starting matches
+            # after the opponent's own limit was spent.
+            for a, b in ((ctx.author, opponent), (opponent, ctx.author)):
+                why = RK.pair_limit_error(get_user(a.id), b.id, b.display_name)
+                if why:
+                    prefix = ("" if a.id == ctx.author.id
+                              else f"{a.display_name}: ")
+                    return await ctx.send(f"❌ {prefix}{why}")
 
         if ctx.author.id in self.active_battles or opponent.id in self.active_battles:
             return await ctx.send(
@@ -316,21 +326,23 @@ class BattleCog(commands.Cog, name="Battle"):
 
         await msg.edit(view=None)
 
-        # ── Start session ─────────────────────────────────────────────────────
-        session = BattleSession(
-            bot     = self.bot,
-            channel = ctx.channel,
-            p1      = ctx.author,
-            p2      = opponent,
-            blade1  = blade1,
-            blade2  = blade2,
-            ranked  = ranked,
-        )
-        self.active_battles[ctx.author.id] = session
-        self.active_battles[opponent.id]   = session
-
+        # ── Run the match ─────────────────────────────────────────────────────
+        # A casual battle is one fight, exactly as before. A RANKED match is a
+        # series: each round ends in a burst (2 pts), a survival or a ring-out
+        # (1 pt each), and the first to RK.MATCH_TARGET takes the match. Only
+        # the match touches the ladder — a round is scored, not recorded.
         try:
-            await session.run()
+            if ranked:
+                await self._run_ranked_match(ctx, opponent, blade1, blade2)
+            else:
+                session = BattleSession(
+                    bot=self.bot, channel=ctx.channel,
+                    p1=ctx.author, p2=opponent,
+                    blade1=blade1, blade2=blade2, ranked=False,
+                )
+                self.active_battles[ctx.author.id] = session
+                self.active_battles[opponent.id] = session
+                await session.run()
         except Exception as e:
             import traceback
             print(f"Battle session error: {e}")
@@ -339,6 +351,98 @@ class BattleCog(commands.Cog, name="Battle"):
         finally:
             self.active_battles.pop(ctx.author.id, None)
             self.active_battles.pop(opponent.id,   None)
+
+    async def _run_ranked_match(self, ctx, opponent, blade1, blade2) -> None:
+        """First to RK.MATCH_TARGET points across as many rounds as it takes."""
+        from utils import ranked as RK
+        from utils.database import mutate_user
+
+        me, them = ctx.author, opponent
+        pts = {me.id: 0, them.id: 0}
+        history: list[str] = []
+        round_no = 0
+
+        # A hard ceiling on rounds. Every round must end — sim_stall guarantees
+        # the stamina bleed resolves one — but a draw scores nobody, so without
+        # a cap a pair of perfectly matched blades could draw forever.
+        MAX_ROUNDS = 9
+
+        while (max(pts.values()) < RK.MATCH_TARGET) and round_no < MAX_ROUNDS:
+            round_no += 1
+            await ctx.send(embed=discord.Embed(
+                title=f"🏅 Ranked — Round {round_no}",
+                description=(f"**{me.display_name}** {pts[me.id]} — "
+                             f"{pts[them.id]} **{them.display_name}**\n"
+                             f"First to **{RK.MATCH_TARGET}** points wins."),
+                colour=0xF1C40F))
+
+            # Each round is a fresh session: full HP, full stamina, a clean
+            # stability bar. Carrying damage between rounds would make round 1
+            # decide the match and turn the point system into decoration.
+            session = BattleSession(
+                bot=self.bot, channel=ctx.channel, p1=me, p2=them,
+                blade1=blade1, blade2=blade2, ranked=True,
+            )
+            self.active_battles[me.id] = session
+            self.active_battles[them.id] = session
+            try:
+                await session.run()
+            finally:
+                self.active_battles.pop(me.id, None)
+                self.active_battles.pop(them.id, None)
+
+            winner_id = getattr(session, "winner_id", None)
+            if not winner_id:
+                history.append(f"R{round_no}: 🤝 draw — no points")
+                continue
+            loser_id = them.id if winner_id == me.id else me.id
+            kind = session.finish_for(str(loser_id))
+            gained = RK.finish_points(kind)
+            pts[winner_id] += gained
+            who = me if winner_id == me.id else them
+            history.append(f"R{round_no}: {RK.finish_label(kind)} — "
+                           f"**{who.display_name}** +{gained}")
+
+        # ── Match result ──────────────────────────────────────────────────────
+        if pts[me.id] == pts[them.id]:
+            winner, loser = None, None
+        elif pts[me.id] > pts[them.id]:
+            winner, loser = me, them
+        else:
+            winner, loser = them, me
+
+        e = discord.Embed(
+            title=("🏅 RANKED MATCH — DRAW" if winner is None
+                   else f"🏅 RANKED MATCH — {winner.display_name} WINS"),
+            description=(f"**{me.display_name}** {pts[me.id]} — "
+                         f"{pts[them.id]} **{them.display_name}**\n\n"
+                         + "\n".join(history)),
+            colour=0x99AAB5 if winner is None else 0x2ECC71)
+
+        if winner is not None:
+            # The ladder moves ONCE, here, for the match — not once per round.
+            # Rounds are scored; matches are recorded.
+            w_streak = mutate_user(winner.id, RK.apply_ranked_win)
+            mutate_user(loser.id, RK.apply_ranked_loss)
+            from utils.ranks import WIN_SCORE, LOSS_SCORE
+            e.add_field(name="Ladder",
+                        value=f"**{winner.display_name}** +{WIN_SCORE} rank "
+                              f"score · streak **{w_streak}**\n"
+                              f"**{loser.display_name}** −{LOSS_SCORE}",
+                        inline=False)
+
+        # The pairing is charged whatever the result, and to both sides, so a
+        # loss cannot be replayed for free and neither player can farm the
+        # other by always being the one who calls it.
+        for a, b in ((me, them), (them, me)):
+            try:
+                mutate_user(a.id, lambda p, _b=b: RK.record_pair_match(p, _b.id))
+            except Exception:                            # noqa: BLE001
+                pass
+        left = RK.pair_remaining(get_user(me.id), them.id)
+        e.set_footer(text=f"{left} ranked match(es) left against "
+                          f"{them.display_name} today.")
+        await ctx.send(embed=e)
 
     # ── ;forfeit ─────────────────────────────────────────────────────────────
 

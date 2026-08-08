@@ -63,6 +63,56 @@ RESETTABLE = {
 # place, and low enough to be reachable in an evening.
 MIN_RANKED_GAMES = 10
 
+# ── Match format ─────────────────────────────────────────────────────────────
+#
+# A ranked MATCH is a series of rounds, not one fight. Each round ends in one of
+# three finishes, worth different points, and the first to MATCH_TARGET wins the
+# match:
+#
+#   burst     the opponent's HP reached 0          2 points
+#   survival  the opponent ran out of stamina      1 point
+#   ringout   the opponent's stability reached 0   1 point
+#
+# So a match is two bursts, or three of the lesser finishes, or a mix — which is
+# what makes the finish type worth playing for rather than incidental. Only the
+# MATCH counts for the ladder: rank score, ranked W/L and the streak move once,
+# at the end, not once per round.
+FINISH_BURST = "burst"
+FINISH_SURVIVAL = "survival"
+FINISH_RINGOUT = "ringout"
+
+FINISH_POINTS = {
+    FINISH_BURST:    2,
+    FINISH_SURVIVAL: 1,
+    FINISH_RINGOUT:  1,
+}
+
+FINISH_LABEL = {
+    FINISH_BURST:    ("💥", "Burst Finish"),
+    FINISH_SURVIVAL: ("⏳", "Survival Finish"),
+    FINISH_RINGOUT:  ("🌀", "Ring-Out Finish"),
+}
+
+MATCH_TARGET = 3
+
+# How many ranked matches two specific players may play against each other per
+# day. Without a cap, the cheapest way to climb is to find one willing partner
+# and farm them, which is the same hole that keeping casual battles off the
+# ladder was meant to close.
+PAIR_DAILY_LIMIT = 2
+K_PAIRS = "ranked_pairs"
+
+
+def finish_points(kind: str) -> int:
+    """Points a finish is worth. Unknown finishes score the minimum rather than
+    zero — a round that happened should never be worth nothing."""
+    return FINISH_POINTS.get(str(kind or ""), 1)
+
+
+def finish_label(kind: str) -> str:
+    emoji, name = FINISH_LABEL.get(str(kind or ""), ("🏁", "Finish"))
+    return f"{emoji} {name}"
+
 
 # ── Config (stored in data/config.json under "ranked") ────────────────────────
 
@@ -339,6 +389,73 @@ def apply_ranked_loss(profile: dict) -> None:
     profile[K_RANKED_LOSSES] = ranked_losses(profile) + 1
     apply_loss(profile)
     profile[K_WIN_STREAK] = 0
+
+
+# ── Per-opponent daily limit ─────────────────────────────────────────────────
+
+def _today(now: Optional[float] = None) -> str:
+    """UTC date stamp. A date string rather than a rolling timer because
+    'you have 1 left today' is something a player can reason about, and a
+    rolling window means the answer changes depending on when they ask."""
+    import datetime
+    ts = datetime.datetime.fromtimestamp(
+        now if now is not None else __import__("time").time(),
+        datetime.timezone.utc)
+    return ts.strftime("%Y-%m-%d")
+
+
+def pair_count(profile: dict, opponent_id, now: Optional[float] = None) -> int:
+    """Ranked matches already played against this opponent today."""
+    pairs = (profile or {}).get(K_PAIRS)
+    if not isinstance(pairs, dict):
+        return 0
+    entry = pairs.get(str(opponent_id))
+    if not isinstance(entry, dict):
+        return 0
+    if entry.get("day") != _today(now):
+        return 0                       # yesterday's tally has already expired
+    try:
+        return int(entry.get("count", 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def pair_remaining(profile: dict, opponent_id, now: Optional[float] = None) -> int:
+    return max(0, PAIR_DAILY_LIMIT - pair_count(profile, opponent_id, now))
+
+
+def pair_limit_error(profile: dict, opponent_id, opponent_name: str = "them",
+                     now: Optional[float] = None) -> str:
+    """Player-facing reason this pairing is used up, or '' when it is not."""
+    if pair_remaining(profile, opponent_id, now) > 0:
+        return ""
+    return (f"You've already played {PAIR_DAILY_LIMIT} ranked matches against "
+            f"{opponent_name} today. Find a different opponent — the limit "
+            f"resets at midnight UTC.")
+
+
+def record_pair_match(profile: dict, opponent_id,
+                      now: Optional[float] = None) -> int:
+    """Count one ranked match against this opponent. Returns the new count.
+
+    Prunes other opponents' expired entries as it goes, so the dict cannot grow
+    without bound for a player who fights many different people.
+    """
+    today = _today(now)
+    pairs = profile.get(K_PAIRS)
+    if not isinstance(pairs, dict):
+        pairs = {}
+    pairs = {k: v for k, v in pairs.items()
+             if isinstance(v, dict) and v.get("day") == today}
+    entry = pairs.get(str(opponent_id)) or {"day": today, "count": 0}
+    entry["day"] = today
+    try:
+        entry["count"] = int(entry.get("count", 0) or 0) + 1
+    except (TypeError, ValueError):
+        entry["count"] = 1
+    pairs[str(opponent_id)] = entry
+    profile[K_PAIRS] = pairs
+    return entry["count"]
 
 
 def record_catch(profile: dict) -> int:

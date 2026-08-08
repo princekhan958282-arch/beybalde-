@@ -294,6 +294,139 @@ check("a category reset only clears its own keys",
       and RK.best_streak(partial) == 8,
       (RK.beys_caught(partial), RK.rank_score(partial), RK.best_streak(partial)))
 
+print("\n── 8b. match format: finishes, points, first to 3 ───────────────")
+check("burst is worth 2", RK.finish_points(RK.FINISH_BURST) == 2)
+check("survival is worth 1", RK.finish_points(RK.FINISH_SURVIVAL) == 1)
+check("ring-out is worth 1", RK.finish_points(RK.FINISH_RINGOUT) == 1)
+check("a match needs 3 points", RK.MATCH_TARGET == 3)
+check("an unknown finish scores the minimum, never zero",
+      RK.finish_points("mystery") == 1 and RK.finish_points(None) == 1)
+check("every finish has a label", all(RK.finish_label(k)
+      for k in (RK.FINISH_BURST, RK.FINISH_SURVIVAL, RK.FINISH_RINGOUT)))
+check("an unknown finish still labels rather than raising",
+      isinstance(RK.finish_label("mystery"), str))
+
+# The shapes a match can actually take.
+check("two bursts win a match", 2 * RK.finish_points(RK.FINISH_BURST)
+      >= RK.MATCH_TARGET)
+check("one burst alone does NOT", RK.finish_points(RK.FINISH_BURST)
+      < RK.MATCH_TARGET)
+check("three ring-outs win", 3 * RK.finish_points(RK.FINISH_RINGOUT)
+      >= RK.MATCH_TARGET)
+check("two ring-outs do not", 2 * RK.finish_points(RK.FINISH_RINGOUT)
+      < RK.MATCH_TARGET)
+check("a burst plus a survival wins",
+      RK.finish_points(RK.FINISH_BURST) + RK.finish_points(RK.FINISH_SURVIVAL)
+      >= RK.MATCH_TARGET)
+
+
+def play(seq):
+    """Score a sequence of (winner, finish) and return points + the round it
+    ended on, exactly as the match loop does."""
+    pts = {"a": 0, "b": 0}
+    for i, (who, kind) in enumerate(seq, 1):
+        if who is None:
+            continue                 # a draw scores nobody
+        pts[who] += RK.finish_points(kind)
+        if max(pts.values()) >= RK.MATCH_TARGET:
+            return pts, i
+    return pts, len(seq)
+
+
+pts, ended = play([("a", "burst"), ("a", "burst")])
+check("a 2-burst match ends on round 2", ended == 2 and pts["a"] == 4, (pts, ended))
+pts, ended = play([("a", "ringout"), ("a", "survival"), ("a", "ringout")])
+check("a 3-lesser-finish match ends on round 3", ended == 3, (pts, ended))
+# a: 2, b: 2, a: +1 = 3 → the match stops the instant someone reaches the
+# target, so the two later rounds are never played.
+pts, ended = play([("a", "burst"), ("b", "burst"), ("a", "survival"),
+                   ("b", "ringout"), ("a", "ringout")])
+check("a traded match ends the moment someone reaches 3",
+      ended == 3 and pts == {"a": 3, "b": 2}, (pts, ended))
+check("...and the trailing rounds are never played", ended < 5, ended)
+pts, ended = play([(None, ""), ("a", "burst"), (None, ""), ("a", "survival")])
+check("draws score nobody and do not end the match", pts["a"] == 3, pts)
+
+print("\n── 8c. two matches per opponent per day ─────────────────────────")
+check("the cap is 2", RK.PAIR_DAILY_LIMIT == 2)
+pr = player(700)
+check("a fresh pairing has the full allowance",
+      RK.pair_remaining(pr, 800) == 2 and RK.pair_limit_error(pr, 800) == "")
+RK.record_pair_match(pr, 800)
+check("one played leaves one", RK.pair_remaining(pr, 800) == 1)
+check("...and is still allowed", RK.pair_limit_error(pr, 800) == "")
+RK.record_pair_match(pr, 800)
+check("two played leaves none", RK.pair_remaining(pr, 800) == 0)
+check("...and is refused", RK.pair_limit_error(pr, 800) != "")
+check("the refusal says when it resets",
+      "midnight" in RK.pair_limit_error(pr, 800).lower())
+check("the refusal names the opponent",
+      "Rival" in RK.pair_limit_error(pr, 800, "Rival"))
+check("a DIFFERENT opponent is unaffected — the cap is per pairing",
+      RK.pair_remaining(pr, 801) == 2)
+
+stale = player(701)
+stale[RK.K_PAIRS] = {"800": {"day": "1999-01-01", "count": 99}}
+check("yesterday's tally does not count today",
+      RK.pair_count(stale, 800) == 0 and RK.pair_remaining(stale, 800) == 2)
+RK.record_pair_match(stale, 802)
+check("recording prunes other opponents' expired entries",
+      "800" not in stale[RK.K_PAIRS], stale[RK.K_PAIRS])
+
+junk = player(702, ranked_pairs="not-a-dict")
+check("a junk pairs blob reads as zero rather than crashing",
+      RK.pair_count(junk, 1) == 0)
+junk2 = player(703)
+junk2[RK.K_PAIRS] = {"1": {"day": RK._today(), "count": "lots"}}
+check("a junk count reads as zero", RK.pair_count(junk2, 1) == 0)
+check("recording over a junk count recovers to 1",
+      RK.record_pair_match(junk2, 1) == 1)
+
+print("\n── 8d. finish detection in the engine ───────────────────────────")
+import inspect as _insp                                  # noqa: E402
+import cogs.battle.session as _S                         # noqa: E402
+ssrc = _insp.getsource(_S)
+check("ring-outs are tagged", ssrc.count('_mark_finish(key, "ringout")') == 2,
+      ssrc.count('_mark_finish(key, "ringout")'))
+check("both ring-out sites are covered — ability-driven and stability-zero",
+      ssrc.count('_mark_finish(key, "ringout")') == 2)
+check("stamina KO is tagged as a survival",
+      '_mark_finish(key, "survival")' in ssrc)
+check("an unmarked loss defaults to burst — HP reduced to 0 by damage",
+      "RK.FINISH_BURST" in ssrc)
+check("the first mark wins, so two causes cannot relabel each other",
+      "setdefault" in _insp.getsource(_S.BattleSession._mark_finish))
+check("the finish is announced on EVERY battle, not just ranked",
+      "finish_label(kind)" in ssrc)
+
+sess = _S.BattleSession.__new__(_S.BattleSession)
+sess.finish_type = {}
+check("a clean loss reads as a burst", sess.finish_for("7") == RK.FINISH_BURST)
+sess._mark_finish("7", "ringout")
+check("a tagged loss keeps its tag", sess.finish_for("7") == RK.FINISH_RINGOUT)
+sess._mark_finish("7", "survival")
+check("a second tag does not overwrite the first",
+      sess.finish_for("7") == RK.FINISH_RINGOUT)
+check("other players are unaffected", sess.finish_for("8") == RK.FINISH_BURST)
+
+bsrc = _insp.getsource(BATTLE) if False else open(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                 "cogs", "battle", "battle.py"), encoding="utf-8").read()
+check("a ranked match runs a loop, not a single fight",
+      "_run_ranked_match" in bsrc)
+check("each round is a FRESH session — carried damage would decide the match",
+      "Each round is a fresh session" in bsrc)
+check("the ladder moves once for the MATCH, not once per round",
+      bsrc.count("apply_ranked_win") == 1, bsrc.count("apply_ranked_win"))
+check("the pairing is charged to BOTH players",
+      "record_pair_match" in bsrc and "for a, b in ((me, them), (them, me))" in bsrc)
+check("the pair limit is checked from both sides before starting",
+      "pair_limit_error" in bsrc)
+check("the match loop has a round ceiling so a draw cannot run forever",
+      "MAX_ROUNDS" in bsrc)
+check("a casual battle is still exactly one fight",
+      "ranked=False" in bsrc)
+
 print("\n── 9. the engine is actually wired ──────────────────────────────")
 import inspect                                          # noqa: E402
 import cogs.battle.session as SESSION                   # noqa: E402
@@ -311,7 +444,8 @@ import cogs.battle.battle as BATTLE                     # noqa: E402
 bsrc = inspect.getsource(BATTLE)
 check(";battle accepts a mode", "mode: str" in bsrc)
 check("...and gates ranked on eligibility", "eligibility_error" in bsrc)
-check("...and passes the flag through", "ranked  = ranked" in bsrc)
+check("...and a ranked match builds ranked sessions",
+      "ranked=True" in bsrc and "_run_ranked_match" in bsrc)
 
 import cogs.spawn.spawn as SPAWN                        # noqa: E402
 check("catching a spawn records the catch",

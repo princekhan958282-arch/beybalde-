@@ -377,6 +377,20 @@ class BattleSession:
         self.log:      list[str] = []
         self.finished: bool = False
 
+        # How this fight ended, and for whom. Set at whichever of the three
+        # sites fires first; a fight can only end once, so the first mark wins
+        # and later ones are ignored rather than overwriting it.
+        #
+        # All three sites already collapsed to `hp[key] = 0`, which made every
+        # ending look identical downstream — the result embed said "knocked
+        # out" whether the blade burst, ran out of spin, or was flung from the
+        # ring. Ranked scoring needs to tell them apart, and so does anyone
+        # reading a normal battle.
+        self.finish_type: dict[str, str] = {}   # loser key -> finish kind
+        # Set once the fight resolves, so a caller running a multi-round match
+        # can score the round without re-deriving which player lost.
+        self.last_finish: str = ""
+
         self.panel_msg: Optional[discord.Message] = None
         self._current_view: Optional[_InChannelControlPanel] = None
         self._done_event   = asyncio.Event()
@@ -797,6 +811,7 @@ class BattleSession:
                 round_log.append(
                     f"🌀 **RING OUT!** **{blade_name}** was blasted out of the ring by an ability!"
                 )
+                self._mark_finish(key, "ringout")
                 self.hp[key] = 0
 
         # ── Attrition ─────────────────────────────────────────────────────────
@@ -807,6 +822,10 @@ class BattleSession:
         # ── Stamina KO ────────────────────────────────────────────────────────
         for key in (k1, k2):
             ko_logs = sm.check_stamina_ko(key, self.hp, self.blades)
+            if ko_logs:
+                # check_stamina_ko drops HP to 0 itself and only returns logs
+                # when it actually fired, so a non-empty result IS the signal.
+                self._mark_finish(key, "survival")
             round_log.extend(ko_logs)
 
         # ── Defense stability costs (after damage resolved so context is known) ─
@@ -831,6 +850,7 @@ class BattleSession:
                 round_log.append(
                     f"🌀 **RING OUT!** **{blade_name}** lost all stability and flew out of the ring!"
                 )
+                self._mark_finish(key, "ringout")
                 self.hp[key] = 0
 
         # ── Tick all timed status effects (end-of-round) ──────────────────────
@@ -997,6 +1017,25 @@ class BattleSession:
 
     # ── Battle end ────────────────────────────────────────────────────────────
 
+    def _mark_finish(self, key: str, kind: str) -> None:
+        """Record HOW this blade went out. First mark wins.
+
+        Stability and stamina both drive HP to 0 to end the fight, so without a
+        first-wins rule a blade that rings out on the same round its stamina
+        expires could be relabelled by whichever check ran second.
+        """
+        self.finish_type.setdefault(str(key), kind)
+
+    def finish_for(self, loser_key: str) -> str:
+        """The finish that ended it for this player.
+
+        Defaults to a burst: the two special endings mark themselves, so an
+        unmarked loss is by definition HP reduced to zero by damage — which is
+        exactly what a burst is.
+        """
+        from utils import ranked as RK
+        return self.finish_type.get(str(loser_key), RK.FINISH_BURST)
+
     async def _end_battle(self) -> None:
         if self.finished:
             return
@@ -1076,10 +1115,23 @@ class BattleSession:
                       if self.ranked else "")
             l_rank = (f" | {l_tier[2]} {l_tier[1]} (-{LOSS_SCORE} pts)"
                       if self.ranked else "")
+            # The finish type is announced on EVERY battle, not just ranked
+            # ones. All three endings used to render as "knocked out", so a
+            # ring-out and a burst were indistinguishable to the player who
+            # just lost one.
+            kind = self.finish_for(str(loser.id))
+            self.last_finish = kind
+            verb = {"burst": "burst the opponent",
+                    "survival": "outlasted the opponent",
+                    "ringout": "sent the opponent flying"}.get(kind, "won")
             embed = discord.Embed(
-                title=f"{'🏅 RANKED — ' if self.ranked else ''}🏆 {w_name} WINS!",
+                title=(f"{'🏅 RANKED — ' if self.ranked else ''}"
+                       f"{RK.finish_label(kind)} — {w_name} WINS!"),
                 description=(
-                    f"**{w_blade['name']}** has knocked out the opponent!\n\n"
+                    f"**{w_blade['name']}** {verb}!"
+                    + (f"  *(+{RK.finish_points(kind)} match "
+                       f"point{'s' if RK.finish_points(kind) != 1 else ''})*"
+                       if self.ranked else "") + "\n\n"
                     f"🌀 **{w_name}** +{XP_WIN} XP → Level **{wlvl}** "
                     f"{'⬆️ LEVEL UP! ' if w_up else ''}"
                     f"{w_rank} | +{COINS_WIN} 💰\n"
