@@ -1966,7 +1966,7 @@
     },
     "special_move": {
       "name": "Dark Void",
-      "description": "The Shadow Dragon King tears open a void of absolute darkness — a singularity of draconic power that deals devastating true damage, piercing all barriers and defenses without exception. Activating this move triggers Absolute Darkness and permanently closes Dark Weather.",
+      "description": "The Shadow Dragon King tears open a void of absolute darkness — a singularity of draconic power that deals devastating true damage, piercing all barriers and defenses without exception. Activating this move triggers Absolute Darkness, and Dark Weather amplifies it on the way out.",
       "hits": 1,
       "damage_per_hit": 110,
       "total_damage": 110,
@@ -1982,7 +1982,7 @@
       {
         "name": "Absolute Darkness",
         "trigger": "on_special",
-        "description": "After Dark Void is activated, Shadow Dragon King is consumed by absolute darkness — permanently increasing ALL stats (Attack, Defense, Stamina, Special) by 70%. This transformation is irreversible. Dark Weather is also permanently disabled after this activation.",
+        "description": "After Dark Void is activated, Shadow Dragon King is consumed by absolute darkness — permanently increasing ALL stats (Attack, Defense, Stamina, Special) by 70%. This transformation is irreversible, and Dark Weather rages on through it.",
         "chain": [
           {
             "condition": "on_special_use",
@@ -1991,12 +1991,6 @@
             "duration": 999,
             "once": true,
             "_note": "Absolute Darkness: +70% all stats permanently after Dark Void fires"
-          },
-          {
-            "condition": "on_special_use",
-            "effect": "disable_ability_2",
-            "once": true,
-            "_note": "Absolute Darkness: disables Dark Weather permanently after Dark Void"
           }
         ],
         "rules": [
@@ -2014,35 +2008,39 @@
                     "duration": 999,
                     "once": true,
                     "_note": "Absolute Darkness: +70% all stats permanently after Dark Void fires"
-                  },
-                  {
-                    "condition": "on_special_use",
-                    "effect": "disable_ability_2",
-                    "once": true,
-                    "_note": "Absolute Darkness: disables Dark Weather permanently after Dark Void"
                   }
                 ]
               }
             ]
           }
-        ]
+        ],
+        "_note": "The disable_ability_2 step that used to live here is what actually switched Dark Weather off — `disabled_after_special` on Dark Weather itself converts to nothing and never did anything. Removing it is what makes the passive always-on."
       },
       {
         "name": "Dark Weather",
         "trigger": "passive",
-        "description": "While active, Shadow Dragon King channels storm-dark energy into every offensive action — boosting Attack and Defense by 25 each, and causing all Special Move activations to deal 50% more damage. However, this fury consumes the dragon's reserves: each Special Move activation costs 50% more Stamina than normal. This ability is permanently closed after Dark Void is used.",
+        "description": "A permanent black storm coils around the Shadow Dragon King and never lifts. The gloom hardens it and sharpens every strike — Attack and Defense are raised by 25, and Dark Void tears 25% deeper. The storm does not break when the abyss opens; even in Absolute Darkness, the weather still belongs to the dragon.",
         "attack_boost": 25,
         "defense_boost": 25,
-        "special_damage_bonus_pct": 0.5,
-        "special_stamina_cost_pct": 0.5,
-        "disabled_after_special": true,
-        "chain": [
+        "special_damage_bonus_pct": 0.25,
+        "_note": "Authored as explicit rules below. The flat fields above are kept only so ;info and any other reader that inspects them still shows the right numbers — a `rules` block makes the engine ignore legacy fields entirely.",
+        "rules": [
           {
-            "condition": "pre_special",
-            "effect": "special_damage_amp",
-            "value": 0.5,
-            "once": false,
-            "_note": "Dark Weather: +50% special move damage while active"
+            "when": "passive",
+            "once": "battle",
+            "_name": "Dark Weather",
+            "do": [
+              {"op": "buff", "stat": "attack", "amount": 25, "turns": 999},
+              {"op": "buff", "stat": "defense", "amount": 25, "turns": 999}
+            ],
+            "_note": "once:battle + a 999-round duration is what makes this a STANDING +25/+25. As a plain passive it re-applied a 2-round buff every single round, and StatusManager.add_buff appends rather than replaces, so two entries were always live and the real value was +50/+50 — double what the card claimed."
+          },
+          {
+            "when": "passive",
+            "if": [{"cond": "move_is", "value": "special"}],
+            "_name": "Dark Weather",
+            "do": [{"op": "bonus_damage_pct", "value": 25.0}],
+            "_note": "Dark Weather: +25% Special Move damage, always."
           }
         ]
       }
