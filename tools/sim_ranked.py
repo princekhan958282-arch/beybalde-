@@ -200,6 +200,55 @@ check("...and back in once verification is off",
 check("the default invite is the configured server",
       RK.DEFAULT_INVITE == "https://discord.gg/bMtyey32Ur")
 
+print("\n── 6b. settings can only be changed from ONE server ─────────────")
+HOME, OTHER = 111, 222
+UNLOCKED = {RK.CONFIG_KEY: dict(OFF, control_guild_id=None)}
+LOCKED = {RK.CONFIG_KEY: dict(OFF, control_guild_id=HOME)}
+
+check("nothing is locked by default",
+      RK.control_guild_id(UNLOCKED) is None)
+check("while unlocked, any server may configure — otherwise first setup is "
+      "impossible", RK.is_control_guild(OTHER, UNLOCKED)
+      and RK.is_control_guild(None, UNLOCKED))
+check("no error text while unlocked",
+      RK.control_error(OTHER, UNLOCKED) == "")
+
+check("once locked, the control server may configure",
+      RK.is_control_guild(HOME, LOCKED))
+check("...and every other server may NOT",
+      not RK.is_control_guild(OTHER, LOCKED))
+check("...and a DM may not either",
+      not RK.is_control_guild(None, LOCKED))
+check("the refusal names the control server",
+      str(HOME) in RK.control_error(OTHER, LOCKED),
+      RK.control_error(OTHER, LOCKED))
+check("the refusal distinguishes a DM from a wrong server",
+      "direct message" in RK.control_error(None, LOCKED)
+      and "this server" in RK.control_error(OTHER, LOCKED))
+check("a string guild id still matches", RK.is_control_guild(str(HOME), LOCKED))
+check("junk guild ids are refused, not crashed on",
+      not RK.is_control_guild("not-an-id", LOCKED))
+check("a junk control_guild_id reads as unlocked rather than locking everyone out",
+      RK.control_guild_id({RK.CONFIG_KEY: dict(OFF, control_guild_id="oops")})
+      is None)
+check("control lock is independent of verification being on",
+      RK.is_control_guild(HOME, {RK.CONFIG_KEY: {
+          "verify_enabled": True, "verify_guild_id": 999,
+          "control_guild_id": HOME}}))
+
+csrc = open(os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "cogs", "ranked", "ranked_cog.py"),
+    encoding="utf-8").read()
+check("the cog checks the owner", "!= MASTER_ID" in csrc)
+check("the cog checks the control server too", "control_error" in csrc)
+check("`status` is exempt so the owner can always find the control server",
+      'if act != "status"' in csrc)
+check("an unreachable lock is ignored rather than bricking the settings",
+      "unenforceable" in csrc)
+check("there is a way back out", '"unlock", "none", "off"' in csrc)
+check("setting the verify server also closes the bootstrap window",
+      'changes["control_guild_id"] = gid' in csrc)
+
 print("\n── 7. catches ──────────────────────────────────────────────────")
 c = player(500)
 check("falls back to inventory size for a pre-counter profile",

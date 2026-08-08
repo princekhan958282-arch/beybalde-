@@ -73,6 +73,17 @@ _DEFAULT_CONFIG = {
     "verify_enabled": False,
     "verify_guild_id": None,
     "verify_invite": DEFAULT_INVITE,
+    # The ONE server the ranked system may be configured from. Owner-only is
+    # not enough on its own: the bot is in many servers, and a config command
+    # that works in all of them can be run — or fished for — anywhere, and a
+    # single mistyped command in the wrong channel changes the ladder for
+    # every player. Locking it to one guild means the settings have exactly
+    # one door.
+    #
+    # None means "not locked yet", which is the bootstrap: the very first
+    # setup has to be possible somewhere. It stops being None the moment the
+    # verification server is set, so the window is one command long.
+    "control_guild_id": None,
 }
 
 
@@ -102,6 +113,43 @@ def save_config(changes: dict) -> dict:
     cfg[CONFIG_KEY] = current
     _save(cfg)
     return current
+
+
+def control_guild_id(config: Optional[dict] = None) -> Optional[int]:
+    """The server ranked settings may be changed from, or None while unlocked."""
+    raw = get_config(config).get("control_guild_id")
+    try:
+        return int(raw) if raw else None
+    except (TypeError, ValueError):
+        return None
+
+
+def is_control_guild(guild_id, config: Optional[dict] = None) -> bool:
+    """May ranked settings be changed from here?
+
+    True everywhere while no control server is set — otherwise the first
+    `;rankadmin` would be refused in every server including the right one, and
+    the system could never be configured at all.
+
+    A DM has no guild, so once locked it is refused like any other wrong place.
+    """
+    locked = control_guild_id(config)
+    if locked is None:
+        return True
+    try:
+        return guild_id is not None and int(guild_id) == locked
+    except (TypeError, ValueError):
+        return False
+
+
+def control_error(guild_id, config: Optional[dict] = None) -> str:
+    """Why settings cannot be changed from here, or '' when they can."""
+    if is_control_guild(guild_id, config):
+        return ""
+    locked = control_guild_id(config)
+    where = "a direct message" if guild_id is None else "this server"
+    return (f"Ranked settings can only be changed from the control server "
+            f"(`{locked}`), not from {where}.")
 
 
 def verify_required(config: Optional[dict] = None) -> bool:
