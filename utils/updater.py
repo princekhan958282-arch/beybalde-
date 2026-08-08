@@ -110,6 +110,36 @@ PROTECTED = (
     ".git/",
 )
 
+# The exception to `data/`, and the reason it needs one.
+#
+# `data/` holds two kinds of file with opposite requirements, and the blanket
+# rule above treats them the same:
+#
+#   live player state   users.json, avatar_inventory.json, casino_wallets.json,
+#                       spawn_state.json, config.json — written constantly at
+#                       runtime. Overwriting any of these destroys real player
+#                       progress, which is why the blanket rule exists.
+#
+#   authored content    beyblades.json — the blade roster: stats, special moves,
+#                       ability rules. NOTHING writes it at runtime; the repo is
+#                       its only source. Excluding it meant every balance change
+#                       to a blade shipped to GitHub and then silently never
+#                       reached a running bot. A buffed passive would be live in
+#                       the repo, green in CI, and still show the old numbers in
+#                       ;info forever.
+#
+# So: files listed here are updatable even though they sit under `data/`.
+# Everything else in `data/` stays protected. Before adding to this list, check
+# there is genuinely no runtime write path to the file — `grep` for its PATH
+# constant and confirm every use is a read. A file that is written at runtime
+# belongs in PROTECTED no matter how content-like it looks.
+#
+# Replaced files are copied to `.update_backup/<stamp>/` first, so a bad roster
+# update is recoverable rather than terminal.
+DATA_CONTENT = (
+    "data/beyblades.json",
+)
+
 # Only these extensions are copied. A code update has no business writing
 # anything else into the install, and this keeps a compromised or malformed
 # archive from dropping executables next to app.py.
@@ -295,6 +325,11 @@ def _download_zip(repo: str, sha: str, token: str) -> Optional[zipfile.ZipFile]:
 
 def _is_protected(rel: str) -> bool:
     rel = rel.replace("\\", "/")
+    # Checked BEFORE the directory rules, so an authored-content file can opt
+    # out of the `data/` blanket. Exact matches only — no prefix or glob — so
+    # this can never widen to cover a player-state file by accident.
+    if rel in DATA_CONTENT:
+        return False
     for p in PROTECTED:
         if p.endswith("/"):
             if rel == p.rstrip("/") or rel.startswith(p):
