@@ -609,6 +609,18 @@ class SpawnCog(commands.Cog):
 
         add_beyblade_to_inventory(user.id, spawned["name"])
 
+        # Lifetime catch counter for the /leaderboard catches board. Counted
+        # here rather than derived from inventory size, because selling a
+        # duplicate shrinks the inventory and a catch that already happened
+        # must not un-happen. Read-modify-write under the users lock so a
+        # simultaneous catch elsewhere cannot clobber it.
+        try:
+            from utils.database import mutate_user
+            from utils import ranked as RK
+            mutate_user(user.id, RK.record_catch)
+        except Exception as exc:                         # noqa: BLE001
+            log.warning(f"[spawn] catch counter failed for {user.id}: {exc}")
+
         rarity = spawned.get("rarity", "Common")
         emoji  = RARITY_EMOJIS.get(rarity, "")
 

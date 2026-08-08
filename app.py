@@ -92,7 +92,8 @@ COGS = [
     "cogs.core",       # Core utilities
     "cogs.abilities",  # Ability engine & special moves
     "cogs.battle",     # Battle system
-    "cogs.economy",    # Shop, Profile, Leaderboard
+    "cogs.economy",    # Shop, Profile
+    "cogs.ranked",     # Ranked ladder, leaderboards, verification
     "cogs.spawn",      # Wild spawns & claiming
     "cogs.ui",         # Help & logging
     "cogs.admin",      # Admin commands
