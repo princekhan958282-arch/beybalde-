@@ -218,7 +218,12 @@ class AbilityEngine:
         if c == "move_in":
             return move in [str(x) for x in (v if isinstance(v, list) else [v])]
         if c == "enemy_move_is":
-            return self.session.last_moves.get(okey) == v if hasattr(self.session, "last_moves") else True
+            # Fails CLOSED when the enemy's move is unknown. The old fallback
+            # returned True, which made the condition inert — an ability gated
+            # on "the enemy is defending" fired against every move — and it was
+            # invisible because BattleSession never set last_moves at all, so
+            # the guard was hit on every single evaluation.
+            return getattr(self.session, "last_moves", {}).get(okey) == v
         if c == "matchup_is":          return matchup == v
         if c == "mode_is":             return self.modes.get(key) == v
         if c == "counter_at_least":
@@ -496,6 +501,48 @@ class AbilityEngine:
                                      -abs(int(op.get("amount", val))), int(op.get("turns", 2)))
                     logs.append(f"📉 **{ab_name}** — enemy {op.get('stat','attack')} "
                                 f"-{abs(int(op.get('amount', val)))}!")
+            elif kind == "enemy_lose_stability":
+                # Stability damage dealt TO the opponent — the burst pressure a
+                # blade applies rather than the wobble it suffers.
+                #
+                # `lose_stability` is self-inflicted by design (same-spin
+                # matchups where the blade cannot bite and loses its own
+                # footing), so there was no way to express "this hit knocks 5
+                # stability off the enemy" at all. Routed through the same
+                # StabilityManager._apply, so burst resistance, the ring-out
+                # check and the log line all behave exactly as they do for any
+                # other stability change.
+                try:
+                    stm = getattr(self.session, "stability_manager", None)
+                    amt = int(op.get("amount", val))
+                    if stm is not None and amt > 0:
+                        logs.extend(stm._apply(okey, -amt) or [])
+                except Exception:
+                    pass
+            elif kind == "enemy_debuff_pct":
+                # Enemy loses X% of one stat, resolved against THEIR base stat.
+                #
+                # `enemy_debuff` is flat, which cannot express "−20% defence":
+                # a flat 20 is a fifth of a 100-defence blade but a thirteenth
+                # of a levelled 250-defence one, so the ability would quietly
+                # weaken as the game went on. Mirrors buff_all_pct, on the
+                # other side and with the sign flipped.
+                if self.debuff_immune.get(okey):
+                    logs.append(f"🛡️ **{ab_name}** — enemy is immune to debuffs!")
+                else:
+                    try:
+                        pct = float(val)
+                        pct = pct if pct <= 1 else pct / 100
+                        stat = op.get("stat", "defense")
+                        base = (self.session.blades.get(okey) or {}).get("stats") or {}
+                        amt = int(round(float(base.get(stat, 0)) * pct))
+                        if amt > 0:
+                            self.st.add_buff(okey, stat, -amt,
+                                             int(op.get("turns", 2)))
+                            logs.append(f"📉 **{ab_name}** — enemy {stat} "
+                                        f"-{amt} ({int(pct * 100)}%)!")
+                    except Exception:
+                        pass
             elif kind == "stacking_buff":
                 cname = op.get("name", f"{ab_name}_stacks")
                 mx    = int(op.get("max", 99))

@@ -634,6 +634,17 @@ class BattleSession:
         k1, k2 = str(p1.id), str(p2.id)
         m1, m2 = self.moves[k1], self.moves[k2]
         b1, b2 = self.blades[k1], self.blades[k2]
+
+        # What each side chose THIS round, for abilities that key off the
+        # opponent's move (`enemy_move_is`).
+        #
+        # This attribute never existed. AbilityEngine._check read it behind a
+        # hasattr() guard that returned True when it was missing — so on a real
+        # BattleSession the condition was always satisfied and any ability
+        # gated on "the enemy is defending" fired against every move instead.
+        # `self.moves` is cleared to None as soon as the round resolves, so it
+        # cannot be used for this; the snapshot has to be taken here.
+        self.last_moves = {k1: m1, k2: m2}
         # Compute effective stats (base stats + active ATK/DEF buff bonuses + stat_mult).
         # Previously raw blade stats were passed here, which meant ability buffs
         # (e.g. ATK+20 for 2 rounds) had zero effect on actual damage math — the
