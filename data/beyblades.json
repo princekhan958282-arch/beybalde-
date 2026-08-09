@@ -5317,7 +5317,7 @@
     "name": "Tartarus Reaper",
     "rarity": "Exclusive",
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1518581816393470032/1781332376836.png?ex=6a3a7106&is=6a391f86&hm=ac7b9403f66136fce6609ec564f4050578faa5ee56ee2ff11ebfcd868f6ada98&",
-    "description": "Tartarus Reaper — wielded by Thanatos Veyrath — is a supreme Balance type that judges its opponent's fighting style and adapts accordingly. Soul Judgment Scale reads every attack type and punishes accordingly, while Grave Decree charges the next strike with a death aura.",
+    "description": "Tartarus Reaper — wielded by Thanatos Veyrath — is a supreme Balance type that feeds on the judgement it passes. Every blow it absorbs is weighed and returned as strength, and Grave Decree lets each Judgment fall heavier than the last.",
     "burst_height": "Mid",
     "type": "Balance",
     "stats": {
@@ -5327,80 +5327,122 @@
       "special": 125,
       "hp": 122
     },
-    "ability": {
-      "name": "Soul Judgment Scale",
-      "trigger": "on_attack_hit",
-      "description": "Tartarus Reaper reads the opponent's type on every Attack hit and answers in kind. vs Attack: takes 15% less burst damage and reflects 20% back. vs Defense: ignores enemy Defence. vs Stamina: drains 1 Stamina. vs Balance: gains +8% to all stats.",
-      "cog_types": [
-        "damage_modifier",
-        "defense",
-        "trigger_effect",
-        "balance_conversion"
-      ],
-      "vs_attack_burst_dmg_reduction": 0.15,
-      "vs_attack_reflect_pct": 0.2,
-      "vs_defense_ignore_def_pct": 0.1,
-      "vs_stamina_drain_per_hit": 1,
-      "vs_balance_all_stats_bonus_pct": 0.08
-    },
-    "ability_2": {
-      "name": "Grave Decree",
-      "trigger": "on_special",
-      "description": "The skull releases a death aura — Tartarus Reaper's next attack gains +30 damage.",
-      "cog_types": [
-        "control",
-        "damage_boost"
-      ],
-      "next_atk_bonus": 30
-    },
     "special_move": {
       "name": "Judgment of the Reaper",
-      "description": "Thanatos Veyrath creates a rotating death vortex. The first hit lands a heavy 110-damage impact, the second follows for 70 — 180 total. If enemy stability is below 30%, ring-out chance increases significantly.",
-      "type": "Attack + Balance",
-      "cog_types": [
-        "damage_scaling",
-        "stability_damage",
-        "chain_attack"
-      ],
+      "description": "Thanatos Veyrath opens the death vortex. The first judgment lands for 110. The second is weighed against the damage already done — 50, plus half of every point of stability the opponent has already lost.",
       "hits": 2,
       "damage_per_hit": [
         110,
-        70
+        50
       ],
-      "total_damage": 180,
-      "low_stability_ko_chance": 0.3,
-      "low_stability_threshold": 0.3,
+      "total_damage": 160,
+      "per_hit_bonus": [
+        null,
+        {
+          "source": "enemy_stability_lost",
+          "pct": 0.5,
+          "_note": "Hit 2 only: +50% of the stability the enemy has lost. An enemy down 50 stability adds 25, for 75."
+        }
+      ],
       "flavour_texts": [
-        "⚔️ **Judgment of the Reaper** — Tartarus Reaper opens the death vortex!",
-        "💀 **Second Judgment** — the vortex closes — ring-out chance surges!"
+        "⚔️ **Judgment of the Reaper** — the death vortex opens!",
+        "💀 **Second Judgment** — the scales weigh every wound already dealt!"
       ]
     },
     "abilities": [
       {
-        "name": "Soul Judgment Scale",
-        "trigger": "on_attack_hit",
-        "description": "Tartarus Reaper reads the opponent's type on every Attack hit and answers in kind. vs Attack: takes 15% less burst damage and reflects 20% back. vs Defense: ignores enemy Defence. vs Stamina: drains 1 Stamina. vs Balance: gains +8% to all stats.",
-        "cog_types": [
-          "damage_modifier",
-          "defense",
-          "trigger_effect",
-          "balance_conversion"
-        ],
-        "vs_attack_burst_dmg_reduction": 0.15,
-        "vs_attack_reflect_pct": 0.2,
-        "vs_defense_ignore_def_pct": 0.1,
-        "vs_stamina_drain_per_hit": 1,
-        "vs_balance_all_stats_bonus_pct": 0.08
+        "name": "Soul Judgement",
+        "trigger": "on_take_damage",
+        "description": "Every Attack or Special hit Tartarus Reaper absorbs is weighed and returned: +30 to all stats, 30 HP restored, and 0.3 Stamina recovered. The stat gain does not expire — the longer the judgement runs, the heavier the Reaper becomes.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "_name": "Soul Judgement",
+            "if": [
+              {
+                "cond": "enemy_move_is",
+                "value": "attack"
+              }
+            ],
+            "do": [
+              {
+                "op": "buff_all",
+                "value": 30,
+                "turns": 999
+              },
+              {
+                "op": "heal",
+                "value": 30
+              },
+              {
+                "op": "gain_stamina",
+                "value": 0.3
+              }
+            ]
+          },
+          {
+            "when": "on_take_damage",
+            "_name": "Soul Judgement",
+            "if": [
+              {
+                "cond": "enemy_move_is",
+                "value": "special"
+              }
+            ],
+            "do": [
+              {
+                "op": "buff_all",
+                "value": 30,
+                "turns": 999
+              },
+              {
+                "op": "heal",
+                "value": 30
+              },
+              {
+                "op": "gain_stamina",
+                "value": 0.3
+              }
+            ]
+          }
+        ]
       },
       {
         "name": "Grave Decree",
-        "trigger": "on_special",
-        "description": "The skull releases a death aura — Tartarus Reaper's next attack gains +30 damage.",
-        "cog_types": [
-          "control",
-          "damage_boost"
-        ],
-        "next_atk_bonus": 30
+        "trigger": "passive",
+        "description": "A standing decree: +15% to all stats. Every use of Judgment of the Reaper adds a further +50% Special damage, permanently and cumulatively — and raises the decree from 15% to 30% for 4 turns before it settles back.",
+        "rules": [
+          {
+            "when": "passive",
+            "_name": "Grave Decree",
+            "once": "battle",
+            "do": [
+              {
+                "op": "buff_all_pct",
+                "value": 0.15,
+                "turns": 999
+              }
+            ],
+            "_note": "once:battle + 999 turns makes this STANDING. As a plain passive it re-applies every round and StatusManager.add_buff appends, so 15% would compound into hundreds of percent."
+          },
+          {
+            "when": "on_special",
+            "_name": "Grave Decree",
+            "do": [
+              {
+                "op": "special_amp_stack",
+                "value": 0.5,
+                "max": 4.0
+              },
+              {
+                "op": "buff_all_pct",
+                "value": 0.15,
+                "turns": 4
+              }
+            ],
+            "_note": "The second op is the 15%->30% window: it stacks a SECOND 15% on top of the standing one for 4 turns, which is exactly 30% while it lasts and exactly 15% once it expires. Expressing it as a temporary +15% rather than a replacement means the standing buff never has to be found and edited."
+          }
+        ]
       }
     ],
     "spin_direction": "Left"

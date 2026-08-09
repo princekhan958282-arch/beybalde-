@@ -640,9 +640,69 @@ class AttackManager:
         except Exception:
             _ult_atk = mblade.get("stats", {}).get("attack", 0)
 
+        # Per-hit damage, in order. A `damage_per_hit` LIST was being averaged
+        # by resolve_special, so "110 then 70" became 90/90 and the authored
+        # shape of a front-loaded Special never reached the stadium. A scalar
+        # blade gets its value repeated, which is byte-identical to before.
+        from .damage_rules import resolve_special_hits
+        try:
+            hit_table = resolve_special_hits(mblade, _spc)
+        except Exception:                                # noqa: BLE001
+            hit_table = [per_hit] * max(1, hits)
+        # Extra hits granted by an ability are appended at the base value; the
+        # authored table only describes the authored hits.
+        while len(hit_table) < hits:
+            hit_table.append(per_hit)
+
+        # Optional per-hit rider that reads live battle state. Authored as
+        # `special_move.per_hit_bonus`, one entry per hit, null where a hit has
+        # none. Only one source is supported so far — the stability the enemy
+        # has already lost — which is what lets a finisher hit harder the more
+        # it has already rattled its opponent.
+        bonus_table = (mblade.get("special_move") or {}).get("per_hit_bonus") or []
+
+        def _rider(idx: int) -> tuple[int, str]:
+            if idx >= len(bonus_table) or not isinstance(bonus_table[idx], dict):
+                return 0, ""
+            spec = bonus_table[idx]
+            if spec.get("source") != "enemy_stability_lost":
+                return 0, ""
+            try:
+                stab = self.session.stability_manager
+                # `max` is the per-player starting value AND the ceiling, so it
+                # is the only correct baseline — a type whose blades start at
+                # 120 has lost nothing at 120, not -20.
+                start = float(stab.max.get(okey, 100) or 100)
+                now = float(stab.stability.get(okey, start))
+                lost = max(0.0, start - now)
+                amount = int(math.floor(lost * float(spec.get("pct", 0.5))))
+                if amount <= 0:
+                    return 0, ""
+                return amount, (f"  💀 **Judgment** — {int(lost)} stability "
+                                f"already lost → **+{amount}** damage!")
+            except Exception:                            # noqa: BLE001
+                return 0, ""
+
+        # Cumulative Special amp from the `special_amp_stack` op. Read ONCE and
+        # applied to the base of every hit, so a 2-hit Special is amplified
+        # twice in total rather than squared.
+        _amp = 1.0
+        try:
+            _amp += float(getattr(ab_eng, "special_amp_stack", {}).get(mkey, 0.0))
+        except Exception:                                # noqa: BLE001
+            _amp = 1.0
+        if _amp > 1.0:
+            logs.append(f"  💀 **Grave Decree** — Special damage "
+                        f"×{_amp:.2f} from accumulated judgement!")
+
         total_dmg = 0
         for hit_n in range(hits):
-            hit_base = math.ceil(per_hit * mult)
+            base_for_hit = hit_table[hit_n] if hit_n < len(hit_table) else per_hit
+            base_for_hit = math.ceil(base_for_hit * _amp)
+            rider, rider_log = _rider(hit_n)
+            if rider_log:
+                logs.append(rider_log)
+            hit_base = math.ceil((base_for_hit + rider) * mult)
             if atk_sp_mod:
                 hit_base = atk_sp_mod.apply_attack(hit_base)
 
