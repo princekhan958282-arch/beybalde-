@@ -665,6 +665,24 @@ class AttackManager:
             if idx >= len(bonus_table) or not isinstance(bonus_table[idx], dict):
                 return 0, ""
             spec = bonus_table[idx]
+            if spec.get("source") == "own_stamina_above":
+                # Reward for firing while still spinning strongly: every whole
+                # point of stamina above `threshold` is worth `per`, capped at
+                # `max_stacks`. Reads the CURRENT bar, so the bonus is the
+                # player's to earn by holding stamina back rather than a flat
+                # rider they always get.
+                try:
+                    sp = float(self.session.stamina_manager.stamina.get(mkey, 0.0))
+                    thr = float(spec.get("threshold", 7))
+                    stacks = int(math.floor(sp - thr))
+                    stacks = max(0, min(int(spec.get("max_stacks", 3)), stacks))
+                    if stacks <= 0:
+                        return 0, ""
+                    amount = stacks * int(spec.get("per", 50))
+                    return amount, (f"  🌪️ **Adaptive Punish** — {sp:.1f} stamina "
+                                    f"→ {stacks} stack(s), **+{amount}** damage!")
+                except Exception:                        # noqa: BLE001
+                    return 0, ""
             if spec.get("source") != "enemy_stability_lost":
                 return 0, ""
             try:

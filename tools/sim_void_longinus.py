@@ -276,7 +276,9 @@ check("...and the always-true fallback is gone",
       'hasattr(self.session, "last_moves") else True' not in esrc)
 
 print("\n── 8. nothing else on the roster moved ──────────────────────────")
-check("roster grew by exactly one", len(BLADES) == 79, len(BLADES))
+check("Void Longinus is on the roster", "Void Longinus" in BLADES)
+check("the roster is not smaller than when this was written",
+      len(BLADES) >= 79, len(BLADES))
 broken = []
 for name, blade in BLADES.items():
     if not isinstance(blade, dict):

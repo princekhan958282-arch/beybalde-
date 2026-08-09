@@ -3365,7 +3365,7 @@
     "id": "BB041",
     "name": "Azeroth Veyrath",
     "rarity": "Ultimate",
-    "booster_exclusive": true,
+    "booster_exclusive": false,
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1514902794476191864/IMG-20260606-WA0006.jpg?ex=6a2d0eab&is=6a2bbd2b&hm=8c01f5cb628020ae99d1e5913f8e396a13b2509f269cc45e1647ee4603e70018&",
     "description": "Knight of the Emperor. Azeroth Veyrath is a spectral conqueror forged from the legacy of fallen kings — each victory stacks imperial power until its Emperor's Judgment Lance obliterates all who dare oppose it.",
     "burst_height": "Mid",
@@ -5773,6 +5773,226 @@
               }
             ],
             "_note": "once:battle + a 999-turn duration makes this a STANDING debuff. As a plain passive it would re-apply every round and StatusManager.add_buff appends, so the enemy would lose 20% again and again until their Defense hit zero. The stamina side is a fraction because stamina_cost_reduction is proportional: 0.20 of the 2.2 Attack/Defense cost is ~0.44, and of the 4.4 Special cost is ~0.88 — the closest the existing op gets to the authored -0.5 / -1.0."
+          }
+        ]
+      }
+    ],
+    "spin_direction": "Left"
+  },
+  "Aetherion Vortex": {
+    "id": "BB080",
+    "name": "Aetherion Vortex",
+    "rarity": "Ultimate",
+    "booster_exclusive": true,
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1535977406840438944/Firefly_1.png?ex=6a79b9ee&is=6a78686e&hm=d28b4d5b60875b375f74bbaeeed7d1f26d1a9854e18bf23da92761b357f5fc60&",
+    "description": "A left-spin Balance blade that feeds on the aether it displaces. Every blow it lands is drawn back in as strength, and once the vortex is full it collapses into Overdrive. The longer Aetherion Vortex is allowed to spin, the more absolute its decree becomes.",
+    "burst_height": "Mid",
+    "type": "Balance",
+    "stats": {
+      "attack": 121,
+      "defense": 121,
+      "stamina": 111,
+      "special": 145,
+      "hp": 111
+    },
+    "special_move": {
+      "name": "Vortex Judgment: Cataclysm Break",
+      "description": "Two judgments out of the eye of the vortex. The first lands for 70. The second reads how strongly Aetherion Vortex is still spinning — 60, plus 50 for every point of Stamina above 7, to a maximum of three stacks.",
+      "hits": 2,
+      "damage_per_hit": [
+        70,
+        60
+      ],
+      "total_damage": 130,
+      "per_hit_bonus": [
+        null,
+        {
+          "source": "own_stamina_above",
+          "threshold": 7,
+          "per": 50,
+          "max_stacks": 3,
+          "_note": "8 stamina = 1 stack = +50. 10 or more = 3 stacks = +150, the cap."
+        }
+      ],
+      "flavour_texts": [
+        "🌀 **VORTEX JUDGMENT** — the eye opens!",
+        "💥 **CATACLYSM BREAK** — the vortex reads your spin and answers!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Aether Drain",
+        "trigger": "on_attack_hit",
+        "description": "Every landed Attack draws in the aether: +1 stack (+3 Attack, +3 Defense) and 5 HP restored. At 10 stacks the vortex collapses into OVERDRIVE — +25% total damage for 5 turns — and the stacks reset to begin again.",
+        "rules": [
+          {
+            "when": "on_attack_hit",
+            "_name": "Aether Drain",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "name": "aether_drain",
+                "stat": "attack",
+                "per_stack": 3,
+                "max": 10,
+                "turns": 999
+              },
+              {
+                "op": "buff",
+                "stat": "defense",
+                "amount": 3,
+                "turns": 999
+              },
+              {
+                "op": "heal",
+                "value": 5
+              }
+            ],
+            "_note": "Only the ATK line owns the counter; the DEF line rides alongside it so the stack is counted exactly once."
+          },
+          {
+            "when": "on_attack_hit",
+            "_name": "Aether Drain — OVERDRIVE",
+            "if": [
+              {
+                "cond": "counter_at_least",
+                "name": "aether_drain",
+                "value": 10
+              }
+            ],
+            "do": [
+              {
+                "op": "set_mode",
+                "name": "Overdrive"
+              },
+              {
+                "op": "dmg_amp",
+                "value": 0.25,
+                "turns": 5
+              },
+              {
+                "op": "reset_counter",
+                "name": "aether_drain"
+              }
+            ],
+            "_note": "dmg_amp carries `turns`, so the amp is subtracted again when it expires. Without that it would be permanent and an Overdrive that never ends is not an Overdrive."
+          }
+        ]
+      },
+      {
+        "name": "Tyrant's Decree",
+        "trigger": "passive",
+        "description": "Every 5 rounds Aetherion Vortex claims another stack, to a maximum of 4. Each stack grants +8% to all stats and +10% Special damage. From the second stack onward the Execution Bonus is unlocked: +10% critical chance.",
+        "rules": [
+          {
+            "when": "turn_start",
+            "_name": "Tyrant's Decree 1/4",
+            "if": [
+              {
+                "cond": "round_at_least",
+                "value": 5
+              }
+            ],
+            "once": "battle",
+            "do": [
+              {
+                "op": "buff_all_pct",
+                "value": 0.08,
+                "turns": 999
+              },
+              {
+                "op": "special_amp_stack",
+                "value": 0.1,
+                "max": 0.4
+              }
+            ]
+          },
+          {
+            "when": "turn_start",
+            "_name": "Tyrant's Decree 2/4",
+            "if": [
+              {
+                "cond": "round_at_least",
+                "value": 10
+              }
+            ],
+            "once": "battle",
+            "do": [
+              {
+                "op": "buff_all_pct",
+                "value": 0.08,
+                "turns": 999
+              },
+              {
+                "op": "special_amp_stack",
+                "value": 0.1,
+                "max": 0.4
+              }
+            ]
+          },
+          {
+            "when": "turn_start",
+            "_name": "Tyrant's Decree 3/4",
+            "if": [
+              {
+                "cond": "round_at_least",
+                "value": 15
+              }
+            ],
+            "once": "battle",
+            "do": [
+              {
+                "op": "buff_all_pct",
+                "value": 0.08,
+                "turns": 999
+              },
+              {
+                "op": "special_amp_stack",
+                "value": 0.1,
+                "max": 0.4
+              }
+            ]
+          },
+          {
+            "when": "turn_start",
+            "_name": "Tyrant's Decree 4/4",
+            "if": [
+              {
+                "cond": "round_at_least",
+                "value": 20
+              }
+            ],
+            "once": "battle",
+            "do": [
+              {
+                "op": "buff_all_pct",
+                "value": 0.08,
+                "turns": 999
+              },
+              {
+                "op": "special_amp_stack",
+                "value": 0.1,
+                "max": 0.4
+              }
+            ]
+          },
+          {
+            "when": "turn_start",
+            "_name": "Tyrant's Decree — Execution",
+            "if": [
+              {
+                "cond": "round_at_least",
+                "value": 10
+              }
+            ],
+            "once": "battle",
+            "do": [
+              {
+                "op": "crit_chance",
+                "value": 0.1
+              }
+            ],
+            "_note": "Unlocked at 2 stacks, which is round 10."
           }
         ]
       }
