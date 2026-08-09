@@ -280,6 +280,7 @@ COMMAND_DATA = {
         (";unequipavatar  or  ;unequipa",        "Unequip current avatar"),
         # Packs
         (";avatarpacks  or  ;apacks",   "View packs and their prices"),
+        (";buypack mlbb",              "🌟 MLBB banner — 15,000,000 coins, MLBB avatars only"),
         # Levelling
         (";avatarupgrade [name] [n]  or  ;aup", "Buy levels for an avatar card"),
         (";avatarcost  or  ;acost",     "The full upgrade curve and what it buys"),

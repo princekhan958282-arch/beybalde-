@@ -6,7 +6,7 @@ Discord cog for avatar purchasing, pack opening, and inventory management.
 Commands:
   ;avatarshop               — Browse all avatars available for direct purchase
   ;avatarpacks / ;apacks    — View available avatar packs
-  ;buypack <pack>           — Open an avatar pack (common/rare/epic/legendary)
+  ;buypack <pack>           — Open an avatar pack (common/rare/epic/legendary/mlbb)
   ;buyavatar <id>           — Purchase a specific avatar by ID
   ;myavatars                — View owned avatars
   ;equipavatar <id>         — Equip an owned avatar
@@ -14,21 +14,25 @@ Commands:
   ;avatarinfo <id>          — Inspect an avatar's stats
 
 Rarities (lowest → highest):
-  Common, Rare, Epic, Legendary, Mythic, Ultimate, Exclusive
+  Common, Rare, Epic, Legendary, Mythic, Ultimate, Exclusive, MLBB
 
-  Exclusive avatars cannot be pulled from packs — event/quest rewards only.
+  Exclusive avatars are only reachable from the legendary pack, at banner rate.
+  MLBB is a CLOSED crossover banner — only the mlbb pack can produce one, and
+  the mlbb pack can produce nothing else.
 
 Pack pools:
   Common   → Common, Rare
   Rare     → Common, Rare, Epic
   Epic     → Common, Rare, Epic, Legendary, Mythic
-  Legendary→ Common, Rare, Epic, Legendary, Mythic, Ultimate
+  Legendary→ Common, Rare, Epic, Legendary, Mythic, Ultimate, Exclusive
+  MLBB     → MLBB only
 
 Pack guarantees (slot 1 = EXACT rarity guaranteed, slot 2 = random from pool):
   Common    — 1 guaranteed Common (exact)               — 75,000 coins
   Rare      — 1 guaranteed Rare (exact)                 — 150,000 coins
   Epic      — 1 guaranteed Epic (exact)                 — 275,000 coins
   Legendary — 1 guaranteed Legendary (exact)            — 500,000 coins
+  MLBB      — both slots guaranteed MLBB                — 15,000,000 coins
 
 Duplicate handling:
   If a pulled avatar is already owned, the player receives a coin refund
@@ -63,6 +67,7 @@ RARITY_ORDER: list[str] = [
     "Mythic",
     "Ultimate",
     "Exclusive",
+    "MLBB",
 ]
 
 # Index for quick comparisons
@@ -85,6 +90,11 @@ PACK_POOL: dict[str, list[str]] = {
     # filters candidates by this pool first, so it also has to be listed here.
     "legendary": ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ultimate",
                   "Exclusive"],
+    # The MLBB banner is a CLOSED pool — MLBB and nothing else. Listing only
+    # that rarity is what stops a 15M pack handing back a Common, and equally
+    # what stops the other four packs ever rolling an MLBB avatar, since every
+    # pack filters candidates by this list before weights are applied.
+    "mlbb":      ["MLBB"],
 }
 
 # Exact guaranteed rarity for slot 1
@@ -93,6 +103,7 @@ PACK_GUARANTEE: dict[str, Optional[str]] = {
     "rare":      "Rare",
     "epic":      "Epic",
     "legendary": "Legendary",
+    "mlbb":      "MLBB",
 }
 
 PACK_PRICE: dict[str, int] = {
@@ -100,6 +111,7 @@ PACK_PRICE: dict[str, int] = {
     "rare":      150_000,
     "epic":      275_000,
     "legendary": 500_000,
+    "mlbb":      15_000_000,
 }
 
 PACK_DISPLAY: dict[str, str] = {
@@ -107,6 +119,7 @@ PACK_DISPLAY: dict[str, str] = {
     "rare":      "Rare Pack",
     "epic":      "Epic Pack",
     "legendary": "Legendary Pack",
+    "mlbb":      "MLBB Pack",
 }
 
 # ── Duplicate refund rates (% of pack price returned per rarity) ──────────────
@@ -119,6 +132,9 @@ DUPE_REFUND_RATE: dict[str, float] = {
     "Mythic":    0.30,   # 30%
     "Ultimate":  0.40,   # 40%
     "Exclusive": 0.50,   # 50% (shouldn't happen via packs but included for safety)
+    # A 15M pack that hands back a duplicate has to return something
+    # proportionate, or one bad pull erases a fortnight of play.
+    "MLBB":      0.60,   # 60%
 }
 
 # ── Pack emoji ────────────────────────────────────────────────────────────────
@@ -128,6 +144,7 @@ PACK_EMOJI: dict[str, str] = {
     "rare":      "🔵",
     "epic":      "🟣",
     "legendary": "🟡",
+    "mlbb":      "🌟",
 }
 
 
@@ -167,6 +184,12 @@ PACK_RARITY_WEIGHT: dict[str, dict[str, int]] = {
         # obtainable. The limited banner avatars need a real (tiny) rate:
         # 1 in 923 total weight ~= 0.108%, i.e. the 0.001 draw chance.
         "Exclusive": 1,     # ~0.1%
+    },
+    # A closed banner: MLBB is the only rarity in the pool, so both slots can
+    # only ever produce an MLBB avatar. A 15,000,000 pack that could return a
+    # Common would be indefensible.
+    "mlbb": {
+        "MLBB": 1000,
     },
 }
 
