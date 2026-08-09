@@ -249,6 +249,39 @@ def resolve_special(blade: dict,
     return 1, fallback, [f"🌟 Special move deals **{fallback} damage**!"], False
 
 
+def resolve_special_hits(blade: dict,
+                         special_stat: Optional[float] = None) -> list[int]:
+    """The damage of EACH hit, in order.
+
+    `resolve_special` returns one uniform per-hit number, which is all most
+    Specials need. But a `damage_per_hit` LIST — "110 then 70" — was being
+    averaged to 90/90 by that function, so a front-loaded Special silently
+    became a flat one and the authored shape never reached the stadium.
+
+    Returns a list of length `hits`. A blade whose `damage_per_hit` is a scalar
+    (or absent) gets that value repeated, so the result is identical to what the
+    uniform path already produced and no existing blade changes. A list shorter
+    than `hits` repeats its last entry; longer, it is truncated — both so a
+    mis-authored card degrades instead of raising mid-battle.
+    """
+    hits, per_hit, _flavour, _ig = resolve_special(blade, special_stat)
+    sm = blade.get("special_move") or {}
+    raw = sm.get("damage_per_hit")
+    if not isinstance(raw, list) or not raw:
+        return [per_hit] * max(1, hits)
+
+    scale = special_scale(blade, special_stat)
+    out: list[int] = []
+    for i in range(max(1, hits)):
+        value = raw[i] if i < len(raw) else raw[-1]
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            value = float(per_hit)
+        out.append(max(1, math.ceil(value * scale)))
+    return out
+
+
 def calc_damage(
     attacker_move:  str,
     attacker_stats: dict,

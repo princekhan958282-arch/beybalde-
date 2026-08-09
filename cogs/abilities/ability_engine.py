@@ -135,6 +135,11 @@ class AbilityEngine:
         #    embeds and attack_manager all see one source of truth ────────────
         self.guaranteed_crit_turns = self.st.guaranteed_crit_turns
         self.special_boost_flat    = self.st.special_boost_flat
+        # Cumulative percentage Special amp, grown by the `special_amp_stack`
+        # op and read by AttackManager._resolve_special. Lives on the engine
+        # rather than StatusManager because it is not a timed buff — it holds
+        # for the whole battle and never ticks down.
+        self.special_amp_stack: dict[str, float] = {}
         self.post_rebirth_reflect  = self.st.post_rebirth_reflect
         self.demon_mode_atk_stacks = self.st.demon_mode_atk_stacks
         self.ability_2_disabled    = self.st.ability_2_disabled
@@ -571,6 +576,26 @@ class AbilityEngine:
             elif kind == "special_boost":
                 self.special_boost_flat[key] = self.special_boost_flat.get(key, 0) + int(val)
                 logs.append(f"✨ **{ab_name}** — Special +{int(val)} damage!")
+            elif kind == "special_amp_stack":
+                # A PERCENTAGE Special amp that accumulates across the battle.
+                #
+                # `special_boost` is flat and `bonus_damage_pct` is per-move, so
+                # "the Special hits 50% harder every time it is used" had no
+                # home: a flat bonus does not compound and a per-move one is
+                # gone by the next Special. Stored on the engine and read by
+                # attack_manager when it resolves a Special.
+                try:
+                    pct = float(val)
+                    pct = pct if pct <= 1 else pct / 100
+                except (TypeError, ValueError):
+                    pct = 0.0
+                cap = float(op.get("max", 4.0))          # +400% ceiling
+                cur = self.special_amp_stack.get(key, 0.0)
+                new = min(cap, cur + pct)
+                if new > cur:
+                    self.special_amp_stack[key] = new
+                    logs.append(f"💀 **{ab_name}** — Special damage "
+                                f"+{int(new * 100)}% (stacking)!")
             elif kind == "guaranteed_crit":
                 self.guaranteed_crit_turns[key] = max(
                     self.guaranteed_crit_turns.get(key, 0), int(op.get("turns", val or 1)))
