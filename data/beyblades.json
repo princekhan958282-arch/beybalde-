@@ -2030,16 +2030,36 @@
             "once": "battle",
             "_name": "Dark Weather",
             "do": [
-              {"op": "buff", "stat": "attack", "amount": 25, "turns": 999},
-              {"op": "buff", "stat": "defense", "amount": 25, "turns": 999}
+              {
+                "op": "buff",
+                "stat": "attack",
+                "amount": 25,
+                "turns": 999
+              },
+              {
+                "op": "buff",
+                "stat": "defense",
+                "amount": 25,
+                "turns": 999
+              }
             ],
             "_note": "once:battle + a 999-round duration is what makes this a STANDING +25/+25. As a plain passive it re-applied a 2-round buff every single round, and StatusManager.add_buff appends rather than replaces, so two entries were always live and the real value was +50/+50 — double what the card claimed."
           },
           {
             "when": "passive",
-            "if": [{"cond": "move_is", "value": "special"}],
+            "if": [
+              {
+                "cond": "move_is",
+                "value": "special"
+              }
+            ],
             "_name": "Dark Weather",
-            "do": [{"op": "bonus_damage_pct", "value": 25.0}],
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 25.0
+              }
+            ],
             "_note": "Dark Weather: +25% Special Move damage, always."
           }
         ]
@@ -5556,5 +5576,165 @@
       }
     ],
     "spin_direction": "Right"
+  },
+  "Void Longinus": {
+    "id": "BB079",
+    "name": "Void Longinus",
+    "rarity": "Exclusive",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1535904432586498098/void_longunis.png?ex=6a7975f8&is=6a782478&hm=e231aef2092420deb909b3fe95207908ea08dfca795f726302bdb07bbd519e48&",
+    "description": "A left-spin lance forged in the space between rotations. Void Longinus does not meet a right-spin opponent head on — it opens a gap in their spin and drives the lance through it, stripping stability with every contact until there is nothing left to hold the blade upright.",
+    "burst_height": "Mid",
+    "type": "Attack",
+    "stats": {
+      "attack": 147,
+      "defense": 118,
+      "stamina": 123,
+      "special": 160,
+      "hp": 101
+    },
+    "special_move": {
+      "name": "Void Crash",
+      "description": "Longinus tears the stadium open twice over — two lances through the same wound, each one carrying the full weight of Longinus Strike.",
+      "hits": 2,
+      "damage_per_hit": 90,
+      "total_damage": 180,
+      "flavour_texts": [
+        "🌀 **VOID CRASH** — the lance opens a hole in the spin!",
+        "💥 Two strikes through the same wound — stability shatters!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Longinus Strike",
+        "trigger": "on_hit",
+        "description": "Every hit Void Longinus lands — a normal attack, or each individual hit of Void Crash — deals 20 bonus damage and 5 stability damage. Against a Defense-type opponent, or one that is holding Defense, it strips a further 5 stability.",
+        "rules": [
+          {
+            "when": "on_attack_hit",
+            "_name": "Longinus Strike",
+            "do": [
+              {
+                "op": "bonus_damage",
+                "value": 20
+              },
+              {
+                "op": "enemy_lose_stability",
+                "amount": 5
+              }
+            ]
+          },
+          {
+            "when": "on_attack_hit",
+            "_name": "Longinus Strike",
+            "if": [
+              {
+                "cond": "enemy_type_is",
+                "value": "Defense"
+              }
+            ],
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "amount": 5
+              }
+            ]
+          },
+          {
+            "when": "on_attack_hit",
+            "_name": "Longinus Strike",
+            "if": [
+              {
+                "cond": "enemy_move_is",
+                "value": "defense"
+              }
+            ],
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "amount": 5
+              }
+            ]
+          },
+          {
+            "when": "on_hit",
+            "_name": "Longinus Strike",
+            "do": [
+              {
+                "op": "bonus_damage",
+                "value": 20
+              },
+              {
+                "op": "enemy_lose_stability",
+                "amount": 5
+              }
+            ]
+          },
+          {
+            "when": "on_hit",
+            "_name": "Longinus Strike",
+            "if": [
+              {
+                "cond": "enemy_type_is",
+                "value": "Defense"
+              }
+            ],
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "amount": 5
+              }
+            ]
+          },
+          {
+            "when": "on_hit",
+            "_name": "Longinus Strike",
+            "if": [
+              {
+                "cond": "enemy_move_is",
+                "value": "defense"
+              }
+            ],
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "amount": 5
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Void",
+        "trigger": "passive",
+        "description": "Against a RIGHT-spin opponent only, the void opens: the enemy loses 20% of its Defense, and Void Longinus spins almost frictionlessly — Attack and Defense cost 0.5 less Stamina, and Void Crash costs 1 less. Against a left-spin opponent the ability lies dormant.",
+        "rules": [
+          {
+            "when": "passive",
+            "_name": "Void",
+            "if": [
+              {
+                "cond": "enemy_spin_is",
+                "value": "right"
+              }
+            ],
+            "once": "battle",
+            "do": [
+              {
+                "op": "enemy_debuff_pct",
+                "stat": "defense",
+                "value": 0.2,
+                "turns": 999
+              },
+              {
+                "op": "stamina_cost_reduction",
+                "value": 0.2
+              }
+            ],
+            "_note": "once:battle + a 999-turn duration makes this a STANDING debuff. As a plain passive it would re-apply every round and StatusManager.add_buff appends, so the enemy would lose 20% again and again until their Defense hit zero. The stamina side is a fraction because stamina_cost_reduction is proportional: 0.20 of the 2.2 Attack/Defense cost is ~0.44, and of the 4.4 Special cost is ~0.88 — the closest the existing op gets to the authored -0.5 / -1.0."
+          }
+        ]
+      }
+    ],
+    "spin_direction": "Left"
   }
 }
