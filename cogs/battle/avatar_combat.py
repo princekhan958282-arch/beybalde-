@@ -17,7 +17,7 @@ Currently wired:
   dodge_chance            incoming hit avoided entirely
   counter_chance          counter-hit after a successful dodge
   multi_hit_power_double  each Special hit deals double
-  multi_hit_extra_hits    one extra Special hit
+  multi_hit_extra_hits    DOUBLES the Special hit count (2 hits -> 4)
   resistance_damage_pct   flat reduction on every incoming hit
   resistance_status_chance    chance to shrug off silence / burn
 """
@@ -144,9 +144,21 @@ def absorb_incoming(session, defender: str, attacker: str,
 
     logs: list[str] = []
 
-    if av.roll_dodge():
+    # Some attackers cannot be dodged at all (Excalibur's Internal Overdrive).
+    # Checked before the roll rather than after, so no "dodged!" line is
+    # printed for a dodge that is then overruled.
+    undodgeable = False
+    try:
+        undodgeable = int(getattr(session.ability, "undodgeable_turns", {})
+                          .get(attacker, 0) or 0) > 0
+    except Exception:                                    # noqa: BLE001
+        undodgeable = False
+    if undodgeable and av.dodge_chance > 0:
+        logs.append("  🚫 **Unavoidable** — this attack cannot be dodged!")
+
+    if not undodgeable and av.roll_dodge():
         counter = 0
-        logs.append(f"  💨 **Avatar** — dodged the hit completely!")
+        logs.append("  💨 **Avatar** — dodged the hit completely!")
         if av.roll_counter():
             counter = max(1, int(round(damage * 0.5)))
             logs.append(f"  ↩️ **Avatar** — counter-strike for {counter}!")
@@ -182,8 +194,10 @@ def multi_hit_shape(session, key: str, hits: int,
         return hits, per_hit, []
     logs: list[str] = []
     if av.multi_hit_extra_hits:
+        before = hits
         hits = av.extra_hits(hits)
-        logs.append(f"  ➕ **Avatar** — one extra hit ({hits} total)!")
+        logs.append(f"  ➕ **Avatar** — hit count DOUBLED "
+                    f"({before} → {hits} hits)!")
     if av.multi_hit_power_double:
         per_hit = int(round(av.apply_multi_hit_damage(per_hit)))
         logs.append(f"  ✳️ **Avatar** — every hit doubled ({per_hit} each)!")

@@ -143,6 +143,9 @@ class AbilityEngine:
         # [key, amount, rounds_left] for dmg_amp grants that expire. Swept by
         # tick_dmg_amps() at end of round.
         self.timed_dmg_amps: list[list] = []
+        # key -> rounds during which this attacker's hits cannot be dodged.
+        # Ticked down alongside the other durations at end of round.
+        self.undodgeable_turns: dict[str, int] = {}
         self.post_rebirth_reflect  = self.st.post_rebirth_reflect
         self.demon_mode_atk_stacks = self.st.demon_mode_atk_stacks
         self.ability_2_disabled    = self.st.ability_2_disabled
@@ -232,6 +235,23 @@ class AbilityEngine:
             # invisible because BattleSession never set last_moves at all, so
             # the guard was hit on every single evaluation.
             return getattr(self.session, "last_moves", {}).get(okey) == v
+        if c in ("bey_level_at_least", "bey_level_below"):
+            # The wielder's BEY level, so an ability can awaken at level 100.
+            # session.bey_levels is written by BattleSession from the same
+            # utils.bey_levels lookup effective_blade uses. Absent (an older
+            # session, a harness) it reads as level 1, which means an
+            # "at_least" gate fails closed and a "below" gate passes — the
+            # un-awakened form, which is the safe default.
+            try:
+                lvl = int((getattr(self.session, "bey_levels", {}) or {})
+                          .get(key, 1) or 1)
+            except (TypeError, ValueError):
+                lvl = 1
+            try:
+                threshold = int(v)
+            except (TypeError, ValueError):
+                return False
+            return lvl >= threshold if c == "bey_level_at_least" else lvl < threshold
         if c == "round_at_least":
             # How far into the fight we are. There was no way to express "after
             # five rounds" at all — every existing gate reads HP, stamina, a
@@ -642,6 +662,16 @@ class AbilityEngine:
             elif kind == "ignore_defense":
                 self.st.set_duration("ignore_defense_turns", key, int(op.get("turns", val or 1)))
                 logs.append(f"🗡️ **{ab_name}** — attacks pierce defense!")
+            elif kind == "undodgeable":
+                # An attack that simply cannot be avoided. Dodge is the one
+                # defensive layer that zeroes a hit outright, so an ability
+                # that "cannot be interrupted" has to be able to say so —
+                # ignore_defense only gets past mitigation, not past a dodge.
+                turns = int(op.get("turns", val or 1))
+                self.undodgeable_turns[key] = max(
+                    self.undodgeable_turns.get(key, 0), turns)
+                logs.append(f"🚫 **{ab_name}** — attacks cannot be dodged "
+                            f"for {turns} turn(s)!")
             elif kind == "true_damage_turns":
                 self.st.set_duration("true_damage_turns", key, int(op.get("turns", val or 1)))
                 logs.append(f"💢 **{ab_name}** — attacks deal TRUE damage!")
@@ -949,9 +979,23 @@ class AbilityEngine:
         return logs
 
     def tick_dmg_amps(self) -> list[str]:
-        """Expire timed dmg_amp grants. Called once per round by the session."""
+        """Expire timed dmg_amp grants and undodgeable windows.
+
+        Called once per round by the session.
+        """
         logs: list[str] = []
-        if not self.timed_dmg_amps:
+        # getattr rather than direct access: this is called every round from
+        # the session, and an engine built by an older path (or a harness) must
+        # not take a whole battle down over a missing bookkeeping dict.
+        undodgeable = getattr(self, "undodgeable_turns", None)
+        if undodgeable:
+            for key, turns in list(undodgeable.items()):
+                left = int(turns) - 1
+                if left > 0:
+                    undodgeable[key] = left
+                else:
+                    undodgeable.pop(key, None)
+        if not getattr(self, "timed_dmg_amps", None):
             return logs
         still: list[list] = []
         for entry in self.timed_dmg_amps:

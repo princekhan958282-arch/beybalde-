@@ -1982,12 +1982,12 @@
       {
         "name": "Absolute Darkness",
         "trigger": "on_special",
-        "description": "After Dark Void is activated, Shadow Dragon King is consumed by absolute darkness — permanently increasing ALL stats (Attack, Defense, Stamina, Special) by 70%. This transformation is irreversible, and Dark Weather rages on through it.",
+        "description": "After Dark Void is activated, Shadow Dragon King is consumed by absolute darkness — permanently increasing ALL stats by 55% of their CURRENT value, so the higher its level the larger the gain. This transformation is irreversible, and Dark Weather rages on through it.",
         "chain": [
           {
             "condition": "on_special_use",
             "effect": "all_stats_boost",
-            "value": 0.7,
+            "value": 0.55,
             "duration": 999,
             "once": true,
             "_note": "Absolute Darkness: +70% all stats permanently after Dark Void fires"
@@ -2004,7 +2004,7 @@
                   {
                     "condition": "on_special_use",
                     "effect": "all_stats_boost",
-                    "value": 0.7,
+                    "value": 0.55,
                     "duration": 999,
                     "once": true,
                     "_note": "Absolute Darkness: +70% all stats permanently after Dark Void fires"
@@ -5353,7 +5353,7 @@
       {
         "name": "Soul Judgement",
         "trigger": "on_take_damage",
-        "description": "Every Attack or Special hit Tartarus Reaper absorbs is weighed and returned: +30 to all stats, 30 HP restored, and 0.3 Stamina recovered. The stat gain does not expire — the longer the judgement runs, the heavier the Reaper becomes.",
+        "description": "Every Attack or Special hit Tartarus Reaper absorbs is weighed and returned: +25 to all stats, 25 HP restored, and 0.3 Stamina recovered. The judgement can only be passed three times per battle — after that the scales are full.",
         "rules": [
           {
             "when": "on_take_damage",
@@ -5362,17 +5362,37 @@
               {
                 "cond": "enemy_move_is",
                 "value": "attack"
+              },
+              {
+                "cond": "counter_below",
+                "name": "soul_judgement",
+                "value": 3
               }
             ],
             "do": [
               {
-                "op": "buff_all",
-                "value": 30,
+                "op": "stacking_buff",
+                "name": "soul_judgement",
+                "stat": "attack",
+                "per_stack": 25,
+                "max": 3,
+                "turns": 999
+              },
+              {
+                "op": "buff",
+                "stat": "defense",
+                "amount": 25,
+                "turns": 999
+              },
+              {
+                "op": "buff",
+                "stat": "stamina",
+                "amount": 25,
                 "turns": 999
               },
               {
                 "op": "heal",
-                "value": 30
+                "value": 25
               },
               {
                 "op": "gain_stamina",
@@ -5387,17 +5407,37 @@
               {
                 "cond": "enemy_move_is",
                 "value": "special"
+              },
+              {
+                "cond": "counter_below",
+                "name": "soul_judgement",
+                "value": 3
               }
             ],
             "do": [
               {
-                "op": "buff_all",
-                "value": 30,
+                "op": "stacking_buff",
+                "name": "soul_judgement",
+                "stat": "attack",
+                "per_stack": 25,
+                "max": 3,
+                "turns": 999
+              },
+              {
+                "op": "buff",
+                "stat": "defense",
+                "amount": 25,
+                "turns": 999
+              },
+              {
+                "op": "buff",
+                "stat": "stamina",
+                "amount": 25,
                 "turns": 999
               },
               {
                 "op": "heal",
-                "value": 30
+                "value": 25
               },
               {
                 "op": "gain_stamina",
@@ -5405,7 +5445,8 @@
               }
             ]
           }
-        ]
+        ],
+        "_note": "counter_below gates the WHOLE rule, so once three judgements have been passed the heal and stamina stop too — not just the stat line that owns the counter."
       },
       {
         "name": "Grave Decree",
@@ -5478,8 +5519,8 @@
       {
         "name": "Dragon Core Resonance",
         "trigger": "passive",
-        "description": "Excalibur Ascendant's dragon core pulses with harmonic energy each turn, granting +15 Attack whenever it wins any phase. Stacks up to 3 times (max +45 Attack). Every 3rd consecutive win, the resonance erupts — dealing 25 bonus true damage to the opponent.",
-        "stack_per_win": 15,
+        "description": "Excalibur Ascendant's dragon core pulses with harmonic energy, granting +20 Attack whenever it wins any phase. Stacks up to 3 times (max +60 Attack). Every 3rd consecutive win the resonance erupts, dealing 25 bonus true damage.",
+        "stack_per_win": 20,
         "max_stacks": 3,
         "streak_threshold": 3,
         "streak_true_damage": 25
@@ -5487,11 +5528,44 @@
       {
         "name": "Internal Overdrive",
         "trigger": "on_special",
-        "description": "After Excalibur Triple Strike, Draciel enters Overdrive for 3 turns — gaining +30 Attack, ignoring enemy Defense entirely, and recovering 20 HP per turn. Cannot be interrupted.",
-        "attack_boost": 30,
-        "ignore_defense": true,
-        "heal_per_turn": 20,
-        "duration_turns": 3
+        "description": "After Excalibur Triple Strike, Excalibur Ascendant enters OVERDRIVE for 4 turns: +30 Attack, enemy Defense ignored entirely, attacks that CANNOT be dodged, guaranteed critical hits, and 20 HP recovered per turn. Nothing interrupts it.",
+        "rules": [
+          {
+            "when": "on_special",
+            "_name": "Internal Overdrive",
+            "once": "battle",
+            "do": [
+              {
+                "op": "buff",
+                "stat": "attack",
+                "amount": 30,
+                "turns": 4
+              },
+              {
+                "op": "ignore_defense",
+                "turns": 4
+              },
+              {
+                "op": "undodgeable",
+                "turns": 4
+              },
+              {
+                "op": "guaranteed_crit",
+                "turns": 4
+              },
+              {
+                "op": "crit_damage",
+                "value": 2.0
+              },
+              {
+                "op": "hp_regen",
+                "value": 20,
+                "turns": 4
+              }
+            ],
+            "_note": "'100% crit damage' is read as guaranteed crits at a doubled multiplier: guaranteed_crit makes every hit a crit for the window, crit_damage 2.0 makes each one worth double rather than the usual 1.5x."
+          }
+        ]
       }
     ],
     "spin_direction": "Right"
@@ -5649,7 +5723,7 @@
       {
         "name": "Longinus Strike",
         "trigger": "on_hit",
-        "description": "Every hit Void Longinus lands — a normal attack, or each individual hit of Void Crash — deals 20 bonus damage and 5 stability damage. Against a Defense-type opponent, or one that is holding Defense, it strips a further 5 stability.",
+        "description": "Every hit Void Longinus lands — a normal attack, or each individual hit of Void Crash — deals 20 bonus damage and 5 stability damage. Against a Defense-type opponent, or one holding Defense, it strips a further 5 stability. At bey level 100 the lance is fully awakened: 30 damage and 10 stability instead.",
         "rules": [
           {
             "when": "on_attack_hit",
@@ -5663,6 +5737,12 @@
                 "op": "enemy_lose_stability",
                 "amount": 5
               }
+            ],
+            "if": [
+              {
+                "cond": "bey_level_below",
+                "value": 100
+              }
             ]
           },
           {
@@ -5672,6 +5752,10 @@
               {
                 "cond": "enemy_type_is",
                 "value": "Defense"
+              },
+              {
+                "cond": "bey_level_below",
+                "value": 100
               }
             ],
             "do": [
@@ -5688,6 +5772,10 @@
               {
                 "cond": "enemy_move_is",
                 "value": "defense"
+              },
+              {
+                "cond": "bey_level_below",
+                "value": 100
               }
             ],
             "do": [
@@ -5709,6 +5797,12 @@
                 "op": "enemy_lose_stability",
                 "amount": 5
               }
+            ],
+            "if": [
+              {
+                "cond": "bey_level_below",
+                "value": 100
+              }
             ]
           },
           {
@@ -5718,6 +5812,10 @@
               {
                 "cond": "enemy_type_is",
                 "value": "Defense"
+              },
+              {
+                "cond": "bey_level_below",
+                "value": 100
               }
             ],
             "do": [
@@ -5734,6 +5832,10 @@
               {
                 "cond": "enemy_move_is",
                 "value": "defense"
+              },
+              {
+                "cond": "bey_level_below",
+                "value": 100
               }
             ],
             "do": [
@@ -5742,8 +5844,129 @@
                 "amount": 5
               }
             ]
+          },
+          {
+            "when": "on_attack_hit",
+            "_name": "Longinus Strike",
+            "do": [
+              {
+                "op": "bonus_damage",
+                "value": 30
+              },
+              {
+                "op": "enemy_lose_stability",
+                "amount": 10
+              }
+            ],
+            "if": [
+              {
+                "cond": "bey_level_at_least",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "when": "on_attack_hit",
+            "_name": "Longinus Strike",
+            "if": [
+              {
+                "cond": "enemy_type_is",
+                "value": "Defense"
+              },
+              {
+                "cond": "bey_level_at_least",
+                "value": 100
+              }
+            ],
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "amount": 10
+              }
+            ]
+          },
+          {
+            "when": "on_attack_hit",
+            "_name": "Longinus Strike",
+            "if": [
+              {
+                "cond": "enemy_move_is",
+                "value": "defense"
+              },
+              {
+                "cond": "bey_level_at_least",
+                "value": 100
+              }
+            ],
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "amount": 10
+              }
+            ]
+          },
+          {
+            "when": "on_hit",
+            "_name": "Longinus Strike",
+            "do": [
+              {
+                "op": "bonus_damage",
+                "value": 30
+              },
+              {
+                "op": "enemy_lose_stability",
+                "amount": 10
+              }
+            ],
+            "if": [
+              {
+                "cond": "bey_level_at_least",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "when": "on_hit",
+            "_name": "Longinus Strike",
+            "if": [
+              {
+                "cond": "enemy_type_is",
+                "value": "Defense"
+              },
+              {
+                "cond": "bey_level_at_least",
+                "value": 100
+              }
+            ],
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "amount": 10
+              }
+            ]
+          },
+          {
+            "when": "on_hit",
+            "_name": "Longinus Strike",
+            "if": [
+              {
+                "cond": "enemy_move_is",
+                "value": "defense"
+              },
+              {
+                "cond": "bey_level_at_least",
+                "value": 100
+              }
+            ],
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "amount": 10
+              }
+            ]
           }
-        ]
+        ],
+        "_note": "Every rule is authored twice, gated on bey level. The engine ANDs an `if` list, so a level gate has to ride along on each existing condition rather than wrapping them."
       },
       {
         "name": "Void",

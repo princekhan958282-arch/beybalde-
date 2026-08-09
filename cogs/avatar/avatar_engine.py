@@ -176,13 +176,39 @@ class AvatarBonuses:
         return hit_damage
 
     def extra_hits(self, base_hits: int) -> int:
-        """Return adjusted hit count if multi_hit_extra_hits is active."""
+        """Return adjusted hit count if multi_hit_extra_hits is active.
+
+        DOUBLES the hit count. It used to add exactly one, which made the
+        bonus worth less the better the Special was: a 2-hit move gained 50%
+        and a 5-hit move only 20%, so the strongest multi-hit blades got the
+        least from it. Doubling is proportional — a 2-hit Special becomes 4.
+
+        This is deliberately NOT the same effect as `multi_hit_power_double`,
+        which doubles the damage of each hit and leaves the count alone. An
+        avatar carrying both fires twice as many hits AND each of them hits
+        twice as hard.
+        """
         if self.multi_hit_extra_hits:
-            return base_hits + 1
+            return max(base_hits, int(base_hits) * 2)
         return base_hits
 
+    # No avatar may dodge more often than this, whatever its card says.
+    #
+    # Cards were authored up to 28%, which meant better than one attack in
+    # four simply did not happen — a defensive stat that reads as a small
+    # percentage but plays as "your turn was deleted". Capping in the engine
+    # rather than editing 16 cards keeps each card's relative ranking intact
+    # and makes the ceiling one number to change again later.
+    DODGE_CAP = 0.05
+
     def roll_dodge(self) -> bool:
-        """Roll whether this avatar dodges an incoming attack."""
+        """Roll whether this avatar dodges an incoming attack.
+
+        The cap is applied again here as well as at load, so a bonuses object
+        built by hand (a test, an older save) cannot exceed it either.
+        """
+        if self.dodge_chance > self.DODGE_CAP:
+            return random.random() < self.DODGE_CAP
         if self.dodge_chance <= 0.0:
             return False
         return random.random() < self.dodge_chance
@@ -389,7 +415,11 @@ class AvatarEngine:
             hp_flat=b.get("hp_flat", 0.0),
             hp_percent=b.get("hp_percent", 0.0),
             crit_percent=b.get("crit_percent", 0.0),
-            dodge_chance=b.get("dodge_chance", 0.0),
+            # Capped at load, so the number a card DISPLAYS is the number that
+            # actually rolls. Capping only inside roll_dodge would leave the
+            # profile and shop still advertising 28%.
+            dodge_chance=min(AvatarBonuses.DODGE_CAP,
+                             float(b.get("dodge_chance", 0.0) or 0.0)),
             counter_chance=b.get("counter_chance", 0.0),
             multi_hit_power_double=b.get("multi_hit_power_double", False),
             multi_hit_extra_hits=b.get("multi_hit_extra_hits", False),

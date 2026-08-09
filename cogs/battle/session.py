@@ -338,6 +338,21 @@ class BattleSession:
             str(p2.id): _effective_special(p2.id, blade2),
         }
 
+        # Each player's BEY level, for abilities that awaken at a level
+        # (`bey_level_at_least`). Resolved once here from the same
+        # utils.bey_levels lookup effective_blade uses, rather than re-read
+        # per condition check — a rule can fire many times a round.
+        self.bey_levels: dict[str, int] = {}
+        for _p, _b in ((p1, blade1), (p2, blade2)):
+            try:
+                from utils import bey_levels as _BL
+                from utils.database import get_user as _gu
+                _entry = ((_gu(_p.id).get("bey_progress") or {})
+                          .get(str(_b.get("name"))) or {})
+                self.bey_levels[str(_p.id)] = _BL.level_from_xp(_entry.get("xp", 0))
+            except Exception:                            # noqa: BLE001
+                self.bey_levels[str(_p.id)] = 1
+
         # ── Sub-module initialisation ─────────────────────────────────────────
         self.stamina_manager = StaminaManager(self.blades, effective_stats=self.battle_stats)
         self.type_mods: dict[str, TypeModifiers] = {
