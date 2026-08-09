@@ -84,8 +84,11 @@ check("no description still says Dark Weather closes",
       not any(w in json.dumps(SDK) for w in
               ("permanently closes Dark Weather",
                "Dark Weather is also permanently disabled")))
-check("Absolute Darkness still grants its +70%",
-      '"value": 0.7' in json.dumps(AD))
+check("Absolute Darkness grants its all-stats boost",
+      '"all_stats_boost"' in json.dumps(AD))
+check("...at 55% of current stats, per the balance pass",
+      '"value": 0.55' in json.dumps(AD) and '"value": 0.7' not in json.dumps(AD),
+      [n.get("value") for n in AD.get("chain", [])])
 
 print("\n── 2. the engine agrees, and does not stack ─────────────────────")
 

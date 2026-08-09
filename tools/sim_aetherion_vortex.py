@@ -107,6 +107,7 @@ def engine():
     e.special_boost_flat = s.status.special_boost_flat
     e.special_amp_stack = {}
     e.timed_dmg_amps = []
+    e.undodgeable_turns = {}
     return e, s
 
 

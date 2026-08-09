@@ -113,6 +113,9 @@ def engine():
     e.primed_bonus = {}
     e.special_boost_flat = s.status.special_boost_flat
     e.special_amp_stack = {}
+    e.counters = {}
+    e.timed_dmg_amps = []
+    e.undodgeable_turns = {}
     return e, s
 
 
@@ -191,12 +194,12 @@ hp_before = s.hp["p"]
 sp_before = s.stamina_manager.stamina["p"]
 s.last_moves["e"] = "attack"
 e._fire("on_take_damage", "p", "e", TR, "defense", "lose", 0, 100, [])
-check("+30 attack from a taken Attack hit",
-      s.status.get_buff_bonus("p", "attack") == 30,
+check("+25 attack from a taken Attack hit",
+      s.status.get_buff_bonus("p", "attack") == 25,
       s.status.get_buff_bonus("p", "attack"))
-check("+30 defense too", s.status.get_buff_bonus("p", "defense") == 30)
-check("+30 stamina stat too", s.status.get_buff_bonus("p", "stamina") == 30)
-check("heals 30 HP", s.hp["p"] == hp_before + 30, s.hp["p"])
+check("+25 defense too", s.status.get_buff_bonus("p", "defense") == 25)
+check("+25 stamina stat too", s.status.get_buff_bonus("p", "stamina") == 25)
+check("heals 25 HP", s.hp["p"] == hp_before + 25, s.hp["p"])
 check("recovers 0.3 stamina",
       abs(s.stamina_manager.stamina["p"] - (sp_before + 0.3)) < 1e-6,
       s.stamina_manager.stamina["p"])
@@ -205,7 +208,7 @@ e, s = engine()
 s.last_moves["e"] = "special"
 e._fire("on_take_damage", "p", "e", TR, "defense", "lose", 0, 100, [])
 check("a taken SPECIAL hit triggers it too",
-      s.status.get_buff_bonus("p", "attack") == 30)
+      s.status.get_buff_bonus("p", "attack") == 25)
 
 e, s = engine()
 s.last_moves["e"] = "defense"
@@ -218,9 +221,12 @@ e, s = engine()
 s.last_moves["e"] = "attack"
 for _ in range(5):
     e._fire("on_take_damage", "p", "e", TR, "defense", "lose", 0, 50, [])
-check("it accumulates across hits — 5 hits is +150",
-      s.status.get_buff_bonus("p", "attack") == 150,
+# Capped at 3 judgements per battle, so 5 hits is 3 x 25, not 5 x 25.
+check("it accumulates, but stops at the 3-stack cap — 5 hits is +75",
+      s.status.get_buff_bonus("p", "attack") == 75,
       s.status.get_buff_bonus("p", "attack"))
+check("...and the heal stops with it, not just the stat line",
+      s.hp["p"] == 1000 + 3 * 25, s.hp["p"])
 
 print("\n── 5. Grave Decree — the standing 15% ───────────────────────────")
 e, s = engine()
