@@ -140,6 +140,9 @@ class AbilityEngine:
         # rather than StatusManager because it is not a timed buff — it holds
         # for the whole battle and never ticks down.
         self.special_amp_stack: dict[str, float] = {}
+        # [key, amount, rounds_left] for dmg_amp grants that expire. Swept by
+        # tick_dmg_amps() at end of round.
+        self.timed_dmg_amps: list[list] = []
         self.post_rebirth_reflect  = self.st.post_rebirth_reflect
         self.demon_mode_atk_stacks = self.st.demon_mode_atk_stacks
         self.ability_2_disabled    = self.st.ability_2_disabled
@@ -229,6 +232,21 @@ class AbilityEngine:
             # invisible because BattleSession never set last_moves at all, so
             # the guard was hit on every single evaluation.
             return getattr(self.session, "last_moves", {}).get(okey) == v
+        if c == "round_at_least":
+            # How far into the fight we are. There was no way to express "after
+            # five rounds" at all — every existing gate reads HP, stamina, a
+            # counter or a move, none of which is time. Reads the session's own
+            # round counter and fails CLOSED (round 0) when it is absent, so a
+            # harness without one cannot accidentally satisfy the condition.
+            try:
+                return int(getattr(self.session, "round", 0) or 0) >= int(v)
+            except (TypeError, ValueError):
+                return False
+        if c == "round_below":
+            try:
+                return int(getattr(self.session, "round", 0) or 0) < int(v)
+            except (TypeError, ValueError):
+                return False
         if c == "matchup_is":          return matchup == v
         if c == "mode_is":             return self.modes.get(key) == v
         if c == "counter_at_least":
@@ -571,8 +589,20 @@ class AbilityEngine:
                     logs.append(f"🔺 **{ab_name}** — stack {cur+1}/{mx} "
                                 f"(+{per} {stat})!")
             elif kind == "dmg_amp":
-                self.st.add_dmg_amp(key, float(val))
-                logs.append(f"🔥 **{ab_name}** — damage amplified {int(float(val)*100)}%!")
+                # `turns` makes the amp TEMPORARY. add_dmg_amp is a permanent
+                # accumulator with no expiry, so "+25% for 5 turns" could only
+                # be written as "+25% forever" — an Overdrive that never ends
+                # is not an Overdrive. The expiry is tracked here and swept by
+                # tick_dmg_amps() at end of round.
+                amt = float(val)
+                self.st.add_dmg_amp(key, amt)
+                turns = int(op.get("turns", 0) or 0)
+                if turns > 0:
+                    self.timed_dmg_amps.append([key, amt, turns])
+                    logs.append(f"🔥 **{ab_name}** — damage amplified "
+                                f"{int(amt * 100)}% for {turns} turn(s)!")
+                else:
+                    logs.append(f"🔥 **{ab_name}** — damage amplified {int(amt*100)}%!")
             elif kind == "special_boost":
                 self.special_boost_flat[key] = self.special_boost_flat.get(key, 0) + int(val)
                 logs.append(f"✨ **{ab_name}** — Special +{int(val)} damage!")
@@ -916,6 +946,28 @@ class AbilityEngine:
                 # counteract the lethal blow: restore to `hp` after damage lands
                 self.session.hp[key] = incoming + hp
                 logs.append(f"⚡ **{blade.get('name','?')}** REFUSES to fall — revived with {hp} HP!")
+        return logs
+
+    def tick_dmg_amps(self) -> list[str]:
+        """Expire timed dmg_amp grants. Called once per round by the session."""
+        logs: list[str] = []
+        if not self.timed_dmg_amps:
+            return logs
+        still: list[list] = []
+        for entry in self.timed_dmg_amps:
+            entry[2] -= 1
+            if entry[2] > 0:
+                still.append(entry)
+            else:
+                # Subtract exactly what was granted. add_dmg_amp is a running
+                # total shared with permanent grants, so it must never be
+                # zeroed wholesale — a blade with both would lose the permanent
+                # one too.
+                self.st.dmg_amp_stacks[entry[0]] = max(
+                    0.0, self.st.dmg_amp_stacks.get(entry[0], 0.0) - entry[1])
+                logs.append(f"  ⏳ Overdrive fades — damage amp "
+                            f"-{int(entry[1] * 100)}%.")
+        self.timed_dmg_amps = still
         return logs
 
     # ── Per-hit proc (multi-hit specials / attack) ────────────────────────────

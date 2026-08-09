@@ -869,6 +869,12 @@ class BattleSession:
         # immediately expire, but BEFORE the next panel is posted so the status
         # embed reflects the updated durations.
         st = self.status
+        # Timed dmg_amp grants (Overdrive and friends). Once for the whole
+        # session, not per player — the list carries its own owner key.
+        try:
+            round_log.extend(self.ability.tick_dmg_amps())
+        except Exception:                                # noqa: BLE001
+            pass
         for key in (k1, k2):
             st.tick_buffs(key, round_log)       # ATK/DEF/stamina_regen buffs
             st.tick_silence(key, round_log)     # Silence counter
