@@ -867,12 +867,12 @@
     {
       "id": "avatar_x002",
       "name": "Argus",
-      "rarity": "Exclusive",
+      "rarity": "MLBB",
       "type": "balance",
       "price": 0,
       "description": "The deathless sentinel. Argus strikes with overwhelming force and simply refuses to fall.",
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521123391103307918/b9be113f8dd6838140cc9ad2801d304b.jpg?ex=6a65f70d&is=6a64a58d&hm=4228f645a1eb3eeef555151af53c97bf1e7c5d67272220f9e12c9eba1144250b&",
-      "limited": true,
+      "limited": false,
       "available_until": null,
       "draw_chance": 0.001,
       "skills": [
@@ -918,12 +918,12 @@
     {
       "id": "avatar_x003",
       "name": "Dyrroth",
-      "rarity": "Exclusive",
+      "rarity": "MLBB",
       "type": "attack",
       "price": 0,
       "description": "The abyssal prince. Dyrroth shreds guard on the opening exchange and finishes with a monstrous ultimate.",
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521123402302099516/03e29ff92eebbd332b6f9e31cb7f002d.jpg?ex=6a65f710&is=6a64a590&hm=aeff0237e11132e2dd1a35b058990fcae01a3ee2da755307d490f4f04fe6d284&",
-      "limited": true,
+      "limited": false,
       "available_until": null,
       "draw_chance": 0.001,
       "skills": [

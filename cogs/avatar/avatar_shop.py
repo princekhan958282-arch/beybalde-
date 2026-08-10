@@ -15,9 +15,11 @@ Commands:
 Rarities (lowest → highest):
   Common, Rare, Epic, Legendary, Mythic, Ultimate, Exclusive, MLBB
 
-  Exclusive avatars are only reachable from the legendary pack, at banner rate.
-  MLBB is a CLOSED crossover banner — only the mlbb pack can produce one, and
-  the mlbb pack can produce nothing else.
+  Exclusive avatars are not pullable from any pack — they are event/reward
+  cards. MLBB is a CLOSED crossover banner: only the mlbb pack can produce one,
+  and the mlbb pack can produce nothing else. Argus and Dyrroth are Mobile
+  Legends heroes and live on the MLBB banner with the rest of the crossover
+  cast, which leaves Omega Prime and Cobra Titan as the Exclusive tier.
 
 Pack pools:
   Common   → Common, Rare
@@ -448,8 +450,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
                 "Equip an avatar to gain passive battle bonuses.\n"
                 "Use `;avatarpacks` to open random packs.\n"
                 "Use `;avatarinfo <id>` to inspect an avatar.\n\n"
-                f"{'⚪ Common'} • {'🔵 Rare'} • {'🟣 Epic'} • "
-                f"{'🟡 Legendary'} • {'🌸 Mythic'} • {'💠 Ultimate'} • {'🌟 Exclusive'}"
+                + " • ".join(f"{RARITY_EMOJI[r]} {r}" for r in RARITY_ORDER)
             ),
             color=0xE67E22,
         )
@@ -528,10 +529,12 @@ class AvatarShop(commands.Cog, name="Avatar"):
             )
 
         embed.add_field(
-            name="🌟 Exclusive Avatars",
+            name="💎 Exclusive Avatars",
             value=(
                 "Exclusive avatars **cannot be pulled from packs**.\n"
-                "They are obtained through events, quests, and special rewards only."
+                "They are obtained through events, quests, and special rewards only.\n"
+                "*(Argus and Dyrroth are MLBB heroes — they moved to the "
+                "🌟 MLBB banner and are pullable from `;buypack mlbb`.)*"
             ),
             inline=False,
         )
