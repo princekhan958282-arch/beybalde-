@@ -45,6 +45,7 @@ from .avatar_engine import avatar_engine
 from .avatar_utils import format_type, RARITY_COLORS, RARITY_EMOJI
 from . import avatar_levels as AL
 from . import avatar_progress as AP
+from . import avatar_skills as ASK
 
 log = logging.getLogger("beyblade_bot")
 
@@ -230,6 +231,70 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
                         f"refunded 🪙 **{result['refund']:,}** (70%)",
             colour=0x99AAB5))
 
+    # ── ;avatarskill ──────────────────────────────────────────────────────────
+    @commands.command(name="avatarskill", aliases=["askill", "askills"])
+    async def avatar_skill(self, ctx: commands.Context,
+                           slot: Optional[int] = None, *,
+                           avatar: Optional[str] = None) -> None:
+        """Pick which of the three skills your avatar fights with.
+
+        With no slot it shows the card, the three prices and what your energy
+        currently affords — which is the question that actually matters in a
+        ranked match, where the 100 has to last the whole thing.
+        """
+        card = _resolve(avatar, ctx.author.id)
+        if card is None:
+            return await ctx.send(
+                "❌ No avatar found. Equip one with `;equipavatar <id>`, or "
+                "name it: `;askill 2 Argus`.")
+
+        skills = card.get("skills") or []
+        if not skills:
+            return await ctx.send(
+                f"**{card['name']}** has no signature skills — its bonuses "
+                f"always apply in full, and cost no energy.")
+
+        prof = get_user(ctx.author.id)
+        pool = ASK.energy(prof)
+
+        if slot is not None:
+            if not 1 <= int(slot) <= len(skills):
+                return await ctx.send(
+                    f"❌ **{card['name']}** has skills 1–{len(skills)}.")
+            if ASK.in_ranked_match(prof):
+                return await ctx.send(
+                    "❌ You're mid-way through a ranked match — the pick is "
+                    "locked until it finishes.")
+            ASK.set_choice(ctx.author.id, card["id"], int(slot))
+            prof = get_user(ctx.author.id)
+
+        chosen = ASK.chosen_slot(prof, card["id"])
+        chosen = max(1, min(chosen, len(skills)))
+
+        e = discord.Embed(
+            title=f"{RARITY_EMOJI.get(card.get('rarity'), '⚪')} "
+                  f"{card['name']} — battle skill",
+            description=f"⚡ Energy **{pool}/{ASK.MAX_ENERGY}**"
+                        + ("  ·  🔒 ranked match in progress"
+                           if ASK.in_ranked_match(prof) else ""),
+            colour=RARITY_COLORS.get(card.get("rarity"), 0xAAAAAA))
+
+        for i, sk in enumerate(skills, 1):
+            cost = ASK.skill_cost(i)
+            mark = "✅" if i == chosen else "▫️"
+            afford = "" if pool >= cost else "  ·  ❌ not enough energy"
+            e.add_field(
+                name=f"{mark} {i}. {sk.get('name', 'Skill')}  —  {cost}⚡"
+                     f"  ({ASK.uses_affordable(i)}× per full pool){afford}",
+                value=sk.get("description", ""),
+                inline=False)
+
+        e.set_footer(
+            text="One skill per battle. Casual refills your energy every "
+                 "fight; ranked does not refill until the match is decided — "
+                 "100 has to cover every round.  ;askill <1-3>")
+        await ctx.send(embed=e)
+
     # ── ;avatarcost ───────────────────────────────────────────────────────────
     @commands.command(name="avatarcost", aliases=["acost"])
     async def avatar_cost(self, ctx: commands.Context) -> None:
@@ -314,6 +379,22 @@ class AvatarUpgradeCommands(commands.Cog, name="Avatar (slash)"):
     @avatar.command(name="costs", description="The full avatar upgrade curve")
     async def a_costs(self, interaction: discord.Interaction) -> None:
         await self._run(interaction, "avatarcost")
+
+    @avatar.command(name="skill",
+                    description="Pick which skill your avatar fights with")
+    @app_commands.describe(
+        slot="1 = 25⚡ · 2 = 50⚡ · 3 = 75⚡. Leave empty to just look.",
+        avatar="Which card (defaults to the one equipped)")
+    @app_commands.choices(slot=[
+        app_commands.Choice(name="Skill 1 — 25 energy", value=1),
+        app_commands.Choice(name="Skill 2 — 50 energy", value=2),
+        app_commands.Choice(name="Skill 3 — 75 energy", value=3),
+    ])
+    @app_commands.autocomplete(avatar=_owned_autocomplete)
+    async def a_skill(self, interaction: discord.Interaction,
+                      slot: Optional[int] = None,
+                      avatar: Optional[str] = None) -> None:
+        await self._run(interaction, "avatarskill", slot=slot, avatar=avatar)
 
 
 # No setup() here on purpose. cogs/avatar/__init__.py adds both cogs, and this

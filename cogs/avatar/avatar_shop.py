@@ -640,19 +640,26 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
         # Level comes from the VIEWER's profile, so ;ainfo shows their copy of
         # the card rather than the card in the abstract.
-        lvl, skill_lvls = 1, {}
+        lvl, skill_lvls, active_slot = 1, {}, 0
         if owned or equipped:
             try:
                 from utils.database import get_user
                 from . import avatar_progress as AP
+                from . import avatar_skills as AS
                 prof = get_user(ctx.author.id)
                 lvl = AP.card_level(prof, avatar["id"])
                 skill_lvls = AP.card_entry(prof, avatar["id"]).get("skills") or {}
+                # The standing pick, not the in-battle lock: ;ainfo is read
+                # between fights, and what a player wants to know is which
+                # skill their NEXT battle will use.
+                if avatar.get("skills"):
+                    active_slot = AS.chosen_slot(prof, avatar["id"])
             except Exception:                            # noqa: BLE001
                 pass
 
         embed = build_avatar_embed(avatar, owned=owned, equipped=equipped,
-                                   level=lvl, skill_levels=skill_lvls)
+                                   level=lvl, skill_levels=skill_lvls,
+                                   active_skill_slot=active_slot)
 
         # Show image if the avatar has one
         image = avatar.get("image", "")

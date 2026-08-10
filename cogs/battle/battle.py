@@ -352,22 +352,19 @@ class BattleCog(commands.Cog, name="Battle"):
             self.active_battles.pop(ctx.author.id, None)
             self.active_battles.pop(opponent.id,   None)
 
-    async def _run_ranked_match(self, ctx, opponent, blade1, blade2) -> None:
-        """First to RK.MATCH_TARGET points across as many rounds as it takes."""
+    async def _ranked_rounds(self, ctx, me, them, blade1, blade2,
+                             pts: dict, history: list, max_rounds: int) -> None:
+        """Play rounds until somebody reaches the target or the cap is hit.
+
+        Split out of _run_ranked_match so the avatar-energy match flag can be
+        cleared in a `finally` that covers every exit — including an exception
+        mid-round. Scoring state is passed in and mutated in place, so the
+        caller still owns the result.
+        """
         from utils import ranked as RK
-        from utils.database import mutate_user
 
-        me, them = ctx.author, opponent
-        pts = {me.id: 0, them.id: 0}
-        history: list[str] = []
         round_no = 0
-
-        # A hard ceiling on rounds. Every round must end — sim_stall guarantees
-        # the stamina bleed resolves one — but a draw scores nobody, so without
-        # a cap a pair of perfectly matched blades could draw forever.
-        MAX_ROUNDS = 9
-
-        while (max(pts.values()) < RK.MATCH_TARGET) and round_no < MAX_ROUNDS:
+        while (max(pts.values()) < RK.MATCH_TARGET) and round_no < max_rounds:
             round_no += 1
             await ctx.send(embed=discord.Embed(
                 title=f"🏅 Ranked — Round {round_no}",
@@ -379,6 +376,8 @@ class BattleCog(commands.Cog, name="Battle"):
             # Each round is a fresh session: full HP, full stamina, a clean
             # stability bar. Carrying damage between rounds would make round 1
             # decide the match and turn the point system into decoration.
+            # Avatar ENERGY is the deliberate exception — it is the one thing
+            # that carries, which is what makes the skill pick a budget.
             session = BattleSession(
                 bot=self.bot, channel=ctx.channel, p1=me, p2=them,
                 blade1=blade1, blade2=blade2, ranked=True,
@@ -402,6 +401,38 @@ class BattleCog(commands.Cog, name="Battle"):
             who = me if winner_id == me.id else them
             history.append(f"R{round_no}: {RK.finish_label(kind)} — "
                            f"**{who.display_name}** +{gained}")
+
+    async def _run_ranked_match(self, ctx, opponent, blade1, blade2) -> None:
+        """First to RK.MATCH_TARGET points across as many rounds as it takes."""
+        from utils import ranked as RK
+        from utils.database import mutate_user
+        from cogs.avatar import avatar_skills as AS
+
+        me, them = ctx.author, opponent
+        pts = {me.id: 0, them.id: 0}
+        history: list[str] = []
+
+        # Avatar energy is a MATCH budget, not a round one: 100 has to cover
+        # every round, so a 75-energy skill is a once-per-match play. Opening
+        # the match refills both players so a match never starts part-drained,
+        # and the finally below is what guarantees the flag comes back off —
+        # a match that died on an exception would otherwise leave both players
+        # marked "in a ranked match" forever, and casual battles would stop
+        # refilling for good.
+        for _p in (me, them):
+            AS.end_match_for(int(_p.id))
+
+        # A hard ceiling on rounds. Every round must end — sim_stall guarantees
+        # the stamina bleed resolves one — but a draw scores nobody, so without
+        # a cap a pair of perfectly matched blades could draw forever.
+        MAX_ROUNDS = 9
+
+        try:
+            await self._ranked_rounds(ctx, me, them, blade1, blade2,
+                                      pts, history, MAX_ROUNDS)
+        finally:
+            for _p in (me, them):
+                AS.end_match_for(int(_p.id))
 
         # ── Match result ──────────────────────────────────────────────────────
         if pts[me.id] == pts[them.id]:

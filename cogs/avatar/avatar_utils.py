@@ -200,6 +200,15 @@ def format_bonuses_summary(bonuses: dict) -> str:
 
     for key, label, kind in stat_map:
         val = bonuses.get(key, 0)
+        # Dodge is capped in the engine (AvatarBonuses.DODGE_CAP), so printing
+        # the authored number told 16 cards' owners they dodge up to 28% when
+        # the roll has always been 5%. Show what actually rolls.
+        if key == "dodge_chance" and val:
+            try:
+                from .avatar_engine import AvatarBonuses
+                val = min(float(val), AvatarBonuses.DODGE_CAP)
+            except Exception:                            # noqa: BLE001
+                pass
         if val:
             formatted = format_percent(val) if kind == "percent" else format_flat(val)
             lines.append(f"• **{label}**: {formatted}")
@@ -213,7 +222,8 @@ def format_bonuses_summary(bonuses: dict) -> str:
 
 
 def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False,
-                       level: int = 1, skill_levels: dict | None = None) -> discord.Embed:
+                       level: int = 1, skill_levels: dict | None = None,
+                       active_skill_slot: int = 0) -> discord.Embed:
     """
     Build a Discord embed for a single avatar.
     Used in shop previews and inventory views.
@@ -222,6 +232,10 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
     to 1 so every existing call site keeps rendering exactly what it rendered
     before. A shop preview showing somebody else's level would be wrong, so the
     default is also the correct value there.
+
+    `active_skill_slot` ticks the skill the viewer has committed to. It
+    defaults to 0 — no tick — for the same reason: on a shop preview the viewer
+    has no pick on a card they do not own yet.
     """
     rarity = avatar.get("rarity", "Common")
     color  = RARITY_COLORS.get(rarity, 0xAAAAAA)
@@ -271,14 +285,26 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
         inline=False,
     )
 
-    # Signature skills. Only the Exclusive banner avatars carry these, so the
-    # field is skipped entirely for everyone else rather than showing an empty
+    # Signature skills. Only the nine banner avatars carry these, so the field
+    # is skipped entirely for everyone else rather than showing an empty
     # heading.
+    #
+    # Exactly ONE of them is live in a battle, so each line carries its energy
+    # price and the active one is ticked. Listing three skills with no
+    # indication that you only get one is how a player would find out the
+    # expensive way.
     skills = avatar.get("skills") or []
     if skills:
+        try:
+            from . import avatar_skills as AS
+            costs = [AS.skill_cost(i) for i in range(1, len(skills) + 1)]
+        except Exception:                                # noqa: BLE001
+            costs = [0] * len(skills)
         lines = []
         for i, sk in enumerate(skills, 1):
-            head = f"**{i}. {sk.get('name', 'Skill')}**"
+            tick = "✅" if i == active_skill_slot else "▫️"
+            price = f"  ·  {costs[i - 1]}⚡" if costs[i - 1] else ""
+            head = f"{tick} **{i}. {sk.get('name', 'Skill')}**{price}"
             if (owned or equipped) and skill_levels:
                 try:
                     from .avatar_progress import slugify
@@ -288,7 +314,12 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
                 except Exception:                        # noqa: BLE001
                     pass
             lines.append(f"{head}\n{sk.get('description', '')}")
-        embed.add_field(name="⚡ Skills", value="\n\n".join(lines), inline=False)
+        embed.add_field(
+            name="⚡ Skills — one per battle",
+            value="\n\n".join(lines)
+                  + "\n\n*Pick with `;askill <1-3>`. Energy is 100 a battle, "
+                    "and 100 for a whole ranked match.*",
+            inline=False)
 
     if avatar.get("limited"):
         until = avatar.get("available_until")

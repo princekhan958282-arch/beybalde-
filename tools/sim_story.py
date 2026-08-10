@@ -47,6 +47,7 @@ ARGUS   = "avatar_x002"     # crit, gauge-on-crit, immortality
 OMEGA   = "avatar_x001"     # dodge, counter, damage resistance, multi-hit
 
 _equipped: str | None = None
+_skill_slot: int = 1
 
 
 def _install_stubs() -> None:
@@ -63,6 +64,13 @@ def _install_stubs() -> None:
     the name it actually calls lives in its own namespace.
     """
     AVATAR_ENGINE_MODULE.get_equipped_avatar = lambda _uid: _equipped
+
+    # The skill system narrows an avatar to ONE skill per battle, resolved from
+    # the player's profile. Stubbing the profile keeps the fights here off the
+    # real database and lets a case name the slot it wants to prove, instead of
+    # every fight silently taking slot 1.
+    import utils.database as _DB
+    _DB.get_user = lambda _uid: {"avatar_skill": {_equipped: _skill_slot}}
 
     def _player(_uid: int):
         av = avatar_engine.get_battle_bonuses(_uid)
@@ -83,12 +91,14 @@ def _install_stubs() -> None:
 
 
 def run_fight(stage_id: str, avatar_id: str | None, rng: random.Random,
-              player_skill: str = "veteran") -> dict:
+              player_skill: str = "veteran", skill_slot: int = 1) -> dict:
     """One full fight. The player is driven by the same search AI as the
     opponent, at `player_skill`, so both sides play sensibly and the only
-    variable across runs is what the player is wearing."""
-    global _equipped
+    variable across runs is what the player is wearing — and, now, which of
+    its three skills they committed to."""
+    global _equipped, _skill_slot
     _equipped = avatar_id
+    _skill_slot = skill_slot
 
     fight = story_engine.StoryFight(1, "Sim", stage_id, rng=rng)
     player_model = ai.OpponentModel()
@@ -127,12 +137,12 @@ def run_fight(stage_id: str, avatar_id: str | None, rng: random.Random,
 
 
 def win_rate(stage_id: str, avatar_id: str | None, fights: int,
-             seed: int = 0) -> tuple[float, float, list[str]]:
+             seed: int = 0, skill_slot: int = 1) -> tuple[float, float, list[str]]:
     rng = random.Random(seed)
     wins = turns = 0
     logs: list[str] = []
     for _ in range(fights):
-        out = run_fight(stage_id, avatar_id, rng)
+        out = run_fight(stage_id, avatar_id, rng, skill_slot=skill_slot)
         wins += out["result"] == "win"
         turns += out["turns"]
         logs.extend(out["avatar_logs"])
@@ -155,19 +165,40 @@ def check(label: str, ok: bool, detail: str = "") -> None:
 
 
 def check_effects_fire(fights: int) -> None:
-    """Every avatar effect the boss resolver can express must actually log."""
-    print("\n▸ avatar effects fire in Story Mode")
+    """Every avatar effect the boss resolver can express must actually log.
+
+    One skill is live per battle now, so each effect is asserted against the
+    SLOT that owns it. The negative half matters just as much: a slot that is
+    not chosen must produce nothing, which is what proves the narrowing
+    reaches Story Mode and not only PvP.
+    """
+    print("\n▸ avatar effects fire in Story Mode, one skill at a time")
+    # (avatar, name, slot, needles the slot must log)
     cases = [
-        (DYRROTH, "Dyrroth", ["Guard Breaker", "th strike", "full Attack stat"]),
-        (ARGUS,   "Argus",   ["critical hit", "charges the gauge"]),
-        (OMEGA,   "Omega",   ["dodged the hit", "resistance absorbs"]),
+        (DYRROTH, "Dyrroth", 1, ["th strike"]),           # Rhythm of Ruin
+        (DYRROTH, "Dyrroth", 2, ["Guard Breaker"]),       # Guard Breaker
+        (DYRROTH, "Dyrroth", 3, ["full Attack stat"]),    # Abyssal Verdict
+        (ARGUS,   "Argus",   2, ["critical hit", "charges the gauge"]),
+        # Omega Prime has no skills block, so every slot gives its full card.
+        (OMEGA,   "Omega",   1, ["dodged the hit", "resistance absorbs"]),
     ]
-    for avatar_id, name, needles in cases:
-        _, _, logs = win_rate("2-4", avatar_id, fights, seed=7)
+    for avatar_id, name, slot, needles in cases:
+        _, _, logs = win_rate("2-4", avatar_id, fights, seed=7, skill_slot=slot)
         blob = "\n".join(logs)
         for needle in needles:
-            check(f"{name}: {needle!r} appears in the battle log",
+            check(f"{name} slot {slot}: {needle!r} appears in the battle log",
                   needle in blob)
+
+    # The other slots must be silent. Dyrroth's Guard Breaker is the clearest
+    # probe: it prints a distinctive line every round it is active, so its
+    # absence under slots 1 and 3 is unambiguous.
+    for slot in (1, 3):
+        _, _, logs = win_rate("2-4", DYRROTH, fights, seed=7, skill_slot=slot)
+        check(f"Dyrroth slot {slot}: Guard Breaker stays OFF",
+              "Guard Breaker" not in "\n".join(logs))
+    _, _, logs = win_rate("2-4", ARGUS, fights, seed=7, skill_slot=1)
+    check("Argus slot 1: the gauge refund stays OFF",
+          "charges the gauge" not in "\n".join(logs))
 
 
 def check_avatar_lift(fights: int) -> None:

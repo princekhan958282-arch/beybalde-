@@ -280,6 +280,8 @@ COMMAND_DATA = {
         # Packs
         (";avatarpacks  or  ;apacks",   "View packs and their prices"),
         (";buypack mlbb",              "🌟 MLBB banner — 15,000,000 coins, MLBB avatars only"),
+        # Battle skills
+        (";avatarskill <1-3>  or  ;askill", "Pick the ONE skill you fight with (25/50/75⚡ of 100)"),
         # Levelling
         (";avatarupgrade [name] [n]  or  ;aup", "Buy levels for an avatar card"),
         (";avatarcost  or  ;acost",     "The full upgrade curve and what it buys"),

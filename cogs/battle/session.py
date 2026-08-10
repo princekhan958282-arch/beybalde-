@@ -264,6 +264,16 @@ class BattleSession:
         # max_hp_per_player — this is only the fallback.
         self.max_hp  = BASE_HP
 
+        # ── Avatar skill commitment (BEFORE bonuses are read) ─────────────────
+        # Charging energy has to happen first: get_battle_bonuses resolves the
+        # ACTIVE skill from the lock this writes, so reading bonuses first
+        # would hand out last battle's pick. Casual play refills the pool here;
+        # a ranked round spends from the match-long budget and does not.
+        self.skill_commit: dict[str, dict] = {
+            str(p1.id): self._commit_skill(p1.id),
+            str(p2.id): self._commit_skill(p2.id),
+        }
+
         # ── Avatar bonuses (loaded once at battle start) ──────────────────────
         # Stored on session so AbilityEngine and other managers can read them.
         self.avatar_bonuses: dict[str, Any] = {
@@ -412,6 +422,44 @@ class BattleSession:
         self._resolve_lock = asyncio.Lock()
 
     # ── Convenience property so legacy code can read self.stamina[key] ────────
+    def _commit_skill(self, player_id) -> dict:
+        """Charge this player's avatar skill for the battle about to start.
+
+        Returns the commit summary used by the UI. Never raises: a player with
+        no avatar, no skills, or an unreadable profile gets an empty commit and
+        fights exactly as they did before this system existed.
+        """
+        try:
+            from cogs.avatar import avatar_skills as AS
+            avatar = avatar_engine.get_avatar(
+                avatar_engine.get_equipped_avatar_id(int(player_id)) or "")
+            return AS.begin_battle_for(int(player_id), avatar,
+                                       ranked=self.ranked) or {}
+        except Exception:                                # noqa: BLE001
+            return {}
+
+    def _release_skills(self) -> None:
+        """Drop the per-battle lock for both players once the fight is over.
+
+        Casual refills the pool here. A ranked ROUND deliberately does not —
+        the 100 has to last the whole match, and only `end_match_for` (called
+        by the ranked driver when the match is decided) puts it back.
+        """
+        try:
+            from cogs.avatar import avatar_skills as AS
+            for player in self.players:
+                AS.end_battle_for(int(player.id), ranked=self.ranked)
+        except Exception:                                # noqa: BLE001
+            pass
+
+    def skill_label(self, key: str) -> str:
+        """'Bulwark · 75⚡' for the battle UI, or '' when no skill is in play."""
+        commit = (getattr(self, "skill_commit", None) or {}).get(key) or {}
+        name = commit.get("name")
+        if not name:
+            return "" if commit.get("afforded", True) else "no energy"
+        return f"{name} · {commit.get('cost', 0)}⚡"
+
     @property
     def stamina(self) -> dict[str, float]:
         return self.stamina_manager.stamina
@@ -530,6 +578,13 @@ class BattleSession:
             else:
                 fx_block = "*no effects*"
 
+            # Which avatar skill this player committed, and what it cost. Only
+            # rendered when there IS one: on a card with no skills the line
+            # would be permanent dead space in a panel that has to stay under
+            # ~45 chars a line to keep Discord's 3-column grid.
+            skill = self.skill_label(key)
+            skill_block = f"✨ {skill}\n" if skill else ""
+
             return (
                 f"**{player.display_name}**\n"
                 f"*{blade['name']}*\n"
@@ -537,6 +592,7 @@ class BattleSession:
                 f"⚡ {sta_line}\n"
                 f"🌀 {gauge_line}\n"
                 f"🔩 {stab_line}\n"
+                f"{skill_block}"
                 f"{fx_block}"
             )
 
@@ -996,6 +1052,10 @@ class BattleSession:
                 def safe(fn):
                     try: fn()
                     except Exception: pass
+                # First chip, so the active skill reads as the headline rather
+                # than being pushed off the end by a long status list.
+                safe(lambda: out.append(self.skill_label(k).upper())
+                     if self.skill_label(k) else None)
                 safe(lambda: out.append(f"SHIELD {st.get_shield(k)}") if st.get_shield(k) else None)
                 safe(lambda: out.append(f"BURN x{st.burn_stacks.get(k, 0)}")
                      if st.burn_stacks.get(k, 0) > 0 else None)
@@ -1073,6 +1133,7 @@ class BattleSession:
             return
         self.finished = True
         self._done_event.set()
+        self._release_skills()
 
         p1, p2 = self.players
         k1, k2 = str(p1.id), str(p2.id)

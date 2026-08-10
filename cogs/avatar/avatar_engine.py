@@ -370,6 +370,21 @@ class AvatarEngine:
         except Exception:                                # noqa: BLE001
             return {"attack": 0, "defense": 0, "stamina": 0}
 
+    def _active_bonuses(self, player_id: int, avatar: dict) -> dict:
+        """The card's bonus block, narrowed to the skill in play.
+
+        Swallows everything and falls back to the whole block: if the skill
+        state cannot be read, the player gets what they had before this system
+        existed rather than a battle that refuses to start.
+        """
+        try:
+            from utils.database import get_user
+            from . import avatar_skills as AS
+            prof = get_user(player_id)
+            return AS.bonuses_for(avatar, AS.active_slot(prof, avatar))
+        except Exception:                                # noqa: BLE001
+            return avatar.get("bonuses") or {}
+
     # ── Battle API (the only method session.py needs to call) ─────────────────
 
     def get_battle_bonuses(self, player_id: int) -> AvatarBonuses:
@@ -388,6 +403,17 @@ class AvatarEngine:
 
         A level-1 card adds exactly zero, so this changes nothing for a player
         who has not spent coins.
+
+        SIGNATURE SKILLS are filtered here for the same reason. A card with a
+        `skills` block now contributes only the ONE skill the player committed
+        to, and the choke point is what makes that true everywhere at once —
+        PvP, boss, Story and both card renderers — instead of in whichever
+        engine remembered to ask. The 27 cards with no skills are unaffected:
+        `avatar_skills.bonuses_for` hands their block back whole.
+
+        Card level bonuses are added AFTER the filter and are never gated. They
+        were bought with coins and belong to the card, not to a skill, so they
+        apply even when the player is out of energy for a skill entirely.
         """
         avatar_id = self.get_equipped_avatar_id(player_id)
         if not avatar_id:
@@ -397,7 +423,7 @@ class AvatarEngine:
         if not avatar:
             return NULL_BONUSES
 
-        b = avatar["bonuses"]
+        b = self._active_bonuses(player_id, avatar)
         level_bonus = self._level_bonus(player_id, avatar_id, avatar)
         return AvatarBonuses(
             attack_flat=b.get("attack_flat", 0.0) + level_bonus["attack"],
