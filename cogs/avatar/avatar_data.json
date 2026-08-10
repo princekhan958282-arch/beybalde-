@@ -969,6 +969,354 @@
         "defence_break_rounds": 3,
         "ult_adds_attack_stat": true
       }
+    },
+    {
+      "id": "avatar_u006",
+      "name": "Mare",
+      "rarity": "Ultimate",
+      "type": "defense",
+      "price": 0,
+      "description": "The unmoved bulwark. Mare does not dodge, does not counter, and does not need to — everything that reaches her simply stops.",
+      "image": "",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "skills": [
+        {
+          "name": "Bulwark",
+          "description": "Defence increased by 209."
+        },
+        {
+          "name": "Iron Verdict",
+          "description": "Defence increased by a further 30%."
+        },
+        {
+          "name": "Standing Ground",
+          "description": "Attack +40 and Stamina +40 — the wall pushes back."
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 40.0,
+        "attack_percent": 0.0,
+        "defence_flat": 209.0,
+        "defence_percent": 0.3,
+        "stamina_flat": 40.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 0.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 0.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_x004",
+      "name": "Cobra Titan",
+      "rarity": "Exclusive",
+      "type": "stamina",
+      "price": 0,
+      "description": "A coiled titan that never tires. Cobra Titan outlasts everything in the stadium and strikes the moment its opponent finally slows.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1530707172571349112/Screenshot_20260725_134656_Google.jpg?ex=6a79ab65&is=6a7859e5&hm=7e34bb1cc4ac8fc92be7b596aceda806aefc51c8145ada7ecbac71343a7b4ffc&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": 0.002,
+      "skills": [
+        {
+          "name": "Venom Strike",
+          "description": "Attack increased by 58."
+        },
+        {
+          "name": "Endless Coil",
+          "description": "Stamina increased by 169."
+        },
+        {
+          "name": "Scaled Guard",
+          "description": "Stamina increased by a further 120%, and 12% of all incoming damage is absorbed by the scales."
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 58.0,
+        "attack_percent": 0.0,
+        "defence_flat": 0.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 169.0,
+        "stamina_percent": 1.2,
+        "stability_flat": 0.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.12,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 0.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_u007",
+      "name": "Miffy",
+      "rarity": "Ultimate",
+      "type": "defense",
+      "price": 0,
+      "description": "Small, soft, and entirely immovable. Miffy scales with whatever bey she is paired to — the sturdier the blade, the more absurd she becomes.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1530707808981483571/83c9f2cd8ef087daf7ce64906bfa467e-1.jpg?ex=6a79abfc&is=6a785a7c&hm=7bdb9c608f23c56fdeb6bfa0fc18eef9d2a278997719ec27929addc70e1e803e&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "skills": [
+        {
+          "name": "Soft Power",
+          "description": "Attack increased by 25%."
+        },
+        {
+          "name": "Plush Armour",
+          "description": "Defence increased by 50%, applied on top of the bey's own Defence."
+        },
+        {
+          "name": "Unbothered",
+          "description": "8% of all incoming damage is shrugged off entirely."
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 0.0,
+        "attack_percent": 0.25,
+        "defence_flat": 0.0,
+        "defence_percent": 0.5,
+        "stamina_flat": 0.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 0.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.08,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 0.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_mlbb001",
+      "name": "Freya",
+      "rarity": "MLBB",
+      "type": "attack",
+      "price": 0,
+      "description": "Valkyrie of the shield-wall. Freya answers every blow with a heavier one, and what she cannot answer, she simply absorbs.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1536106101353881710/de9e26e6ba3bb5675119f6335af688eb_1.jpg?ex=6a7a31ca&is=6a78e04a&hm=a73654cfa07217a567e786e96c05302d0a820e3b56f96848febe9cc1a99311d5&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "skills": [
+        {
+          "name": "Spirit Blade",
+          "description": "Attack increased by 96."
+        },
+        {
+          "name": "Valkyrie Descent",
+          "description": "Attack increased by a further 22%."
+        },
+        {
+          "name": "Aegis of Asgard",
+          "description": "15% of incoming damage is absorbed, and a blocked hit answers back — 25% counter chance."
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 96.0,
+        "attack_percent": 0.22,
+        "defence_flat": 0.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 0.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 0.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.25,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.15,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 0.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_mlbb002",
+      "name": "Vexana",
+      "rarity": "MLBB",
+      "type": "attack",
+      "price": 0,
+      "description": "The Necrokeep queen. Vexana turns a duel into a séance — every Special she calls lands with the weight of everything she has already buried.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1536106112372310036/977bd21a2bfcf5e26a44f3f3439074a3.jpg?ex=6a7a31cc&is=6a78e04c&hm=be6ee8fb2a7d07cd945c080dc30386851cd14c3cc0b814edaa3bf52198cab0d1&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "skills": [
+        {
+          "name": "Cursed Oath",
+          "description": "Special Move damage increased by 64%."
+        },
+        {
+          "name": "Deathly Grasp",
+          "description": "Attack increased by 61 and Defence by 61."
+        },
+        {
+          "name": "Soul Steal",
+          "description": "Every 3rd hit lands an extra 7% of total Attack."
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 61.0,
+        "attack_percent": 0.0,
+        "defence_flat": 61.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 0.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 0.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.64,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 0.0,
+        "hp_percent": 0.0,
+        "nth_hit_interval": 3,
+        "nth_hit_attack_percent": 0.07
+      }
+    },
+    {
+      "id": "avatar_mlbb003",
+      "name": "Helcurt",
+      "rarity": "MLBB",
+      "type": "attack",
+      "price": 0,
+      "description": "The Shadow Ranger. Helcurt fights in a dark of his own making — you do not see the strike, only the result.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1536106136330051654/26c9271508d4948a378bd50b71993194.jpg?ex=6a7a31d2&is=6a78e052&hm=b770b3eecba8407a16d400092625420a055f727bd52d2db31d0b9a4f782bc453&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "skills": [
+        {
+          "name": "Deadly Stinger",
+          "description": "Attack increased by 96, and by a further 20%."
+        },
+        {
+          "name": "Shadow Transition",
+          "description": "Crit chance +30%, and 5% of hits are avoided entirely."
+        },
+        {
+          "name": "Nightfall Arrival",
+          "description": "Defence ignored — 55% to 80% of the opponent's Defence is pierced for the first 3 rounds."
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 96.0,
+        "attack_percent": 0.2,
+        "defence_flat": 0.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 0.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 0.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.3,
+        "dodge_chance": 0.05,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 0.0,
+        "hp_percent": 0.0,
+        "defence_break_min": 0.55,
+        "defence_break_max": 0.8,
+        "defence_break_rounds": 3
+      }
+    },
+    {
+      "id": "avatar_mlbb004",
+      "name": "Eudora",
+      "rarity": "MLBB",
+      "type": "attack",
+      "price": 0,
+      "description": "Lightning Sorceress. Eudora does not build up to anything — the first strike is already the biggest one.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1536106127551627386/1c1662b7112cd05b8d8a32094ed8bffd.jpg?ex=6a7a31d0&is=6a78e050&hm=6855dab2d805c2b14cdc92a3eb21c431de33c60afb05dcbb19642ec7482e40f4&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "skills": [
+        {
+          "name": "Forked Lightning",
+          "description": "Attack increased by 62, and by a further 18%."
+        },
+        {
+          "name": "Electric Arrow",
+          "description": "Special Move damage increased by 88%."
+        },
+        {
+          "name": "Thunder's Wrath",
+          "description": "Crit chance +26%, and every Special fires an extra hit."
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 62.0,
+        "attack_percent": 0.18,
+        "defence_flat": 0.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 0.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 0.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.88,
+        "crit_percent": 0.26,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": true,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 0.0,
+        "hp_percent": 0.0
+      }
     }
   ]
 }

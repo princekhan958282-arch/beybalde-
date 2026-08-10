@@ -20,6 +20,10 @@ RARITY_COLORS: dict[str, int] = {
     "Mythic":    0xFF4500,
     "Ultimate":  0x00FFFF,
     "Exclusive": 0xFF1493,
+    # MLBB — the crossover banner. Sits above Exclusive as its own tier rather
+    # than inside one, so the existing packs cannot roll it by accident: every
+    # pack filters candidates by an explicit rarity pool.
+    "MLBB":      0x00E5A0,
 }
 
 RARITY_EMOJI: dict[str, str] = {
@@ -30,10 +34,12 @@ RARITY_EMOJI: dict[str, str] = {
     "Mythic":    "🔴",
     "Ultimate":  "🩵",
     "Exclusive": "💎",
+    "MLBB":      "🌟",
 }
 
 RARITY_ORDER: list[str] = [
-    "Common", "Rare", "Epic", "Legendary", "Mythic", "Ultimate", "Exclusive"
+    "Common", "Rare", "Epic", "Legendary", "Mythic", "Ultimate", "Exclusive",
+    "MLBB",
 ]
 
 
