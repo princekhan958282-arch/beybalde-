@@ -161,23 +161,19 @@ check("the guaranteed slot also only gives MLBB",
 print("\n── 7. images, and the non-image guard ───────────────────────────")
 from cogs.avatar.avatar_utils import is_renderable_image   # noqa: E402
 
+# All seven now carry a real CDN link, Mare included — her first link was a
+# discord.com/channels/... message URL and was replaced with a Copy Link one.
 for name in NEW:
     img = CARDS[name].get("image") or ""
     check(f"{name} has an image stored", bool(img))
-    if name != "Mare":
-        check(f"{name} has a CDN image",
-              img.startswith("https://cdn.discordapp.com/attachments/"), img[:60])
-        check(f"{name} renders", is_renderable_image(img), img[:60])
+    check(f"{name} has a CDN image",
+          img.startswith("https://cdn.discordapp.com/attachments/"), img[:60])
+    check(f"{name} renders", is_renderable_image(img), img[:60])
+    check(f"{name}'s link is not a message link",
+          "discord.com/channels" not in img, img[:60])
 
-# Mare's link is the one supplied: a discord.com/channels/... MESSAGE link, not
-# an image. It is stored as given, and the renderer refuses to hand it to
-# Discord — a message link is accepted by the API and then silently fails to
-# load, leaving a broken-image icon on the card.
-mare = CARDS["Mare"]["image"]
-check("Mare's stored link is the one supplied",
-      mare.startswith("https://discord.com/channels/960378520926814288/"), mare)
-check("...and the renderer correctly refuses to draw it",
-      not is_renderable_image(mare))
+# The guard stays covered even though no card trips it any more: it protects
+# every future card, and the case it was written for must not silently rot.
 check("a message link is never renderable",
       not is_renderable_image("https://discord.com/channels/1/2/3"))
 check("a CDN link with a query string IS renderable",
