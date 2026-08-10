@@ -64,6 +64,39 @@ TYPE_LABEL: dict[str, str] = {
 VALID_TYPES: list[str] = list(TYPE_LABEL)
 
 
+# ── Image URLs ───────────────────────────────────────────────────────────────
+
+# A Discord MESSAGE link (discord.com/channels/<guild>/<channel>/<message>) is
+# a link to a conversation, not to a picture. Discord's embed renderer needs a
+# direct image URL — typically a cdn.discordapp.com/attachments/... one, from
+# right-clicking the image and choosing "Copy Link".
+#
+# Passing a message link to set_thumbnail is accepted by the API and then
+# silently fails to load, leaving a broken image icon on the card. This check
+# is what turns that into "no image" instead, for any card, not just the one
+# that prompted it.
+_IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".webp")
+
+
+def is_renderable_image(url: str) -> bool:
+    """True when this URL is something Discord can actually draw."""
+    u = str(url or "").strip()
+    if not u:
+        return False
+    if not u.startswith(("http://", "https://")):
+        # A bare filename is an attachment:// reference, handled by the caller.
+        return True
+    if "discord.com/channels/" in u:
+        return False          # a message link, not an image
+    path = u.split("?", 1)[0].lower()
+    if path.endswith(_IMAGE_SUFFIXES):
+        return True
+    # Discord CDN links carry the real filename before the query string, so the
+    # suffix check above already covers them; anything else without a known
+    # image extension is not worth handing to the renderer.
+    return False
+
+
 def format_type(avatar_type: str) -> str:
     """'attack' -> '⚔️ Attack'. Unknown types render rather than raise."""
     key = str(avatar_type or "").lower()
@@ -267,11 +300,19 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
         )
 
     image_path = avatar.get("image")
-    if image_path:
+    if image_path and is_renderable_image(image_path):
         if image_path.startswith("http"):
             embed.set_thumbnail(url=image_path)
         else:
             embed.set_thumbnail(url=f"attachment://{image_path.split('/')[-1]}")
+    elif image_path:
+        # Stored but not drawable — say so on the card rather than showing a
+        # broken image, so whoever authored it can see it needs a real link.
+        embed.add_field(
+            name="🖼️ Art",
+            value="Stored link isn't a direct image URL, so it can't be shown. "
+                  "Right-click the image → **Copy Link** for a usable one.",
+            inline=False)
 
     return embed
 

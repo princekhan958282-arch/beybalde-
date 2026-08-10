@@ -158,20 +158,53 @@ check("the guaranteed slot also only gives MLBB",
                                exact_rarity="MLBB")["rarity"] == "MLBB"
           for _ in range(200)))
 
-print("\n── 7. images ────────────────────────────────────────────────────")
+print("\n── 7. images, and the non-image guard ───────────────────────────")
+from cogs.avatar.avatar_utils import is_renderable_image   # noqa: E402
+
 for name in NEW:
     img = CARDS[name].get("image") or ""
-    if name == "Mare":
-        # The link supplied for Mare was a discord.com/channels/... message
-        # URL, not a CDN image URL. Stored empty rather than broken: an empty
-        # image shows no art, a bad one shows a dead embed.
-        check("Mare has no image — the supplied link was not an image URL",
-              img == "", img[:60])
-    else:
+    check(f"{name} has an image stored", bool(img))
+    if name != "Mare":
         check(f"{name} has a CDN image",
               img.startswith("https://cdn.discordapp.com/attachments/"), img[:60])
-    check(f"{name}'s image is not a channel/message link",
-          "discord.com/channels" not in img, img[:60])
+        check(f"{name} renders", is_renderable_image(img), img[:60])
+
+# Mare's link is the one supplied: a discord.com/channels/... MESSAGE link, not
+# an image. It is stored as given, and the renderer refuses to hand it to
+# Discord — a message link is accepted by the API and then silently fails to
+# load, leaving a broken-image icon on the card.
+mare = CARDS["Mare"]["image"]
+check("Mare's stored link is the one supplied",
+      mare.startswith("https://discord.com/channels/960378520926814288/"), mare)
+check("...and the renderer correctly refuses to draw it",
+      not is_renderable_image(mare))
+check("a message link is never renderable",
+      not is_renderable_image("https://discord.com/channels/1/2/3"))
+check("a CDN link with a query string IS renderable",
+      is_renderable_image("https://cdn.discordapp.com/attachments/1/2/a.png?ex=1&hm=2"))
+check("every image extension is accepted",
+      all(is_renderable_image(f"https://x.test/a{e}")
+          for e in (".png", ".jpg", ".jpeg", ".gif", ".webp")))
+check("an empty url is not renderable", not is_renderable_image(""))
+check("an attachment:// filename still works", is_renderable_image("art.png"))
+
+print("\n── 7b. ;buyavatar is gone ───────────────────────────────────────")
+shop_src = open(os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "cogs", "avatar", "avatar_shop.py"),
+    encoding="utf-8").read()
+check("the command is not registered", 'name="buyavatar"' not in shop_src)
+check("the alias is gone too", '"buya"' not in shop_src)
+# Only CODE lines matter: the one remaining mention is the comment explaining
+# why the command was removed, which is documentation, not a live reference.
+code_lines = [ln for ln in shop_src.splitlines()
+              if "buyavatar" in ln and not ln.lstrip().startswith("#")]
+check("no live code or user-facing text still points at it",
+      not code_lines, code_lines)
+help_src = open(os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "cogs", "ui", "help_cog.py"),
+    encoding="utf-8").read()
+check("it is out of ;help too", "buyavatar" not in help_src)
+check("packs are still the way in", "buypack" in shop_src and "buypack" in help_src)
 
 print("\n── 8. nothing already in the game moved ─────────────────────────")
 check("the roster grew by exactly seven", len(CARDS) == 36, len(CARDS))
