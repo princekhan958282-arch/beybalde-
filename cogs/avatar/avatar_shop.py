@@ -7,7 +7,6 @@ Commands:
   ;avatarshop               — Browse all avatars available for direct purchase
   ;avatarpacks / ;apacks    — View available avatar packs
   ;buypack <pack>           — Open an avatar pack (common/rare/epic/legendary/mlbb)
-  ;buyavatar <id>           — Purchase a specific avatar by ID
   ;myavatars                — View owned avatars
   ;equipavatar <id>         — Equip an owned avatar
   ;unequipavatar            — Remove equipped avatar
@@ -51,6 +50,7 @@ from .avatar_engine import avatar_engine, AvatarBonuses
 from .avatar_utils import (
     build_avatar_embed,
     format_price,
+    is_renderable_image,
     rarity_sort_key,
     RARITY_EMOJI,
     RARITY_COLORS,
@@ -403,7 +403,6 @@ class AvatarShop(commands.Cog, name="Avatar"):
             name="🛒 Browse & Buy",
             value=(
                 "`;avatarshop` / `;ashop` — Browse all avatars\n"
-                "`;buyavatar <id>` / `;buya <id>` — Buy directly\n"
                 "`;avatarinfo <id>` / `;ainfo <id>` — Inspect an avatar"
             ),
             inline=False,
@@ -447,7 +446,6 @@ class AvatarShop(commands.Cog, name="Avatar"):
             title="🎭 Avatar Shop",
             description=(
                 "Equip an avatar to gain passive battle bonuses.\n"
-                "Use `;buyavatar <id>` to purchase directly.\n"
                 "Use `;avatarpacks` to open random packs.\n"
                 "Use `;avatarinfo <id>` to inspect an avatar.\n\n"
                 f"{'⚪ Common'} • {'🔵 Rare'} • {'🟣 Epic'} • "
@@ -656,7 +654,8 @@ class AvatarShop(commands.Cog, name="Avatar"):
         # Show image if the avatar has one
         image = avatar.get("image", "")
         if image:
-            if image.startswith("http://") or image.startswith("https://"):
+            if (image.startswith(("http://", "https://"))
+                    and is_renderable_image(image)):
                 embed.set_image(url=image)
             else:
                 embed.add_field(name="🖼️ Image", value=f"`{image}`", inline=False)
@@ -667,56 +666,11 @@ class AvatarShop(commands.Cog, name="Avatar"):
         else:
             await ctx.send(embed=embed)
 
-    @commands.command(name="buyavatar", aliases=["buya"])
-    async def buy_avatar(self, ctx: commands.Context, avatar_id: str) -> None:
-        """Purchase a specific avatar from the shop."""
-        avatar_id = avatar_id.lower()
-        avatar    = avatar_engine.get_avatar(avatar_id)
-
-        if not avatar:
-            await ctx.send(f"❌ No avatar found with ID `{avatar_id}`.")
-            return
-
-        if avatar.get("rarity") == "Exclusive":
-            await ctx.send(
-                f"❌ **{avatar['name']}** is an **Exclusive** avatar and cannot be purchased directly.\n"
-                "Exclusive avatars are obtained through events and special quests only."
-            )
-            return
-
-        player_id = ctx.author.id
-
-        if self._player_owns(player_id, avatar_id):
-            await ctx.send(f"You already own **{avatar['name']}**.")
-            return
-
-        price = int(avatar["price"])
-        coins = self._get_player_coins(player_id)
-
-        if coins < price:
-            shortfall = price - coins
-            await ctx.send(
-                f"❌ Not enough coins.\n"
-                f"**{avatar['name']}** costs {format_price(price)} "
-                f"and you have {coins:,} coins. "
-                f"You need {shortfall:,} more."
-            )
-            return
-
-        self._deduct_coins(player_id, price)
-        self._add_to_inventory(player_id, avatar_id)
-
-        emoji = RARITY_EMOJI.get(avatar["rarity"], "⚪")
-        embed = discord.Embed(
-            title="✅ Avatar Purchased!",
-            description=(
-                f"{emoji} You bought **{avatar['name']}** *({avatar['rarity']})*!\n"
-                f"Use `;equipavatar {avatar_id}` to equip it."
-            ),
-            color=0x2ECC71,
-        )
-        embed.set_footer(text=f"Remaining balance: {coins - price:,} coins")
-        await ctx.send(embed=embed)
+    # `;buyavatar` / `;buya` removed on request. Avatars now come from packs,
+    # events and quests only — direct purchase was the one path that bypassed
+    # the banner entirely, which made every pack price a suggestion. The
+    # `price` field stays in the data: it is still shown on cards and read by
+    # the shop listing, it simply is no longer a way to buy.
 
     @commands.command(name="myavatars", aliases=["avatars", "myav", "avinv"])
     async def my_avatars(self, ctx: commands.Context) -> None:

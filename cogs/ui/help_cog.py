@@ -272,7 +272,6 @@ COMMAND_DATA = {
         (";avatarshop  or  ;ashop",     "Browse all available avatars"),
         (";avatarinfo <id>  or  ;ainfo <id>", "Inspect a specific avatar"),
         # Buying
-        (";buyavatar <id>  or  ;buya <id>",   "Buy an avatar directly"),
         (";buypack <type>  or  ;bpack <type>", "Open a pack — types: common rare epic legendary"),
         # Inventory
         (";myavatars  or  ;avatars  or  ;avinv", "View your avatar collection"),
