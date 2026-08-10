@@ -867,26 +867,36 @@
     {
       "id": "avatar_x002",
       "name": "Argus",
-      "rarity": "Exclusive",
+      "rarity": "MLBB",
       "type": "balance",
       "price": 0,
       "description": "The deathless sentinel. Argus strikes with overwhelming force and simply refuses to fall.",
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521123391103307918/b9be113f8dd6838140cc9ad2801d304b.jpg?ex=6a65f70d&is=6a64a58d&hm=4228f645a1eb3eeef555151af53c97bf1e7c5d67272220f9e12c9eba1144250b&",
-      "limited": true,
+      "limited": false,
       "available_until": null,
       "draw_chance": 0.001,
       "skills": [
         {
           "name": "Titan's Might",
-          "description": "Attack increased by 30%."
+          "description": "Attack increased by 30%.",
+          "bonuses": {
+            "attack_percent": 0.3
+          }
         },
         {
           "name": "Piercing Gaze",
-          "description": "Crit chance +40%. Every crit refunds 50 Special Gauge."
+          "description": "Crit chance +40%. Every crit refunds 50 Special Gauge.",
+          "bonuses": {
+            "crit_percent": 0.4,
+            "gauge_on_crit": 50
+          }
         },
         {
           "name": "Deathless",
-          "description": "The first lethal hit cannot kill — Argus is immortal for 2 rounds. Once per battle."
+          "description": "The first lethal hit cannot kill — Argus is immortal for 2 rounds. Once per battle.",
+          "bonuses": {
+            "immortal_rounds": 2
+          }
         }
       ],
       "bonuses": {
@@ -918,26 +928,39 @@
     {
       "id": "avatar_x003",
       "name": "Dyrroth",
-      "rarity": "Exclusive",
+      "rarity": "MLBB",
       "type": "attack",
       "price": 0,
       "description": "The abyssal prince. Dyrroth shreds guard on the opening exchange and finishes with a monstrous ultimate.",
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521123402302099516/03e29ff92eebbd332b6f9e31cb7f002d.jpg?ex=6a65f710&is=6a64a590&hm=aeff0237e11132e2dd1a35b058990fcae01a3ee2da755307d490f4f04fe6d284&",
-      "limited": true,
+      "limited": false,
       "available_until": null,
       "draw_chance": 0.001,
       "skills": [
         {
           "name": "Rhythm of Ruin",
-          "description": "Every 4th hit deals bonus damage worth 5% of total Attack."
+          "description": "Every 3rd hit deals bonus damage worth 20% of total Attack.",
+          "bonuses": {
+            "nth_hit_interval": 3,
+            "nth_hit_attack_percent": 0.2
+          }
         },
         {
           "name": "Guard Breaker",
-          "description": "Ignores 40-76% of enemy Defence for the first 3 rounds."
+          "description": "Ignores 40-76% of enemy Defence for the first 3 rounds.",
+          "bonuses": {
+            "defence_break_min": 0.4,
+            "defence_break_max": 0.76,
+            "defence_break_rounds": 3
+          }
         },
         {
           "name": "Abyssal Verdict",
-          "description": "Special Move damage +111%, and the Bey's full Attack stat is added on top."
+          "description": "Special Move damage +111%, and the Bey's full Attack stat is added on top.",
+          "bonuses": {
+            "special_move_percent": 1.11,
+            "ult_adds_attack_stat": true
+          }
         }
       ],
       "bonuses": {
@@ -962,8 +985,8 @@
         "hp_percent": 0.0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "nth_hit_interval": 4,
-        "nth_hit_attack_percent": 0.05,
+        "nth_hit_interval": 3,
+        "nth_hit_attack_percent": 0.2,
         "defence_break_min": 0.4,
         "defence_break_max": 0.76,
         "defence_break_rounds": 3,
@@ -983,16 +1006,26 @@
       "draw_chance": null,
       "skills": [
         {
-          "name": "Bulwark",
-          "description": "Defence increased by 209."
-        },
-        {
           "name": "Iron Verdict",
-          "description": "Defence increased by a further 30%."
+          "description": "Defence increased by a further 30%.",
+          "bonuses": {
+            "defence_percent": 0.3
+          }
         },
         {
           "name": "Standing Ground",
-          "description": "Attack +40 and Stamina +40 — the wall pushes back."
+          "description": "Attack +40 and Stamina +40 — the wall pushes back.",
+          "bonuses": {
+            "attack_flat": 40.0,
+            "stamina_flat": 40.0
+          }
+        },
+        {
+          "name": "Bulwark",
+          "description": "Defence increased by 209.",
+          "bonuses": {
+            "defence_flat": 209.0
+          }
         }
       ],
       "bonuses": {
@@ -1033,15 +1066,25 @@
       "skills": [
         {
           "name": "Venom Strike",
-          "description": "Attack increased by 58."
+          "description": "Attack increased by 58.",
+          "bonuses": {
+            "attack_flat": 58.0
+          }
         },
         {
           "name": "Endless Coil",
-          "description": "Stamina increased by 169."
+          "description": "Stamina increased by 169.",
+          "bonuses": {
+            "stamina_flat": 169.0
+          }
         },
         {
           "name": "Scaled Guard",
-          "description": "Stamina increased by a further 120%, and 12% of all incoming damage is absorbed by the scales."
+          "description": "Stamina increased by a further 120%, and 12% of all incoming damage is absorbed by the scales.",
+          "bonuses": {
+            "stamina_percent": 1.2,
+            "resistance_damage_percent": 0.12
+          }
         }
       ],
       "bonuses": {
@@ -1082,15 +1125,24 @@
       "skills": [
         {
           "name": "Soft Power",
-          "description": "Attack increased by 25%."
-        },
-        {
-          "name": "Plush Armour",
-          "description": "Defence increased by 50%, applied on top of the bey's own Defence."
+          "description": "Attack increased by 25%.",
+          "bonuses": {
+            "attack_percent": 0.25
+          }
         },
         {
           "name": "Unbothered",
-          "description": "8% of all incoming damage is shrugged off entirely."
+          "description": "8% of all incoming damage is shrugged off entirely.",
+          "bonuses": {
+            "resistance_damage_percent": 0.08
+          }
+        },
+        {
+          "name": "Plush Armour",
+          "description": "Defence increased by 50%, applied on top of the bey's own Defence.",
+          "bonuses": {
+            "defence_percent": 0.5
+          }
         }
       ],
       "bonuses": {
@@ -1130,16 +1182,26 @@
       "draw_chance": null,
       "skills": [
         {
-          "name": "Spirit Blade",
-          "description": "Attack increased by 96."
-        },
-        {
           "name": "Valkyrie Descent",
-          "description": "Attack increased by a further 22%."
+          "description": "Attack increased by a further 22%.",
+          "bonuses": {
+            "attack_percent": 0.22
+          }
         },
         {
           "name": "Aegis of Asgard",
-          "description": "15% of incoming damage is absorbed, and a blocked hit answers back — 25% counter chance."
+          "description": "15% of incoming damage is absorbed, and a blocked hit answers back — 25% counter chance.",
+          "bonuses": {
+            "resistance_damage_percent": 0.15,
+            "counter_chance": 0.25
+          }
+        },
+        {
+          "name": "Spirit Blade",
+          "description": "Attack increased by 96.",
+          "bonuses": {
+            "attack_flat": 96.0
+          }
         }
       ],
       "bonuses": {
@@ -1179,16 +1241,27 @@
       "draw_chance": null,
       "skills": [
         {
+          "name": "Soul Steal",
+          "description": "Every 3rd hit lands an extra 18% of total Attack.",
+          "bonuses": {
+            "nth_hit_interval": 3,
+            "nth_hit_attack_percent": 0.18
+          }
+        },
+        {
           "name": "Cursed Oath",
-          "description": "Special Move damage increased by 64%."
+          "description": "Special Move damage increased by 64%.",
+          "bonuses": {
+            "special_move_percent": 0.64
+          }
         },
         {
           "name": "Deathly Grasp",
-          "description": "Attack increased by 61 and Defence by 61."
-        },
-        {
-          "name": "Soul Steal",
-          "description": "Every 3rd hit lands an extra 7% of total Attack."
+          "description": "Attack increased by 61 and Defence by 61.",
+          "bonuses": {
+            "attack_flat": 61.0,
+            "defence_flat": 61.0
+          }
         }
       ],
       "bonuses": {
@@ -1214,7 +1287,7 @@
         "hp_flat": 0.0,
         "hp_percent": 0.0,
         "nth_hit_interval": 3,
-        "nth_hit_attack_percent": 0.07
+        "nth_hit_attack_percent": 0.18
       }
     },
     {
@@ -1230,16 +1303,29 @@
       "draw_chance": null,
       "skills": [
         {
-          "name": "Deadly Stinger",
-          "description": "Attack increased by 96, and by a further 20%."
-        },
-        {
           "name": "Shadow Transition",
-          "description": "Crit chance +30%, and 5% of hits are avoided entirely."
+          "description": "Crit chance +30%, and 5% of hits are avoided entirely.",
+          "bonuses": {
+            "crit_percent": 0.3,
+            "dodge_chance": 0.05
+          }
         },
         {
           "name": "Nightfall Arrival",
-          "description": "Defence ignored — 55% to 80% of the opponent's Defence is pierced for the first 3 rounds."
+          "description": "Defence ignored — 55% to 80% of the opponent's Defence is pierced for the first 3 rounds.",
+          "bonuses": {
+            "defence_break_min": 0.55,
+            "defence_break_max": 0.8,
+            "defence_break_rounds": 3
+          }
+        },
+        {
+          "name": "Deadly Stinger",
+          "description": "Attack increased by 96, and by a further 20%.",
+          "bonuses": {
+            "attack_flat": 96.0,
+            "attack_percent": 0.2
+          }
         }
       ],
       "bonuses": {
@@ -1282,16 +1368,27 @@
       "draw_chance": null,
       "skills": [
         {
-          "name": "Forked Lightning",
-          "description": "Attack increased by 62, and by a further 18%."
+          "name": "Electric Arrow",
+          "description": "Special Move damage increased by 88%.",
+          "bonuses": {
+            "special_move_percent": 0.88
+          }
         },
         {
-          "name": "Electric Arrow",
-          "description": "Special Move damage increased by 88%."
+          "name": "Forked Lightning",
+          "description": "Attack increased by 62, and by a further 18%.",
+          "bonuses": {
+            "attack_flat": 62.0,
+            "attack_percent": 0.18
+          }
         },
         {
           "name": "Thunder's Wrath",
-          "description": "Crit chance +26%, and every Special fires an extra hit."
+          "description": "Crit chance +26%, and every Special fires an extra hit.",
+          "bonuses": {
+            "crit_percent": 0.26,
+            "multi_hit_extra_hits": true
+          }
         }
       ],
       "bonuses": {

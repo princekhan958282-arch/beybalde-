@@ -7,6 +7,12 @@ pack that could hand back a Common would be indefensible, and equally the four
 existing packs must not start rolling MLBB avatars just because a new rarity
 appeared in the data.
 
+The banner is now six cards: the four crossover additions plus Argus and
+Dyrroth, who are Mobile Legends heroes and were sitting in the Exclusive tier.
+Section 7c pins that the card commands — ;aup and ;ainfo — reach every one of
+them by name, lowercase name and id, since neither resolver has a rarity gate
+and nothing was stopping one being added.
+
 Run:  python3 tools/sim_mlbb_avatars.py
 """
 import json
@@ -102,13 +108,32 @@ check("...so rarity_rank does not return -1",
       SHOP.rarity_rank("MLBB"))
 check("MLBB has a duplicate refund rate", SHOP.DUPE_REFUND_RATE.get("MLBB"))
 
+# Argus and Dyrroth are Mobile Legends heroes, so they sit on the MLBB banner
+# with the rest of the crossover cast rather than in the Exclusive tier. Moving
+# the two cards is what puts them in the pack — adding "Exclusive" to
+# PACK_POOL["mlbb"] would also have dragged in Omega Prime and Cobra Titan,
+# which are not MLBB characters and are deliberately reward-only.
+MLBB_ROSTER = ["Argus", "Dyrroth", "Eudora", "Freya", "Helcurt", "Vexana"]
 mlbb_cards = [a for a in avatar_engine.get_all_avatars() if a["rarity"] == "MLBB"]
-check("exactly four MLBB avatars", len(mlbb_cards) == 4,
+check("exactly six MLBB avatars", len(mlbb_cards) == 6,
       [a["name"] for a in mlbb_cards])
-check("they are the four named",
-      sorted(a["name"] for a in mlbb_cards)
-      == ["Eudora", "Freya", "Helcurt", "Vexana"],
+check("they are the six named",
+      sorted(a["name"] for a in mlbb_cards) == MLBB_ROSTER,
       sorted(a["name"] for a in mlbb_cards))
+check("Argus is MLBB", CARDS["Argus"]["rarity"] == "MLBB",
+      CARDS["Argus"]["rarity"])
+check("Dyrroth is MLBB", CARDS["Dyrroth"]["rarity"] == "MLBB",
+      CARDS["Dyrroth"]["rarity"])
+# A permanent 15M banner must not print "⏳ Limited-time avatar" on two of its
+# six cards — that field is what tells a player a card is going away.
+check("no MLBB card claims to be limited",
+      not [a["name"] for a in mlbb_cards if a.get("limited")],
+      [a["name"] for a in mlbb_cards if a.get("limited")])
+check("Omega Prime and Cobra Titan are what is left in Exclusive",
+      sorted(a["name"] for a in avatar_engine.get_all_avatars()
+             if a["rarity"] == "Exclusive") == ["Cobra Titan", "Omega Prime"],
+      sorted(a["name"] for a in avatar_engine.get_all_avatars()
+             if a["rarity"] == "Exclusive"))
 
 print("\n── 5. the pack costs 15M and is fully wired ─────────────────────")
 check("price is 15,000,000", SHOP.PACK_PRICE["mlbb"] == 15_000_000,
@@ -201,6 +226,55 @@ help_src = open(os.path.join(os.path.dirname(os.path.dirname(
     encoding="utf-8").read()
 check("it is out of ;help too", "buyavatar" not in help_src)
 check("packs are still the way in", "buypack" in shop_src and "buypack" in help_src)
+
+print("\n── 7c. ;aup and ;ainfo reach every MLBB card ────────────────────")
+# Neither resolver filters by rarity, so this ought to work by construction —
+# but "ought to" is exactly the assumption that breaks when somebody adds a
+# rarity gate to one of them. Both are pinned here, by name, lowercase name
+# and id, for every card on the banner.
+from cogs.avatar.avatar_upgrade import _resolve as AUP_RESOLVE   # noqa: E402
+
+_shop_self = SHOP.AvatarShop.__new__(SHOP.AvatarShop)
+AINFO_RESOLVE = SHOP.AvatarShop._resolve_avatar_query
+
+for name in MLBB_ROSTER:
+    cid = CARDS[name]["id"]
+    for label, query in (("name", name), ("lowercase", name.lower()), ("id", cid)):
+        got = AUP_RESOLVE(query, 0)
+        check(f";aup finds {name} by {label}",
+              got is not None and got["id"] == cid,
+              got and got["name"])
+        got = AINFO_RESOLVE(_shop_self, query)
+        check(f";ainfo finds {name} by {label}",
+              got is not None and got["id"] == cid,
+              got and got["name"])
+
+# ;ainfo also renders the card, and an MLBB rarity must not blow up the embed
+# builder on a colour/emoji lookup — the two tables it indexes by rarity.
+from cogs.avatar.avatar_utils import build_avatar_embed          # noqa: E402
+
+embed_broken = []
+for name in MLBB_ROSTER:
+    try:
+        e = build_avatar_embed(CARDS[name], owned=True, equipped=False, level=3)
+        if e.colour.value != RARITY_COLORS["MLBB"]:
+            embed_broken.append((name, "wrong colour"))
+        if not e.fields:
+            embed_broken.append((name, "no fields"))
+    except Exception as exc:                                 # noqa: BLE001
+        embed_broken.append((name, repr(exc)[:60]))
+check(";ainfo can render every MLBB card", not embed_broken, embed_broken[:3])
+check("...with the MLBB emoji on the title",
+      build_avatar_embed(CARDS["Argus"]).title.startswith(RARITY_EMOJI["MLBB"]),
+      build_avatar_embed(CARDS["Argus"]).title)
+
+# ;aup prices a card off its TYPE, not its rarity, so the rarity move must not
+# have changed what an existing Argus copy costs to level.
+from cogs.avatar import avatar_levels as AL                      # noqa: E402
+
+check("levelling costs are unchanged by the rarity move",
+      AL.card_level_cost(1, 2) > 0
+      and all(AL.card_stat_bonus(CARDS[n]["type"], 5) for n in MLBB_ROSTER))
 
 print("\n── 8. nothing already in the game moved ─────────────────────────")
 check("the roster grew by exactly seven", len(CARDS) == 36, len(CARDS))

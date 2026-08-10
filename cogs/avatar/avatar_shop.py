@@ -15,9 +15,11 @@ Commands:
 Rarities (lowest → highest):
   Common, Rare, Epic, Legendary, Mythic, Ultimate, Exclusive, MLBB
 
-  Exclusive avatars are only reachable from the legendary pack, at banner rate.
-  MLBB is a CLOSED crossover banner — only the mlbb pack can produce one, and
-  the mlbb pack can produce nothing else.
+  Exclusive avatars are not pullable from any pack — they are event/reward
+  cards. MLBB is a CLOSED crossover banner: only the mlbb pack can produce one,
+  and the mlbb pack can produce nothing else. Argus and Dyrroth are Mobile
+  Legends heroes and live on the MLBB banner with the rest of the crossover
+  cast, which leaves Omega Prime and Cobra Titan as the Exclusive tier.
 
 Pack pools:
   Common   → Common, Rare
@@ -448,8 +450,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
                 "Equip an avatar to gain passive battle bonuses.\n"
                 "Use `;avatarpacks` to open random packs.\n"
                 "Use `;avatarinfo <id>` to inspect an avatar.\n\n"
-                f"{'⚪ Common'} • {'🔵 Rare'} • {'🟣 Epic'} • "
-                f"{'🟡 Legendary'} • {'🌸 Mythic'} • {'💠 Ultimate'} • {'🌟 Exclusive'}"
+                + " • ".join(f"{RARITY_EMOJI[r]} {r}" for r in RARITY_ORDER)
             ),
             color=0xE67E22,
         )
@@ -528,10 +529,12 @@ class AvatarShop(commands.Cog, name="Avatar"):
             )
 
         embed.add_field(
-            name="🌟 Exclusive Avatars",
+            name="💎 Exclusive Avatars",
             value=(
                 "Exclusive avatars **cannot be pulled from packs**.\n"
-                "They are obtained through events, quests, and special rewards only."
+                "They are obtained through events, quests, and special rewards only.\n"
+                "*(Argus and Dyrroth are MLBB heroes — they moved to the "
+                "🌟 MLBB banner and are pullable from `;buypack mlbb`.)*"
             ),
             inline=False,
         )
@@ -637,19 +640,26 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
         # Level comes from the VIEWER's profile, so ;ainfo shows their copy of
         # the card rather than the card in the abstract.
-        lvl, skill_lvls = 1, {}
+        lvl, skill_lvls, active_slot = 1, {}, 0
         if owned or equipped:
             try:
                 from utils.database import get_user
                 from . import avatar_progress as AP
+                from . import avatar_skills as AS
                 prof = get_user(ctx.author.id)
                 lvl = AP.card_level(prof, avatar["id"])
                 skill_lvls = AP.card_entry(prof, avatar["id"]).get("skills") or {}
+                # The standing pick, not the in-battle lock: ;ainfo is read
+                # between fights, and what a player wants to know is which
+                # skill their NEXT battle will use.
+                if avatar.get("skills"):
+                    active_slot = AS.chosen_slot(prof, avatar["id"])
             except Exception:                            # noqa: BLE001
                 pass
 
         embed = build_avatar_embed(avatar, owned=owned, equipped=equipped,
-                                   level=lvl, skill_levels=skill_lvls)
+                                   level=lvl, skill_levels=skill_lvls,
+                                   active_skill_slot=active_slot)
 
         # Show image if the avatar has one
         image = avatar.get("image", "")

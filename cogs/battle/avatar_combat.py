@@ -135,8 +135,14 @@ def absorb_incoming(session, defender: str, attacker: str,
     """Run an incoming hit through the defender's avatar.
 
     Returns (damage_through, counter_damage, logs). Order matters: a dodge
-    zeroes the hit outright, and only a successful dodge can roll a counter —
-    that is the contract the dodge/counter fields were written against.
+    zeroes the hit outright and can roll a counter off the back of it.
+
+    A counter ALSO rolls off a hit that resistance absorbed. It used to roll
+    only after a dodge, which quietly deleted the effect on every card that
+    pairs a counter with damage resistance and no dodge at all — Freya's
+    "Aegis of Asgard" (a blocked hit answers back, 25%), Miku, Sukuna and Gen.
+    Four cards advertised a counter that could not happen. Blocking is the
+    other half of what those cards describe, so it is the other trigger.
     """
     av = _av(session, defender)
     if av is None or damage <= 0:
@@ -170,6 +176,15 @@ def absorb_incoming(session, defender: str, attacker: str,
             logs.append(f"  🧱 **Avatar** — resistance absorbs "
                         f"{damage - reduced} ({av.resistance_damage_percent:.0%})!")
             damage = reduced
+            # The block landed, so the counter gets its roll. Scaled off the
+            # damage that actually came THROUGH, not the raw hit: a counter
+            # worth half of a swing the avatar mostly absorbed would make
+            # resistance a damage source.
+            if av.roll_counter():
+                counter = max(1, int(round(damage * 0.5)))
+                logs.append(f"  ↩️ **Avatar** — blocked, and answers back "
+                            f"for {counter}!")
+                return damage, counter, logs
 
     return damage, 0, logs
 
