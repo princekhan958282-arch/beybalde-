@@ -412,15 +412,16 @@ class BattleCog(commands.Cog, name="Battle"):
         pts = {me.id: 0, them.id: 0}
         history: list[str] = []
 
-        # Avatar energy is a MATCH budget, not a round one: 100 has to cover
-        # every round, so a 75-energy skill is a once-per-match play. Opening
-        # the match refills both players so a match never starts part-drained,
-        # and the finally below is what guarantees the flag comes back off —
-        # a match that died on an exception would otherwise leave both players
-        # marked "in a ranked match" forever, and casual battles would stop
-        # refilling for good.
-        for _p in (me, them):
-            AS.end_match_for(int(_p.id))
+        # Avatar energy is a MATCH budget, not a round one: whatever the pool
+        # holds now has to cover every round, so a 75-energy skill is a
+        # once-per-match play. The match deliberately does NOT top anybody up
+        # on the way in — you bring what recovery has given you back since the
+        # last one, which is what makes the +25/5min clock and the paid refill
+        # worth anything.
+        #
+        # The finally below is not optional: it clears the frozen flag, and a
+        # match that died on an exception would otherwise leave both players
+        # marked "in a ranked match" forever — with recovery frozen for good.
 
         # A hard ceiling on rounds. Every round must end — sim_stall guarantees
         # the stamina bleed resolves one — but a draw scores nobody, so without
