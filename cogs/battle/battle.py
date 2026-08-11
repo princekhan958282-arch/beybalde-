@@ -326,6 +326,20 @@ class BattleCog(commands.Cog, name="Battle"):
 
         await msg.edit(view=None)
 
+        # ── Avatar skills ─────────────────────────────────────────────────────
+        # The only point where both players are known and committed, both
+        # blades are resolved, and no BattleSession exists yet — for the casual
+        # AND the ranked path. It matters that this is here rather than at the
+        # session construction: _ranked_rounds builds a fresh session every
+        # round, so a prompt there would ask up to nine times, and the energy
+        # budget is a match-long thing. It also has to run BEFORE
+        # _run_ranked_match, which sets the frozen flag that locks the pick.
+        #
+        # Sends nothing when neither player has a card with skills, which is
+        # most battles — 27 of the 36 avatars have none.
+        from .skill_prompt import resolve_avatar_skills
+        await resolve_avatar_skills(ctx, ctx.author, opponent, ranked=ranked)
+
         # ── Run the match ─────────────────────────────────────────────────────
         # A casual battle is one fight, exactly as before. A RANKED match is a
         # series: each round ends in a burst (2 pts), a survival or a ring-out

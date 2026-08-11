@@ -468,6 +468,68 @@ finally:
     DB.get_user = _real_get_user
     avatar_engine.get_equipped_avatar_id = _real_equipped
 
+print("\n── 13b. the pre-battle picker asks the right people ─────────────")
+# The View itself needs a gateway, but the decision of WHO gets asked is pure
+# and is the part that must not regress: a prompt in a fight where nobody has
+# anything to pick would appear in the overwhelming majority of battles.
+from cogs.battle import skill_prompt as SP                      # noqa: E402
+
+
+class _FakeMember:
+    def __init__(self, uid, name="P"):
+        self.id = uid
+        self.display_name = name
+
+
+_equipped_by_id: dict = {}
+_real_equipped2 = avatar_engine.get_equipped_avatar_id
+avatar_engine.get_equipped_avatar_id = lambda uid: _equipped_by_id.get(int(uid))
+
+try:
+    a, b = _FakeMember(1, "A"), _FakeMember(2, "B")
+
+    _equipped_by_id.clear()
+    check("nobody with an avatar -> nobody is asked",
+          SP.participants((a, b)) == [])
+
+    # A plain card (no skills) must not summon the prompt either — this is the
+    # 27-of-36 case, i.e. almost every battle.
+    plain = next(x for x in ALL if not x.get("skills"))
+    _equipped_by_id.update({1: plain["id"], 2: plain["id"]})
+    check("two skill-less avatars -> still nobody",
+          SP.participants((a, b)) == [], SP.participants((a, b)))
+
+    _equipped_by_id.update({1: "avatar_x002", 2: plain["id"]})
+    got = SP.participants((a, b))
+    check("one signature avatar -> exactly one participant", len(got) == 1, got)
+    check("...and it is the right player and card",
+          got[0][0].id == 1 and got[0][1]["id"] == "avatar_x002")
+
+    _equipped_by_id.update({1: "avatar_x002", 2: "avatar_mlbb001"})
+    check("both on signature cards -> both asked",
+          len(SP.participants((a, b))) == 2)
+
+    # An id that no longer resolves (a card removed from the data) must drop
+    # that player rather than raise — a battle must still start.
+    _equipped_by_id.update({1: "avatar_does_not_exist", 2: "avatar_x002"})
+    got = SP.participants((a, b))
+    check("a dangling avatar id drops that player, does not raise",
+          len(got) == 1 and got[0][0].id == 2, got)
+finally:
+    avatar_engine.get_equipped_avatar_id = _real_equipped2
+
+check("the picker has a timeout and it is not zero",
+      SP.SKILL_PROMPT_SECONDS > 0, SP.SKILL_PROMPT_SECONDS)
+# Timing out must leave the standing pick alone. participants() is read-only
+# and on_timeout only disables buttons — nothing in the module writes a choice
+# except the Select callback, which is the assertion that keeps it that way.
+src = open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "cogs", "battle", "skill_prompt.py"), encoding="utf-8").read()
+check("only the Select callback ever stores a pick",
+      src.count("AS.set_choice") == 1, src.count("AS.set_choice"))
+check("...and on_timeout does not touch it",
+      "set_choice" not in src[src.index("async def on_timeout"):])
+
 print("\n── 14. nothing else moved ───────────────────────────────────────")
 check("the roster is still 36 cards", len(ALL) == 36, len(ALL))
 check("the MLBB banner is still six",

@@ -38,6 +38,13 @@ ATTACK_CLASH_MULT           = 1.0
 SPECIAL_FALLBACK_HP_FRACTION = 0.60
 BATTLE_TIMEOUT       = 300   # seconds per round before forfeit
 
+# How long the pre-battle avatar-skill picker waits for both players. Longer
+# than ChallengeView's 30s (they have to read three skills, not press yes) and
+# shorter than a round, because both players are sitting watching an empty
+# channel. Timing out never blocks the battle — it just keeps whatever each
+# player already had picked.
+SKILL_PROMPT_SECONDS = 60
+
 # Normal-attack normalization.
 # Normal-attack damage is  atk_stat × matchup_mult × (crit) .  Because attack
 # stats reach 120–160 on high-tier blades, an un-normalized winning hit (or
