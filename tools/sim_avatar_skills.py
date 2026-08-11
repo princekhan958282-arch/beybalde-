@@ -520,6 +520,54 @@ finally:
 
 check("the picker has a timeout and it is not zero",
       SP.SKILL_PROMPT_SECONDS > 0, SP.SKILL_PROMPT_SECONDS)
+
+# The components must actually CONSTRUCT. This suite used to test only the pure
+# helpers, and shipped a picker that raised AttributeError the instant anyone
+# pressed the button: `self.parent = ...` collides with discord.ui.Item.parent,
+# a read-only property. It raised while building the argument to
+# send_message, so the interaction was never acknowledged and Discord said
+# "The application did not respond" — with the traceback in a logger nobody
+# was reading. Building every view for every skilled card is what catches that
+# whole class of bug, and it needs no gateway.
+built, broke = 0, []
+for av in SIGNATURE:
+    for ranked in (False, True):
+        for pool in (0, 100):
+            try:
+                prompt = SP.SkillPromptView.__new__(SP.SkillPromptView)
+                prompt.picked = {}
+                SP._SkillSelectView(prompt, _FakeMember(1, "A"), av, pool, ranked)
+                built += 1
+            except Exception as exc:                 # noqa: BLE001
+                broke.append((av["name"], ranked, pool, repr(exc)[:80]))
+check(f"the skill dropdown builds for every card ({built} combinations)",
+      not broke, broke[:3])
+
+# And the public prompt itself, with the profile lookups stubbed.
+_real_get_user3 = DB.get_user
+_real_eq3 = avatar_engine.get_equipped_avatar_id
+DB.get_user = lambda uid: {}
+try:
+    for av in SIGNATURE:
+        avatar_engine.get_equipped_avatar_id = lambda uid, _a=av: _a["id"]
+        try:
+            v = SP.SkillPromptView([(_FakeMember(1, "A"), av)], False)
+            v._status()
+            v._card_embed(_FakeMember(1, "A"), av)
+        except Exception as exc:                     # noqa: BLE001
+            broke.append((av["name"], "prompt", repr(exc)[:80]))
+    check("the public prompt and its embeds build for every card",
+          not broke, broke[:3])
+finally:
+    DB.get_user = _real_get_user3
+    avatar_engine.get_equipped_avatar_id = _real_eq3
+
+# Discord rejects an embed field with an empty value, and a select option over
+# 100 chars, with a 400 at SEND time — too late to catch by hand.
+long = [(av["name"], sk["name"]) for av in SIGNATURE
+        for sk in av["skills"] if not str(sk.get("description", "")).strip()]
+check("no skill has an empty description (an empty embed field 400s)",
+      not long, long)
 # Timing out must leave the standing pick alone. participants() is read-only
 # and on_timeout only disables buttons — nothing in the module writes a choice
 # except the Select callback, which is the assertion that keeps it that way.

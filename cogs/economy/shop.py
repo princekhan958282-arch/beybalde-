@@ -641,6 +641,22 @@ class ShopCog(commands.Cog, name="Shop"):
         msg = f"{emoji} **{match}** equipped in {label} slot!\n⬆️ +{part['bonus']} {part['stat'].capitalize()} now active in battles.{pen_line}"
         if replaced:
             msg += f"\n↩️ **{replaced}** moved back to inventory."
+
+        # The NET of the whole loadout, not just this part. Two thirds of the
+        # catalogue carries a penalty, so a matched pair can cancel out
+        # exactly — equip a +30 defence disk over a −30 defence driver and the
+        # stat does not move. Without this line that reads as "the part did
+        # nothing"; with it, the player can see what their loadout is worth and
+        # which slot is fighting which.
+        net = get_part_stat_deltas(equipped)
+        if net:
+            shown = "  ".join(
+                f"{'+' if v > 0 else ''}{v} {s.capitalize()}"
+                for s, v in sorted(net.items()) if v)
+            msg += (f"\n\n📊 **Loadout total:** {shown or 'no net change'}"
+                    if shown else
+                    "\n\n📊 **Loadout total:** no net change — your parts "
+                    "are cancelling each other out.")
         await ctx.send(msg)
 
     # ── ;unequippart <name> ───────────────────────────────────────────────────
