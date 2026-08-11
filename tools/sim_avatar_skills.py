@@ -2,15 +2,20 @@
 """
 tools/sim_avatar_skills.py — one skill per battle, and the 100-energy pool.
 
-Four things have to hold or the system is worse than not shipping it:
+Five things have to hold or the system is worse than not shipping it:
 
   1. The split is LOSSLESS. Every non-zero bonus on a signature card is owned
      by exactly one skill — nothing silently deleted, nothing double-counted.
   2. The price ladder is MONOTONIC. Slot 3 costs three times slot 1, so slot 3
      must be worth more. Six of nine cards were authored the other way round.
-  3. Ranked energy does NOT refill between rounds, and casual energy does. This
-     is the whole rule, and it is the one an off-by-one would quietly invert.
-  4. The 27 avatars with no skills are untouched — same bonuses, no energy, no
+  3. CASUAL never touches the pool and RANKED never refills — not between
+     rounds, and not at match open. Casual used to refill, which meant one free
+     fight restocked a ranked resource and made both recovery and the paid
+     refill pointless. That inversion is the easiest one to reintroduce.
+  4. RECOVERY is +25 every 5 minutes, settled on read, frozen mid-match, and
+     never loses a partial tick — a player who checks their energy constantly
+     must regenerate at exactly the same rate as one who never looks.
+  5. The 27 avatars with no skills are untouched — same bonuses, no energy, no
      pick, no behaviour change at all.
 
 Plus the audit that started this: every skill's described effect must have a
@@ -151,24 +156,32 @@ check("a pick past the end of a short card clamps to its last skill",
       AS.active_slot({"avatar_skill": {"x": 3}},
                      {"id": "x", "bonuses": {}, "skills": [{"name": "a"}]}) == 1)
 
-print("\n── 8. casual refills, every battle ──────────────────────────────")
-p = {}
+print("\n── 8. casual never touches the pool ────────────────────────────")
+# Casual used to REFILL the pool, which meant a single casual battle restocked
+# a ranked resource for free — so nobody would ever wait for recovery or pay
+# for a refill. Casual is still free; it just does not write the pool now.
+p = {"avatar_skill": {"avatar_x002": 3}, AS.K_ENERGY: 10}
 first = AS.begin_battle(p, argus, ranked=False)
-check("slot 1 costs 25 of the 100", first["energy_after"] == 75, first)
-check("...and locks the slot it granted", p[AS.K_LOCKED] == 1, p)
+check("casual grants the chosen skill", first["slot"] == 3, first)
+check("...at a drained pool", AS.energy(p) == 10, AS.energy(p))
+check("...charging nothing", first["cost"] == 0, first)
+check("...and reporting no change", first["energy_after"] == 10, first)
 AS.end_battle(p, ranked=False)
-check("casual refills at the end of the fight", AS.energy(p) == 100, p)
+check("ending a casual battle does not refill", AS.energy(p) == 10, AS.energy(p))
 check("...and drops the lock", AS.K_LOCKED not in p, p)
 
-p = {"avatar_skill": {"avatar_x002": 3}}
-for i in range(5):
+p = {"avatar_skill": {"avatar_x002": 3}, AS.K_ENERGY: 0}
+for _ in range(20):
     r = AS.begin_battle(p, argus, ranked=False)
     AS.end_battle(p, ranked=False)
-check("a 75⚡ skill is affordable every casual battle",
-      r["afforded"] and r["slot"] == 3, r)
+check("20 casual battles on an EMPTY pool all grant the skill",
+      r["slot"] == 3 and r["afforded"], r)
+check("...and the pool is still empty", AS.energy(p) == 0, AS.energy(p))
+check("...so casual can never be used to farm ranked energy", AS.energy(p) == 0)
 
-print("\n── 9. ranked does NOT refill until the match ends ───────────────")
-# The rule as the user stated it: energy carries the whole match.
+print("\n── 9. ranked spends, and brings what it has ─────────────────────")
+# The rule as stated: energy carries the whole match, and the match does not
+# top you up on the way in.
 p = {"avatar_skill": {"avatar_x002": 2}}      # 50 energy a round
 r1 = AS.begin_battle(p, argus, ranked=True)
 AS.end_battle(p, ranked=True)
@@ -183,10 +196,23 @@ check("...so no skill is active", r3["slot"] == 0 and AS.active_slot(p, argus) =
 check("...and nothing was charged for it", AS.energy(p) == 0, AS.energy(p))
 AS.end_battle(p, ranked=True)
 AS.end_match(p)
-check("the match ending refills", AS.energy(p) == 100, AS.energy(p))
+check("the match ending does NOT refill", AS.energy(p) == 0, AS.energy(p))
 check("...and clears the in-match flag", not AS.in_ranked_match(p), p)
 
-# A 75⚡ skill is a once-per-match play; a 25⚡ one lasts four rounds.
+# Opening a match part-drained is the whole point: you fight on what recovery
+# has given back. This is the assertion that would have caught the old
+# end_match_for()-at-match-open refill.
+p = {"avatar_skill": {"avatar_x002": 2}, AS.K_ENERGY: 50}
+a = AS.begin_battle(p, argus, ranked=True)
+check("a match opened at 50 is NOT topped up to 100",
+      a["energy_before"] == 50, a)
+check("...round 1 still affords the 50 skill", a["afforded"] and a["slot"] == 2)
+AS.end_battle(p, ranked=True)
+b = AS.begin_battle(p, argus, ranked=True)
+check("...and round 2 cannot", not b["afforded"], b)
+AS.end_match(p)
+
+# A 75 skill is a once-per-match play; a 25 one lasts four rounds.
 for slot, expected in ((1, 4), (2, 2), (3, 1)):
     p = {"avatar_skill": {"avatar_x002": slot}}
     got = 0
@@ -194,22 +220,164 @@ for slot, expected in ((1, 4), (2, 2), (3, 1)):
         if AS.begin_battle(p, argus, ranked=True)["afforded"]:
             got += 1
         AS.end_battle(p, ranked=True)
-    check(f"slot {slot} fires {expected}× across a whole ranked match",
+    check(f"slot {slot} fires {expected}x across a whole ranked match",
           got == expected, got)
+    AS.end_match(p)
 
-print("\n── 10. a casual battle mid-match must not refill the budget ─────")
+print("\n── 10. a casual battle mid-match must not disturb the budget ────")
 p = {"avatar_skill": {"avatar_x002": 2}}
 AS.begin_battle(p, argus, ranked=True)
 AS.end_battle(p, ranked=True)
 mid = AS.energy(p)
 AS.begin_battle(p, argus, ranked=False)       # a stray casual fight
 AS.end_battle(p, ranked=False)
-check("the ranked budget survives a casual battle in between",
-      AS.energy(p) < mid or AS.energy(p) == mid - AS.skill_cost(2),
-      (mid, AS.energy(p)))
-check("...because the in-match flag suppresses the refill",
-      AS.energy(p) != 100, AS.energy(p))
+check("the ranked budget is byte-identical after a casual battle",
+      AS.energy(p) == mid, (mid, AS.energy(p)))
+check("...and is not 100", AS.energy(p) != 100, AS.energy(p))
 AS.end_match(p)
+
+print("\n── 10b. recovery: +25 every 5 minutes ───────────────────────────")
+MIN = 60.0
+T0 = 1_000_000.0
+check("a tick is 5 minutes", AS.ENERGY_REGEN_SECONDS == 300,
+      AS.ENERGY_REGEN_SECONDS)
+check("a tick is worth 25", AS.ENERGY_REGEN_AMOUNT == 25,
+      AS.ENERGY_REGEN_AMOUNT)
+check("a full pool therefore takes 20 minutes",
+      (AS.MAX_ENERGY // AS.ENERGY_REGEN_AMOUNT) * AS.ENERGY_REGEN_SECONDS
+      == 20 * 60)
+
+for mins, expect in ((0, 0), (4, 0), (5, 25), (12, 50), (20, 100), (60, 100)):
+    p = {AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0}
+    gained = AS.accrue(p, T0 + mins * MIN)
+    check(f"{mins:>2} min drained -> {expect} energy",
+          AS.energy(p) == expect, (gained, AS.energy(p)))
+
+# The remainder must survive. Settling advances the clock by WHOLE ticks, so a
+# player who checks their energy every minute still regenerates — advancing the
+# stamp to `now` would reset the partial tick on every read and they would
+# never gain anything.
+p = {AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0}
+AS.accrue(p, T0 + 7 * MIN)
+check("7 min gives one tick", AS.energy(p) == 25, AS.energy(p))
+AS.accrue(p, T0 + 10 * MIN)
+check("...and 3 min later the second lands", AS.energy(p) == 50, AS.energy(p))
+
+p = {AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0}
+for i in range(1, 6 * 60):                    # a read every 10 seconds
+    AS.accrue(p, T0 + i * 10.0)
+check("reading every 10s for an hour still fills the pool",
+      AS.energy(p) == 100, AS.energy(p))
+
+# Nothing is banked above the cap.
+p = {AS.K_ENERGY: 100, AS.K_ENERGY_TS: T0}
+AS.accrue(p, T0 + 600 * MIN)
+check("time at full is not banked", AS.energy(p) == 100)
+p[AS.K_ENERGY] = 0
+AS.accrue(p, T0 + 600 * MIN + 60)
+check("...so draining does not instantly refund it", AS.energy(p) == 0,
+      AS.energy(p))
+
+# A profile that has never battled must not be handed decades of accrual.
+p = {}
+AS.accrue(p, T0)
+check("a fresh profile settles from now, not from the epoch",
+      AS.energy(p) == 100, AS.energy(p))
+p = {AS.K_ENERGY: 0}
+AS.accrue(p, T0)
+check("a drained profile with no stamp gains nothing yet",
+      AS.energy(p) == 0, AS.energy(p))
+
+# A clock that jumps backwards must not credit anything.
+p = {AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0 + 3600}
+AS.accrue(p, T0)
+check("a stamp from the future credits nothing", AS.energy(p) == 0,
+      AS.energy(p))
+
+print("\n── 10c. recovery is FROZEN during a ranked match ────────────────")
+p = {"avatar_skill": {"avatar_x002": 2}, AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0}
+AS.begin_battle(p, argus, ranked=True, now=T0)
+check("the match flag is set", AS.in_ranked_match(p))
+AS.accrue(p, T0 + 600 * MIN)
+check("ten hours mid-match gains nothing", AS.energy(p) == 0, AS.energy(p))
+AS.end_match(p, now=T0 + 600 * MIN)
+check("...and the match ending does not back-credit it",
+      AS.energy(p) == 0, AS.energy(p))
+AS.accrue(p, T0 + 605 * MIN)
+check("recovery resumes after the match", AS.energy(p) == 25, AS.energy(p))
+
+check("next_tick_at is None while frozen",
+      AS.next_tick_at({AS.K_ENERGY: 0, AS.K_MATCH: "1"}) is None)
+check("full_at is None while frozen",
+      AS.full_at({AS.K_ENERGY: 0, AS.K_MATCH: "1"}) is None)
+check("both are None at a full pool",
+      AS.next_tick_at({AS.K_ENERGY: 100}) is None
+      and AS.full_at({AS.K_ENERGY: 100}) is None)
+p = {AS.K_ENERGY: 50, AS.K_ENERGY_TS: T0}
+check("next_tick_at is one tick after the stamp",
+      AS.next_tick_at(p, T0) == T0 + 300, AS.next_tick_at(p, T0))
+check("full_at needs two more ticks from 50",
+      AS.full_at(p, T0) == T0 + 600, AS.full_at(p, T0))
+p = {AS.K_ENERGY: 60, AS.K_ENERGY_TS: T0}
+check("...and rounds UP for a partial tick (60 -> 100 is 2 ticks)",
+      AS.full_at(p, T0) == T0 + 600, AS.full_at(p, T0))
+
+print("\n── 10d. the 40,000 coin refill ──────────────────────────────────")
+check("the price is 40,000", AS.ENERGY_REFILL_PRICE == 40_000,
+      AS.ENERGY_REFILL_PRICE)
+
+p = {AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0, "coins": 100_000}
+out = AS.buy_refill(p, now=T0)
+check("a refill fills the pool", AS.energy(p) == 100, AS.energy(p))
+check("...and charges exactly 40,000", p["coins"] == 60_000, p["coins"])
+check("...and reports the move", out["from"] == 0 and out["to"] == 100, out)
+
+def refused(profile, **kw):
+    """True when buy_refill raised AND took no coins.
+
+    Coins are the property that matters: buy_refill settles recovery before it
+    decides, so energy CAN legitimately move on a refused call (that is how
+    "recovery already filled you, there is nothing to sell" is reached). What
+    must never happen is money leaving.
+    """
+    before = int(profile.get("coins", 0))
+    try:
+        AS.buy_refill(profile, **kw)
+    except AS.RefillError:
+        return int(profile.get("coins", 0)) == before
+    return False
+
+check("refused when already full",
+      refused({AS.K_ENERGY: 100, "coins": 100_000}, now=T0))
+check("refused mid-match",
+      refused({AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0, AS.K_MATCH: "1",
+               "coins": 100_000}, now=T0))
+# One coin short must leave BOTH the coins and the energy alone — the caller
+# runs this inside mutate_user, where the raise abandons the whole write.
+_short = {AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0, "coins": 39_999}
+check("refused one coin short, with nothing taken",
+      refused(_short, now=T0))
+check("...and no energy handed out either",
+      AS.energy(_short) == 0 and _short["coins"] == 39_999, _short)
+check("...and exactly on the price it succeeds",
+      not refused({AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0, "coins": 40_000},
+                  now=T0))
+
+# Buying must not leave a stale clock that instantly re-credits. A pool with
+# six minutes on it has one tick pending; the refill has to consume that clock,
+# not leave it sitting there to pay out again a second later.
+p = {AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0 - 6 * MIN, "coins": 100_000}
+AS.buy_refill(p, now=T0)
+check("buying from a part-accrued pool still fills it", AS.energy(p) == 100)
+p[AS.K_ENERGY] = 0
+AS.accrue(p, T0 + 60)
+check("...and re-stamps the clock, so nothing re-credits",
+      AS.energy(p) == 0, AS.energy(p))
+
+# Enough accrued time to fill on its own means there is nothing to sell.
+check("refused when recovery has already filled the pool",
+      refused({AS.K_ENERGY: 0, AS.K_ENERGY_TS: T0 - 600 * MIN,
+               "coins": 100_000}, now=T0))
 
 print("\n── 11. the audit: every skill can actually fire ─────────────────")
 # Skills describe effects; effects need a binding the engine reads. A skill
@@ -299,6 +467,68 @@ try:
 finally:
     DB.get_user = _real_get_user
     avatar_engine.get_equipped_avatar_id = _real_equipped
+
+print("\n── 13b. the pre-battle picker asks the right people ─────────────")
+# The View itself needs a gateway, but the decision of WHO gets asked is pure
+# and is the part that must not regress: a prompt in a fight where nobody has
+# anything to pick would appear in the overwhelming majority of battles.
+from cogs.battle import skill_prompt as SP                      # noqa: E402
+
+
+class _FakeMember:
+    def __init__(self, uid, name="P"):
+        self.id = uid
+        self.display_name = name
+
+
+_equipped_by_id: dict = {}
+_real_equipped2 = avatar_engine.get_equipped_avatar_id
+avatar_engine.get_equipped_avatar_id = lambda uid: _equipped_by_id.get(int(uid))
+
+try:
+    a, b = _FakeMember(1, "A"), _FakeMember(2, "B")
+
+    _equipped_by_id.clear()
+    check("nobody with an avatar -> nobody is asked",
+          SP.participants((a, b)) == [])
+
+    # A plain card (no skills) must not summon the prompt either — this is the
+    # 27-of-36 case, i.e. almost every battle.
+    plain = next(x for x in ALL if not x.get("skills"))
+    _equipped_by_id.update({1: plain["id"], 2: plain["id"]})
+    check("two skill-less avatars -> still nobody",
+          SP.participants((a, b)) == [], SP.participants((a, b)))
+
+    _equipped_by_id.update({1: "avatar_x002", 2: plain["id"]})
+    got = SP.participants((a, b))
+    check("one signature avatar -> exactly one participant", len(got) == 1, got)
+    check("...and it is the right player and card",
+          got[0][0].id == 1 and got[0][1]["id"] == "avatar_x002")
+
+    _equipped_by_id.update({1: "avatar_x002", 2: "avatar_mlbb001"})
+    check("both on signature cards -> both asked",
+          len(SP.participants((a, b))) == 2)
+
+    # An id that no longer resolves (a card removed from the data) must drop
+    # that player rather than raise — a battle must still start.
+    _equipped_by_id.update({1: "avatar_does_not_exist", 2: "avatar_x002"})
+    got = SP.participants((a, b))
+    check("a dangling avatar id drops that player, does not raise",
+          len(got) == 1 and got[0][0].id == 2, got)
+finally:
+    avatar_engine.get_equipped_avatar_id = _real_equipped2
+
+check("the picker has a timeout and it is not zero",
+      SP.SKILL_PROMPT_SECONDS > 0, SP.SKILL_PROMPT_SECONDS)
+# Timing out must leave the standing pick alone. participants() is read-only
+# and on_timeout only disables buttons — nothing in the module writes a choice
+# except the Select callback, which is the assertion that keeps it that way.
+src = open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "cogs", "battle", "skill_prompt.py"), encoding="utf-8").read()
+check("only the Select callback ever stores a pick",
+      src.count("AS.set_choice") == 1, src.count("AS.set_choice"))
+check("...and on_timeout does not touch it",
+      "set_choice" not in src[src.index("async def on_timeout"):])
 
 print("\n── 14. nothing else moved ───────────────────────────────────────")
 check("the roster is still 36 cards", len(ALL) == 36, len(ALL))

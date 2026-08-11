@@ -326,6 +326,20 @@ class BattleCog(commands.Cog, name="Battle"):
 
         await msg.edit(view=None)
 
+        # ── Avatar skills ─────────────────────────────────────────────────────
+        # The only point where both players are known and committed, both
+        # blades are resolved, and no BattleSession exists yet — for the casual
+        # AND the ranked path. It matters that this is here rather than at the
+        # session construction: _ranked_rounds builds a fresh session every
+        # round, so a prompt there would ask up to nine times, and the energy
+        # budget is a match-long thing. It also has to run BEFORE
+        # _run_ranked_match, which sets the frozen flag that locks the pick.
+        #
+        # Sends nothing when neither player has a card with skills, which is
+        # most battles — 27 of the 36 avatars have none.
+        from .skill_prompt import resolve_avatar_skills
+        await resolve_avatar_skills(ctx, ctx.author, opponent, ranked=ranked)
+
         # ── Run the match ─────────────────────────────────────────────────────
         # A casual battle is one fight, exactly as before. A RANKED match is a
         # series: each round ends in a burst (2 pts), a survival or a ring-out
@@ -412,15 +426,16 @@ class BattleCog(commands.Cog, name="Battle"):
         pts = {me.id: 0, them.id: 0}
         history: list[str] = []
 
-        # Avatar energy is a MATCH budget, not a round one: 100 has to cover
-        # every round, so a 75-energy skill is a once-per-match play. Opening
-        # the match refills both players so a match never starts part-drained,
-        # and the finally below is what guarantees the flag comes back off —
-        # a match that died on an exception would otherwise leave both players
-        # marked "in a ranked match" forever, and casual battles would stop
-        # refilling for good.
-        for _p in (me, them):
-            AS.end_match_for(int(_p.id))
+        # Avatar energy is a MATCH budget, not a round one: whatever the pool
+        # holds now has to cover every round, so a 75-energy skill is a
+        # once-per-match play. The match deliberately does NOT top anybody up
+        # on the way in — you bring what recovery has given you back since the
+        # last one, which is what makes the +25/5min clock and the paid refill
+        # worth anything.
+        #
+        # The finally below is not optional: it clears the frozen flag, and a
+        # match that died on an exception would otherwise leave both players
+        # marked "in a ranked match" forever — with recovery frozen for good.
 
         # A hard ceiling on rounds. Every round must end — sim_stall guarantees
         # the stamina bleed resolves one — but a draw scores nobody, so without

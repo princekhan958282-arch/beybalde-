@@ -317,8 +317,9 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
         embed.add_field(
             name="⚡ Skills — one per battle",
             value="\n\n".join(lines)
-                  + "\n\n*Pick with `;askill <1-3>`. Energy is 100 a battle, "
-                    "and 100 for a whole ranked match.*",
+                  + "\n\n*Pick with `;askill <1-3>`. Casual is free. Ranked "
+                    "spends from a pool of 100 that has to cover the whole "
+                    "match, and recovers +25 every 5 minutes.*",
             inline=False)
 
     if avatar.get("limited"):

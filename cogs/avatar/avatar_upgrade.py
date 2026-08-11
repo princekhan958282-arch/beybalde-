@@ -46,6 +46,7 @@ from .avatar_utils import format_type, RARITY_COLORS, RARITY_EMOJI
 from . import avatar_levels as AL
 from . import avatar_progress as AP
 from . import avatar_skills as ASK
+from utils.mobile_ui import bar as _bar
 
 log = logging.getLogger("beyblade_bot")
 
@@ -139,6 +140,131 @@ class ConfirmUpgrade(discord.ui.View):
             embed=discord.Embed(title="Cancelled — nothing was charged.",
                                 colour=0x99AAB5),
             view=self)
+        self.stop()
+
+    async def on_timeout(self) -> None:
+        for c in self.children:
+            c.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except Exception:                            # noqa: BLE001
+                pass
+
+
+def _can_refill(profile: dict) -> bool:
+    """Is the Refill button worth showing at all?
+
+    Hidden when full or mid-match — the purchase would be refused either way,
+    and a button that always says no is worse than no button. Deliberately does
+    NOT check the balance: somebody who cannot afford it should still see the
+    price, which is how they learn there is something to save for.
+    """
+    return (ASK.energy(profile) < ASK.MAX_ENERGY
+            and not ASK.in_ranked_match(profile))
+
+
+def energy_line(profile: dict) -> str:
+    """'⚡ `████░░░░` 50/100 · next +25 in 3 min · full in 13 min'.
+
+    The times are Discord `<t:…:R>` stamps, so every viewer sees them in their
+    own timezone and they keep counting down without the message being edited.
+    """
+    pool = ASK.energy(profile)
+    line = (f"⚡ `{_bar(pool, ASK.MAX_ENERGY)}` **{pool}/{ASK.MAX_ENERGY}**")
+    if ASK.in_ranked_match(profile):
+        return line + "  ·  🔒 frozen — ranked match in progress"
+    if pool >= ASK.MAX_ENERGY:
+        return line + "  ·  full"
+    nxt, full = ASK.next_tick_at(profile), ASK.full_at(profile)
+    parts = []
+    if nxt:
+        parts.append(f"next +{ASK.ENERGY_REGEN_AMOUNT} <t:{int(nxt)}:R>")
+    if full and full != nxt:
+        parts.append(f"full <t:{int(full)}:R>")
+    return line + ("  ·  " + "  ·  ".join(parts) if parts else "")
+
+
+def build_skill_embed(profile: dict, card: dict) -> discord.Embed:
+    """The `;askill` panel: energy, the three prices, and which one is live."""
+    skills = card.get("skills") or []
+    pool = ASK.energy(profile)
+    chosen = max(1, min(ASK.chosen_slot(profile, card["id"]), len(skills)))
+
+    e = discord.Embed(
+        title=f"{RARITY_EMOJI.get(card.get('rarity'), '⚪')} "
+              f"{card['name']} — battle skill",
+        description=energy_line(profile),
+        colour=RARITY_COLORS.get(card.get("rarity"), 0xAAAAAA))
+
+    for i, sk in enumerate(skills, 1):
+        cost = ASK.skill_cost(i)
+        mark = "✅" if i == chosen else "▫️"
+        # Affordability is a RANKED statement only — casual grants any skill
+        # whatever the pool says — so it is worded that way rather than as a
+        # flat "not enough energy" that would be wrong half the time.
+        afford = "" if pool >= cost else "  ·  ⚠️ ranked can't afford this yet"
+        e.add_field(
+            name=f"{mark} {i}. {sk.get('name', 'Skill')}  —  {cost}⚡"
+                 f"  ({ASK.uses_affordable(i)}× per full pool){afford}",
+            value=sk.get("description", ""),
+            inline=False)
+
+    e.set_footer(
+        text=f"One skill per battle. Casual is free — it never spends energy. "
+             f"Ranked spends, and does not top you up when a match starts. "
+             f"Recovery is +{ASK.ENERGY_REGEN_AMOUNT} every "
+             f"{ASK.ENERGY_REGEN_SECONDS // 60} min between matches.  "
+             f";askill <1-3>")
+    return e
+
+
+class EnergyRefill(discord.ui.View):
+    """A single 'Refill — 🪙 40,000' button attached to the ;askill panel."""
+
+    def __init__(self, buyer_id: int, card: Optional[dict] = None) -> None:
+        super().__init__(timeout=60)
+        self.buyer_id = buyer_id
+        self.card = card
+        self.message: Optional[discord.Message] = None
+        self.children[0].label = f"Refill — 🪙 {ASK.ENERGY_REFILL_PRICE:,}"
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.buyer_id:
+            await interaction.response.send_message(
+                "That's not your energy.", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="Refill", style=discord.ButtonStyle.success)
+    async def refill(self, interaction: discord.Interaction,
+                     _button: discord.ui.Button) -> None:
+        # The balance and the pool are both re-read inside buy_refill, under
+        # the profile lock. The numbers printed on the panel are a display and
+        # were never an authority — the card can sit for 60 seconds.
+        try:
+            result = ASK.buy_refill_for(self.buyer_id)
+        except ASK.RefillError as exc:
+            return await interaction.response.send_message(
+                f"❌ {exc}", ephemeral=True)
+        except Exception as exc:                         # noqa: BLE001
+            log.exception("energy refill failed for %s: %s", self.buyer_id, exc)
+            return await interaction.response.send_message(
+                "❌ Something went wrong. Nothing was charged.", ephemeral=True)
+
+        for c in self.children:
+            c.disabled = True
+        prof = get_user(self.buyer_id)
+        e = discord.Embed(
+            title="⚡ Energy refilled",
+            description=(f"{result['from']} → **{ASK.MAX_ENERGY}**\n"
+                         f"Spent 🪙 {result['spent']:,} · "
+                         f"balance 🪙 {result['coins_after']:,}"),
+            colour=0x2ECC71)
+        if self.card:
+            e.add_field(name="Ready", value=build_skill_embed(
+                prof, self.card).description, inline=False)
+        await interaction.response.edit_message(embed=e, view=self)
         self.stop()
 
     async def on_timeout(self) -> None:
@@ -254,8 +380,10 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
                 f"**{card['name']}** has no signature skills — its bonuses "
                 f"always apply in full, and cost no energy.")
 
+        # Settle recovery before anything is printed, so the number on the card
+        # is the number the next battle will charge against.
+        ASK.accrue_for(ctx.author.id)
         prof = get_user(ctx.author.id)
-        pool = ASK.energy(prof)
 
         if slot is not None:
             if not 1 <= int(slot) <= len(skills):
@@ -268,32 +396,50 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
             ASK.set_choice(ctx.author.id, card["id"], int(slot))
             prof = get_user(ctx.author.id)
 
-        chosen = ASK.chosen_slot(prof, card["id"])
-        chosen = max(1, min(chosen, len(skills)))
+        e = build_skill_embed(prof, card)
+        view = EnergyRefill(ctx.author.id, card) if _can_refill(prof) else None
+        msg = await ctx.send(embed=e, view=view)
+        if view is not None:
+            view.message = msg
 
+    # ── ;energyrefill ─────────────────────────────────────────────────────────
+    @commands.command(name="energyrefill", aliases=["erefill", "arefill"])
+    async def energy_refill(self, ctx: commands.Context) -> None:
+        """Top your avatar energy back to full for coins, instead of waiting."""
+        ASK.accrue_for(ctx.author.id)
+        prof = get_user(ctx.author.id)
+
+        if not _can_refill(prof):
+            return await ctx.send(embed=discord.Embed(
+                description=energy_line(prof)
+                + ("\n\nNothing to buy — you're already full."
+                   if ASK.energy(prof) >= ASK.MAX_ENERGY else
+                   "\n\nEnergy is frozen until your ranked match is decided."),
+                colour=0x99AAB5))
+
+        pool = ASK.energy(prof)
+        coins = int(prof.get("coins", 0) or 0)
         e = discord.Embed(
-            title=f"{RARITY_EMOJI.get(card.get('rarity'), '⚪')} "
-                  f"{card['name']} — battle skill",
-            description=f"⚡ Energy **{pool}/{ASK.MAX_ENERGY}**"
-                        + ("  ·  🔒 ranked match in progress"
-                           if ASK.in_ranked_match(prof) else ""),
-            colour=RARITY_COLORS.get(card.get("rarity"), 0xAAAAAA))
+            title="⚡ Refill avatar energy?",
+            description=(f"{energy_line(prof)}\n\n"
+                         f"Refill to **{ASK.MAX_ENERGY}** for "
+                         f"🪙 **{ASK.ENERGY_REFILL_PRICE:,}**\n"
+                         f"Balance after: 🪙 "
+                         f"{coins - ASK.ENERGY_REFILL_PRICE:,}"),
+            colour=0xF1C40F if coins >= ASK.ENERGY_REFILL_PRICE else 0xED4245)
+        if coins < ASK.ENERGY_REFILL_PRICE:
+            e.description = (f"{energy_line(prof)}\n\nA refill costs 🪙 "
+                             f"**{ASK.ENERGY_REFILL_PRICE:,}**. You have 🪙 "
+                             f"{coins:,} — "
+                             f"{ASK.ENERGY_REFILL_PRICE - coins:,} short.")
+            return await ctx.send(embed=e)
+        e.set_footer(text=f"Recovery is free: +{ASK.ENERGY_REGEN_AMOUNT} every "
+                          f"{ASK.ENERGY_REGEN_SECONDS // 60} minutes. "
+                          f"You only need this if you want it now. "
+                          f"Currently {pool}/{ASK.MAX_ENERGY}.")
 
-        for i, sk in enumerate(skills, 1):
-            cost = ASK.skill_cost(i)
-            mark = "✅" if i == chosen else "▫️"
-            afford = "" if pool >= cost else "  ·  ❌ not enough energy"
-            e.add_field(
-                name=f"{mark} {i}. {sk.get('name', 'Skill')}  —  {cost}⚡"
-                     f"  ({ASK.uses_affordable(i)}× per full pool){afford}",
-                value=sk.get("description", ""),
-                inline=False)
-
-        e.set_footer(
-            text="One skill per battle. Casual refills your energy every "
-                 "fight; ranked does not refill until the match is decided — "
-                 "100 has to cover every round.  ;askill <1-3>")
-        await ctx.send(embed=e)
+        view = EnergyRefill(ctx.author.id)
+        view.message = await ctx.send(embed=e, view=view)
 
     # ── ;avatarcost ───────────────────────────────────────────────────────────
     @commands.command(name="avatarcost", aliases=["acost"])
@@ -395,6 +541,11 @@ class AvatarUpgradeCommands(commands.Cog, name="Avatar (slash)"):
                       slot: Optional[int] = None,
                       avatar: Optional[str] = None) -> None:
         await self._run(interaction, "avatarskill", slot=slot, avatar=avatar)
+
+    @avatar.command(name="refill",
+                    description="Top avatar energy back to full for coins")
+    async def a_refill(self, interaction: discord.Interaction) -> None:
+        await self._run(interaction, "energyrefill")
 
 
 # No setup() here on purpose. cogs/avatar/__init__.py adds both cogs, and this
