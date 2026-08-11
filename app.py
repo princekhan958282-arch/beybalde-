@@ -54,6 +54,15 @@ _bootstrap.ensure()
 # BEYCORD_AUTO_UPDATE=0.
 try:
     from utils import updater as _updater        # noqa: E402
+    # Clear stale bytecode BEFORE anything is imported. This install is
+    # updated by writing new .py files over the old ones — by the updater
+    # below, or by extracting a zip in the hosting panel — and neither removes
+    # __pycache__. A zip restores source files with the ARCHIVE's timestamps
+    # rather than now, so a .py can land older than the .pyc compiled from the
+    # file it replaced, and CPython will keep using the bytecode. Purging here,
+    # before the first cog import, is what makes "I uploaded the new files"
+    # actually mean the new code runs.
+    _updater.purge_pycache_logged("startup")
     _updater.check_and_apply()
 except Exception as _exc:                        # noqa: BLE001
     print(f"[update] skipped: {type(_exc).__name__}: {_exc}")

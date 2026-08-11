@@ -519,6 +519,25 @@ class AdminCog(commands.Cog, name="Admin"):
         else:
             await ctx.send("❌ No spawn loop is currently running.", delete_after=10)
 
+    @commands.command(name="clearcache", aliases=["purgecache", "pycache"],
+                      hidden=True)
+    @is_master()
+    async def clearcache(self, ctx: commands.Context) -> None:
+        """[Admin] Delete every __pycache__ folder in the install.
+
+        This already runs at every boot and after every auto-update, so it is
+        here for the case where you have just uploaded files by hand and want
+        the caches gone before you restart — not because the restart would
+        miss them.
+        """
+        from utils.updater import purge_pycache
+        removed, freed = await asyncio.to_thread(purge_pycache)
+        if not removed:
+            return await ctx.send("✅ No `__pycache__` folders to clear.")
+        await ctx.send(f"🧹 Cleared **{removed}** `__pycache__` folder(s), "
+                       f"freeing **{freed / 1024:.1f} KB**.\n"
+                       f"Restart to load the new code.")
+
     @commands.command(name="version", aliases=["build", "ver"], hidden=True)
     @is_master()
     async def version(self, ctx: commands.Context) -> None:

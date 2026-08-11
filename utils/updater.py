@@ -408,6 +408,83 @@ def _apply(zf: zipfile.ZipFile, sha: str) -> tuple[int, int]:
     return written, skipped
 
 
+# ── Stale bytecode ───────────────────────────────────────────────────────────
+
+# Directories the purge must never walk into, whatever they contain.
+#
+#   .git             its objects are not ours to touch
+#   .update_backup   the only way back from a bad update
+#   data             live player stores
+#   venv/.venv/…     an installed interpreter's own bytecode. Deleting
+#                    site-packages bytecode is legal but pointless and slow,
+#                    and one bad glob there is a very long reinstall.
+_PURGE_SKIP = {".git", ".update_backup", "data", "node_modules",
+               "venv", ".venv", "env", "site-packages", ".mypy_cache"}
+
+
+def purge_pycache(root: Optional[str] = None) -> tuple[int, int]:
+    """Delete every ``__pycache__`` directory under the install.
+
+    Returns (directories removed, bytes reclaimed). Never raises — this is
+    housekeeping, and housekeeping must not be able to stop the bot booting.
+
+    Why it exists: this install is updated by writing new .py files over the
+    old ones, either by the updater above or by extracting a zip in a hosting
+    panel's file manager. Neither removes `__pycache__`, so the tree fills with
+    bytecode for files that may no longer exist, and a source file restored
+    with an OLD mtime (which is exactly what a zip does — it carries the
+    archive's timestamps, not now) can leave CPython holding a .pyc it believes
+    is current. Deleting the caches makes the next import read the .py.
+
+    Only directories named exactly `__pycache__` are removed, and only below
+    the install root. `_PURGE_SKIP` keeps it out of anything it has no business
+    in — see the list for why each entry is there.
+    """
+    base = os.path.abspath(root or _ROOT)
+    removed = freed = 0
+
+    for dirpath, dirnames, _files in os.walk(base, topdown=True):
+        # Prune in place so os.walk never descends into a skipped tree.
+        dirnames[:] = [d for d in dirnames if d not in _PURGE_SKIP]
+
+        if "__pycache__" not in dirnames:
+            continue
+        target = os.path.join(dirpath, "__pycache__")
+        dirnames.remove("__pycache__")          # nothing inside is worth walking
+
+        # A symlinked cache would take the delete outside the install. Refuse.
+        if os.path.islink(target):
+            continue
+        if not os.path.abspath(target).startswith(base + os.sep):
+            continue
+
+        try:
+            for entry in os.scandir(target):
+                try:
+                    freed += entry.stat(follow_symlinks=False).st_size
+                except OSError:
+                    pass
+            shutil.rmtree(target)
+            removed += 1
+        except Exception as exc:                 # noqa: BLE001
+            log.debug("[cache] could not remove %s: %s", target, exc)
+
+    return removed, freed
+
+
+def purge_pycache_logged(reason: str = "startup") -> tuple[int, int]:
+    """purge_pycache() with a one-line report. Safe to call anywhere."""
+    try:
+        removed, freed = purge_pycache()
+    except Exception as exc:                     # noqa: BLE001
+        log.debug("[cache] purge failed (%s): %s", reason, exc)
+        return 0, 0
+    if removed:
+        log.info("[cache] cleared %d __pycache__ folder(s), %.1f KB (%s).",
+                 removed, freed / 1024, reason)
+    return removed, freed
+
+
 def _prune_backups(keep: int = 5) -> None:
     try:
         stamps = sorted(os.listdir(_BACKUP_DIR))
@@ -494,6 +571,13 @@ def check_and_apply() -> None:
         "last_detail": f"{written} file(s) written",
     })
     _prune_backups()
+
+    # New .py files just landed on top of old ones. Their bytecode is now stale
+    # by definition, and the zip wrote them with the ARCHIVE's timestamps
+    # rather than now — so a source file can end up older than the .pyc that
+    # was compiled from its predecessor. Clearing the caches here means the
+    # restart below reads the files that were actually downloaded.
+    purge_pycache_logged("after update")
 
     if written == 0:
         log.info("[update] nothing to write — files already matched %s.",

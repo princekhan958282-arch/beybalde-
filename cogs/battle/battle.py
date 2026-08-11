@@ -42,27 +42,46 @@ from cogs.economy.shop import PARTS_CATALOG
 # ── Parts helper ──────────────────────────────────────────────────────────────
 
 def _apply_parts(blade: dict, profile: dict) -> dict:
-    """Return a shallow-copied blade dict with the player's EQUIPPED parts
-    bonuses added to its stats.  Uses profile["equipped_parts"] (the active
-    loadout), not the full ownership list in profile["parts"].
-    The original blade dict is never mutated."""
-    equipped_parts: list[str] = profile.get("equipped_parts", [])
-    if not equipped_parts:
+    """Return a copy of `blade` with its ATTACK / DEFENSE / STAMINA raised to
+    the level this player's copy has reached. The original is never mutated.
+
+    Despite the name — kept because several call sites and the tournament cog
+    import it — this no longer adds parts. It could not keep doing so:
+    `BattleSession` independently loads `part_deltas` from
+    `shop.get_part_stat_deltas` and adds them in `_effective_stats`, so every
+    equipped part was being counted TWICE in PvP — once here without its
+    penalty, and once there with it. Parts now apply exactly once, in the
+    session, which is also the only copy that honours `penalty_stat`.
+
+    What it does instead is the thing PvP was missing entirely. Boss, Story and
+    every card go through `loadout.effective_blade`, which grows stats along the
+    bey's TYPE archetype — attack blades gain attack fastest, defence blades
+    defence. PvP did not: it fed the printed stats straight in and relied on
+    `get_stat_multiplier`, a flat trainer-level scalar applied equally to all
+    three stats. So a level-100 Dead Phoenix fought a boss at 217/493/289 and a
+    player at 93/187/121, and levelling raised every bey's attack at exactly the
+    same rate as its defence whatever its type.
+
+    HP and SPECIAL are deliberately left alone. `session.py` already levels
+    those on their own paths (`_level_hp_gain`, `_effective_special`) — HP has
+    to, because `hp_system.blade_hp_stat` clamps the HP stat into the blade's
+    type band and would throw the growth away.
+    """
+    from utils.loadout import bey_level_and_stats
+
+    level, levelled = bey_level_and_stats(profile, blade)
+    if level <= 1:
         return blade
 
-    catalog: dict[str, dict] = {p["name"].lower(): p for p in PARTS_CATALOG}
-
     new_stats = dict(blade.get("stats", {}))
-    for part_name in equipped_parts:
-        part = catalog.get(part_name.lower())
-        if part:
-            stat  = part["stat"]
-            bonus = part["bonus"]
-            new_stats[stat] = new_stats.get(stat, 0) + bonus
+    for stat in ("attack", "defense", "stamina"):
+        if stat in levelled:
+            new_stats[stat] = levelled[stat]
 
-    upgraded_blade = dict(blade)
-    upgraded_blade["stats"] = new_stats
-    return upgraded_blade
+    out = dict(blade)
+    out["stats"] = new_stats
+    out["level"] = level
+    return out
 
 
 # ── Dual-special selection UI ─────────────────────────────────────────────────

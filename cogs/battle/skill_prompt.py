@@ -82,7 +82,7 @@ class _SkillSelect(discord.ui.Select):
     """One player's three skills. Ephemeral, because the two players hold
     different cards and a single shared Select cannot show both."""
 
-    def __init__(self, parent: "SkillPromptView", member, avatar: dict,
+    def __init__(self, prompt: "SkillPromptView", member, avatar: dict,
                  energy: int, ranked: bool) -> None:
         skills = avatar.get("skills") or []
         options = []
@@ -96,11 +96,17 @@ class _SkillSelect(discord.ui.Select):
                 description=f"{cost}⚡{warn} · "
                             f"{sk.get('description', '')}"[:100],
                 value=str(i),
-                default=(i == parent.picked.get(member.id)),
+                default=(i == prompt.picked.get(member.id)),
             ))
         super().__init__(placeholder="Choose the skill you fight with…",
                          options=options, min_values=1, max_values=1)
-        self.parent = parent
+        # NOT `self.parent`. discord.ui.Item declares `parent` as a read-only
+        # property (no setter), so assigning it raises AttributeError inside
+        # __init__ — which happens while building the argument to
+        # send_message, so the interaction is never acknowledged and Discord
+        # shows "The application did not respond" with the traceback buried in
+        # the discord.ui.view logger. Any name but `parent` is fine.
+        self.prompt = prompt
         self.member = member
         self.avatar = avatar
 
@@ -114,20 +120,20 @@ class _SkillSelect(discord.ui.Select):
                 "❌ Couldn't save that. Your previous pick still stands.",
                 ephemeral=True)
 
-        self.parent.picked[self.member.id] = slot
+        self.prompt.picked[self.member.id] = slot
         sk = AS.skill_at(self.avatar, slot) or {}
         await interaction.response.edit_message(
             content=f"✅ Locked in **{sk.get('name', 'Skill')}** "
                     f"({AS.skill_cost(slot)}⚡).",
             view=None)
-        await self.parent.refresh()
+        await self.prompt.refresh()
 
 
 class _SkillSelectView(discord.ui.View):
-    def __init__(self, parent: "SkillPromptView", member, avatar: dict,
+    def __init__(self, prompt: "SkillPromptView", member, avatar: dict,
                  energy: int, ranked: bool) -> None:
         super().__init__(timeout=SKILL_PROMPT_SECONDS)
-        self.add_item(_SkillSelect(parent, member, avatar, energy, ranked))
+        self.add_item(_SkillSelect(prompt, member, avatar, energy, ranked))
 
 
 # ── The public prompt ────────────────────────────────────────────────────────

@@ -48,26 +48,58 @@ _AVATAR_STAT_MAP = {
 
 
 def part_bonuses(profile: dict) -> dict[str, int]:
-    """Total stat bonus from the player's EQUIPPED parts.
+    """Net stat DELTAS from the player's EQUIPPED parts.
 
     Reads `equipped_parts` (the active loadout), not `parts` (everything they
     own) — owning a part has never been meant to grant its bonus.
+
+    Delegates to `shop.get_part_stat_deltas` rather than walking the catalogue
+    itself. This function used to do its own walk and read only `part["bonus"]`,
+    silently dropping the `penalty_stat` / `penalty` fields that 33 of the 50
+    parts carry. That made a Hyper Driver read as "+35 attack" here and
+    "+35 attack, −30 defence" in the profile card and the battle engine, so the
+    same loadout produced three different stat lines depending on which screen
+    you were looking at — and a player who equipped a matched pair could see a
+    stat that did not move at all and conclude the part did nothing.
     """
     equipped = profile.get("equipped_parts") or []
     if not equipped:
         return {}
     try:
-        from cogs.battle.battle import PARTS_CATALOG
+        from cogs.economy.shop import get_part_stat_deltas
     except Exception as e:                           # noqa: BLE001
         log.debug("parts catalog unavailable: %s", e)
         return {}
-    catalog = {p["name"].lower(): p for p in PARTS_CATALOG}
-    out: dict[str, int] = {}
-    for name in equipped:
-        part = catalog.get(str(name).lower())
-        if part:
-            out[part["stat"]] = out.get(part["stat"], 0) + part["bonus"]
-    return out
+    return get_part_stat_deltas(list(equipped))
+
+
+def bey_level_and_stats(profile: dict, blade: dict) -> tuple[int, dict]:
+    """(level, stats at that level) for one owned bey.
+
+    Returns the blade's PRINTED stats at level 1, so an unlevelled bey is
+    byte-identical to what it was before levels existed.
+
+    Extracted so the battle engine can level a blade without re-deriving "which
+    level is this bey" — two copies of that lookup is how PvP ended up applying
+    a flat trainer multiplier while every other mode used the per-type growth
+    curve. Never raises: an unreadable profile degrades to level 1.
+    """
+    printed = dict(blade.get("stats") or {})
+    try:
+        from utils import bey_levels as BL
+        name = blade.get("name")
+        if not name:
+            return 1, printed
+        entry = (profile.get("bey_progress") or {}).get(str(name))
+        if not entry:
+            return 1, printed
+        level = BL.level_from_xp(entry.get("xp", 0))
+        if level <= 1:
+            return 1, printed
+        return level, BL.stats_at(blade, level, entry.get("ivs"))
+    except Exception as e:                           # noqa: BLE001
+        log.debug("bey level lookup failed: %s", e)
+        return 1, printed
 
 
 def avatar_bonuses(user_id: int):
@@ -126,17 +158,7 @@ def effective_blade(user_id: int, profile: Optional[dict] = None,
         # roll and levelling it would let a farmed copy overtake the boss it
         # came from. `include_parts` is already False for copies, so it doubles
         # as "is this a normal, ownable bey".
-        try:
-            from utils import bey_levels as BL
-            name = blade.get("name")
-            if name:
-                entry = (profile.get("bey_progress") or {}).get(str(name))
-                if entry:
-                    level = BL.level_from_xp(entry.get("xp", 0))
-                    if level > 1:
-                        base = BL.stats_at(blade, level, entry.get("ivs"))
-        except Exception as e:                       # noqa: BLE001
-            log.debug("bey level lookup failed for %s: %s", user_id, e)
+        level, base = bey_level_and_stats(profile, blade)
 
     parts = part_bonuses(profile) if include_parts else {}
     av = avatar_bonuses(user_id) if include_avatar else None
