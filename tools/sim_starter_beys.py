@@ -61,7 +61,8 @@ check("all four are Rare",
 ids = [DB[n]["id"] for n in STARTERS if n in DB]
 check("ids are unique across the whole roster",
       len({b["id"] for b in ROWS}) == len(ROWS), len(ROWS))
-check("the roster grew to 84", len(ROWS) == 84, len(ROWS))
+check(f"the roster has not shrunk ({len(ROWS)} blades)",
+      len(ROWS) >= 84, len(ROWS))
 
 print("\n── 2. they are STARTER power, not Rare power ────────────────────")
 # The band they have to sit inside, measured from the blades that were already

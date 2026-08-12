@@ -721,6 +721,92 @@ def fuzzy_find_beyblade(query: str):
     return None
 
 
+class SpinModeView(discord.ui.View):
+    """Right / Left buttons under a dual-spin blade's `;info` card.
+
+    The choice is stored on the player's profile and read by
+    `utils.spin_mode.resolve`, which runs in front of BOTH stat paths — so
+    pressing a button here changes what the blade actually fights as, not just
+    what this card says.
+    """
+
+    def __init__(self, owner, blade: dict, cog) -> None:
+        super().__init__(timeout=180)
+        from utils.spin_mode import modes, label, chosen
+        from utils.database import get_user
+
+        self.owner = owner
+        self.blade = blade
+        self.cog = cog
+        self.message = None
+
+        try:
+            active = chosen(get_user(owner.id), blade)
+        except Exception:                                # noqa: BLE001
+            active = ""
+
+        for mode in modes(blade):
+            cfg = (blade.get("spin_modes") or {}).get(mode) or {}
+            stats = cfg.get("stats") or {}
+            button = discord.ui.Button(
+                label=label(blade, mode),
+                emoji="🔄",
+                # The live mode is the one that reads as selected. Discord has
+                # no "checked" state for a button, so style carries it.
+                style=(discord.ButtonStyle.success if mode == active
+                       else discord.ButtonStyle.secondary),
+                disabled=(mode == active),
+            )
+            button.callback = self._make_callback(mode, stats)
+            self.add_item(button)
+
+    def _make_callback(self, mode: str, stats: dict):
+        async def callback(interaction: discord.Interaction) -> None:
+            if interaction.user.id != self.owner.id:
+                return await interaction.response.send_message(
+                    "That's not your Beyblade — run `;info` yourself to pick "
+                    "a spin mode.", ephemeral=True)
+            from utils.spin_mode import set_choice, label as _label
+            set_choice(self.owner.id, self.blade.get("name", ""), mode)
+
+            # Acknowledge FIRST, then re-render. The card render goes through
+            # a browser and can take seconds; leaving the interaction
+            # unacknowledged that long is what produces "the application did
+            # not respond".
+            await interaction.response.send_message(
+                f"🔄 **{self.blade.get('name')}** is now mounted in "
+                f"**{_label(self.blade, mode)}** — "
+                f"ATK {stats.get('attack', '?')} · DEF {stats.get('defense', '?')} "
+                f"· STA {stats.get('stamina', '?')}.",
+                ephemeral=True)
+            for child in self.children:
+                child.disabled = True
+            try:
+                if self.message:
+                    await self.message.edit(view=self)
+            except Exception:                            # noqa: BLE001
+                pass
+            self.stop()
+
+            ctx = await commands.Context.from_interaction(interaction)
+            ctx.author = self.owner
+            try:
+                await self.cog._send_bey_card(ctx, self.blade)
+            except Exception:                            # noqa: BLE001
+                log.exception("could not re-render the spin card")
+
+        return callback
+
+    async def on_timeout(self) -> None:
+        for child in self.children:
+            child.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except Exception:                            # noqa: BLE001
+                pass
+
+
 class ProfileCog(commands.Cog, name="Profile"):
     """Handles user profiles and Beyblade information lookups."""
 
@@ -1010,6 +1096,29 @@ class ProfileCog(commands.Cog, name="Profile"):
                     f"❌ **{name}** wasn't found. Use `;list` to browse all Beyblades."
                 )
 
+        await self._send_bey_card(ctx, blade)
+
+    async def _send_bey_card(self, ctx, blade, message=None):
+        """Render and send one blade's card, with a spin picker if it needs one.
+
+        Split out so the picker's buttons can re-render through exactly the
+        same path they were created by — a second copy of this would drift the
+        moment either half changed.
+        """
+        from utils.spin_mode import is_dual, resolve as resolve_spin
+        from utils.database import get_user
+
+        # Show the blade as THIS viewer has it mounted. A dual-spin blade has
+        # a different statline per mode, so the card has to answer "what will
+        # mine do", not "what could one of these do".
+        if is_dual(blade):
+            try:
+                blade = resolve_spin(get_user(ctx.author.id), blade)
+            except Exception:                            # noqa: BLE001
+                blade = resolve_spin(None, blade)
+
+        view = SpinModeView(ctx.author, blade, self) if is_dual(blade) else None
+
         async with ctx.typing():
             # PNG info card first — falls back to the classic embed if Chromium
             # is missing, the CDN art is dead, or the render times out.
@@ -1018,8 +1127,14 @@ class ProfileCog(commands.Cog, name="Profile"):
             )
             if buf is not None:
                 fname = f"{blade['name'].lower().replace(' ', '_')}_card.png"
-                return await ctx.send(file=discord.File(buf, filename=fname))
-            await ctx.send(embed=build_beypedia_embed(blade))
+                sent = await ctx.send(file=discord.File(buf, filename=fname),
+                                      view=view)
+            else:
+                sent = await ctx.send(embed=build_beypedia_embed(blade),
+                                      view=view)
+            if view is not None:
+                view.message = sent
+            return sent
 
     # ── ;list ─────────────────────────────────────────────────────────────────
 

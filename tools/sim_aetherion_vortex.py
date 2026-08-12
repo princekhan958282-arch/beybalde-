@@ -134,8 +134,11 @@ pool = sorted(n for n, b in BLADES.items()
               if isinstance(b, dict) and b.get("booster_exclusive"))
 check("Aetherion Vortex is in the booster pool", "Aetherion Vortex" in pool)
 check("Azeroth Veyrath is NOT", "Azeroth Veyrath" not in pool, pool)
-check("the pool is the same size as before — a swap, not an addition",
-      len(pool) == 8, len(pool))
+# The claim this makes is about the SWAP, and the two checks above already
+# prove it: Vortex is in, Veyrath is out. Pinning the pool's absolute size made
+# that claim depend on every future booster too, and it has since broken on the
+# X boosters, which were a deliberate addition and nothing to do with Vortex.
+check(f"the pool has not shrunk ({len(pool)} blades)", len(pool) >= 8, pool)
 check("Azeroth Veyrath still EXISTS — owners keep it, it just stops dropping",
       "Azeroth Veyrath" in BLADES)
 check("...and is still fully playable",
