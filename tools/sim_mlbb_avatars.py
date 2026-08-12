@@ -107,6 +107,26 @@ check("...so rarity_rank does not return -1",
       SHOP.rarity_rank("MLBB") == len(SHOP.RARITY_ORDER) - 1,
       SHOP.rarity_rank("MLBB"))
 check("MLBB has a duplicate refund rate", SHOP.DUPE_REFUND_RATE.get("MLBB"))
+_mlbb_refund = int(SHOP.PACK_PRICE["mlbb"] * SHOP.DUPE_REFUND_RATE["MLBB"])
+check("a duplicate MLBB pull refunds exactly 3,000,000",
+      _mlbb_refund == 3_000_000, f"{_mlbb_refund:,}")
+
+# The refund is paid PER PULL and every pack pulls twice, so the real question
+# is whether a pack full of duplicates pays more than it cost. At 60% the MLBB
+# pack returned 18,000,000 on 15,000,000 — with only six cards on the banner, a
+# near-complete collection could open packs at a profit indefinitely.
+printers = []
+for _k, _price in SHOP.PACK_PRICE.items():
+    _pool = SHOP.PACK_POOL.get(_k, [])
+    # Only rarities that can actually be pulled: _build_rarity_map excludes
+    # Exclusive, so pricing against it would overstate the ceiling.
+    _reach = [r for r in _pool if r != "Exclusive"] or _pool
+    _worst = int(_price * max(SHOP.DUPE_REFUND_RATE.get(r, 0.10)
+                              for r in _reach)) * 2
+    if _worst >= _price:
+        printers.append((_k, _worst, _price))
+check("no pack can be opened at a profit, even on a double duplicate",
+      not printers, printers)
 
 # Argus and Dyrroth are Mobile Legends heroes, so they sit on the MLBB banner
 # with the rest of the crossover cast rather than in the Exclusive tier. Moving
@@ -152,6 +172,24 @@ check("every pack appears in every table — none half-registered",
         ("disp", SHOP.PACK_DISPLAY), ("emoji", SHOP.PACK_EMOJI),
         ("wt", SHOP.PACK_RARITY_WEIGHT))})
 check("slot 1 is a guaranteed MLBB", SHOP.PACK_GUARANTEE["mlbb"] == "MLBB")
+
+# `;packs` used to hardcode its list and had silently dropped the MLBB banner —
+# a 15,000,000 pack the browse command never mentioned — while also quoting
+# refund percentages DUPE_REFUND_RATE no longer held. It now derives from
+# PACK_PRICE, so every registered pack is listed and the numbers cannot drift.
+_shop_path = os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "cogs", "avatar", "avatar_shop.py")
+with open(_shop_path, encoding="utf-8") as _fh:
+    _full_src = _fh.read()
+_packs_src = _full_src[_full_src.index("async def avatar_packs"):]
+_packs_src = _packs_src[:_packs_src.index("@commands.command(name=\"buypack\"")]
+check("the ;packs listing iterates PACK_PRICE rather than a literal list",
+      "for pack_key in PACK_PRICE" in _packs_src)
+check("...so it cannot hardcode a pack name",
+      not any(f'"{p}",' in _packs_src for p in SHOP.PACK_PRICE),
+      [p for p in SHOP.PACK_PRICE if f'"{p}",' in _packs_src])
+check("...and it prints the refund in coins, not only a percentage",
+      "coins)" in _packs_src)
 
 print("\n── 6. the banner is CLOSED, both ways ───────────────────────────")
 by_rarity: dict = {}
