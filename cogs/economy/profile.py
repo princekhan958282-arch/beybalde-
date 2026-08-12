@@ -809,7 +809,10 @@ class ProfileCog(commands.Cog, name="Profile"):
             )
             if buf is None:
                 return None
-            return discord.File(buf, filename="profile.png")
+            # Extension comes from the renderer — it emits JPEG, and Discord
+            # names the attachment from what we pass here.
+            from utils.profile_card import IMAGE_FORMAT
+            return discord.File(buf, filename=f"profile.{IMAGE_FORMAT}")
         except Exception:
             # Still fall back to the embed — but do NOT swallow the reason,
             # or a permanently broken card looks like "the card is disabled".

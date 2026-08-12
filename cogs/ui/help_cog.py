@@ -218,7 +218,7 @@ COMMAND_DATA = {
         (";auction <item> <bid> [mins]  |  Multiplayer", "Host an auction — anyone can bid with casino coins"),
     ],
     "start": [
-        (";start",                      "🌟 Get your free starter Beyblade — do this first"),
+        (";start",                      "🌟 REQUIRED — pick your free starter Beyblade before anything else works"),
         (";whatnext",                   "The short version of what to do in this bot"),
         (";profile",                    "Your player card — level, record, rank"),
         (";inventory",                  "Everything you own"),

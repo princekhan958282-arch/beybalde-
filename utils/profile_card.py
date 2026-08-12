@@ -66,6 +66,10 @@ log = logging.getLogger("beyblade_bot.profile_card")
 
 CARD_ENABLED = True
 
+# JPEG quality for the rendered card, and the extension the caller must use.
+IMAGE_QUALITY = 88
+IMAGE_FORMAT = "jpg"
+
 # ── Frame ─────────────────────────────────────────────────────────────────────
 
 _FRAME_PATH = os.path.join(
@@ -291,12 +295,23 @@ def _avatar_image(url: str, size: int) -> "Image.Image | None":
 
 # ── Drawing primitives ────────────────────────────────────────────────────────
 
-def _overlay(img, fn):
+def _overlay(img, box, fn):
     """Draw onto a transparent layer and composite, so alpha fills blend with
-    the artwork instead of punching a hole in it."""
-    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    the artwork instead of punching a hole in it.
+
+    `box` is the region being drawn, and `fn` receives a draw surface whose
+    origin is that box's top-left — so coordinates inside are LOCAL.
+
+    It used to allocate and composite a full-canvas layer per call. At nine
+    calls a render that was nine 1.15-megapixel alpha composites to paint a few
+    small bars, and it dominated the render. Compositing only the affected
+    region is the same picture for a fraction of the pixels.
+    """
+    x0, y0, x1, y1 = box
+    w, h = max(1, int(x1 - x0)), max(1, int(y1 - y0))
+    layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     fn(ImageDraw.Draw(layer))
-    img.alpha_composite(layer)
+    img.alpha_composite(layer, (int(x0), int(y0)))
 
 
 def _shadowed(draw, xy, txt, font, fill):
@@ -307,11 +322,14 @@ def _shadowed(draw, xy, txt, font, fill):
     what lets one label sit over both — centring it and hoping was the version
     where "RANK 2,450 · 250 TO NEXT TIER" had its middle swallowed by the fill
     edge.
+
+    Pillow's own `stroke_width` does this in ONE pass. Hand-rolling it as six
+    offset draws plus the real one meant seven text rasterisations per string,
+    and text was a fifth of the whole render. The native stroke also produces a
+    cleaner outline than four-way offsets, which leave diagonal gaps.
     """
-    x, y = xy
-    for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (-1, -1)):
-        draw.text((x + dx, y + dy), txt, font=font, fill=(0, 0, 0, 205))
-    draw.text((x, y), txt, font=font, fill=fill)
+    draw.text(xy, txt, font=font, fill=fill,
+              stroke_width=2, stroke_fill=(0, 0, 0, 210))
 
 
 def _slot_bar(img, draw, box, pct, colour, label=None, value=None,
@@ -333,9 +351,10 @@ def _slot_bar(img, draw, box, pct, colour, label=None, value=None,
     inset = 3
     if pct > 0:
         w = max(h - inset * 2, int((x1 - x0 - inset * 2) * pct))
-        _overlay(img, lambda d: d.rounded_rectangle(
-            (x0 + inset, y0 + inset, x0 + inset + w, y1 - inset),
-            radius=(h - inset * 2) // 2, fill=colour + (225,)))
+        _overlay(img, (x0 + inset, y0 + inset, x0 + inset + w, y1 - inset),
+                 lambda d: d.rounded_rectangle(
+                     (0, 0, w - 1, h - inset * 2 - 1),
+                     radius=(h - inset * 2) // 2, fill=colour + (225,)))
 
     f = _font(max(15, h - 16))
     ty = y0 + (h - f.size) // 2 - 2
@@ -374,9 +393,11 @@ def _disc_art(img, centre, radius, art):
 def _initial_disc(img, draw, centre, radius, text, colour):
     """Fallback for a missing picture: the first letter on a tinted disc."""
     cx, cy = centre
-    _overlay(img, lambda d: d.ellipse(
-        (cx - radius, cy - radius, cx + radius, cy + radius),
-        fill=colour + (46,), outline=colour + (190,), width=3))
+    d2 = radius * 2
+    _overlay(img, (cx - radius, cy - radius, cx + radius, cy + radius),
+             lambda d: d.ellipse((0, 0, d2 - 1, d2 - 1),
+                                 fill=colour + (46,),
+                                 outline=colour + (190,), width=3))
     ch = (_sanitize(text) or "?")[0].upper()
     f = _font(int(radius * 1.15))
     draw.text((cx - _text_w(draw, ch, f) // 2, cy - int(radius * 0.78)),
@@ -550,7 +571,17 @@ def render_profile_card(
         _loadout(img, draw, blade)
 
         buf = io.BytesIO()
-        img.convert("RGB").save(buf, format="PNG", optimize=True)
+        # JPEG, not PNG. `PNG optimize=True` on this 1193x967 canvas took
+        # 1,679 ms of a 1,690 ms render — the encode WAS the render — and
+        # produced an 882 KB upload. JPEG at q88 takes ~12 ms for 253 KB with
+        # no artefact visible on the text, because the frame is a dark
+        # photographic texture and the card has no transparency to preserve.
+        # Progressive so it paints top-down on a slow phone connection.
+        #
+        # The extension matters to the caller: Discord names the attachment
+        # from it, so `_profile_card_file` sends profile.jpg.
+        img.convert("RGB").save(buf, format="JPEG", quality=IMAGE_QUALITY,
+                                optimize=True, progressive=True)
         buf.seek(0)
         return buf
     except Exception:
