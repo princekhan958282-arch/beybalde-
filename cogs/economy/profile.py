@@ -786,6 +786,18 @@ class ProfileCog(commands.Cog, name="Profile"):
             total = len(load_beyblades())
         except Exception:
             total = None
+        # The player's actual Discord picture. `display_avatar` already falls
+        # back to the default embed avatar for someone who has never set one,
+        # so this is never empty — and the renderer degrades to an initial disc
+        # anyway if the CDN is unreachable. Fetching it inside the thread is
+        # safe: the whole render is off the event loop.
+        try:
+            avatar_url = target.display_avatar.replace(
+                format="png", size=256).url
+        except Exception:                                # noqa: BLE001
+            avatar_url = getattr(getattr(target, "display_avatar", None),
+                                 "url", None)
+
         try:
             buf = await asyncio.to_thread(
                 render_profile_card,
@@ -793,6 +805,7 @@ class ProfileCog(commands.Cog, name="Profile"):
                 profile_doc,
                 active_blade,
                 total_beys=total,
+                avatar_url=avatar_url,
             )
             if buf is None:
                 return None

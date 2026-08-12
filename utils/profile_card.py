@@ -1,23 +1,43 @@
 """
 utils/profile_card.py — Beycord blader profile card (Pillow)
 =============================================================
-Renders a phone-first PNG profile:
+Renders the profile onto ``assets/ui/profile_frame.jpg``, an authored HUD frame,
+instead of drawing its own panels. Everything the card shows now sits in a slot
+the artwork already provides:
 
-  * identity — name, rank tier, tier-coloured accent, level badge
-  * progress — level, XP bar to next level, rank score bar to next tier
-  * record   — wins / losses / win-rate / current + best streak / coins
-  * loadout  — active bey art, rarity, type, ATK / DEF / STA / HP bars
-  * collection — owned beys vs the whole database
+  header      player avatar disc · name · subtitle · tier chip · level chip
+  progress    two bars — XP to next level, rank score to next tier
+  stat grid   six cells — wins, losses, win rate, streak, best streak, coins
+  collection  one bar — beys owned against the whole database
+  loadout     bey art in the big disc · rarity/type/level pills · ATK/DEF/STA/HP
 
-Reuses fonts / art loading / sanitising from ``utils.image_generator`` so
-every Beycord card looks like the same product, and needs ZERO extra assets:
-missing ``assets/beys/`` just falls back to an initial disc, and the player
-avatar is drawn from their initial (no network call on the render path).
+Why a frame instead of drawn panels
+-----------------------------------
+The old card built its own gradient, glow and rounded rectangles. It was fine
+in isolation and cheap to render, but it looked like a placeholder next to the
+rest of the game's art. Compositing onto authored artwork means the card gets
+texture, bevels and lighting that would be unreasonable to reproduce in Pillow
+primitives, and the layout is fixed by the art — so it cannot drift.
+
+The frame is loaded once and cached. If the asset is missing the card returns
+None and `;profile` falls back to its embed, exactly as it does for any other
+render failure.
+
+The player avatar
+-----------------
+This used to draw the first letter of the player's name in a disc, and the
+docstring said so — "no network call on the render path". That is why nobody's
+profile picture ever appeared. The render already runs inside
+`asyncio.to_thread` (see `ProfileCog._profile_card_file`), so a blocking fetch
+here costs the caller nothing, and avatars are cached by URL — a Discord avatar
+URL contains the image hash, so it changes exactly when the avatar does. The
+initial disc is still the fallback for a missing, unreachable or malformed
+avatar.
 
 Public API
 ----------
     render_profile_card(player, profile, blade=None, *, total_beys=None,
-                        rank_position=None) -> io.BytesIO | None
+                        rank_position=None, avatar_url=None) -> io.BytesIO | None
 
     player  — dict(name, [id])
     profile — the user document (wins, losses, xp, coins, streaks, inventory)
@@ -28,8 +48,11 @@ Never raises: any failure returns None so the caller falls back to the embed.
 from __future__ import annotations
 
 import io
+import logging
+import os
+import urllib.request
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 from utils.image_generator import (
     _blade_art,
@@ -39,31 +62,60 @@ from utils.image_generator import (
     _text_w,
 )
 
+log = logging.getLogger("beyblade_bot.profile_card")
+
 CARD_ENABLED = True
 
-# ── Canvas ────────────────────────────────────────────────────────────────────
-W          = 1000
-H          = 732
-SIDE       = 32
-HEADER_H   = 168
-COL_GAP    = 20
-LEFT_W     = 556                      # left column width
-ART_BOX    = 176
+# ── Frame ─────────────────────────────────────────────────────────────────────
+
+_FRAME_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "assets", "ui", "profile_frame.jpg")
+
+W, H = 1193, 967                      # the frame's native size; do not rescale
+
+# ── Slot geometry ─────────────────────────────────────────────────────────────
+# Measured off the artwork, not guessed — the structural lines were found by
+# scanning the image's brightness profile, then checked by rendering the boxes
+# over the frame and looking at it. Every box is (x0, y0, x1, y1).
+#
+# Nothing here draws a panel: the frame already has one for every slot. The
+# renderer only puts text, bar fills and art INSIDE them.
+
+AVATAR_C   = (147, 123)               # player picture disc: centre + radius
+AVATAR_R   = 67
+NAME_X     = 262
+NAME_Y     = 62
+SUB_Y      = 136
+CHIP_TIER  = (948, 60, 1144, 104)
+CHIP_LEVEL = (948, 124, 1144, 168)
+
+BAR_XP     = (72, 306, 618, 342)
+BAR_RANK   = (72, 362, 618, 398)
+
+GRID_COLS  = ((44, 228), (250, 434), (457, 641))
+GRID_ROWS  = ((457, 566), (592, 704))
+
+BAR_COLL   = (72, 814, 618, 862)
+
+ART_C      = (910, 421)               # bey art disc
+ART_R      = 104
+PILLS      = ((708, 596, 836, 630), (850, 596, 966, 630), (990, 596, 1120, 630))
+LOAD_BARS  = ((708, 660, 1134, 700), (708, 717, 1134, 757),
+              (708, 774, 1134, 814), (708, 831, 1134, 871))
 
 # ── Palette ───────────────────────────────────────────────────────────────────
-BG_TOP    = (18, 18, 28)
-BG_BOT    = (28, 24, 44)
-PANEL     = (34, 32, 50)
-PANEL_HI  = (44, 41, 64)
-TEXT      = (240, 240, 245)
-SUBTEXT   = (158, 158, 176)
-DIM       = (110, 110, 132)
-GOLD      = (250, 204, 21)
-XP_COL    = (96, 165, 250)
-WIN_COL   = (52, 211, 153)
-LOSS_COL  = (239, 68, 68)
-COIN_COL  = (250, 204, 21)
-BAR_BG    = (46, 44, 66)
+# Tuned for near-black artwork: the old palette was mixed for a blue-grey
+# gradient and reads muddy on this frame.
+
+TEXT     = (238, 240, 246)
+SUBTEXT  = (150, 154, 170)
+DIM      = (104, 108, 124)
+GOLD     = (250, 204, 21)
+XP_COL   = (96, 165, 250)
+WIN_COL  = (52, 211, 153)
+LOSS_COL = (239, 68, 68)
+COIN_COL = (250, 204, 21)
 
 STAT_COL = {
     "ATK": (255, 90, 95),
@@ -100,25 +152,20 @@ RANK_TIERS = [
 ]
 
 MAX_LEVEL = 100
-STAT_MAX  = 150
+STAT_MAX  = 500        # matches bey_levels.STAT_CAP — levelled stats reach it
 
-
-# ── Theme ─────────────────────────────────────────────────────────────────────
-# Locked to the demo-4 look: every card gets the same amber frame/glow/avatar
-# accent regardless of the player's rank, so the card reads as one consistent
-# product instead of changing colour per tier.
-#
-# The rank tier is NOT lost — the tier chip and the rank-score bar still use
-# the tier's own colour, so rank is still readable at a glance.
-#
-# Set THEME_LOCKED = False to go back to per-tier accents.
+# The frame is one consistent product, so the accent stays fixed rather than
+# recolouring per tier. Rank is still readable: the tier chip and the rank bar
+# both use the tier's own colour.
 THEME_LOCKED  = True
-LOCKED_ACCENT = (243, 156, 18)      # Blader God amber
+LOCKED_ACCENT = (243, 156, 18)
 
 
 def _accent_for(tier_col: tuple) -> tuple:
     return LOCKED_ACCENT if THEME_LOCKED else tier_col
 
+
+# ── Small helpers ─────────────────────────────────────────────────────────────
 
 def _num(value, default: int = 0) -> int:
     """Coerce a profile field to int. Corrupted documents (a string where a
@@ -157,46 +204,6 @@ def _level_from_xp(xp: int) -> tuple[int, int, int]:
     return lvl, xp - cur_floor, nxt_floor - cur_floor
 
 
-# ── Drawing primitives ────────────────────────────────────────────────────────
-
-_bg_cache: "Image.Image | None" = None
-
-
-def _background(accent: tuple) -> Image.Image:
-    """Gradient + a tier-coloured glow. The gradient is built once (1px strip
-    stretched, not an 760k-pixel Python loop) and cached; only the cheap glow
-    is redrawn per accent colour."""
-    global _bg_cache
-    if _bg_cache is None:
-        strip = Image.new("RGBA", (1, H))
-        sp = strip.load()
-        for y in range(H):
-            t = y / max(1, H - 1)
-            sp[0, y] = (
-                int(BG_TOP[0] + (BG_BOT[0] - BG_TOP[0]) * t),
-                int(BG_TOP[1] + (BG_BOT[1] - BG_TOP[1]) * t),
-                int(BG_TOP[2] + (BG_BOT[2] - BG_TOP[2]) * t),
-                255,
-            )
-        _bg_cache = strip.resize((W, H), Image.BILINEAR)
-
-    bg = _bg_cache.copy()
-    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(glow)
-    gd.ellipse((-280, -240, 520, 320), fill=accent + (46,))
-    gd.ellipse((W - 460, H - 340, W + 240, H + 200), fill=accent + (26,))
-    glow = glow.filter(ImageFilter.GaussianBlur(90))
-    bg.alpha_composite(glow)
-    return bg
-
-
-def _panel(img, x0, y0, x1, y1, fill, radius=18, outline=None, width=2):
-    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    ImageDraw.Draw(layer).rounded_rectangle(
-        (x0, y0, x1, y1), radius=radius, fill=fill, outline=outline, width=width)
-    img.alpha_composite(layer)
-
-
 def _centre(draw, txt, font, cx, y, fill):
     draw.text((cx - _text_w(draw, txt, font) // 2, y), txt, font=font, fill=fill)
 
@@ -205,208 +212,309 @@ def _right(draw, txt, font, rx, y, fill):
     draw.text((rx - _text_w(draw, txt, font), y), txt, font=font, fill=fill)
 
 
-def _bar(img, draw, x, y, w, h, pct, colour, label=None, label_font=None):
+def _short(n: int) -> str:
+    """12,400 -> '12.4K'. Keeps six-figure coin piles inside a grid cell."""
+    n = int(n)
+    if abs(n) >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M".replace(".0M", "M")
+    if abs(n) >= 10_000:
+        return f"{n / 1_000:.0f}K"
+    return f"{n:,}"
+
+
+# ── Frame + avatar loading ────────────────────────────────────────────────────
+
+_frame_cache: "Image.Image | None" = None
+
+
+def _frame() -> "Image.Image | None":
+    """The HUD artwork, loaded once. None when the asset is missing."""
+    global _frame_cache
+    if _frame_cache is None:
+        try:
+            _frame_cache = Image.open(_FRAME_PATH).convert("RGBA")
+        except Exception as exc:                         # noqa: BLE001
+            log.warning("profile frame missing at %s: %s", _FRAME_PATH, exc)
+            return None
+    return _frame_cache.copy()
+
+
+# Avatars are cached by URL. A Discord avatar URL embeds the image hash, so the
+# URL changes exactly when the picture does — which makes the URL a correct
+# cache key with no staleness window. Bounded so a busy server cannot grow it
+# without limit.
+_AVATAR_CACHE: dict[str, "Image.Image"] = {}
+_AVATAR_CACHE_MAX = 64
+_AVATAR_TIMEOUT = 6
+
+
+def _avatar_image(url: str, size: int) -> "Image.Image | None":
+    """Fetch a player's avatar as a circular RGBA disc. None on any failure.
+
+    Blocking on purpose: the whole render runs in `asyncio.to_thread`, so this
+    never touches the event loop. Failing quietly is the point — a slow CDN or
+    a deleted avatar must cost the player their picture, not their card.
+    """
+    if not url:
+        return None
+    key = f"{url}|{size}"
+    hit = _AVATAR_CACHE.get(key)
+    if hit is not None:
+        return hit.copy()
+
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Beycord/1.0"})
+        with urllib.request.urlopen(req, timeout=_AVATAR_TIMEOUT) as resp:
+            raw = resp.read(4 * 1024 * 1024)             # a cap, not a promise
+        src = Image.open(io.BytesIO(raw)).convert("RGBA")
+    except Exception as exc:                             # noqa: BLE001
+        log.debug("avatar fetch failed (%s): %s", url[:60], exc)
+        return None
+
+    # Square-crop from the centre, then mask to a circle. Discord avatars are
+    # already square, but an animated or oddly-sized one must not stretch.
+    w, h = src.size
+    side = min(w, h)
+    src = src.crop(((w - side) // 2, (h - side) // 2,
+                    (w - side) // 2 + side, (h - side) // 2 + side))
+    src = src.resize((size, size), Image.LANCZOS)
+
+    mask = Image.new("L", (size * 4, size * 4), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, size * 4 - 1, size * 4 - 1), fill=255)
+    src.putalpha(mask.resize((size, size), Image.LANCZOS))
+
+    if len(_AVATAR_CACHE) >= _AVATAR_CACHE_MAX:
+        _AVATAR_CACHE.clear()
+    _AVATAR_CACHE[key] = src
+    return src.copy()
+
+
+# ── Drawing primitives ────────────────────────────────────────────────────────
+
+def _overlay(img, fn):
+    """Draw onto a transparent layer and composite, so alpha fills blend with
+    the artwork instead of punching a hole in it."""
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    fn(ImageDraw.Draw(layer))
+    img.alpha_composite(layer)
+
+
+def _shadowed(draw, xy, txt, font, fill):
+    """Text with a dark halo.
+
+    A bar label crosses the boundary between the coloured fill and the empty
+    track, so no single colour reads well along its whole length. The halo is
+    what lets one label sit over both — centring it and hoping was the version
+    where "RANK 2,450 · 250 TO NEXT TIER" had its middle swallowed by the fill
+    edge.
+    """
+    x, y = xy
+    for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (-1, -1)):
+        draw.text((x + dx, y + dy), txt, font=font, fill=(0, 0, 0, 205))
+    draw.text((x, y), txt, font=font, fill=fill)
+
+
+def _slot_bar(img, draw, box, pct, colour, label=None, value=None,
+              label_col=None):
+    """Fill part of a slot the frame already drew.
+
+    Only the FILL is drawn — the track is the artwork's own recess, which is
+    why this looks like part of the frame rather than a rectangle sitting on
+    top of it.
+
+    `label` is left-aligned and `value` right-aligned inside the slot, rather
+    than one centred string: a centred label lands exactly where the fill edge
+    moves as the bar grows, so it is illegible at whichever percentage happens
+    to put the boundary under the text.
+    """
+    x0, y0, x1, y1 = box
     pct = max(0.0, min(1.0, pct))
-    _panel(img, x, y, x + w, y + h, BAR_BG + (255,), radius=h // 2, width=0)
+    h = y1 - y0
+    inset = 3
     if pct > 0:
-        fill_w = max(h, int(w * pct))
-        _panel(img, x, y, x + fill_w, y + h, colour + (255,), radius=h // 2, width=0)
+        w = max(h - inset * 2, int((x1 - x0 - inset * 2) * pct))
+        _overlay(img, lambda d: d.rounded_rectangle(
+            (x0 + inset, y0 + inset, x0 + inset + w, y1 - inset),
+            radius=(h - inset * 2) // 2, fill=colour + (225,)))
+
+    f = _font(max(15, h - 16))
+    ty = y0 + (h - f.size) // 2 - 2
     if label:
-        f = label_font or _font(max(14, h - 8))
-        _centre(draw, label, f, x + w // 2, y + (h - f.size) // 2 - 1, TEXT)
+        _shadowed(draw, (x0 + 18, ty), label, f, label_col or TEXT)
+    if value:
+        _shadowed(draw, (x1 - 18 - _text_w(draw, value, f), ty), value, f, TEXT)
 
 
-def _chip(img, draw, x, y, text, colour, font_size=20, pad=11):
-    f = _font(font_size)
-    w = _text_w(draw, text, f) + pad * 2
-    h = font_size + 12
-    _panel(img, x, y, x + w, y + h, colour + (56,), radius=h // 2,
-           outline=colour + (190,), width=2)
-    draw.text((x + pad, y + 5), text, font=f, fill=colour)
-    return w
+def _pill_text(img, draw, box, text, colour):
+    """Centre a short label in one of the frame's small pill slots."""
+    x0, y0, x1, y1 = box
+    f = _fit_text(draw, text, x1 - x0 - 16, 22, floor=13)
+    _centre(draw, text, f, (x0 + x1) // 2, y0 + ((y1 - y0) - f.size) // 2 - 2,
+            colour)
 
 
-def _initial_disc(img, draw, cx, cy, r, text, colour):
-    _panel(img, cx - r, cy - r, cx + r, cy + r, colour + (52,),
-           radius=r, outline=colour + (205,), width=3)
+def _stat_cell(img, draw, box, label, value, colour):
+    """One cell of the 2x3 grid: a small caption over a big number."""
+    x0, y0, x1, y1 = box
+    cx = (x0 + x1) // 2
+    lf = _font(19)
+    _centre(draw, label.upper(), lf, cx, y0 + 18, DIM)
+    vf = _fit_text(draw, value, x1 - x0 - 22, 52, floor=24)
+    _centre(draw, value, vf, cx, y0 + 46, colour)
+
+
+def _disc_art(img, centre, radius, art):
+    """Drop a circular image into one of the frame's two discs."""
+    cx, cy = centre
+    d = radius * 2
+    art = art.resize((d, d), Image.LANCZOS) if art.size != (d, d) else art
+    img.alpha_composite(art, (cx - radius, cy - radius))
+
+
+def _initial_disc(img, draw, centre, radius, text, colour):
+    """Fallback for a missing picture: the first letter on a tinted disc."""
+    cx, cy = centre
+    _overlay(img, lambda d: d.ellipse(
+        (cx - radius, cy - radius, cx + radius, cy + radius),
+        fill=colour + (46,), outline=colour + (190,), width=3))
     ch = (_sanitize(text) or "?")[0].upper()
-    f = _font(int(r * 1.15))
-    draw.text((cx - _text_w(draw, ch, f) // 2, cy - int(r * 0.78)), ch, font=f, fill=colour)
+    f = _font(int(radius * 1.15))
+    draw.text((cx - _text_w(draw, ch, f) // 2, cy - int(radius * 0.78)),
+              ch, font=f, fill=colour)
 
 
 # ── Sections ──────────────────────────────────────────────────────────────────
 
-def _header(img, draw, name, tier_name, tier_col, accent, level, rank_position):
-    _panel(img, SIDE, 28, W - SIDE, HEADER_H - 12, PANEL + (220,),
-           radius=22, outline=accent + (150,), width=3)
+def _header(img, draw, name, tier_name, tier_col, accent, level,
+            rank_position, avatar_url):
+    art = _avatar_image(avatar_url, AVATAR_R * 2) if avatar_url else None
+    if art is not None:
+        _disc_art(img, AVATAR_C, AVATAR_R, art)
+    else:
+        _initial_disc(img, draw, AVATAR_C, AVATAR_R, name, accent)
 
-    cy = (28 + HEADER_H - 12) // 2
-    _initial_disc(img, draw, SIDE + 76, cy, 50, name, accent)
+    nf = _fit_text(draw, name, CHIP_TIER[0] - NAME_X - 30, 54, floor=26)
+    draw.text((NAME_X, NAME_Y), name, font=nf, fill=TEXT)
 
-    x = SIDE + 148
-    nf = _fit_text(draw, name, W - SIDE - 300 - x, 46, floor=24)
-    draw.text((x, cy - 46), name, font=nf, fill=TEXT)
     subtitle = "BLADER PROFILE"
     if rank_position:
         subtitle += f"   ·   #{rank_position} ON THE SERVER"
-    sf = _fit_text(draw, subtitle, W - SIDE - 300 - x, 21, floor=15)
-    draw.text((x, cy + 8), subtitle, font=sf, fill=DIM)
+    sf = _fit_text(draw, subtitle, CHIP_TIER[0] - NAME_X - 30, 23, floor=15)
+    draw.text((NAME_X, SUB_Y), subtitle, font=sf, fill=DIM)
 
-    # tier + level chips, right aligned
-    lf = _font(22)
-    lvl_txt = f"LV {level}" + ("  MAX" if level >= MAX_LEVEL else "")
-    lw = _text_w(draw, lvl_txt, lf) + 22
-    tw = _text_w(draw, tier_name.upper(), lf) + 22
-    top_y = cy - 42
-    _chip(img, draw, W - SIDE - 24 - tw, top_y, tier_name.upper(), tier_col, 22)
-    _chip(img, draw, W - SIDE - 24 - lw, top_y + 46, lvl_txt, GOLD, 22)
+    _pill_text(img, draw, CHIP_TIER, tier_name.upper(), tier_col)
+    lvl_txt = f"LEVEL {level}" + ("  MAX" if level >= MAX_LEVEL else "")
+    _pill_text(img, draw, CHIP_LEVEL, lvl_txt, GOLD)
 
 
-def _progress_block(img, draw, x, y, w, xp, rank_score):
-    """Level XP bar + rank-score bar to the next tier."""
-    _panel(img, x, y, x + w, y + 156, PANEL + (216,), radius=18,
-           outline=(66, 62, 92, 190), width=2)
-
-    lvl, into, span = _level_from_xp(xp)
-    pct = 1.0 if span == 0 else into / span
-    draw.text((x + 20, y + 16), "LEVEL PROGRESS", font=_font(20), fill=SUBTEXT)
-    _right(draw, f"{xp:,} XP total", _font(20), x + w - 20, y + 16, DIM)
-    lbl = "MAX LEVEL" if span == 0 else f"{into:,} / {span:,}"
-    _bar(img, draw, x + 20, y + 46, w - 40, 30, pct, XP_COL, lbl)
-
-    name, col, floor, nxt = _tier_for(rank_score)
-    draw.text((x + 20, y + 92), "RANK SCORE", font=_font(20), fill=SUBTEXT)
-    if nxt is None:
-        rpct, rlbl = 1.0, f"{rank_score:,} — TOP TIER"
+def _progress(img, draw, xp, rank_score, tier_col):
+    level, into, span = _level_from_xp(xp)
+    if level >= MAX_LEVEL:
+        _slot_bar(img, draw, BAR_XP, 1.0, XP_COL, "MAX LEVEL", "100 / 100")
     else:
-        rpct = (rank_score - floor) / max(1, nxt - floor)
-        rlbl = f"{rank_score:,} / {nxt:,} to next tier"
-    _right(draw, name, _font(20), x + w - 20, y + 92, col)
-    _bar(img, draw, x + 20, y + 120, w - 40, 26, rpct, col, rlbl)
+        _slot_bar(img, draw, BAR_XP, (into / span) if span else 0.0, XP_COL,
+                  f"LEVEL {level}", f"{into:,} / {span:,} XP")
+
+    _name, _col, floor, nxt = _tier_for(rank_score)
+    if nxt is None:
+        _slot_bar(img, draw, BAR_RANK, 1.0, tier_col, "TOP TIER",
+                  f"{rank_score:,} RANK")
+    else:
+        span_r = max(1, nxt - floor)
+        _slot_bar(img, draw, BAR_RANK, (rank_score - floor) / span_r, tier_col,
+                  f"RANK {rank_score:,}", f"{nxt - rank_score:,} TO NEXT")
 
 
-def _stat_grid(img, draw, x, y, w, profile):
+def _stat_grid(img, draw, profile):
     wins   = _num(profile.get("wins"))
     losses = _num(profile.get("losses"))
     played = wins + losses
-    rate   = f"{(wins / played * 100):.0f}%" if played else "—"
-
+    rate   = (wins / played * 100) if played else 0.0
     cells = [
-        ("WINS",    f"{wins:,}",                              WIN_COL),
-        ("LOSSES",  f"{losses:,}",                            LOSS_COL),
-        ("WIN RATE", rate,                                    TEXT),
-        ("STREAK",  f"{_num(profile.get('win_streak')):,}",  GOLD),
-        ("BEST",    f"{_num(profile.get('best_streak')):,}", GOLD),
-        ("COINS",   f"{_num(profile.get('coins')):,}",  COIN_COL),
+        ("Wins",       f"{wins:,}",       WIN_COL),
+        ("Losses",     f"{losses:,}",     LOSS_COL),
+        ("Win rate",   f"{rate:.0f}%",    TEXT),
+        ("Streak",     _short(_num(profile.get("win_streak"))),  GOLD),
+        ("Best",       _short(_num(profile.get("best_streak"))), GOLD),
+        ("Beycoins",   _short(_num(profile.get("coins"))),       COIN_COL),
     ]
-    cols, rows = 3, 2
-    cw = (w - (cols - 1) * 12) // cols
-    ch = 116
-    for i, (label, value, col) in enumerate(cells):
-        cx0 = x + (cw + 12) * (i % cols)
-        cy0 = y + (ch + 12) * (i // cols)
-        _panel(img, cx0, cy0, cx0 + cw, cy0 + ch, PANEL_HI + (208,),
-               radius=16, outline=(66, 62, 92, 170), width=2)
-        _centre(draw, label, _font(19), cx0 + cw // 2, cy0 + 18, SUBTEXT)
-        vf = _fit_text(draw, value, cw - 20, 44, floor=20)
-        _centre(draw, value, vf, cx0 + cw // 2, cy0 + 48, col)
-    return y + (ch + 12) * rows - 12
+    for i, (label, value, colour) in enumerate(cells):
+        x0, x1 = GRID_COLS[i % 3]
+        y0, y1 = GRID_ROWS[i // 3]
+        _stat_cell(img, draw, (x0, y0, x1, y1), label, value, colour)
 
 
-def _collection_bar(img, draw, x, y, w, owned, total):
-    _panel(img, x, y, x + w, y + 92, PANEL + (216,), radius=18,
-           outline=(66, 62, 92, 190), width=2)
-    draw.text((x + 20, y + 18), "COLLECTION", font=_font(20), fill=SUBTEXT)
-    # Legacy inventories still hold renamed/removed bey keys, so the raw owned
-    # count can exceed the live database. Clamp instead of drawing 105%.
-    owned = max(0, min(int(owned), int(total))) if total else max(0, int(owned))
-    pct = (owned / total) if total else 0.0
-    _right(draw, f"{owned} / {total} beys", _font(20), x + w - 20, y + 18, TEXT)
-    _bar(img, draw, x + 20, y + 50, w - 40, 26, pct, (168, 85, 247),
-         f"{pct * 100:.0f}%")
+def _collection(img, draw, owned, total):
+    total = int(total or 0)
+    if total <= 0:
+        # The roster count was unavailable, so a denominator would be a lie.
+        # "0 / 1 BEYS" was what the old max(1, total) produced for a brand-new
+        # player, which reads as a bug rather than an empty collection.
+        _slot_bar(img, draw, BAR_COLL, 0.0, LOCKED_ACCENT,
+                  "COLLECTION", f"{owned} BEYS")
+        return
+    _slot_bar(img, draw, BAR_COLL, owned / total, LOCKED_ACCENT,
+              "COLLECTION", f"{owned} / {total} BEYS")
 
 
-def _loadout(img, draw, x, y, w, h, blade):
-    _panel(img, x, y, x + w, y + h, PANEL + (220,), radius=22,
-           outline=(66, 62, 92, 190), width=2)
-    draw.text((x + 20, y + 16), "ACTIVE BEY", font=_font(20), fill=SUBTEXT)
-
+def _loadout(img, draw, blade):
     if not blade:
-        _initial_disc(img, draw, x + w // 2, y + 148, ART_BOX // 2, "?", DIM)
-        _centre(draw, "NOTHING EQUIPPED", _font(26), x + w // 2, y + 262, DIM)
-        _centre(draw, "use  ;equip <name>", _font(21), x + w // 2, y + 296, SUBTEXT)
+        # The empty state is what every brand-new player sees first, so it gets
+        # the same shape as a real loadout — caption on the name line, pills
+        # left empty — rather than a cramped label stuffed into the middle pill.
+        _initial_disc(img, draw, ART_C, ART_R, "?", DIM)
+        nf = _font(30)
+        _centre(draw, "NO BEY EQUIPPED", nf, ART_C[0], 552, DIM)
+        # The hint goes in the first stat-bar recess, not under the caption —
+        # the pill row sits between them and the text would land on its edges.
+        b = LOAD_BARS[0]
+        hf = _font(22)
+        _centre(draw, "USE  ;equip <name>", hf, (b[0] + b[2]) // 2,
+                b[1] + ((b[3] - b[1]) - hf.size) // 2 - 2, DIM)
         return
 
-    name   = str(blade.get("name", "Unknown"))
-    rarity = blade.get("rarity", "Common")
-    btype  = blade.get("type", "Balance")
-    col    = _rar_col(rarity)
-    cx     = x + w // 2
+    name   = _sanitize(str(blade.get("name", "Unknown")))
+    rarity = str(blade.get("rarity", "Common"))
+    rcol   = _rar_col(rarity)
 
-    # art
-    r = ART_BOX // 2
-    acy = y + 60 + r
-    _panel(img, cx - r - 5, acy - r - 5, cx + r + 5, acy + r + 5,
-           col + (46,), radius=r + 5, outline=col + (200,), width=3)
-    art = _blade_art(name, ART_BOX - 12)
-    if art is not None:
-        box = ART_BOX - 12
-        mask = Image.new("L", (box, box), 0)
-        ImageDraw.Draw(mask).ellipse((0, 0, box - 1, box - 1), fill=255)
-        fitted = Image.new("RGBA", (box, box), (0, 0, 0, 0))
-        fitted.paste(art, ((box - art.width) // 2, (box - art.height) // 2), art)
-        img.paste(fitted, (cx - box // 2, acy - box // 2), mask)
-    else:
-        f = _font(76)
-        ch = (_sanitize(name) or "?")[0].upper()
-        draw.text((cx - _text_w(draw, ch, f) // 2, acy - 50), ch, font=f, fill=col)
-
-    ny = acy + r + 16
-    nf = _fit_text(draw, name, w - 40, 34, floor=19)
-    _centre(draw, name, nf, cx, ny, TEXT)
-
-    # rarity + type + level chips, centred as a group.
-    # The level comes from loadout.effective_blade, so it is present whenever
-    # the card is showing a player's own bey. The header's LV chip is the
-    # TRAINER level — a different number — so this one is labelled "BEY LV" to
-    # keep the two from being read as the same thing.
-    f = _font(19)
+    art = None
     try:
-        bey_level = int(blade.get("level") or 0)
-    except (TypeError, ValueError):
-        bey_level = 0
-    lvl_txt = f"BEY LV {bey_level}" if bey_level > 0 else ""
+        art = _blade_art(name, ART_R * 2)
+    except Exception:                                    # noqa: BLE001
+        art = None
+    if art is not None:
+        _disc_art(img, ART_C, ART_R, art.convert("RGBA"))
+    else:
+        _initial_disc(img, draw, ART_C, ART_R, name, rcol)
 
-    rw = _text_w(draw, str(rarity).upper(), f) + 22
-    tw = _text_w(draw, str(btype).upper(), f) + 22
-    lw = (_text_w(draw, lvl_txt, f) + 22) if lvl_txt else 0
-    gap = 10
-    total = rw + gap + tw + ((gap + lw) if lvl_txt else 0)
-    start = cx - total // 2
-    _chip(img, draw, start, ny + 44, str(rarity).upper(), col, 19)
-    _chip(img, draw, start + rw + gap, ny + 44, str(btype).upper(), (147, 197, 253), 19)
-    if lvl_txt:
-        _chip(img, draw, start + rw + gap + tw + gap, ny + 44, lvl_txt,
-              (253, 224, 71), 19)
+    # The bey's own name sits above the pills, centred on the disc.
+    nf = _fit_text(draw, name.upper(), 430, 34, floor=18)
+    _centre(draw, name.upper(), nf, ART_C[0], 552, TEXT)
 
-    # stat bars
-    stats = blade.get("stats", {}) or {}
-    rows = [
+    _pill_text(img, draw, PILLS[0], rarity.upper(), rcol)
+    _pill_text(img, draw, PILLS[1], str(blade.get("type", "—")).upper(), TEXT)
+    lvl = _num(blade.get("level"), 1) or 1
+    _pill_text(img, draw, PILLS[2], f"BEY LV {lvl}", GOLD)
+
+    # `or {}` is not enough: a corrupted document can carry a STRING here,
+    # which is truthy and then explodes on .get — taking the whole card down
+    # and silently falling the player back to the embed. Same reasoning as
+    # _num() for the scalar fields.
+    stats = blade.get("stats")
+    if not isinstance(stats, dict):
+        stats = {}
+    rows = (
         ("ATK", _num(stats.get("attack"))),
         ("DEF", _num(stats.get("defense"))),
         ("STA", _num(stats.get("stamina"))),
         ("HP",  _num(stats.get("hp"))),
-    ]
-    top = max(STAT_MAX, max((v for _l, v in rows), default=0))
-    by = ny + 92
-    for label, val in rows:
-        draw.text((x + 22, by + 2), label, font=_font(19), fill=STAT_COL[label])
-        _bar(img, draw, x + 74, by, w - 74 - 78, 22, val / top, STAT_COL[label])
-        _right(draw, str(val), _font(20), x + w - 20, by + 1, TEXT)
-        by += 34
+    )
+    for (label, value), box in zip(rows, LOAD_BARS):
+        _slot_bar(img, draw, box, value / STAT_MAX, STAT_COL[label],
+                  label, f"{value}")
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
+# ── Entry point ───────────────────────────────────────────────────────────────
 
 def render_profile_card(
     player: dict,
@@ -415,38 +523,36 @@ def render_profile_card(
     *,
     total_beys: int | None = None,
     rank_position: int | None = None,
+    avatar_url: str | None = None,
 ) -> "io.BytesIO | None":
     """Render the profile card. Returns a PNG buffer, or None on any failure."""
     if not CARD_ENABLED:
         return None
     try:
+        img = _frame()
+        if img is None:
+            return None
+        draw = ImageDraw.Draw(img)
+
         name       = _sanitize(player.get("name", "Blader"))
         rank_score = max(0, _num(profile.get("rank_score")))
         xp         = max(0, _num(profile.get("xp")))
         tier_name, tier_col, _floor, _nxt = _tier_for(rank_score)
         level, _i, _s = _level_from_xp(xp)
-
         accent = _accent_for(tier_col)
-        img  = _background(accent)
-        draw = ImageDraw.Draw(img)
 
-        _header(img, draw, name, tier_name, tier_col, accent, level, rank_position)
-
-        lx = SIDE
-        rx = SIDE + LEFT_W + COL_GAP
-        rw = W - SIDE - rx
-        top = HEADER_H + 12
-
-        _progress_block(img, draw, lx, top, LEFT_W, xp, rank_score)
-        gy = _stat_grid(img, draw, lx, top + 172, LEFT_W, profile)
+        _header(img, draw, name, tier_name, tier_col, accent, level,
+                rank_position, avatar_url)
+        _progress(img, draw, xp, rank_score, tier_col)
+        _stat_grid(img, draw, profile)
         owned = len(set(profile.get("inventory") or []))
-        _collection_bar(img, draw, lx, gy + 12, LEFT_W, owned, total_beys or owned)
-
-        _loadout(img, draw, rx, top, rw, H - top - 32, blade)
+        _collection(img, draw, owned, total_beys or owned)
+        _loadout(img, draw, blade)
 
         buf = io.BytesIO()
         img.convert("RGB").save(buf, format="PNG", optimize=True)
         buf.seek(0)
         return buf
     except Exception:
+        log.exception("profile card render failed")
         return None
