@@ -150,6 +150,12 @@ def effective_blade(user_id: int, profile: Optional[dict] = None,
     if not blade:
         return {}, {}, avatar_bonuses(user_id) if include_avatar else None
 
+    # Which way a dual-spin blade is mounted, BEFORE anything reads its stats.
+    # Master Diabolos has a different statline, type and Special per mode, so
+    # resolving it later would level and equip the wrong configuration.
+    from utils.spin_mode import resolve as _resolve_spin
+    blade = _resolve_spin(profile, blade)
+
     raw_base = dict(blade.get("stats") or {})
     base = dict(raw_base)
     level = 1

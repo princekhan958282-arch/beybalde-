@@ -68,6 +68,13 @@ def _apply_parts(blade: dict, profile: dict) -> dict:
     type band and would throw the growth away.
     """
     from utils.loadout import bey_level_and_stats
+    from utils.spin_mode import resolve as resolve_spin
+
+    # A dual-spin blade is mounted one way or the other before anything else:
+    # Master Diabolos has different stats, a different type and a different
+    # Special per mode, so the mode has to be picked before levels are applied
+    # to it. Non-dual blades come back untouched.
+    blade = resolve_spin(profile, blade)
 
     level, levelled = bey_level_and_stats(profile, blade)
     if level <= 1:

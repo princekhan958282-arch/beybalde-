@@ -182,8 +182,17 @@ for name in listed:
     b = BLADES[name]
     hits, per_hit, _f, _i = resolve_special(b)
     before, after = per_hit * hits, sum(resolve_special_hits(b))
-    check(f"{name}: total damage is unchanged ({before})", before == after,
-          (before, after))
+    # `before` is the LOSSY path — resolve_special averages the list into one
+    # integer, so a total that does not divide evenly by `hits` loses the
+    # remainder. Master Diabolos's [95, 60] averages to 77.5 -> 77, and 154
+    # against a true 155 is that remainder, not a regression.
+    #
+    # Demanding exact equality would forbid every odd-sum multi-hit Special
+    # from ever existing, which is the opposite of what resolve_special_hits
+    # was written for. The tolerance is the rounding error and nothing more:
+    # a genuine change to a blade's damage moves it by far more than `hits`.
+    check(f"{name}: total damage is preserved ({after})",
+          abs(before - after) < hits, (before, after, hits))
     check(f"{name}: but the shape now matches the card",
           resolve_special_hits(b) != [per_hit] * hits,
           resolve_special_hits(b))

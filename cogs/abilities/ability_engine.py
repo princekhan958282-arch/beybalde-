@@ -300,6 +300,23 @@ class AbilityEngine:
             _sp = str((self.session.blades.get(key) or {}).get(
                 "spin_direction", "Right")).strip().lower()
             return _sp == str(v).strip().lower()
+        if c in ("opposite_spin", "same_spin"):
+            # "Are we turning against each other?" cannot be written with
+            # my_spin_is + enemy_spin_is, because the `if` list is ANDed and
+            # this needs an OR — right-vs-left OR left-vs-right. Written as
+            # rule pairs it is four rules per ability and easy to get half
+            # right, so it is one condition instead.
+            #
+            # A Dual blade counts as neither: it has no fixed rotation until a
+            # spin mode is chosen, and `utils.spin_mode` resolves it to a real
+            # direction before the session ever sees it.
+            mine = str((self.session.blades.get(key) or {}).get(
+                "spin_direction", "Right")).strip().lower()
+            theirs = str((self.session.blades.get(okey) or {}).get(
+                "spin_direction", "Right")).strip().lower()
+            if mine not in ("left", "right") or theirs not in ("left", "right"):
+                return False
+            return (mine != theirs) if c == "opposite_spin" else (mine == theirs)
         if c == "enemy_type_not_in":
             _et = str((self.session.blades.get(okey) or {}).get("type", "")).lower()
             return _et not in [str(x).lower()
