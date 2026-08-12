@@ -293,6 +293,48 @@ def check_levels() -> None:
           > story_data.opponent_stats({"type": "balance", "level": 10})["attack"])
 
 
+def check_rewards() -> None:
+    """Coin payouts must stay in proportion to the rest of the economy.
+
+    Story out-paid every other source combined before this was pinned: a full
+    first-clear run was worth more than 99.97% of players had ever held. These
+    ceilings are quoted against the real income sources, so raising a stage
+    past them fails here instead of in the economy.
+    """
+    print("\n▸ reward scale")
+    stages = story_data.all_stages()
+    coins = [s["reward"]["coins"] for s in stages]
+    full_first = sum(c * 2 for c in coins)          # first clear pays double
+    lap = sum(coins)
+    best = max(coins)
+
+    print(f"     full first run {full_first:,}  ·  replay lap {lap:,}  ·  "
+          f"best stage {best:,}")
+
+    # `;daily` pays 2,000-10,000 every 4h — up to 60,000 a day. A whole campaign
+    # clear should be worth about a day of that, not a week of it.
+    check("a full first-clear run stays under 100,000",
+          full_first <= 100_000, f"{full_first:,}")
+    # 150 coins a PvP win. A single story stage worth hundreds of wins is the
+    # shape of the original bug.
+    check("no single stage replay is worth more than 100 PvP wins",
+          best <= 150 * 100, f"{best:,} vs {150 * 100:,}")
+    check("a full replay lap stays under one day of ;daily",
+          lap <= 60_000, f"{lap:,}")
+    check("rewards still rise across the campaign",
+          coins == sorted(coins), coins)
+    check("every stage still pays something", all(c > 0 for c in coins))
+
+    # EXP was deliberately left alone by the coin nerf; if a later edit sweeps
+    # it up by accident, this is where it shows.
+    xp = [s["reward"]["xp"] for s in stages]
+    bey = [s["reward"]["bey_xp"] for s in stages]
+    check("trainer EXP is untouched by the coin nerf",
+          xp == [60, 80, 100, 220, 240, 270, 300, 450, 480, 520, 600, 900], xp)
+    check("bey EXP is untouched too",
+          bey[0] == (120, 200) and bey[-1] == (800, 1100), (bey[0], bey[-1]))
+
+
 def check_unlocks() -> None:
     print("\n▸ unlock chain")
     ids = [s["id"] for s in story_data.all_stages()]
@@ -325,6 +367,7 @@ def main() -> int:
     if args.table:
         check_progression(args.fights)
     else:
+        check_rewards()
         check_unlocks()
         check_levels()
         check_effects_fire(max(60, args.fights // 3))

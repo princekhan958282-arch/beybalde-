@@ -130,6 +130,35 @@ def opponent_stats(stage: dict) -> dict[str, int]:
     return out
 
 
+# ── Rewards ──────────────────────────────────────────────────────────────────
+#
+# Coin payouts are one TENTH of what shipped, because what shipped was minting
+# money faster than every other source in the game combined. Measured against
+# the live store at the time of the change — 3,361 players, 41,356,761 coins in
+# existence, median balance 0 and p99 110,999:
+#
+#   a full first-clear run paid   573,000   more than 99.97% of players had
+#                                           ever accumulated, in one sitting
+#   a single 3-4 replay paid       75,000   more than 94% of players held, and
+#                                           worth 500 PvP wins at 150 each
+#   ten replay laps would mint  2,865,000   7% of every coin in the game, from
+#                                           one player, in one evening
+#
+# At a tenth, a full run pays 57,300 — about one day of `;daily` (2,000-10,000
+# every 4 hours) — and the hardest stage pays 7,500 a clear. That makes Story
+# a strong reward for progression instead of the primary income of the economy.
+#
+# EXP is deliberately UNCHANGED. The report was about money, and bey EXP is the
+# main route to the level curve, which now drives PvP stats directly — cutting
+# it would have quietly slowed all progression to fix an unrelated problem.
+#
+# STILL OPEN, and not fixed here: story stages have no cooldown and no daily
+# cap. `StoryCog._can_fight` checks only "already fighting" and "stage
+# unlocked", so replays are unlimited and a lap of the whole campaign still
+# mints 28,650 with nothing to stop it repeating. The values are now small
+# enough that this is a slow drip rather than a firehose, but the hole is the
+# mechanism — any reward number is infinitely farmable through it.
+#
 # ── The campaign ─────────────────────────────────────────────────────────────
 # Difficulty names must exist in boss_ai.DIFFICULTY:
 #   rookie -> veteran -> elite -> legend -> nightmare
@@ -146,7 +175,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0x2ECC71,
                 "persona": "twitchy, over-eager, telegraphs everything",
                 "blurb": "Attacks on instinct. Punish the heals.",
-                "reward": {"coins": 2_000, "xp": 60, "bey_xp": (120, 200)},
+                "reward": {"coins": 200, "xp": 60, "bey_xp": (120, 200)},
                 "boss": False,
             },
             {
@@ -155,7 +184,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0x3498DB,
                 "persona": "patient, blocks first and asks questions later",
                 "blurb": "Blocks a lot — and a block ripostes. Bait it out.",
-                "reward": {"coins": 3_000, "xp": 80, "bey_xp": (140, 230)},
+                "reward": {"coins": 300, "xp": 80, "bey_xp": (140, 230)},
                 "boss": False,
             },
             {
@@ -164,7 +193,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0xE67E22,
                 "persona": "all offence, no patience",
                 "blurb": "Hits hard and often. Attack blades hurt more — mind the clash.",
-                "reward": {"coins": 4_500, "xp": 100, "bey_xp": (160, 260)},
+                "reward": {"coins": 450, "xp": 100, "bey_xp": (160, 260)},
                 "boss": False,
             },
             {
@@ -173,7 +202,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0x9B59B6,
                 "persona": "smug, reads your habits, never wastes a turn",
                 "blurb": "He watches what you repeat. Stop repeating it.",
-                "reward": {"coins": 10_000, "xp": 220, "bey_xp": (300, 450)},
+                "reward": {"coins": 1_000, "xp": 220, "bey_xp": (300, 450)},
                 "boss": True,
             },
         ],
@@ -189,7 +218,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0x1ABC9C,
                 "persona": "unhurried, wins by outlasting",
                 "blurb": "Heals to stay alive. Its heal budget is finite — spend it for them.",
-                "reward": {"coins": 12_000, "xp": 240, "bey_xp": (320, 470)},
+                "reward": {"coins": 1_200, "xp": 240, "bey_xp": (320, 470)},
                 "boss": False,
             },
             {
@@ -198,7 +227,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0x34495E,
                 "persona": "a wall with a grudge",
                 "blurb": "High guard. Specials pierce half of it — save your gauge.",
-                "reward": {"coins": 15_000, "xp": 270, "bey_xp": (340, 500)},
+                "reward": {"coins": 1_500, "xp": 270, "bey_xp": (340, 500)},
                 "boss": False,
             },
             {
@@ -207,7 +236,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0xF1C40F,
                 "persona": "fast, ruthless, searches two moves ahead",
                 "blurb": "Rarely blunders. Trades will not go your way.",
-                "reward": {"coins": 18_000, "xp": 300, "bey_xp": (360, 520)},
+                "reward": {"coins": 1_800, "xp": 300, "bey_xp": (360, 520)},
                 "boss": False,
             },
             {
@@ -216,7 +245,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0xE74C3C,
                 "persona": "the complete blader — no weakness to aim at",
                 "blurb": "No gap in the kit. Win the gauge race or lose the fight.",
-                "reward": {"coins": 30_000, "xp": 450, "bey_xp": (500, 700)},
+                "reward": {"coins": 3_000, "xp": 450, "bey_xp": (500, 700)},
                 "boss": True,
             },
         ],
@@ -232,7 +261,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0xD35400,
                 "persona": "burns the fight down before it can be planned",
                 "blurb": "Opens fast. Survive the first ten turns and it evens out.",
-                "reward": {"coins": 34_000, "xp": 480, "bey_xp": (520, 720)},
+                "reward": {"coins": 3_400, "xp": 480, "bey_xp": (520, 720)},
                 "boss": False,
             },
             {
@@ -241,7 +270,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0x8E44AD,
                 "persona": "calm, exact, refuses to be rushed",
                 "blurb": "Blocks and heals in the right order. Force the tempo.",
-                "reward": {"coins": 38_000, "xp": 520, "bey_xp": (540, 750)},
+                "reward": {"coins": 3_800, "xp": 520, "bey_xp": (540, 750)},
                 "boss": False,
             },
             {
@@ -250,7 +279,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0x2C3E50,
                 "persona": "almost never wrong",
                 "blurb": "Blunders 4% of the time. That is your whole opening.",
-                "reward": {"coins": 45_000, "xp": 600, "bey_xp": (600, 820)},
+                "reward": {"coins": 4_500, "xp": 600, "bey_xp": (600, 820)},
                 "boss": False,
             },
             {
@@ -259,7 +288,7 @@ CHAPTERS: dict[int, dict] = {
                 "colour": 0xFFD700,
                 "persona": "the reason the crown exists",
                 "blurb": "The end of the road. An avatar is not optional here.",
-                "reward": {"coins": 75_000, "xp": 900, "bey_xp": (800, 1100)},
+                "reward": {"coins": 7_500, "xp": 900, "bey_xp": (800, 1100)},
                 "boss": True,
             },
         ],
