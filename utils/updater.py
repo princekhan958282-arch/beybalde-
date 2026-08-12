@@ -143,7 +143,20 @@ DATA_CONTENT = (
 # Only these extensions are copied. A code update has no business writing
 # anything else into the install, and this keeps a compromised or malformed
 # archive from dropping executables next to app.py.
-ALLOWED_SUFFIXES = (".py", ".txt", ".md", ".json", ".ttf", ".png", ".example")
+#
+# The failure mode when something is MISSING from this list is silent and
+# nasty: `_members` just skips the file, the update reports success, and the
+# feature that needed it is quietly dead on the host while working perfectly
+# in the repo. That is exactly what happened to the profile card's frame —
+# committed as .jpg, never delivered, and `;profile` fell back to its embed
+# with no error anywhere. `tools/sim_profile_card.py` now asserts that every
+# file under assets/ has a suffix on this list, so a new asset type fails a
+# test here instead of on somebody's server.
+#
+# Image formats are as safe as .png already was — Pillow decodes them and
+# nothing executes.
+ALLOWED_SUFFIXES = (".py", ".txt", ".md", ".json", ".ttf", ".otf",
+                    ".png", ".jpg", ".jpeg", ".webp", ".gif", ".example")
 
 
 # ── state ────────────────────────────────────────────────────────────────────

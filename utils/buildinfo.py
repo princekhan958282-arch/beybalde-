@@ -29,7 +29,7 @@ import sys
 
 log = logging.getLogger("beyblade_bot.build")
 
-VERSION = "v85"
+VERSION = "v87"
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -57,6 +57,21 @@ def store_parity() -> list[str]:
     a = {m for m in dir(UserStore) if not m.startswith("_")}
     b = {m for m in dir(MySQLStore) if not m.startswith("_")}
     return sorted(a - b)
+
+
+# Art the bot needs at runtime, as install-relative paths. A feature whose
+# asset is missing does not crash — it falls back — so nothing surfaces the
+# problem unless something looks for it. That is how the profile card's frame
+# went missing on a live host while working perfectly in the repo.
+REQUIRED_ASSETS = (
+    "assets/ui/profile_frame.png",
+)
+
+
+def missing_assets() -> list[str]:
+    """Which REQUIRED_ASSETS are not on disk. Empty is healthy."""
+    return [rel for rel in REQUIRED_ASSETS
+            if not os.path.exists(os.path.join(_ROOT, *rel.split("/")))]
 
 
 def stale_pycache() -> list[str]:
@@ -92,6 +107,7 @@ def selfcheck(verbose: bool = True) -> dict:
         "python": sys.version.split()[0],
         "parity_gaps": [],
         "stale_pyc": [],
+        "missing_assets": [],
         "discord_version": "",
         "ok": True,
     }
@@ -109,8 +125,13 @@ def selfcheck(verbose: bool = True) -> dict:
         report["stale_pyc"] = stale_pycache()
     except Exception as e:                           # noqa: BLE001
         log.debug("[build] pycache check failed: %s", e)
+    try:
+        report["missing_assets"] = missing_assets()
+    except Exception as e:                           # noqa: BLE001
+        log.debug("[build] asset check failed: %s", e)
 
-    report["ok"] = not report["parity_gaps"] and not report["stale_pyc"]
+    report["ok"] = (not report["parity_gaps"] and not report["stale_pyc"]
+                    and not report["missing_assets"])
 
     if verbose:
         log.info("[build] Beycord %s · python %s · discord.py %s",
@@ -125,6 +146,11 @@ def selfcheck(verbose: bool = True) -> dict:
             log.error("[build] stale __pycache__ for: %s",
                       ", ".join(report["stale_pyc"]))
             log.error("[build] delete every __pycache__ folder and restart.")
+        if report["missing_assets"]:
+            log.error("[build] MISSING ART: %s",
+                      ", ".join(report["missing_assets"]))
+            log.error("[build] the feature that needs it will silently fall "
+                      "back. Re-upload the whole zip, assets/ included.")
         if report["ok"]:
             log.info("[build] self-check passed — all modules agree.")
     return report

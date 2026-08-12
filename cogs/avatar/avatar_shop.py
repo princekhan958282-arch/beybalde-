@@ -134,9 +134,17 @@ DUPE_REFUND_RATE: dict[str, float] = {
     "Mythic":    0.30,   # 30%
     "Ultimate":  0.40,   # 40%
     "Exclusive": 0.50,   # 50% (shouldn't happen via packs but included for safety)
-    # A 15M pack that hands back a duplicate has to return something
-    # proportionate, or one bad pull erases a fortnight of play.
-    "MLBB":      0.60,   # 60%
+    # 20% of 15,000,000 = 3,000,000 exactly.
+    #
+    # This was 60%, which was indefensible once you notice the refund is paid
+    # PER PULL and the MLBB pack pulls twice: two duplicates returned
+    # 18,000,000 on a 15,000,000 pack. With only six cards on the banner, a
+    # player who owned most of them could open packs at a profit — the pack
+    # stopped being a purchase and became a coin printer.
+    #
+    # At 20% the worst case is 6,000,000 back on 15,000,000 spent, so a bad
+    # pull still hurts without ever paying.
+    "MLBB":      0.20,   # 20%
 }
 
 # ── Pack emoji ────────────────────────────────────────────────────────────────
@@ -487,42 +495,47 @@ class AvatarShop(commands.Cog, name="Avatar"):
             color=0x3498DB,
         )
 
-        pack_info = [
-            (
-                "common",
-                "1× guaranteed **Common** (exact)",
-                "Common, Rare",
-                "10–15%",
-            ),
-            (
-                "rare",
-                "1× guaranteed **Rare** (exact)",
-                "Common, Rare, Epic",
-                "15–20%",
-            ),
-            (
-                "epic",
-                "1× guaranteed **Epic** (exact)",
-                "Common, Rare, Epic, Legendary, Mythic",
-                "20–30%",
-            ),
-            (
-                "legendary",
-                "1× guaranteed **Legendary** (exact)",
-                "Common, Rare, Epic, Legendary, Mythic, Ultimate",
-                "25–40%",
-            ),
-        ]
-
-        for pack_key, guarantee, pool_str, refund_range in pack_info:
-            emoji = PACK_EMOJI[pack_key]
+        # Derived from the tables the pack opener actually reads, not a
+        # hand-written list. The hardcoded version had drifted twice over: the
+        # MLBB banner was missing entirely — a 15,000,000 pack that `;packs`
+        # never mentioned — and its refund percentages were frozen at values
+        # DUPE_REFUND_RATE no longer held. Anything listed here is now, by
+        # construction, what the pack will really do.
+        for pack_key in PACK_PRICE:
+            emoji = PACK_EMOJI.get(pack_key, "🎴")
             price = PACK_PRICE[pack_key]
+            guar = PACK_GUARANTEE.get(pack_key)
+            # Only rarities a pull can REACH. `_build_rarity_map` drops
+            # Exclusive outright, so listing it advertised a tier — and a 50%
+            # refund — that no pack has ever been able to produce.
+            pool = [r for r in PACK_POOL.get(pack_key, []) if r != "Exclusive"]
+            if not pool:
+                pool = list(PACK_POOL.get(pack_key, []))
+
+            if guar and len(set(pool)) == 1 and pool[0] == guar:
+                guarantee = f"both pulls **{guar}**"     # a closed banner
+            elif guar:
+                guarantee = f"1× guaranteed **{guar}** (exact)"
+            else:
+                guarantee = "no guaranteed rarity"
+
+            rates = [DUPE_REFUND_RATE.get(r, 0.10) for r in pool] or [0.10]
+            lo, hi = min(rates), max(rates)
+            # The coin value matters far more than the percentage at these
+            # prices — "20%" of a 15,000,000 pack is not a number anyone
+            # converts in their head while deciding whether to buy.
+            if lo == hi:
+                refund = f"{lo:.0%}  ({int(price * lo):,} coins)"
+            else:
+                refund = (f"{lo:.0%}–{hi:.0%}  ({int(price * lo):,}–"
+                          f"{int(price * hi):,} coins)")
+
             embed.add_field(
                 name=f"{emoji} {PACK_DISPLAY[pack_key]}  —  {price:,} coins",
                 value=(
                     f"**Guarantee:** {guarantee}\n"
-                    f"**Pool:** {pool_str}\n"
-                    f"**Dupe refund:** {refund_range} of pack price\n"
+                    f"**Pool:** {', '.join(pool)}\n"
+                    f"**Dupe refund:** {refund} per duplicate\n"
                     f"`;buypack {pack_key}`"
                 ),
                 inline=False,
