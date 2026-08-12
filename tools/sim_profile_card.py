@@ -65,11 +65,35 @@ def render(label, *a, **kw):
 
 
 print("\n── 1. the frame asset ships and loads ───────────────────────────")
-check("assets/ui/profile_frame.jpg exists", os.path.exists(PC._FRAME_PATH),
-      PC._FRAME_PATH)
+check("the frame asset exists", os.path.exists(PC._FRAME_PATH), PC._FRAME_PATH)
 size_kb = os.path.getsize(PC._FRAME_PATH) / 1024
 check(f"...and is a sane size to ship in a zip ({size_kb:.0f} KB)",
-      size_kb < 400, f"{size_kb:.0f} KB")
+      size_kb < 1200, f"{size_kb:.0f} KB")
+
+# THE check this file exists for. The card shipped once as a .jpg, which is not
+# on the updater's suffix allowlist — so `_members` skipped it, the update
+# reported success, and the frame simply never arrived on the host. The card
+# then fell back to the embed with no error anywhere. An asset the updater
+# cannot deliver is an asset that does not exist in production.
+from utils.updater import ALLOWED_SUFFIXES, _is_protected     # noqa: E402
+
+assets_dir = os.path.join(ROOT, "assets")
+undeliverable, protected = [], []
+for dirpath, _dirs, files in os.walk(assets_dir):
+    for fn in files:
+        rel = os.path.relpath(os.path.join(dirpath, fn), ROOT).replace(os.sep, "/")
+        if not rel.endswith(ALLOWED_SUFFIXES):
+            undeliverable.append(rel)
+        if _is_protected(rel):
+            protected.append(rel)
+check("every file under assets/ has an updater-deliverable suffix",
+      not undeliverable, undeliverable[:5])
+check("...and none of them is on a PROTECTED path", not protected, protected[:5])
+check("the frame itself would be delivered by an update",
+      os.path.relpath(PC._FRAME_PATH, ROOT).replace(os.sep, "/")
+      .endswith(ALLOWED_SUFFIXES)
+      and not _is_protected(os.path.relpath(PC._FRAME_PATH, ROOT)
+                            .replace(os.sep, "/")))
 frame = PC._frame()
 check("the frame loads", frame is not None)
 check("...at the size the geometry was measured against",

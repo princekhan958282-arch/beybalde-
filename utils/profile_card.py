@@ -1,7 +1,7 @@
 """
 utils/profile_card.py — Beycord blader profile card (Pillow)
 =============================================================
-Renders the profile onto ``assets/ui/profile_frame.jpg``, an authored HUD frame,
+Renders the profile onto ``assets/ui/profile_frame.png``, an authored HUD frame,
 instead of drawing its own panels. Everything the card shows now sits in a slot
 the artwork already provides:
 
@@ -70,7 +70,7 @@ CARD_ENABLED = True
 
 _FRAME_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "assets", "ui", "profile_frame.jpg")
+    "assets", "ui", "profile_frame.png")
 
 W, H = 1193, 967                      # the frame's native size; do not rescale
 

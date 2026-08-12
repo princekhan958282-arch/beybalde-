@@ -559,6 +559,18 @@ class AdminCog(commands.Cog, name="Admin"):
         e.add_field(name="DB backend", value=getattr(db, "BACKEND", "?"),
                     inline=True)
 
+        # Missing art. A feature whose asset is absent does not crash, it falls
+        # back — so the only symptom is "the new thing doesn't work" with
+        # nothing in the log. The profile card's frame went missing on a live
+        # host for exactly this reason and took a debugging session to find.
+        if rep.get("missing_assets"):
+            e.add_field(
+                name="🖼️ MISSING ART",
+                value=("\n".join(f"`{p}`" for p in rep["missing_assets"])
+                       + "\n\nThe feature that needs it is silently falling "
+                         "back. Re-upload the whole zip, `assets/` included."),
+                inline=False)
+
         # Which commit the auto-updater last installed. This is the other half
         # of "did my upload land?": VERSION above is what the RUNNING code says
         # it is, this is what is on DISK. They disagree when an update has been
