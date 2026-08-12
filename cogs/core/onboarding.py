@@ -34,18 +34,49 @@ from utils.database import (
 from utils.embeds import RARITY_EMOJIS, rarity_colour
 
 STARTER_COINS   = 1_000
-STARTER_RARITY  = "Common"
-STARTER_CHOICES = 3
+STARTER_CHOICES = 4
+
+# The four anime starters, by name. An explicit list rather than a rarity
+# filter: these are authored AS starters — deliberately at the bottom of the
+# Rare band, one per type, each carrying its anime ability — and a rarity
+# filter would silently start handing out whatever else was added at that
+# rarity later. Every new player picks one of exactly these four.
+STARTER_NAMES = (
+    "Victory Valkyrie",     # Attack
+    "King Kerbeus",         # Defense
+    "Rising Ragnaruk",      # Stamina
+    "Storm Spriggan",       # Balance
+)
+
+# Commands that must work BEFORE a player has started, or the gate below locks
+# people out of the door it is guarding. Matched against the command's
+# qualified name and every alias.
+GATE_EXEMPT = {
+    "start", "begin", "newplayer", "getstarted",   # the door itself
+    "whatnext", "next", "guide",                   # where ;start sends you
+    "help", "commands", "h",                       # how to find the door
+    "version", "build", "ver",                     # admin diagnostics
+    "ping", "invite", "support",
+}
+
+
+class NotStarted(commands.CheckFailure):
+    """Raised by the global gate when a player hasn't run ;start yet."""
 
 
 def _starter_pool() -> list[dict]:
-    """Common blades only — a starter shouldn't out-stat a Legendary drop."""
+    """The four authored starters, in a stable order.
+
+    Falls back to any blade only if the roster cannot be read at all — a
+    missing starter must not leave `;start` with nothing to offer, because
+    with the gate in place that would lock the whole bot.
+    """
     try:
         beys = load_beyblades()
     except Exception:
         return []
-    pool = [b for b in beys.values()
-            if b.get("rarity") == STARTER_RARITY and b.get("name")]
+    by_name = {b.get("name"): b for b in beys.values() if b.get("name")}
+    pool = [by_name[n] for n in STARTER_NAMES if n in by_name]
     return pool or [b for b in beys.values() if b.get("name")]
 
 
@@ -305,11 +336,15 @@ class OnboardingCog(commands.Cog):
             return await ctx.send(embed=e)
 
         pool = _starter_pool()
-        if len(pool) < STARTER_CHOICES:
+        if not pool:
             return await ctx.send(
                 "⚠️ The blade database isn't loaded properly — tell an admin.")
 
-        choices = random.sample(pool, STARTER_CHOICES)
+        # All four, always, in type order — not a random sample. The point of
+        # authoring one starter per type is that a new player gets to choose a
+        # PLAYSTYLE; sampling three of four would hide one at random and make
+        # the choice feel arbitrary.
+        choices = pool[:STARTER_CHOICES]
         view = StarterPickView(ctx.author, choices)
         view.message = await ctx.send(embed=view.build_embed(), view=view)
 
@@ -322,6 +357,8 @@ class OnboardingCog(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error):
         """Nudge brand-new users toward ;start instead of a bare error."""
+        if isinstance(error, NotStarted):
+            return await ctx.send(embed=_gate_embed(), delete_after=60)
         if not isinstance(error, commands.CommandNotFound):
             return
         try:
@@ -336,5 +373,134 @@ class OnboardingCog(commands.Cog):
             pass
 
 
+# ── The gate ─────────────────────────────────────────────────────────────────
+
+def _gate_embed() -> discord.Embed:
+    e = discord.Embed(
+        title="🌟 Pick your Beyblade first",
+        description=(
+            "You need a blade before you can do anything here.\n\n"
+            "Run **`;start`** — it takes one click, it's free, and you get "
+            f"🪙 {STARTER_COINS:,} to go with it."),
+        colour=0xF1C40F)
+    e.add_field(
+        name="What you'll choose from",
+        value="\n".join(f"• **{n}**" for n in STARTER_NAMES),
+        inline=False)
+    e.set_footer(text="Already started and still seeing this? Tell an admin.")
+    return e
+
+
+def command_names(command) -> set[str]:
+    """Every name a command answers to, including its aliases and parents."""
+    names = {getattr(command, "name", ""), getattr(command, "qualified_name", "")}
+    names.update(getattr(command, "aliases", []) or [])
+    parent = getattr(command, "parent", None)
+    if parent is not None:
+        names.update(command_names(parent))
+    return {n for n in names if n}
+
+
+def is_exempt(command) -> bool:
+    """Can this command run before the player has started?"""
+    if command is None:
+        return True
+    return bool(command_names(command) & GATE_EXEMPT)
+
+
+def gate_check(bot: commands.Bot):
+    """Build the global check that requires `;start` before anything else.
+
+    Deliberately fails OPEN on any internal error. A gate in front of every
+    command in the bot is the single worst place for an unhandled exception —
+    a database blip would take the whole bot down for everyone, which is
+    strictly worse than briefly letting an unstarted player run a command.
+    """
+    async def predicate(ctx: commands.Context) -> bool:
+        if is_exempt(ctx.command):
+            return True
+        try:
+            # Owner is never gated: admin commands have to work on a fresh
+            # install, before anybody — including the owner — has started.
+            if await bot.is_owner(ctx.author):
+                return True
+        except Exception:                                # noqa: BLE001
+            pass
+        try:
+            if not user_exists(ctx.author.id):
+                raise NotStarted()
+            if not _has_started(get_user(ctx.author.id)):
+                raise NotStarted()
+        except NotStarted:
+            raise
+        except Exception:                                # noqa: BLE001
+            return True                                  # fail open
+        return True
+
+    return predicate
+
+
+async def has_started_id(bot: commands.Bot, user) -> bool:
+    """Shared truth for both gates. True (open) on any internal error."""
+    try:
+        if await bot.is_owner(user):
+            return True
+    except Exception:                                    # noqa: BLE001
+        pass
+    try:
+        if not user_exists(user.id):
+            return False
+        return _has_started(get_user(user.id))
+    except Exception:                                    # noqa: BLE001
+        return True                                      # fail open
+
+
+def install_tree_gate(bot: commands.Bot) -> None:
+    """Gate SLASH commands too.
+
+    `bot.add_check` only covers prefix commands, and seven cogs expose their
+    slash entry points by building a Context and calling `ctx.invoke` — which
+    explicitly does NOT run checks. Without this, every gated command has an
+    ungated `/` twin, which is not a gate at all.
+    """
+    tree = bot.tree
+    if getattr(tree, "_beycord_start_gate", False):
+        return
+    previous = tree.interaction_check
+
+    async def check(interaction: discord.Interaction) -> bool:
+        try:
+            name = getattr(interaction.command, "qualified_name", "") or ""
+            root = name.split(" ")[0] if name else ""
+            if not name or root in GATE_EXEMPT or name in GATE_EXEMPT:
+                pass
+            elif not await has_started_id(bot, interaction.user):
+                await interaction.response.send_message(
+                    embed=_gate_embed(), ephemeral=True)
+                return False
+        except discord.InteractionResponded:
+            return False
+        except Exception:                                # noqa: BLE001
+            pass                                         # fail open
+        # Chain, so this never silently replaces a check something else set.
+        try:
+            return await previous(interaction)
+        except Exception:                                # noqa: BLE001
+            return True
+
+    tree.interaction_check = check
+    tree._beycord_start_gate = True
+
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(OnboardingCog(bot))
+    # A global check, so it covers every cog without each one opting in.
+    # `add_check` is idempotent enough for a reload: remove first, then add.
+    check = gate_check(bot)
+    try:
+        bot.remove_check(getattr(bot, "_beycord_start_gate", None))
+    except Exception:                                    # noqa: BLE001
+        pass
+    bot._beycord_start_gate = check
+    bot.add_check(check)
+    install_tree_gate(bot)

@@ -283,7 +283,11 @@ check("...reading the live bar, not the stat",
       "stamina_manager.stamina.get(mkey" in asrc)
 
 print("\n── 8. the roster is intact ──────────────────────────────────────")
-check("80 blades", len(BLADES) == 80, len(BLADES))
+# A floor, not an equality. Pinning the exact count means every blade added
+# afterwards fails a suite that has nothing to do with it — this one has now
+# broken on Void Longinus, Aetherion Vortex and the four starters in turn.
+check(f"the roster has not shrunk ({len(BLADES)} blades)",
+      len(BLADES) >= 80, len(BLADES))
 check("Aetherion's Special resolves to its authored shape",
       resolve_special_hits(AV) == [70, 60], resolve_special_hits(AV))
 drift = []

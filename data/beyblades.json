@@ -6221,5 +6221,393 @@
       }
     ],
     "spin_direction": "Left"
+  },
+  "Rising Ragnaruk": {
+    "id": "BB081",
+    "name": "Rising Ragnaruk",
+    "rarity": "Rare",
+    "type": "Stamina",
+    "spin_direction": "right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537063768641769513/Beyblade_Ragnaruk.webp?ex=6a7dadaf&is=6a7c5c2f&hm=34878829e4e89a3a81aff8407ed9c4e0b97e62ae95bbd64b9c615befb63a8a59&",
+    "description": "A heavyweight that wins by refusing to stop. Ragnaruk converts every exchange it survives into more spin, grinding opponents down long after a faster blade would have burned out.",
+    "stats": {
+      "attack": 62,
+      "defense": 74,
+      "stamina": 98,
+      "special": 74,
+      "hp": 108
+    },
+    "ability": {
+      "name": "Centrifugal Force",
+      "trigger": "on_stamina_win",
+      "description": "Every Stamina exchange Ragnaruk wins feeds its rotation — recovering 10 HP and packing on +5 Defence, stacking up to 4 times. The longer the battle runs, the harder it is to move.",
+      "rules": [
+        {
+          "when": "on_stamina_win",
+          "do": [
+            {
+              "op": "heal",
+              "value": 10
+            },
+            {
+              "op": "stacking_buff",
+              "stat": "defense",
+              "per_stack": 5,
+              "max": 4,
+              "name": "centrifugal"
+            }
+          ],
+          "_name": "Centrifugal Force"
+        }
+      ]
+    },
+    "special_move": {
+      "name": "Roktavor Zone",
+      "description": "Ragnaruk plants itself and floods the stadium floor — the zone drags the opponent's spin away and feeds it back.",
+      "hits": 1,
+      "damage_per_hit": 78,
+      "total_damage": 78,
+      "flavour_texts": [
+        "🌀 **Roktavor Zone** — the stadium belongs to Ragnaruk!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Centrifugal Force",
+        "trigger": "on_stamina_win",
+        "description": "Every Stamina exchange Ragnaruk wins feeds its rotation — recovering 10 HP and packing on +5 Defence, stacking up to 4 times. The longer the battle runs, the harder it is to move.",
+        "rules": [
+          {
+            "when": "on_stamina_win",
+            "do": [
+              {
+                "op": "heal",
+                "value": 10
+              },
+              {
+                "op": "stacking_buff",
+                "stat": "defense",
+                "per_stack": 5,
+                "max": 4,
+                "name": "centrifugal"
+              }
+            ],
+            "_name": "Centrifugal Force"
+          }
+        ]
+      }
+    ]
+  },
+  "King Kerbeus": {
+    "id": "BB082",
+    "name": "King Kerbeus",
+    "rarity": "Rare",
+    "type": "Defense",
+    "spin_direction": "right",
+    "burst_height": "Low",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537063778384875570/Beyblade_Kerbeus.webp?ex=6a7dadb2&is=6a7c5c32&hm=e9ba3ac3ce651e5cac041a6c6107e36de829442db7612b54278c911f1e87216f&",
+    "description": "The three-headed guardian. Kerbeus does not dodge and does not chase — it plants itself in the centre and makes every attacker pay for the ground they take.",
+    "stats": {
+      "attack": 58,
+      "defense": 96,
+      "stamina": 76,
+      "special": 72,
+      "hp": 104
+    },
+    "ability": {
+      "name": "Chain Blade",
+      "trigger": "on_defend",
+      "description": "Kerbeus braces behind a 12 HP guard every time it is attacked, and the chains snap back for 10 damage at whoever swung.",
+      "rules": [
+        {
+          "when": "on_defend",
+          "do": [
+            {
+              "op": "shield",
+              "value": 12
+            }
+          ],
+          "_name": "Chain Blade"
+        },
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reflect_flat",
+              "value": 10
+            }
+          ],
+          "_name": "Chain Blade"
+        }
+      ]
+    },
+    "special_move": {
+      "name": "Chain Launch",
+      "description": "The chains go taut and Kerbeus hauls the opponent in — two grinding impacts that leave them badly off balance.",
+      "hits": 2,
+      "damage_per_hit": 39,
+      "total_damage": 78,
+      "flavour_texts": [
+        "⛓️ **Chain Launch** — Kerbeus drags them into the wall!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Chain Blade",
+        "trigger": "on_defend",
+        "description": "Kerbeus braces behind a 12 HP guard every time it is attacked, and the chains snap back for 10 damage at whoever swung.",
+        "rules": [
+          {
+            "when": "on_defend",
+            "do": [
+              {
+                "op": "shield",
+                "value": 12
+              }
+            ],
+            "_name": "Chain Blade"
+          },
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "reflect_flat",
+                "value": 10
+              }
+            ],
+            "_name": "Chain Blade"
+          }
+        ]
+      }
+    ]
+  },
+  "Storm Spriggan": {
+    "id": "BB083",
+    "name": "Storm Spriggan",
+    "rarity": "Rare",
+    "type": "Balance",
+    "spin_direction": "right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537063801269129236/Beyblade_Spriggan.webp?ex=6a7dadb7&is=6a7c5c37&hm=c8e29a46b9ad89e23ef2829d6cd0496c725e17e51b7f3b4f2d6e78427ba03d15&",
+    "description": "The blade that answers. Storm Spriggan gives ground on purpose, then turns whatever it was hit with straight back — a style that costs it as much as the opponent.",
+    "stats": {
+      "attack": 74,
+      "defense": 78,
+      "stamina": 78,
+      "special": 82,
+      "hp": 104
+    },
+    "ability": {
+      "name": "Spriggan Layer",
+      "trigger": "on_any_win",
+      "description": "A layer built for either direction. Any exchange Spriggan wins mends 8 HP — it stays in the fight long enough to find its counter.",
+      "rules": [
+        {
+          "when": "on_any_win",
+          "do": [
+            {
+              "op": "heal",
+              "value": 8
+            }
+          ],
+          "_name": "Spriggan Layer"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "set_mode",
+              "name": "counter_break"
+            },
+            {
+              "op": "log",
+              "text": "🌀 **Counter Break** — Spriggan opens its guard and waits."
+            }
+          ],
+          "_name": "Counter Break"
+        },
+        {
+          "when": "on_take_damage",
+          "if": [
+            {
+              "cond": "mode_is",
+              "value": "counter_break"
+            }
+          ],
+          "do": [
+            {
+              "op": "reflect_pct",
+              "value": 100
+            },
+            {
+              "op": "set_mode",
+              "name": "spent"
+            },
+            {
+              "op": "log",
+              "text": "🪞 **Counter Break** — every point of it goes back the way it came!"
+            }
+          ],
+          "_name": "Counter Break"
+        }
+      ]
+    },
+    "special_move": {
+      "name": "Counter Break",
+      "description": "Spriggan absorbs the exchange and returns it whole. The next hit it takes is reflected 100% back at the attacker — and Spriggan still takes it. Armed only by the Special.",
+      "hits": 1,
+      "damage_per_hit": 130,
+      "total_damage": 130,
+      "flavour_texts": [
+        "⚖️ **Counter Break** — Spriggan turns the battle around!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Spriggan Layer",
+        "trigger": "on_any_win",
+        "description": "A layer built for either direction. Any exchange Spriggan wins mends 8 HP — it stays in the fight long enough to find its counter.",
+        "rules": [
+          {
+            "when": "on_any_win",
+            "do": [
+              {
+                "op": "heal",
+                "value": 8
+              }
+            ],
+            "_name": "Spriggan Layer"
+          },
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "set_mode",
+                "name": "counter_break"
+              },
+              {
+                "op": "log",
+                "text": "🌀 **Counter Break** — Spriggan opens its guard and waits."
+              }
+            ],
+            "_name": "Counter Break"
+          },
+          {
+            "when": "on_take_damage",
+            "if": [
+              {
+                "cond": "mode_is",
+                "value": "counter_break"
+              }
+            ],
+            "do": [
+              {
+                "op": "reflect_pct",
+                "value": 100
+              },
+              {
+                "op": "set_mode",
+                "name": "spent"
+              },
+              {
+                "op": "log",
+                "text": "🪞 **Counter Break** — every point of it goes back the way it came!"
+              }
+            ],
+            "_name": "Counter Break"
+          }
+        ]
+      }
+    ]
+  },
+  "Victory Valkyrie": {
+    "id": "BB084",
+    "name": "Victory Valkyrie",
+    "rarity": "Rare",
+    "type": "Attack",
+    "spin_direction": "right",
+    "burst_height": "High",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537063819661283448/Beyblade_Valkyrie.webp?ex=6a7dadbb&is=6a7c5c3b&hm=8b7cae23341f9cac532f42182fe4140bc2a030bb5f6585b2ecf2b32952c88700&",
+    "description": "All forward momentum and no brakes. Valkyrie trades its guard for speed and wins by never letting the opponent set their feet.",
+    "stats": {
+      "attack": 92,
+      "defense": 48,
+      "stamina": 70,
+      "special": 76,
+      "hp": 96
+    },
+    "ability": {
+      "name": "Energy Layer",
+      "trigger": "on_attack_win",
+      "description": "Every Attack Valkyrie wins winds the layer tighter: +6 Attack per stack, up to 4. Firing the Special sharpens the whole flurry — +20% crit chance on every hit of Rush Launch.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 6,
+              "max": 4,
+              "name": "energy"
+            }
+          ],
+          "_name": "Energy Layer"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "crit_chance",
+              "value": 20
+            }
+          ],
+          "_name": "Energy Layer"
+        }
+      ]
+    },
+    "special_move": {
+      "name": "Rush Launch",
+      "description": "Sixteen impacts in one pass — ten damage apiece, every one of them able to crit.",
+      "hits": 16,
+      "damage_per_hit": 10,
+      "total_damage": 160,
+      "flavour_texts": [
+        "⚔️ **Rush Launch** — sixteen hits, no pause!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Energy Layer",
+        "trigger": "on_attack_win",
+        "description": "Every Attack Valkyrie wins winds the layer tighter: +6 Attack per stack, up to 4. Firing the Special sharpens the whole flurry — +20% crit chance on every hit of Rush Launch.",
+        "rules": [
+          {
+            "when": "on_attack_win",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack": 6,
+                "max": 4,
+                "name": "energy"
+              }
+            ],
+            "_name": "Energy Layer"
+          },
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "crit_chance",
+                "value": 20
+              }
+            ],
+            "_name": "Energy Layer"
+          }
+        ]
+      }
+    ]
   }
 }
