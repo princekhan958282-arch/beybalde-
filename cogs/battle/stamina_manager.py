@@ -138,6 +138,17 @@ class StaminaManager:
         # `stamina_cost_reduction` op at battle setup. Applied to per-move
         # costs here and to enemy drains inside AbilityEngine.
         self.drain_reduction: dict[str, float] = {key: 0.0 for key in blades}
+        # The opposite: a SURCHARGE on this player's own move costs, set by the
+        # `stamina_cost_increase` op. This is the drawback half of an ability
+        # that buys damage with endurance — `drain_reduction` clamps to
+        # 0.0–0.9 and can only ever make costs cheaper, so a negative value
+        # there is silently swallowed and the drawback never exists.
+        # Applies only to the moves listed in `cost_increase_moves`; the
+        # default is Attack and Special, never the Stamina recovery move.
+        self.cost_increase: dict[str, float] = {key: 0.0 for key in blades}
+        self.cost_increase_moves: dict[str, tuple[str, ...]] = {
+            key: (MOVE_ATTACK, MOVE_SPECIAL) for key in blades
+        }
 
     # ── Stat helper ───────────────────────────────────────────────────────────
 
@@ -175,11 +186,18 @@ class StaminaManager:
         cost = STAMINA_COST.get(move, 0.0)
         if cost <= 0:
             return []
-        red = min(0.9, max(0.0, self.drain_reduction.get(key, 0.0)))
         note = ""
+        # Surcharge first, discount second — so a blade carrying both pays
+        # the discount on the raised cost rather than on the base, and the
+        # two effects cannot be reordered into different numbers.
+        inc = max(0.0, self.cost_increase.get(key, 0.0))
+        if inc > 0 and move in self.cost_increase_moves.get(key, ()):
+            cost = round(cost * (1.0 + inc), 2)
+            note = f" *(+{int(inc * 100)}% cost)*"
+        red = min(0.9, max(0.0, self.drain_reduction.get(key, 0.0)))
         if red > 0:
             cost = round(cost * (1.0 - red), 2)
-            note = f" *(-{int(red * 100)}% drain)*"
+            note += f" *(-{int(red * 100)}% drain)*"
         if cost <= 0:
             return []
         self.stamina[key] = round(max(0.0, self.stamina.get(key, 0.0) - cost), 2)

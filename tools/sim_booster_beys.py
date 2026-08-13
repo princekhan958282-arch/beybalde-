@@ -44,7 +44,9 @@ UPGRADES = {"Victory Valkyrie X": "Victory Valkyrie",
 print("\n── 1. the three blades exist ────────────────────────────────────")
 for n in list(UPGRADES) + ["Master Diabolos"]:
     check(f"{n} is in the roster", n in DB)
-check("the roster grew to 87", len(DB) == 87, len(DB))
+# A floor, not an equality. An exact count fails the moment the NEXT blade
+# ships, which says nothing about these three and has already cost a red run.
+check("the roster is at least 87 blades", len(DB) >= 87, len(DB))
 ids = [b["id"] for b in DB.values()]
 check("every id is still unique", len(set(ids)) == len(ids),
       len(ids) - len(set(ids)))
