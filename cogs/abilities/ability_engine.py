@@ -753,6 +753,36 @@ class AbilityEngine:
                                     f"by {int(pct * 100)}%!")
                 except Exception:
                     pass
+            elif kind == "stamina_cost_increase":
+                # The drawback half of a power ability: this blade's OWN moves
+                # cost more stamina. `stamina_cost_reduction` clamps to 0–0.9
+                # and cannot express this — a negative value there reads as
+                # zero and the drawback silently does not exist.
+                #
+                # `moves` names which actions pay the surcharge (default
+                # attack + special). The Stamina recovery move costs nothing
+                # to begin with, so it is never affected either way.
+                try:
+                    pct = float(val)
+                    pct = pct if pct <= 1 else pct / 100
+                    pct = min(3.0, max(0.0, pct))
+                    sm  = self.session.stamina_manager
+                    if not hasattr(sm, "cost_increase"):
+                        sm.cost_increase = {}
+                    if not hasattr(sm, "cost_increase_moves"):
+                        sm.cost_increase_moves = {}
+                    sm.cost_increase[key] = max(sm.cost_increase.get(key, 0.0), pct)
+                    moves = op.get("moves")
+                    if moves:
+                        sm.cost_increase_moves[key] = tuple(
+                            str(m).lower() for m in moves)
+                    elif key not in sm.cost_increase_moves:
+                        sm.cost_increase_moves[key] = ("attack", "special")
+                    if pct > 0:
+                        logs.append(f"🩸 **{ab_name}** — attacks cost "
+                                    f"{int(pct * 100)}% more stamina!")
+                except Exception:
+                    pass
             elif kind == "heal_per_drain":
                 # Register: every stamina point drained by this player also
                 # heals them <val> HP (applied inside drain_stamina).

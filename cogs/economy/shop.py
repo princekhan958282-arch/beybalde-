@@ -704,14 +704,69 @@ class ShopCog(commands.Cog, name="Shop"):
 BOOSTER_PACK_PRICE = 5000   # coins per pack
 BOOSTER_PACK_ROLLS = 7      # beys revealed per pack
 
+# A blade carrying this key is NOT part of the weighted pool. It is rolled
+# separately, once per pack, at an independent 1-in-N chance.
+#
+# Why it cannot just be a rarity weight: the weights below are relative shares
+# of a ~12-blade pool, so even a weight of 1 lands roughly one pack in thirty.
+# There is no weight small enough to express "one in five million" without
+# distorting every other blade's odds by the same denominator.
+#
+# The odds are deliberately never rendered. Nothing reads this key except
+# _roll_hidden below — not `;info`, not the pack embed, not the help text —
+# and a player who pulls one sees an ordinary pack result. Keep it that way.
+HIDDEN_DROP_KEY = "hidden_drop_one_in"
+
+
 def _load_booster_pool() -> list[dict]:
-    """Return all Beys that have booster_exclusive == True."""
+    """Return the Beys the weighted roll may produce.
+
+    Booster-exclusive, minus anything with a hidden drop chance — those are
+    not in the pool at all, so they can never come out of `_weighted_roll`.
+    """
     try:
         all_beys: dict = load_beyblades()
     except Exception as e:
         logger.warning("Failed to load beyblades for booster pool: %s", e)
         return []
-    return [bey for bey in all_beys.values() if bey.get("booster_exclusive") is True]
+    return [bey for bey in all_beys.values()
+            if bey.get("booster_exclusive") is True
+            and not bey.get(HIDDEN_DROP_KEY)]
+
+
+def _hidden_drop_pool() -> list[dict]:
+    """Booster Beys that roll on their own independent chance."""
+    try:
+        all_beys: dict = load_beyblades()
+    except Exception as e:                               # noqa: BLE001
+        logger.warning("Failed to load beyblades for hidden pool: %s", e)
+        return []
+    out = []
+    for bey in all_beys.values():
+        try:
+            n = int(bey.get(HIDDEN_DROP_KEY) or 0)
+        except (TypeError, ValueError):
+            continue
+        if n > 0 and bey.get("booster_exclusive") is True:
+            out.append(bey)
+    return out
+
+
+def _roll_hidden(hidden: list[dict]) -> dict | None:
+    """One pack's worth of hidden rolls. Returns the winner, or None.
+
+    Each candidate gets its own independent 1-in-N test; the first to hit
+    wins the pack. With one candidate at 1-in-5,000,000 this returns None
+    essentially always, which is the intent.
+    """
+    for bey in hidden:
+        try:
+            n = int(bey.get(HIDDEN_DROP_KEY) or 0)
+        except (TypeError, ValueError):
+            continue
+        if n > 0 and random.randrange(n) == 0:
+            return bey
+    return None
 
 
 # Rarity → weight mapping (higher = more likely within the exclusive pool)
@@ -793,9 +848,19 @@ class BoosterCog(commands.Cog, name="Booster"):
         user["coins"] = coins - total_cost
         user.setdefault("inventory", [])
 
+        hidden = _hidden_drop_pool()
+
         pack_results: list[tuple[list[dict], dict]] = []
         for _ in range(amount):
             revealed = _weighted_roll(pool, BOOSTER_PACK_ROLLS)
+            # The hidden roll replaces the winning slot rather than being
+            # appended, so the reveal list and the prize still agree and the
+            # pack looks exactly like any other pack from the outside.
+            rare = _roll_hidden(hidden)
+            if rare is not None:
+                revealed[0] = rare
+                logger.info("Hidden booster drop: %s -> user %s",
+                            rare.get("name"), ctx.author.id)
             won      = revealed[0]
             user["inventory"].append(won["name"])
             pack_results.append((revealed, won))
