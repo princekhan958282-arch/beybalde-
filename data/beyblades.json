@@ -7358,5 +7358,279 @@
         ]
       }
     ]
+  },
+  "Shining Shuriken": {
+    "id": "BB090",
+    "name": "Shining Shuriken",
+    "rarity": "Mythic",
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537309156535570472/1786592956078.png?ex=6a7e9238&is=6a7d40b8&hm=14cdb4ae8081f01b330be92bf253b14bd38c84ad8a1b362982789ebcb81e798c&",
+    "description": "A blade with almost nothing to lose and everything to give back. Shining Shuriken carries the thinnest HP pool in the roster behind a heavy 128 Defence, and answers contact rather than opening it — every blow that lands on it comes back sharper than it went in.",
+    "stats": {
+      "attack": 148,
+      "defense": 128,
+      "stamina": 77,
+      "special": 125,
+      "hp": 69
+    },
+    "ability": {
+      "name": "Counter Point",
+      "trigger": "on_take_damage",
+      "description": "Every normal Attack that lands on Shining Shuriken is paid for: the attacker takes **50 true damage**, loses **1 stamina** and **3 stability**. It answers Attacks, not Specials — a multi-hit Special connects without waking it. Shuriken Strike fires the same counter on demand.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "if": [
+            {
+              "cond": "incoming_move_is",
+              "value": "attack"
+            }
+          ],
+          "do": [
+            {
+              "op": "true_damage",
+              "value": 50
+            },
+            {
+              "op": "drain_stamina",
+              "value": 1,
+              "steal": false
+            },
+            {
+              "op": "enemy_lose_stability",
+              "amount": 3
+            }
+          ],
+          "_name": "Counter Point",
+          "_note": "on_take_damage fires once PER HIT. Without the incoming_move_is gate this returns 50 damage sixteen times against a sixteen-hit Special."
+        }
+      ]
+    },
+    "special_move": {
+      "name": "Shuriken Strike",
+      "description": "The blade opens up and throws every edge it has at once. What survives the volley is 40% weaker for it, and takes the counter on the way out.",
+      "hits": 3,
+      "damage_per_hit": 45,
+      "total_damage": 135,
+      "flavour_texts": [
+        "✴️ **SHURIKEN STRIKE** — every edge at once!",
+        "🩸 The volley lands — and the counter lands with it!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Counter Point",
+        "trigger": "on_take_damage",
+        "description": "Every normal Attack that lands on Shining Shuriken is paid for: the attacker takes **50 true damage**, loses **1 stamina** and **3 stability**. It answers Attacks, not Specials — a multi-hit Special connects without waking it. Shuriken Strike fires the same counter on demand.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "if": [
+              {
+                "cond": "incoming_move_is",
+                "value": "attack"
+              }
+            ],
+            "do": [
+              {
+                "op": "true_damage",
+                "value": 50
+              },
+              {
+                "op": "drain_stamina",
+                "value": 1,
+                "steal": false
+              },
+              {
+                "op": "enemy_lose_stability",
+                "amount": 3
+              }
+            ],
+            "_name": "Counter Point",
+            "_note": "on_take_damage fires once PER HIT. Without the incoming_move_is gate this returns 50 damage sixteen times against a sixteen-hit Special."
+          },
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "enemy_debuff_pct",
+                "stat": "attack",
+                "value": 40,
+                "turns": 3
+              },
+              {
+                "op": "true_damage",
+                "value": 50
+              },
+              {
+                "op": "drain_stamina",
+                "value": 1,
+                "steal": false
+              },
+              {
+                "op": "enemy_lose_stability",
+                "amount": 3
+              }
+            ],
+            "_name": "Shuriken Strike"
+          }
+        ]
+      }
+    ]
+  },
+  "Blood Dragon": {
+    "id": "BB091",
+    "name": "Blood Dragon",
+    "rarity": "Mythic",
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "High",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537309675605729361/Firefly.png?ex=6a7e92b4&is=6a7d4134&hm=96f0e86852fe220a3f33a1d9c73011b98c90ab388927041809b05e48f55771b0&",
+    "description": "158 Attack over 29 Defence, and no interest in a long fight. Blood Dragon feeds on its own momentum — every hit it lands makes the next one heavier and the one after that more expensive. It either finishes the job or grinds itself to a halt trying.",
+    "stats": {
+      "attack": 158,
+      "defense": 29,
+      "stamina": 81,
+      "special": 125,
+      "hp": 111
+    },
+    "ability": {
+      "name": "Unstable Attack",
+      "trigger": "on_hit",
+      "description": "Every hit banks a stack, to a maximum of 10. Each stack is worth **+10 Attack** — and **+0.2 stamina** on every Attack and Special Blood Dragon makes from then on. At full stacks it swings with +100 Attack and pays 4.2 stamina an Attack instead of 2.2.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 10,
+              "max": 10,
+              "name": "unstable"
+            },
+            {
+              "op": "stamina_cost_increase",
+              "flat_per_stack": 0.2,
+              "max": 10,
+              "name": "unstable_cost",
+              "moves": [
+                "attack",
+                "special"
+              ]
+            }
+          ],
+          "_name": "Unstable Attack"
+        },
+        {
+          "when": "on_hit",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 10,
+              "max": 10,
+              "name": "unstable"
+            },
+            {
+              "op": "stamina_cost_increase",
+              "flat_per_stack": 0.2,
+              "max": 10,
+              "name": "unstable_cost",
+              "moves": [
+                "attack",
+                "special"
+              ]
+            }
+          ],
+          "_name": "Unstable Attack",
+          "_note": "on_hit is the per-Special-hit trigger and on_attack_hit the normal-attack one; they are disjoint, so a swing banks exactly one stack."
+        }
+      ]
+    },
+    "special_move": {
+      "name": "Blood Claw",
+      "description": "The claw closes on everything Blood Dragon has left. It lands for its printed damage plus its entire Attack stat, and takes three more stamina than the Special already costs.",
+      "hits": 2,
+      "damage_per_hit": 85,
+      "total_damage": 170,
+      "flavour_texts": [
+        "🩸 **BLOOD CLAW** — everything it has, all at once!",
+        "🐉 The claw closes — Blood Dragon spends itself to land it!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Unstable Attack",
+        "trigger": "on_hit",
+        "description": "Every hit banks a stack, to a maximum of 10. Each stack is worth **+10 Attack** — and **+0.2 stamina** on every Attack and Special Blood Dragon makes from then on. At full stacks it swings with +100 Attack and pays 4.2 stamina an Attack instead of 2.2.",
+        "rules": [
+          {
+            "when": "on_attack_hit",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack": 10,
+                "max": 10,
+                "name": "unstable"
+              },
+              {
+                "op": "stamina_cost_increase",
+                "flat_per_stack": 0.2,
+                "max": 10,
+                "name": "unstable_cost",
+                "moves": [
+                  "attack",
+                  "special"
+                ]
+              }
+            ],
+            "_name": "Unstable Attack"
+          },
+          {
+            "when": "on_hit",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack": 10,
+                "max": 10,
+                "name": "unstable"
+              },
+              {
+                "op": "stamina_cost_increase",
+                "flat_per_stack": 0.2,
+                "max": 10,
+                "name": "unstable_cost",
+                "moves": [
+                  "attack",
+                  "special"
+                ]
+              }
+            ],
+            "_name": "Unstable Attack",
+            "_note": "on_hit is the per-Special-hit trigger and on_attack_hit the normal-attack one; they are disjoint, so a swing banks exactly one stack."
+          },
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 1.0
+              },
+              {
+                "op": "gain_stamina",
+                "value": -3
+              }
+            ],
+            "_name": "Blood Claw"
+          }
+        ]
+      }
+    ]
   }
 }

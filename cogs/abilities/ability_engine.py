@@ -226,6 +226,16 @@ class AbilityEngine:
         if c == "enemy_hp_below_pct":  return self._hp_pct(okey) <  float(v)
         if c == "enemy_hp_above_pct":  return self._hp_pct(okey) >= float(v)
         if c == "move_is":             return move == v
+        if c == "incoming_move_is":
+            # The same read as `move_is`, named for the defender's phase.
+            #
+            # `_fire_defensive` passes the ATTACKER'S move as `move`, so a rule
+            # under `on_take_damage` guarded by `move_is: attack` is correct
+            # and reads like it means the opposite. A counter gated on the
+            # wrong one of those does not fail loudly — it fires on every hit
+            # of a sixteen-hit Special instead of once, which is a very
+            # different ability from the one written down.
+            return move == v
         if c == "move_in":
             return move in [str(x) for x in (v if isinstance(v, list) else [v])]
         if c == "enemy_move_is":
@@ -721,7 +731,14 @@ class AbilityEngine:
                     take = round(min(want, sm.stamina.get(okey, 0)), 2)
                     cap  = getattr(sm, "max_stamina", {}).get(key, 15) or 15
                     sm.stamina[okey] = round(max(0.0, sm.stamina.get(okey, 0) - take), 2)
-                    sm.stamina[key]  = round(min(float(cap), sm.stamina.get(key, 0) + take), 2)
+                    # `steal: false` — the enemy loses it and nobody gains it.
+                    # A counter that knocks stamina loose is not the same
+                    # ability as one that feeds on it, and handing the drained
+                    # points to a low-stamina blade is a quiet buff nobody
+                    # asked for.
+                    if op.get("steal", True):
+                        sm.stamina[key] = round(
+                            min(float(cap), sm.stamina.get(key, 0) + take), 2)
                     if take > 0:
                         logs.append(f"🌀 **{ab_name}** — drained {take:g} stamina!")
                         hpd = self.heal_per_drain.get(key, 0)
@@ -763,24 +780,75 @@ class AbilityEngine:
                 # attack + special). The Stamina recovery move costs nothing
                 # to begin with, so it is never affected either way.
                 try:
-                    pct = float(val)
-                    pct = pct if pct <= 1 else pct / 100
-                    pct = min(3.0, max(0.0, pct))
-                    sm  = self.session.stamina_manager
-                    if not hasattr(sm, "cost_increase"):
-                        sm.cost_increase = {}
-                    if not hasattr(sm, "cost_increase_moves"):
-                        sm.cost_increase_moves = {}
-                    sm.cost_increase[key] = max(sm.cost_increase.get(key, 0.0), pct)
+                    sm = self.session.stamina_manager
+                    for _attr in ("cost_increase", "cost_increase_flat",
+                                  "cost_increase_moves"):
+                        if not hasattr(sm, _attr):
+                            setattr(sm, _attr, {})
                     moves = op.get("moves")
                     if moves:
                         sm.cost_increase_moves[key] = tuple(
                             str(m).lower() for m in moves)
                     elif key not in sm.cost_increase_moves:
                         sm.cost_increase_moves[key] = ("attack", "special")
-                    if pct > 0:
-                        logs.append(f"🩸 **{ab_name}** — attacks cost "
-                                    f"{int(pct * 100)}% more stamina!")
+
+                    # `flat_per_stack` is the STACKING form: each firing adds
+                    # another flat point of cost, up to `max` stacks. It keeps
+                    # its own counter rather than reading the one a
+                    # `stacking_buff` in the same rule keeps, so neither op can
+                    # be reordered, renamed or removed without the other still
+                    # being correct on its own.
+                    per = op.get("flat_per_stack")
+                    if per is not None:
+                        cname = op.get("name", f"{ab_name}_cost")
+                        mx    = int(op.get("max", 99))
+                        cur   = self.counters.get((key, cname), 0)
+                        if cur < mx:
+                            self.counters[(key, cname)] = cur + 1
+                            sm.cost_increase_flat[key] = round(
+                                (cur + 1) * float(per), 2)
+                            logs.append(
+                                f"🩸 **{ab_name}** — stack {cur+1}/{mx}: "
+                                f"attacks now cost "
+                                f"+{sm.cost_increase_flat[key]:g} stamina!")
+                    else:
+                        pct = float(val)
+                        pct = pct if pct <= 1 else pct / 100
+                        pct = min(3.0, max(0.0, pct))
+                        sm.cost_increase[key] = max(
+                            sm.cost_increase.get(key, 0.0), pct)
+                        if pct > 0:
+                            logs.append(f"🩸 **{ab_name}** — attacks cost "
+                                        f"{int(pct * 100)}% more stamina!")
+                except Exception:
+                    pass
+            elif kind == "bonus_damage_stat":
+                # Damage equal to a share of one of the MOVER'S OWN stats.
+                #
+                # Nothing else could express "this Special also deals your full
+                # Attack": `bonus_damage` is a printed constant that stops
+                # meaning anything by level 100, `bonus_damage_pct` scales off
+                # the damage already dealt, and `damage_boost` scales off an
+                # hp/stamina ratio. This reads the effective stat — levels,
+                # parts and avatar folded in — from session.battle_stats.
+                #
+                # Deliberately NOT the buffed stat. Temporary buffs already
+                # raise ordinary damage, so counting them here would pay the
+                # same stacks out twice on one move.
+                try:
+                    stat  = op.get("stat", "attack")
+                    scale = float(op.get("scale", val if val is not None else 1.0))
+                    scale = scale if scale <= 10 else scale / 100
+                    eff   = (getattr(self.session, "battle_stats", {}) or {}).get(key)
+                    base  = (eff or {}).get(stat)
+                    if base is None:
+                        base = ((self.session.blades.get(key) or {})
+                                .get("stats") or {}).get(stat, 0)
+                    add = int(round(float(base) * scale))
+                    if add > 0:
+                        dmg_dealt += add
+                        logs.append(f"🩸 **{ab_name}** — +{add} damage from "
+                                    f"its full {stat.title()}!")
                 except Exception:
                     pass
             elif kind == "heal_per_drain":
