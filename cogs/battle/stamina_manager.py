@@ -146,6 +146,12 @@ class StaminaManager:
         # Applies only to the moves listed in `cost_increase_moves`; the
         # default is Attack and Special, never the Stamina recovery move.
         self.cost_increase: dict[str, float] = {key: 0.0 for key in blades}
+        # A FLAT surcharge in stamina points, added after the percentage one.
+        # A percentage cannot express "+0.2 stamina per stack": 0.2 of the
+        # 2.2 Attack cost is one number and 0.2 of the 4.4 Special cost is
+        # another, and a stacking drawback has to be the same size every time
+        # it stacks or the player cannot reason about it.
+        self.cost_increase_flat: dict[str, float] = {key: 0.0 for key in blades}
         self.cost_increase_moves: dict[str, tuple[str, ...]] = {
             key: (MOVE_ATTACK, MOVE_SPECIAL) for key in blades
         }
@@ -190,10 +196,17 @@ class StaminaManager:
         # Surcharge first, discount second — so a blade carrying both pays
         # the discount on the raised cost rather than on the base, and the
         # two effects cannot be reordered into different numbers.
-        inc = max(0.0, self.cost_increase.get(key, 0.0))
-        if inc > 0 and move in self.cost_increase_moves.get(key, ()):
-            cost = round(cost * (1.0 + inc), 2)
-            note = f" *(+{int(inc * 100)}% cost)*"
+        if move in self.cost_increase_moves.get(key, ()):
+            inc  = max(0.0, self.cost_increase.get(key, 0.0))
+            flat = max(0.0, self.cost_increase_flat.get(key, 0.0))
+            if inc > 0 or flat > 0:
+                cost = round(cost * (1.0 + inc) + flat, 2)
+                parts = []
+                if inc:
+                    parts.append(f"+{int(inc * 100)}%")
+                if flat:
+                    parts.append(f"+{flat:g}")
+                note = f" *({' '.join(parts)} cost)*"
         red = min(0.9, max(0.0, self.drain_reduction.get(key, 0.0)))
         if red > 0:
             cost = round(cost * (1.0 - red), 2)
