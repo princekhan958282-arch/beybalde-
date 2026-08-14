@@ -269,7 +269,63 @@ try:
 except BT.TierError as exc:
     msg = str(exc)
 check("the refusal names the tier, the price and the shortfall",
-      "Savage" in msg and "75,000" in msg and "short" in msg.lower(), msg)
+      # Price read from the table, not typed in. It was hardcoded as "75,000"
+      # and broke the moment the price moved — which tells you nothing about
+      # whether the message is right, only that a number changed.
+      "Savage" in msg and f"{BT.price_of('savage'):,}" in msg
+      and "short" in msg.lower(), msg)
+
+print("\n── 7b. the pricing SHAPE: cheap to Savage, a wall above it ──────")
+# v92 shipped a smooth curve. The tiers up to Savage were then cut 80% so they
+# become the default way to fight a boss rather than an occasional splurge,
+# and the two above were deliberately left alone. Both halves of that are
+# asserted, because "smoothing the ladder" is exactly the tidy-looking edit
+# that would undo it.
+V92_PRICES = {"standard": 0, "hardened": 25_000, "savage": 75_000,
+              "merciless": 200_000, "nightmare": 500_000}
+# Integer percent, and integer arithmetic. `25_000 * (1 - 0.80)` is
+# 4999.999999999999 in binary floating point, so int() gives 4999 and the
+# assertion fails against a price that is exactly right. Prices are integers;
+# compute them like integers.
+CUT_PCT = 80
+
+for k in ("hardened", "savage"):
+    want = V92_PRICES[k] * (100 - CUT_PCT) // 100
+    check(f"{k} is {CUT_PCT}% off its v92 price "
+          f"({V92_PRICES[k]:,} -> {BT.price_of(k):,})",
+          BT.price_of(k) == want, (BT.price_of(k), want))
+for k in ("merciless", "nightmare"):
+    check(f"{k} is untouched at {V92_PRICES[k]:,}",
+          BT.price_of(k) == V92_PRICES[k], BT.price_of(k))
+
+check("Standard is still free", BT.price_of("standard") == 0)
+check("...and still the tier you get by default",
+      BT.DEFAULT_TIER == "standard" and BT.price_of(BT.DEFAULT_TIER) == 0)
+
+CHEAP = ("standard", "hardened", "savage")
+check(f"every tier up to Savage is under 20,000: "
+      f"{[BT.price_of(k) for k in CHEAP]}",
+      all(BT.price_of(k) < 20_000 for k in CHEAP),
+      [BT.price_of(k) for k in CHEAP])
+check("...and every tier above it is at least 200,000",
+      all(BT.price_of(k) >= 200_000 for k in ("merciless", "nightmare")),
+      [BT.price_of(k) for k in ("merciless", "nightmare")])
+
+cliff = BT.price_of("merciless") / max(1, BT.price_of("savage"))
+check(f"the jump above Savage is a cliff, not a step ({cliff:.0f}x)",
+      cliff >= 10, f"{cliff:.1f}x")
+step = BT.price_of("savage") / max(1, BT.price_of("hardened"))
+check(f"...while the climb below it stays gentle ({step:.0f}x)",
+      step <= 5, f"{step:.1f}x")
+
+# A player on a typical active balance should be able to take Savage on every
+# boss without budgeting. That is the whole point of the cut.
+TYPICAL = 100_000
+check(f"a player holding {TYPICAL:,} can afford Savage many times over",
+      TYPICAL // max(1, BT.price_of("savage")) >= 5,
+      TYPICAL // max(1, BT.price_of("savage")))
+check("...and cannot afford Merciless — the wall is real",
+      not BT.can_afford({"coins": TYPICAL}, "merciless"))
 
 print("\n── 8. the wiring ───────────────────────────────────────────────")
 src = open(os.path.join(ROOT, "cogs", "battle", "boss", "boss_battle.py"),
