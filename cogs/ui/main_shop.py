@@ -28,14 +28,20 @@ Buying is still done with the existing commands in each subsystem:
 
 from __future__ import annotations
 
+import logging
+
 import discord
 from discord.ext import commands
 from discord import ui
 
+log = logging.getLogger("beyblade_bot.shop")
+
 # ── Import constants from each subsystem ──────────────────────────────────────
 # Parts (economy/shop.py)
 from cogs.economy.shop import (PARTS_CATALOG, PART_TYPE_EMOJI, PART_TYPE_LABEL,
-                               part_effect_line)
+                               part_effect_line, apply_part_purchase,
+                               PurchaseError)
+from utils.database import mutate_user
 
 # Casino premium (casino/casino_premium.py)
 from cogs.casino.casino_premium import PACKS as PREMIUM_PACKS, PACK_DURATION_DAYS
@@ -287,7 +293,20 @@ class MainShopView(ui.View):
         self.section      = section
         self.parts_pages  = _parts_pages()
         self.parts_page   = 0
+        # The part currently picked in the dropdown. Cleared whenever the page
+        # or section changes, so the Buy button can never act on something the
+        # player is no longer looking at.
+        self.selected: str | None = None
         self._build_buttons()
+
+    def _page_parts(self) -> list[dict]:
+        """The parts on the page currently shown.
+
+        The Select is page-scoped, not catalog-scoped: Discord caps a Select
+        at 25 options and the catalog holds 51.
+        """
+        lo = self.parts_page * ITEMS_PER_PAGE
+        return PARTS_CATALOG[lo:lo + ITEMS_PER_PAGE]
 
     # ── Build / rebuild button set ────────────────────────────────────────────
 
@@ -355,13 +374,49 @@ class MainShopView(ui.View):
         avatar_btn.callback = self._go_avatar
         self.add_item(avatar_btn)
 
-        # Row 1 — pagination (only shown on Parts section)
-        if self.section == SECTION_PARTS and len(self.parts_pages) > 1:
+        if self.section != SECTION_PARTS:
+            return
+
+        # Row 1 — pick a part. This is what "instant, give them a select
+        # option" means: the shop used to require typing `;buy Hyper Driver`
+        # exactly, with no fuzzy matching, while looking at a picture of it.
+        page = self._page_parts()
+        if page:
+            sel = ui.Select(
+                placeholder="Pick a part to buy…",
+                row=1,
+                options=[
+                    discord.SelectOption(
+                        label=f"{p['name']} — {p['price']:,}"[:100],
+                        value=p["name"][:100],
+                        emoji=PART_TYPE_EMOJI.get(p["type"], "🔩"),
+                        description=part_effect_line(p)
+                            .replace("**", "").replace("`", "")[:100],
+                        default=(p["name"] == self.selected),
+                    )
+                    for p in page
+                ],
+            )
+            sel.callback = self._select_part
+            self.add_item(sel)
+
+        # Row 2 — Buy, then pagination.
+        buy_btn = ui.Button(
+            label=("🪙 Buy" if not self.selected
+                   else f"🪙 Buy {self.selected}"[:80]),
+            style=discord.ButtonStyle.success,
+            disabled=self.selected is None,
+            row=2,
+        )
+        buy_btn.callback = self._buy_selected
+        self.add_item(buy_btn)
+
+        if len(self.parts_pages) > 1:
             prev_btn = ui.Button(
                 label="◀ Prev",
                 style=discord.ButtonStyle.secondary,
                 disabled=self.parts_page == 0,
-                row=1,
+                row=2,
             )
             prev_btn.callback = self._parts_prev
             self.add_item(prev_btn)
@@ -370,7 +425,7 @@ class MainShopView(ui.View):
                 label=f"{self.parts_page + 1}/{len(self.parts_pages)}",
                 style=discord.ButtonStyle.secondary,
                 disabled=True,
-                row=1,
+                row=2,
             )
             self.add_item(page_btn)
 
@@ -378,10 +433,48 @@ class MainShopView(ui.View):
                 label="Next ▶",
                 style=discord.ButtonStyle.secondary,
                 disabled=self.parts_page >= len(self.parts_pages) - 1,
-                row=1,
+                row=2,
             )
             next_btn.callback = self._parts_next
             self.add_item(next_btn)
+
+    # ── Buying ────────────────────────────────────────────────────────────────
+
+    async def _select_part(self, i: discord.Interaction) -> None:
+        self.selected = (i.data.get("values") or [None])[0]
+        self._build_buttons()
+        await i.response.edit_message(embed=self.current_embed(), view=self)
+
+    async def _buy_selected(self, i: discord.Interaction) -> None:
+        """Buy the picked part.
+
+        The balance is re-read inside `mutate_user`, not trusted from the card
+        — this view lives for 90 seconds and the player may have spent
+        elsewhere in between. A refusal raises, which abandons the whole write,
+        so it can never take the coins without handing over the part.
+        """
+        if not self.selected:
+            return await i.response.defer()
+        try:
+            result = mutate_user(
+                self.author_id,
+                lambda prof, n=self.selected: apply_part_purchase(prof, n))
+        except PurchaseError as exc:
+            return await i.response.send_message(f"❌ {exc}", ephemeral=True)
+        except Exception:                                # noqa: BLE001
+            log.exception("[shop] part purchase failed")
+            return await i.response.send_message(
+                "⚠️ Couldn't complete that purchase — nothing was charged.",
+                ephemeral=True)
+
+        self.selected = None
+        self._build_buttons()
+        await i.response.edit_message(embed=self.current_embed(), view=self)
+        await i.followup.send(
+            f"✅ Bought **{result['part']}** for 🪙 **{result['spent']:,}**.\n"
+            f"💰 Remaining: **{result['coins']:,}**  ·  "
+            f"`;equippart {result['part']}` to use it.",
+            ephemeral=True)
 
     # ── Current embed ─────────────────────────────────────────────────────────
 
@@ -418,6 +511,7 @@ class MainShopView(ui.View):
     async def _go_parts(self, i: discord.Interaction) -> None:
         self.section    = SECTION_PARTS
         self.parts_page = 0
+        self.selected   = None
         self._build_buttons()
         await i.response.edit_message(embed=self.current_embed(), view=self)
 
@@ -440,11 +534,13 @@ class MainShopView(ui.View):
 
     async def _parts_prev(self, i: discord.Interaction) -> None:
         self.parts_page -= 1
+        self.selected = None
         self._build_buttons()
         await i.response.edit_message(embed=self.current_embed(), view=self)
 
     async def _parts_next(self, i: discord.Interaction) -> None:
         self.parts_page += 1
+        self.selected = None
         self._build_buttons()
         await i.response.edit_message(embed=self.current_embed(), view=self)
 

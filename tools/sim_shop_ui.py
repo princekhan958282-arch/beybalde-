@@ -229,6 +229,130 @@ check("`;shop` renders through the shared formatter",
 check("...and no longer prints the bonus on its own",
       "*(+{part['bonus']} {stat})*" not in msrc)
 
+print("\n── 5b. Ragnarok Core, the endgame part ──────────────────────────")
+RC = next((p for p in PARTS_CATALOG if p["name"] == "Ragnarok Core"), None)
+check("it exists", RC is not None)
+check("+120 Attack", RC["stat"] == "attack" and RC["bonus"] == 120,
+      (RC["stat"], RC["bonus"]))
+check("−50 Defence and −120 Stamina",
+      part_penalties(RC) == {"defense": 50, "stamina": 120},
+      part_penalties(RC))
+check("both penalties reach the deltas",
+      get_part_stat_deltas(["Ragnarok Core"])
+      == {"attack": 120, "defense": -50, "stamina": -120},
+      get_part_stat_deltas(["Ragnarok Core"]))
+others = [p for p in PARTS_CATALOG if p["name"] != "Ragnarok Core"]
+check(f"it out-hits every other part ({max(p['bonus'] for p in others)} -> 120)",
+      RC["bonus"] > max(p["bonus"] for p in others))
+check(f"...and costs more than all of them "
+      f"({max(p['price'] for p in others):,} -> {RC['price']:,})",
+      RC["price"] > max(p["price"] for p in others))
+check("nothing sits in the 41–99 gap that keeps the catalog readable",
+      not [p for p in others if 40 < p["bonus"] < 100],
+      [p["name"] for p in others if 40 < p["bonus"] < 100])
+check("the description warns it needs a level 100 bey",
+      "100" in RC["desc"], RC["desc"][:60])
+
+# The warning has to be true. At base stats it should zero most of the roster,
+# and at level 100 it should not.
+import json as _json                                                   # noqa: E402
+from utils import bey_levels as _BL                                    # noqa: E402
+
+_db = _json.load(open(os.path.join(ROOT, "data", "beyblades.json"),
+                      encoding="utf-8"))
+_iv = {s: 0 for s in _BL.STATS}
+zero_at_1 = sum(1 for b in _db.values()
+                if _BL.stats_at(b, 1, _iv)["stamina"] <= 120)
+zero_at_100 = sum(1 for b in _db.values()
+                  if _BL.stats_at(b, 100, _iv)["stamina"] <= 120)
+check(f"at level 1 it zeroes {zero_at_1}/{len(_db)} blades' stamina — the trap",
+      zero_at_1 > len(_db) * 0.7, zero_at_1)
+check(f"at level 100 it zeroes {zero_at_100}/{len(_db)} — the payoff",
+      zero_at_100 == 0, zero_at_100)
+
+print("\n── 6b. the shop can be clicked, not just typed at ───────────────")
+from cogs.ui.main_shop import (MainShopView, SECTION_PARTS,            # noqa: E402
+                               ITEMS_PER_PAGE)
+
+
+def _kids(view):
+    return {type(c).__name__: c for c in view.children}
+
+
+def _select_of(view):
+    return next((c for c in view.children
+                 if type(c).__name__ == "Select"), None)
+
+
+def _buy_of(view):
+    return next((c for c in view.children
+                 if str(getattr(c, "label", "")).startswith("🪙")), None)
+
+
+v = MainShopView(1, SECTION_PARTS)
+check("the Parts tab carries a Select", _select_of(v) is not None)
+check("...and a Buy button", _buy_of(v) is not None)
+check("Buy starts disabled — nothing is picked yet",
+      _buy_of(v).disabled is True)
+
+# Page-scoped, because Discord caps a Select at 25 and the catalog is bigger.
+worst = 0
+for pg in range(len(v.parts_pages)):
+    v.parts_page, v.selected = pg, None
+    v._build_buttons()
+    sel = _select_of(v)
+    opts = sel.options if sel else []
+    worst = max(worst, len(opts))
+    want = [p["name"] for p in
+            PARTS_CATALOG[pg * ITEMS_PER_PAGE:(pg + 1) * ITEMS_PER_PAGE]]
+    if [o.value for o in opts] != want:
+        check(f"page {pg + 1}'s Select matches the page", False,
+              ([o.value for o in opts], want))
+check(f"every page's Select matches the parts shown on it "
+      f"({len(v.parts_pages)} pages)", True)
+check(f"no Select exceeds Discord's 25-option cap (worst {worst})",
+      0 < worst <= 25, worst)
+
+v.parts_page, v.selected = 0, None
+v._build_buttons()
+v.selected = PARTS_CATALOG[0]["name"]
+v._build_buttons()
+check("picking a part enables Buy", _buy_of(v).disabled is False)
+check("...and Buy names what it will buy",
+      PARTS_CATALOG[0]["name"] in _buy_of(v).label, _buy_of(v).label)
+check("...and the Select remembers the pick",
+      any(o.default for o in _select_of(v).options))
+
+# A stale selection surviving a page turn would buy something the player is
+# no longer looking at.
+msrc = open(os.path.join(ROOT, "cogs", "ui", "main_shop.py"),
+            encoding="utf-8").read()
+for handler in ("_parts_prev", "_parts_next", "_go_parts"):
+    body = msrc.split(f"async def {handler}(", 1)[1].split("\n    async def", 1)[0]
+    check(f"{handler} clears the pending selection",
+          "self.selected = None" in body or "self.selected   = None" in body,
+          body[:120])
+
+check("the Buy handler re-reads the balance under the lock",
+      "mutate_user(" in msrc and "apply_part_purchase(prof, n)" in msrc)
+check("...and reports a refusal instead of swallowing it",
+      "except PurchaseError as exc" in msrc)
+check("the other tabs carry no Select or Buy",
+      _select_of(MainShopView(1, "home")) is None
+      and _buy_of(MainShopView(1, "home")) is None)
+
+# Discord allows five action rows; blowing the budget raises at send time.
+v.parts_page, v.selected = 0, PARTS_CATALOG[0]["name"]
+v._build_buttons()
+used = {c.row for c in v.children}
+check(f"the view fits Discord's row budget (rows {sorted(used)})",
+      max(used) <= 4, sorted(used))
+per_row = {}
+for c in v.children:
+    per_row[c.row] = per_row.get(c.row, 0) + 1
+check("no row holds more than 5 components", max(per_row.values()) <= 5,
+      per_row)
+
 print("\n── 7. negative deltas are no longer hidden from the player ──────")
 from utils.loadout import summary_lines                                # noqa: E402
 

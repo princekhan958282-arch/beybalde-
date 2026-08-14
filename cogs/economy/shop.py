@@ -60,10 +60,18 @@ BEY_QUICKSELL_BLOCKED: set[str] = {"Exclusive"}
 #   bonus        — how much it adds to that stat
 #   penalty_stat — optional stat that is REDUCED (omit for no penalty)
 #   penalty      — how much is subtracted from penalty_stat (omit for no penalty)
+#   penalties    — optional {stat: amount} for a part that reduces MORE THAN
+#                  ONE stat, which the singular pair above cannot express.
+#                  Both forms are merged by `part_penalties`.
 #
 # Design rule: if bonus >= 20, there is always a penalty. Parts with bonus < 20
 # are pure upgrades; parts with bonus 20-30 carry a moderate penalty; bonus 30+
 # carries a heavy penalty. This gives players meaningful build choices.
+#
+# The rule holds above 40 too, just steeply: the one part in the 100+ band
+# (Ragnarok Core) pays for it with two penalties and a price seventeen times
+# the next most expensive part. Nothing should sit between 40 and 100 — that
+# gap is what keeps the ordinary catalog readable.
 PARTS_CATALOG: list[dict] = [
     # ── DRIVERS (17) ──────────────────────────────────────────────────────────
     # Pure / low-bonus drivers
@@ -129,6 +137,23 @@ PARTS_CATALOG: list[dict] = [
     {"name": "Aegis Shield Ring",   "type": "ring",   "price": 2200, "stat": "defense", "bonus":  35, "desc": "Mythic shield ring — blocks almost anything.", "penalty_stat": "attack",  "penalty": 28},
     {"name": "Phantom Veil Ring",   "type": "ring",   "price": 2400, "stat": "stamina", "bonus":  35, "desc": "Ghostly ring — infinite endurance at a cost.", "penalty_stat": "defense", "penalty": 25},
     {"name": "Omega Blaze Ring",    "type": "ring",   "price": 2600, "stat": "attack",  "bonus":  40, "desc": "Blazing omega tips — unstoppable raw power.", "penalty_stat": "stamina", "penalty": 32},
+
+    # ── ENDGAME (1) ───────────────────────────────────────────────────────────
+    # Three times the attack of anything else in the catalog, and four times
+    # the penalty. The description says "level 100" out loud because the maths
+    # is brutal and invisible otherwise: at BASE stats 81 of the 91 blades have
+    # 120 stamina or less, so this drives their stamina stat to zero and the
+    # battle floors it there — a bey with no stamina runs out of moves and
+    # loses on attrition regardless of how hard it hits. At level 100 the
+    # median blade holds 276 stamina, so it keeps 156 and the trade is a real
+    # one. It is a trap on a fresh bey and a monster on a finished one, and a
+    # player should be able to learn that from the shop rather than from
+    # losing.
+    {"name": "Ragnarok Core", "type": "disk", "price": 45_000, "stat": "attack",
+     "bonus": 120, "penalties": {"defense": 50, "stamina": 120},
+     "desc": ("☄️ **Endgame.** Everything routed into the swing and nothing "
+              "left over. Needs a **level 100** bey — below that its stamina "
+              "cost zeroes the bar and the fight ends on attrition.")},
 ]
 
 PART_TYPE_EMOJI = {"ring": "💍", "disk": "🪨", "driver": "⚙️"}
