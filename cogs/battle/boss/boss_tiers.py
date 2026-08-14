@@ -77,6 +77,28 @@ _BANDS_NIGHTMARE = [
     (100,   0,   8, "Flawless"),
 ]
 
+# ── Pricing ───────────────────────────────────────────────────────────────────
+# The prices are NOT a smooth curve, and the discontinuity is deliberate.
+#
+#     free  ->  5,000  ->  15,000  ||  200,000  ->  500,000
+#
+# Everything up to Savage is priced to be the DEFAULT way you fight a boss, not
+# an occasional splurge: a player with a typical active balance (~100k) can take
+# Savage on every boss, every day, without thinking about it. Above Savage the
+# price jumps 13x on purpose — Merciless and Nightmare are meant to be a wall
+# you grow into, bought for the Perfect odds rather than for profit.
+#
+# Two consequences, recorded so neither reads as a bug later:
+#
+#   - On Drakos (70,000 base reward) the top two tiers are net coin LOSSES:
+#     Merciless pays 140,000 for a 200,000 entry. That is the trade — you are
+#     buying grade odds, not income. On NEMESIS (250,000) they profit.
+#   - Measured against the live economy, 200,000 is affordable to about 4
+#     players and 500,000 to one. They are aspirational content today.
+#
+# If a future edit "smooths" this ladder back out, tools/sim_boss_tiers.py
+# fails: the cliff is asserted, not just commented.
+#
 # key, label, emoji, price, rungs above the boss's own, hp x, atk x,
 # perfect odds (1 in N), reward x, bands
 TIERS: dict[str, dict] = {
@@ -89,14 +111,14 @@ TIERS: dict[str, dict] = {
     },
     "hardened": {
         "key": "hardened", "label": "Hardened", "emoji": "🟢",
-        "price": 25_000, "rungs": 1, "hp_mult": 1.25, "atk_mult": 1.10,
+        "price": 5_000, "rungs": 1, "hp_mult": 1.25, "atk_mult": 1.10,
         "perfect_odds": 2_000_000, "reward_mult": 1.25,
         "bands": _BANDS_HARDENED,
         "blurb": "It stops blundering quite so often.",
     },
     "savage": {
         "key": "savage", "label": "Savage", "emoji": "🔵",
-        "price": 75_000, "rungs": 2, "hp_mult": 1.55, "atk_mult": 1.20,
+        "price": 15_000, "rungs": 2, "hp_mult": 1.55, "atk_mult": 1.20,
         "perfect_odds": 400_000, "reward_mult": 1.6,
         "bands": _BANDS_SAVAGE,
         "blurb": "It reads your habits and hits back harder.",
