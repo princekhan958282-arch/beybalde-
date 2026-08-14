@@ -23,20 +23,36 @@ gets ~half the bonus per dimension but benefits across all three.
 Type advantage — which bonuses are active per matchup:
   Only the advantaged type activates its bonus; the loser's is suppressed.
   Triangle: Attack > Stamina > Defense > Attack
-  Balance is always active regardless of opponent, and never suppresses
-  the opponent's bonus either (both sides activate vs Balance).
 
-  Matchup            Active bonuses
-  Attack  vs Stamina  Attack only
-  Stamina vs Defense  Stamina only
-  Defense vs Attack   Defense only
-  Attack  vs Defense  Defense only
-  Defense vs Stamina  Stamina only  (wait — see ADVANTAGE dict; loser suppressed)
-  Balance vs anyone   Balance + opponent
-  Balance vs Balance  Both Balance bonuses
+  Matchup             Active bonuses
+  Attack  vs Stamina   Attack only
+  Stamina vs Defense   Stamina only
+  Defense vs Attack    Defense only
+  Stamina vs Attack    Attack only        (the same row, read the other way)
+  Defense vs Stamina   Stamina only
+  Attack  vs Defense   Defense only
+  any mirror           neither
+  Balance vs anyone    Balance + opponent
+  Balance vs Balance   both
 
 Use resolve_active_bonuses(type_a, type_b) → (bool, bool) to get which
 side has its bonus active before applying TypeModifiers helpers.
+
+Signature effects
+-----------------
+Having the advantage does more than scale a stat. Each type gets one effect
+that fires only while it is the advantaged side:
+
+  Attack  (vs Stamina)  every landing Attack strips ATTACK_STABILITY_STRIP
+                        stability — it knocks a grinder off its axis.
+  Stamina (vs Defense)  its own move costs are cut STAMINA_COST_CUT — the
+                        answer to a type that wins by outlasting you.
+  Defense (vs Attack)   DEFENSE_REFLECT of the damage it mitigates is
+                        returned to the attacker.
+  Balance               takes only BALANCE_EFFECT_SCALE of any of the above
+                        aimed at it. That, plus its halved multipliers, is
+                        what "never fully advantaged, never fully
+                        disadvantaged" means in code.
 """
 
 import math
@@ -47,6 +63,29 @@ BASE_TYPE_BONUS      = 0.10    # minimum type bonus regardless of stat
 STAT_SCALE_DIVISOR   = 2000.0  # stat / divisor → 0–0.05 bonus at stat 0–100
 BALANCE_SCALE_FACTOR = 0.50    # Balance gets this fraction of each sub-bonus
 TYPE_BONUS_MAX       = 0.15    # hard cap so modified stats (>100) can't inflate bonuses
+
+# ── Signature effects ─────────────────────────────────────────────────────────
+# One per type, fired only while that type holds the advantage. Sized so none
+# of them decides a fight on its own:
+#
+#   6 stability is about a tenth of a normal blade's 100-point pool per landing
+#   Attack — real pressure on the burst gauge over a few rounds, not a kill.
+#   Deliberately stability ONLY: an earlier draft also drained stamina, which
+#   meant Attack's answer to a Stamina type was to attack the resource that
+#   type is named for, on top of already beating it.
+#
+#   A 25% cost cut is the quietest and the most durable of the three. Against
+#   Defence — which wins by grinding — it is close to two extra actions across
+#   a long fight.
+#
+#   Mitigation is 10-15% of a hit, so returning half of it is roughly 5-7% of
+#   incoming damage: it compounds over a long fight and never spikes. It also
+#   costs nothing to compute — the mitigated amount is already worked out at
+#   the call site.
+ATTACK_STABILITY_STRIP = 6      # per landing normal Attack
+STAMINA_COST_CUT       = 0.25   # fraction off this blade's own move costs
+DEFENSE_REFLECT        = 0.50   # fraction of mitigated damage sent back
+BALANCE_EFFECT_SCALE   = 0.50   # Balance takes half of any of the above
 
 # ── Late-game attrition (type-owned) ──────────────────────────────────────────
 # Long matches were unbounded: nothing caps the round counter, and the Stamina
@@ -159,12 +198,53 @@ def attrition_stat_gains(btype: str, round_no: int) -> dict[str, int]:
     return {"attack": half, "defense": half}
 
 
-# Type advantage triangle: key beats value (key's bonus activates, value's suppressed)
+# ── The type chart. There is only one. ────────────────────────────────────────
+# Attack beats Stamina, Stamina beats Defence, Defence beats Attack. Balance
+# sits outside the triangle: it is never fully advantaged and never fully
+# disadvantaged (see resolve_active_bonuses and BALANCE_SCALE_FACTOR).
+#
+# This used to be one of THREE charts that disagreed with each other. A second
+# lived in battle/stability_manager.py and was inverted for attack-vs-stamina —
+# an Attack bey's stability effects were switched OFF in the exact matchup it
+# is supposed to dominate — and a third, in ui/help_cog.py, was hand-written,
+# omitted Balance entirely, and is now generated from this dict so it cannot
+# drift again. Anything that needs to know who beats whom reads it from here.
 ADVANTAGE: dict[str, str] = {
     "attack":  "stamina",
     "stamina": "defense",
     "defense": "attack",
 }
+
+TYPES = ("attack", "defense", "stamina", "balance")
+
+
+def normalise_type(value) -> str:
+    """One of TYPES, or "" — the single way to read a blade's type string.
+
+    THE BUG THIS REPLACES: every consumer normalised differently.
+    `TypeModifiers` matched by substring (`"attack" in btype`) while
+    `resolve_active_bonuses` did an exact dict lookup (`ADVANTAGE.get(a)`), so
+    a blade typed "Attack Type" was handed atk_mult 1.15 by one half of the
+    system and no advantage at all by the other — the bonus was computed and
+    then never switched on, silently, for the whole fight. A third scheme lived
+    in stability_manager and a fourth (Title-case keys) in utils/hp_system.
+
+    Order matters: "balance" is checked LAST so a composite like
+    "attack/balance" resolves to its primary type rather than to Balance.
+    """
+    t = str(value or "").strip().lower()
+    if not t:
+        return ""
+    if t in TYPES:
+        return t
+    for known in ("attack", "defense", "stamina", "balance"):
+        if known in t:
+            return known
+    # "defence" is the British spelling and appears in prose all over this
+    # codebase; accepting it here costs nothing and fails less surprisingly.
+    if "defen" in t:
+        return "defense"
+    return ""
 
 
 def resolve_active_bonuses(type_a: str, type_b: str) -> tuple[bool, bool]:
@@ -183,14 +263,18 @@ def resolve_active_bonuses(type_a: str, type_b: str) -> tuple[bool, bool]:
       ("balance", "balance")  → (True,  True)
       ("attack",  "attack")   → (False, False)
     """
-    a = type_a.lower()
-    b = type_b.lower()
+    a = normalise_type(type_a)
+    b = normalise_type(type_b)
 
-    a_balance = "balance" in a
-    b_balance = "balance" in b
-
-    # Balance is always active; it never suppresses the other side either
-    if a_balance or b_balance:
+    # Balance is always active; it never suppresses the other side either.
+    #
+    # Deliberate: making Balance suppress its opponent would hand it a bonus
+    # nobody can answer, and Balance would simply be the best type. What keeps
+    # it fair is the other half of the rule — Balance's own multipliers are
+    # halved (BALANCE_SCALE_FACTOR), and it takes only half of any type
+    # signature effect aimed at it (BALANCE_EFFECT_SCALE). Never fully
+    # advantaged, never fully disadvantaged.
+    if a == "balance" or b == "balance":
         return True, True
 
     # Triangle advantage — only the winner activates
@@ -209,7 +293,10 @@ class TypeModifiers:
     """
 
     def __init__(self, blade: dict, stats: dict | None = None):
-        btype = str(blade.get("type", "")).lower()
+        # The SAME normaliser resolve_active_bonuses uses. When these two
+        # disagreed, a blade could be given a multiplier that was never
+        # switched on.
+        btype = normalise_type(blade.get("type"))
         # Modified stats (base + parts + avatar + level mult) can be supplied
         # by the session so type bonuses scale with the player's REAL stats.
         # Falls back to raw blade stats when not provided.
@@ -224,25 +311,25 @@ class TypeModifiers:
 
         self.btype = btype
 
-        if "attack" in btype:
+        if btype == "attack":
             bonus         = _bonus(atk)
             self.atk_mult = round(1.0 + bonus, 4)
             self.def_mult = 1.0
             self.sta_mult = 1.0
 
-        elif "defense" in btype:
+        elif btype == "defense":
             bonus         = _bonus(defn)
             self.atk_mult = 1.0
             self.def_mult = round(1.0 + bonus, 4)
             self.sta_mult = 1.0
 
-        elif "stamina" in btype:
+        elif btype == "stamina":
             bonus         = _bonus(sta)
             self.atk_mult = 1.0
             self.def_mult = 1.0
             self.sta_mult = round(1.0 + bonus, 4)
 
-        elif "balance" in btype:
+        elif btype == "balance":
             a_b = _bonus(atk)  * BALANCE_SCALE_FACTOR
             d_b = _bonus(defn) * BALANCE_SCALE_FACTOR
             s_b = _bonus(sta)  * BALANCE_SCALE_FACTOR
@@ -260,17 +347,13 @@ class TypeModifiers:
         # Defense type starts at 150; all others start at 100.
         # Owned here because starting stability is a type-based property,
         # consistent with how atk/def/sta multipliers are type-based.
-        self.stability_start: int = STABILITY_START_DEFENSE if "defense" in btype else STABILITY_START_DEFAULT
+        self.stability_start: int = STABILITY_START_DEFENSE if btype == "defense" else STABILITY_START_DEFAULT
 
-    # ── Advantage activation ─────────────────────────────────────────────────
-
-    def suppress_bonus(self) -> None:
-        """Neutralise all type bonuses (called when this Bey is the loser in
-        the type-advantage matchup).  Balance types are never suppressed."""
-        if "balance" not in self.btype:
-            self.atk_mult = 1.0
-            self.def_mult = 1.0
-            self.sta_mult = 1.0
+    # There was a `suppress_bonus()` here that zeroed all three multipliers.
+    # Nothing ever called it — all three sites (attack_manager's two type-mod
+    # helpers and the Special barrage) resolve the gate with
+    # resolve_active_bonuses and return early instead. A second, unused way to
+    # express the same rule is a second way for it to drift.
 
     # ── Convenience helpers ───────────────────────────────────────────────────
 

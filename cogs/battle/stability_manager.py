@@ -40,13 +40,15 @@ Stability Changes Per Action
 
 Type-Advantage Gate
 -------------------
-Stability deltas only apply when facing your advantaged matchup.
-Against Balance all effects are always active.
+Stability deltas only apply when you hold the type advantage. This module
+does not decide that — `type_system.resolve_active_bonuses` does, and this
+one asks it. It used to keep its own table, which disagreed.
 
-  Attack type  : active vs Defense, Balance & mirror   | off vs Stamina
-  Defense type : active vs Stamina, Balance, Attack & mirror   | off vs none
-  Stamina type : active vs Attack, Balance & mirror   | off vs Defense
-  Balance type : always active
+  Attack type  : active vs Stamina
+  Stamina type : active vs Defense
+  Defense type : active vs Attack
+  Balance type : always active, and never suppresses the opponent
+  mirrors      : neither side
 
 Public API
 ----------
@@ -90,6 +92,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from cogs.abilities.type_system import resolve_active_bonuses
+
 from .constants import (
     STABILITY_START_DEFAULT,
     STABILITY_ATTACK_HIT,
@@ -127,53 +131,23 @@ _STAMINA_RECOVERY  = STABILITY_STAMINA_RECOVERY
 _COUNTER_PENALTY   = STABILITY_COUNTER_PENALTY
 _CLASH_PENALTY     = STABILITY_CLASH_PENALTY
 
-# ── Type-advantage gate table ─────────────────────────────────────────────────
-# Maps attacker type → set of enemy types where effects ARE active.
-# Balance always activates; its own row reflects that against all types.
-
-_ACTIVE_MATCHUPS: dict[str, set[str]] = {
-    "attack":  {"attack", "defense", "balance"},
-    "defense": {"attack", "defense", "stamina", "balance"},
-    "stamina": {"stamina", "attack", "balance"},
-    "balance": {"attack", "defense", "stamina", "balance"},
-}
-
-
 def stability_effects_active(your_type: str, enemy_type: str) -> bool:
     """Return True when stability effects should apply for this matchup.
 
-    Called by StabilityManager but exposed at module level so type_system.py
-    (or any other caller) can import it without instantiating the manager.
+    THE BUG THIS REPLACES: this used to consult its own table,
+    `_ACTIVE_MATCHUPS`, which disagreed with `type_system.ADVANTAGE` — the
+    chart the rest of the game runs on — in three separate ways. Attack's
+    effects were switched OFF against Stamina, the exact matchup Attack is
+    supposed to dominate. Defence was active against everything, including
+    Attack, which beats it. And every mirror was active here while
+    `resolve_active_bonuses` returns (False, False) for mirrors, so the same
+    fight had a type bonus suppressed and its stability effects live.
 
-    ``your_type`` / ``enemy_type`` are the Bey type strings as stored on the
-    blade dict (e.g. ``"attack"``, ``"defense"``, ``"stamina"``, ``"balance"``).
-    Comparison is case-insensitive and handles composite strings like
-    ``"attack/stamina"`` by checking whether any component matches.
+    Two charts is one chart too many. There is now one, in type_system, and
+    this asks it.
     """
-    def _normalise(t: str) -> str:
-        return str(t).lower().strip()
-
-    yt = _normalise(your_type)
-    et = _normalise(enemy_type)
-
-    # Resolve composite types (e.g. "attack/balance") — take the first known
-    # component so the logic stays deterministic.
-    for known in ("attack", "defense", "stamina", "balance"):
-        if known in yt:
-            yt = known
-            break
-
-    # Unknown / missing type defaults to "balance" so effects always apply
-    # rather than being silently skipped for blades with no type set.
-    if yt not in _ACTIVE_MATCHUPS:
-        yt = "balance"
-
-    active_vs = _ACTIVE_MATCHUPS.get(yt, {"balance"})
-    # Check whether any component of enemy type is in the active set.
-    for known in ("attack", "defense", "stamina", "balance"):
-        if known in et and known in active_vs:
-            return True
-    return False
+    active, _ = resolve_active_bonuses(your_type, enemy_type)
+    return active
 
 
 class StabilityManager:

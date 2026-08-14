@@ -370,6 +370,34 @@ class BattleSession:
             str(p2.id): TypeModifiers(blade2, stats=self.battle_stats[str(p2.id)]),
         }
         self.stability_manager = StabilityManager(self.blades, self.type_mods)
+
+        # Stamina's signature type effect: while it holds the advantage, its
+        # own move costs are cut. Resolved ONCE, here — both blades' types are
+        # fixed for the whole fight, so the advantage cannot change mid-match
+        # and there is nothing to recompute per round.
+        #
+        # It reuses drain_reduction, the same field the `stamina_cost_reduction`
+        # ability op writes, and that field is combined with max() rather than
+        # summed — a blade with both gets the larger, not both. That is the
+        # right answer (two independent 25% cuts stacking to 44% is a different
+        # game) and it is asserted in tools/sim_types.py rather than left to be
+        # rediscovered.
+        from cogs.abilities.type_system import (
+            resolve_active_bonuses as _rab, normalise_type as _nt,
+            STAMINA_COST_CUT as _SCC)
+        for _k, _other in ((str(p1.id), str(p2.id)), (str(p2.id), str(p1.id))):
+            if _nt(self.blades.get(_k, {}).get("type")) != "stamina":
+                continue
+            _mine, _ = _rab(self.blades.get(_k, {}).get("type", ""),
+                            self.blades.get(_other, {}).get("type", ""))
+            if not _mine:
+                continue
+            _cut = _SCC
+            if _nt(self.blades.get(_other, {}).get("type")) == "balance":
+                from cogs.abilities.type_system import BALANCE_EFFECT_SCALE
+                _cut *= BALANCE_EFFECT_SCALE
+            sm = self.stamina_manager
+            sm.drain_reduction[_k] = max(sm.drain_reduction.get(_k, 0.0), _cut)
         self.status = StatusManager(self)          # FIX #1/#3: Initialize StatusManager
         self.chain_handler = ChainHandler(self)    # FIX #1/#3: Initialize ChainHandler
         self.ability = AbilityEngine(self)
