@@ -34,6 +34,12 @@ log = logging.getLogger("beyblade_bot.story")
 TURN_SECONDS = 60
 VIEW_TIMEOUT = TURN_SECONDS * 6
 
+# The reward card outlives the fight view on purpose: a player reads the
+# payout, gets distracted, and comes back wanting the next stage. Five minutes
+# is long enough to be useful and short enough that a stale Next button isn't
+# sitting in a channel an hour later.
+REWARD_TIMEOUT = 300
+
 # Story wins feed nothing but Story Mode. `beycord_battle_end` and
 # `beycord_battle_blades` drive quests, mastery, achievements and clan wars,
 # and firing them here would quietly let a player farm all four against an NPC.
@@ -230,6 +236,81 @@ class StoryFightView(discord.ui.View):
                 pass
 
 
+# ── Post-fight card ──────────────────────────────────────────────────────────
+
+class StoryRewardView(discord.ui.View):
+    """The buttons on the card you get when a stage ends.
+
+    Before this, clearing a stage printed the literal text `— ;story 3-2` and
+    losing one printed **nothing at all** — the fight embed's Result field was
+    the only sign it had happened. Both are one button.
+
+    `next_id` and `retry_id` are each optional: the last stage in the campaign
+    has no next, and a win has nothing to retry. When both are None the caller
+    should not attach the view at all.
+    """
+
+    def __init__(self, cog: "StoryCog", player: discord.Member,
+                 next_id: Optional[str] = None,
+                 retry_id: Optional[str] = None) -> None:
+        super().__init__(timeout=REWARD_TIMEOUT)
+        self.cog = cog
+        self.player = player
+        self.message: Optional[discord.Message] = None
+        self.busy = False
+
+        if next_id:
+            nst = story_data.stage(next_id) or {}
+            self._add(f"Next · {next_id} {nst.get('name', '')}".strip(),
+                      "▶️", discord.ButtonStyle.success, next_id)
+        if retry_id:
+            rst = story_data.stage(retry_id) or {}
+            self._add(f"Retry · {retry_id} {rst.get('name', '')}".strip(),
+                      "🔄", discord.ButtonStyle.primary, retry_id)
+
+    def _add(self, label: str, emoji: str, style, stage_id: str) -> None:
+        btn = discord.ui.Button(label=label[:80], emoji=emoji, style=style)
+        btn.callback = self._make_cb(stage_id)
+        self.add_item(btn)
+
+    def _make_cb(self, stage_id: str):
+        async def cb(interaction: discord.Interaction) -> None:
+            # Owner check per callback, matching StoryFightView and
+            # StageSelect rather than the interaction_check form used in
+            # cogs/battle/ui.py — one convention per file.
+            if interaction.user.id != self.player.id:
+                return await interaction.response.send_message(
+                    "This isn't your run — `;story` to start your own.",
+                    ephemeral=True)
+            if self.busy:
+                return await interaction.response.defer()
+            self.busy = True
+
+            for c in self.children:
+                c.disabled = True
+            # Edit this card FIRST. message.edit is its own HTTP call and does
+            # not consume the interaction response — which launch() still
+            # needs, because it replies with response.send_message. Deferring
+            # here instead would make that call fail.
+            if self.message:
+                try:
+                    await self.message.edit(view=self)
+                except Exception:                    # noqa: BLE001
+                    pass
+            self.stop()
+            await self.cog.launch(interaction, self.player, stage_id)
+        return cb
+
+    async def on_timeout(self) -> None:
+        for c in self.children:
+            c.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except Exception:                        # noqa: BLE001
+                pass
+
+
 # ── Stage picker ─────────────────────────────────────────────────────────────
 
 class StageSelect(discord.ui.Select):
@@ -357,6 +438,30 @@ class StoryCog(commands.Cog, name="Story"):
             stats["losses"] += 1
             profile["story_stats"] = stats
             update_user(player.id, profile)
+            # A loss used to send NOTHING — the fight embed's Result field was
+            # the only sign the run had ended, and the player was left with no
+            # way back in but retyping the stage id.
+            e = discord.Embed(
+                title=f"💀 {st['id']} — {st['name']} still stands",
+                colour=0x8d8d8d,
+                description=("No rewards for a loss. The stage is unchanged "
+                             "and it costs nothing to go again."),
+            )
+            e.add_field(name="📊 Record",
+                        value=f"{stats['wins']}W · {stats['losses']}L",
+                        inline=True)
+            if fight.level_gap > 0:
+                e.add_field(name="⚠️ Level gap",
+                            value=f"{fight.level_gap} levels under this stage",
+                            inline=True)
+            if not fight.avatar_active:
+                e.set_footer(text="No avatar equipped — ;avatarshop, then "
+                                  ";equipavatar")
+            view = StoryRewardView(self, player, retry_id=st["id"])
+            try:
+                view.message = await channel.send(embed=e, view=view)
+            except Exception:                        # noqa: BLE001
+                log.exception("could not post story defeat card")
             return
 
         reward = st["reward"]
@@ -401,7 +506,7 @@ class StoryCog(commands.Cog, name="Story"):
         if nxt:
             nst = story_data.stage(nxt)
             e.add_field(name="▶️ Next", value=f"**{nxt}** {nst['emoji']} {nst['name']}"
-                                              f" — `;story {nxt}`", inline=False)
+                                              f" — or press the button", inline=False)
         else:
             e.add_field(name="👑 Campaign complete",
                         value="You have cleared every stage. Replays still pay.",
@@ -413,8 +518,16 @@ class StoryCog(commands.Cog, name="Story"):
             self.bot.dispatch("beycord_battle_end", player.id, [player.id],
                               getattr(channel, "guild", None)
                               and channel.guild.id)
+        # `story_cleared` was appended and persisted above, BEFORE nxt was
+        # resolved — so the next stage is already unlocked by the time this
+        # button exists and pressing it passes _can_fight. On the last stage
+        # there is nothing to go to, so no view is attached and the "Campaign
+        # complete" field stands on its own.
+        view = StoryRewardView(self, player, next_id=nxt) if nxt else None
         try:
-            await channel.send(embed=e)
+            sent = await channel.send(embed=e, view=view)
+            if view is not None:
+                view.message = sent
         except Exception:                            # noqa: BLE001
             log.exception("could not post story reward")
 

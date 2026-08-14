@@ -93,10 +93,19 @@ Edit `data/beyblades.json`. Each entry follows this schema:
 ## Battle System
 
 - Battles are **turn-based** — players alternate selecting moves via Discord Buttons
-- **Rock-Paper-Scissors** move logic:
+- **Rock-Paper-Scissors** move logic — which *move* you pick each round:
   - ⚔️ Attack beats 🌀 Stamina
   - 🛡️ Defense beats ⚔️ Attack  
   - 🌀 Stamina beats 🛡️ Defense
+- **Bey-type advantage** — a separate wheel, decided by your *blade's type*, not
+  your move. The advantaged side keeps its passive bonus (the other side's is
+  suppressed) and gets a signature effect:
+  - ⚔️ Attack ▶ 🌀 Stamina — strips 6 stability every hit it lands
+  - 🌀 Stamina ▶ 🛡️ Defense — pays 25% less stamina a move
+  - 🛡️ Defense ▶ ⚔️ Attack — sends back 50% of what it blocks
+  - ⚖️ Balance sits outside the triangle: half bonuses against everything, and
+    it takes only half of any type edge aimed at it
+  - `;help matchups` prints the full chart
 - **⚡ Special Charge** — press twice to unlock 🌟 SPECIAL for a big hit
 - Damage is calculated from real stats in `beyblades.json`
 - Win/Loss record is saved to `users.json`

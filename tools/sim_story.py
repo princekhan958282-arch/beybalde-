@@ -354,6 +354,72 @@ def check_unlocks() -> None:
           (story_data.resolve("3-4") or {}).get("id") == "3-4")
 
 
+def check_reward_buttons() -> None:
+    """The post-fight card's Next / Retry buttons.
+
+    The view is pure enough to build without a gateway — it takes a cog, a
+    member and two stage ids and produces Buttons — so the branch logic is
+    testable here even though the click itself is not.
+    """
+    print("\n▸ post-fight buttons")
+    import types
+    from cogs.story import story_cog
+
+    player = types.SimpleNamespace(id=1, display_name="P")
+    ids = [s["id"] for s in story_data.all_stages()]
+
+    def labels(**kw):
+        v = story_cog.StoryRewardView(None, player, **kw)
+        out = [c.label for c in v.children]
+        v.stop()
+        return out
+
+    check("a win mid-campaign offers Next", len(labels(next_id=ids[1])) == 1,
+          labels(next_id=ids[1]))
+    check("...naming the stage it goes to",
+          ids[1] in labels(next_id=ids[1])[0], labels(next_id=ids[1]))
+    check("a loss offers Retry", len(labels(retry_id=ids[0])) == 1,
+          labels(retry_id=ids[0]))
+    check("...naming the stage it repeats",
+          ids[0] in labels(retry_id=ids[0])[0], labels(retry_id=ids[0]))
+    check("with neither, the view has no buttons at all", labels() == [])
+
+    # Every stage but the last must be able to offer a Next, and the last must
+    # not — that is the whole branch, and it is data-driven.
+    nexts = {sid: story_data.next_stage(sid) for sid in ids}
+    check(f"{len(ids) - 1} of {len(ids)} stages have a next",
+          sum(1 for v in nexts.values() if v) == len(ids) - 1, nexts)
+    check("only the final stage has none",
+          [k for k, v in nexts.items() if not v] == [ids[-1]],
+          [k for k, v in nexts.items() if not v])
+    for sid, nxt in nexts.items():
+        if nxt:
+            check(f"{sid}: the Next button labels {nxt}",
+                  nxt in labels(next_id=nxt)[0], labels(next_id=nxt))
+
+    # A Discord button label is hard-capped at 80 characters; a long stage name
+    # would raise at construction time rather than at render time.
+    check("every Next label is within Discord's 80-char limit",
+          all(len(labels(next_id=n)[0]) <= 80 for n in ids[1:]),
+          max(len(labels(next_id=n)[0]) for n in ids[1:]))
+
+    # The order matters: the clear is persisted BEFORE nxt is resolved, so the
+    # stage the button points at is already unlocked when the button appears.
+    src = open(os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "cogs", "story", "story_cog.py"),
+        encoding="utf-8").read()
+    check("the clear is persisted before the next stage is resolved",
+          src.index('profile["story_cleared"] = cleared')
+          < src.index("nxt = story_data.next_stage"))
+    check("the button edits its own message before launching",
+          src.index("await self.message.edit(view=self)")
+          < src.index("await self.cog.launch(interaction"))
+    check("the callback never defers — launch() needs the response",
+          "await interaction.response.defer()" in src)
+    check("a loss now sends a card instead of nothing",
+          "could not post story defeat card" in src)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--fights", type=int, default=200)
@@ -369,6 +435,7 @@ def main() -> int:
     else:
         check_rewards()
         check_unlocks()
+        check_reward_buttons()
         check_levels()
         check_effects_fire(max(60, args.fights // 3))
         check_progression(args.fights)

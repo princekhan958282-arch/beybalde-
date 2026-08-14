@@ -263,20 +263,42 @@ for n, pct in ((BASE, 0.35), (BLACK, 0.20)):
     check(f"{n} past 100 stays free", got120 == 0.0, got120)
 
 # And the offence survives mastery — the whole point of removing only the cost.
-_g, s100, e100 = surcharge_at(BASE, 100)
-dealt, _taken, _logs = e100.apply("1", "2", s100.blades["1"], s100.blades["2"],
-                                  "attack", "win", 100, 0)
-check("a mastered Ultimate Valkyrie still hits for +20%", dealt == 120, dealt)
-_g, s1, e1 = surcharge_at(BASE, 1)
-d1, _t, _l = e1.apply("1", "2", s1.blades["1"], s1.blades["2"],
-                      "attack", "win", 100, 0)
-check("an unmastered one hits for the same +20% — only the cost differs",
-      d1 == dealt, (d1, dealt))
-_g, sb, eb = surcharge_at(BLACK, 100)
-db_, _t, _l = eb.apply("1", "2", sb.blades["1"], sb.blades["2"],
-                       "attack", "win", 100, 0)
-check("the Black Edition hits harder than the base blade on the same swing",
-      db_ > dealt, (dealt, db_))
+#
+# Ultimate Blade also raises the crit rate, and the engine rolls that crit with
+# `random.random() < p` inside the same apply() call. Comparing exact damage
+# across two calls is therefore a coin flip unless the crit is held still:
+# these three checks are about the +20% ability bonus, and the crit is asserted
+# separately from the data in section 4. Pinning `random.random` to 1.0 makes
+# `< p` false for any p, so no roll can ever crit.
+_real_random = random.random
+random.random = lambda: 1.0
+try:
+    _g, s100, e100 = surcharge_at(BASE, 100)
+    dealt, _taken, _logs = e100.apply("1", "2", s100.blades["1"],
+                                      s100.blades["2"], "attack", "win", 100, 0)
+    check("a mastered Ultimate Valkyrie still hits for +20%", dealt == 120,
+          dealt)
+    _g, s1, e1 = surcharge_at(BASE, 1)
+    d1, _t, _l = e1.apply("1", "2", s1.blades["1"], s1.blades["2"],
+                          "attack", "win", 100, 0)
+    check("an unmastered one hits for the same +20% — only the cost differs",
+          d1 == dealt, (d1, dealt))
+    _g, sb, eb = surcharge_at(BLACK, 100)
+    db_, _t, _l = eb.apply("1", "2", sb.blades["1"], sb.blades["2"],
+                           "attack", "win", 100, 0)
+    check("the Black Edition hits harder than the base blade on the same swing",
+          db_ > dealt, (dealt, db_))
+finally:
+    random.random = _real_random
+
+# ...and the crit really is live when it is not being held still. 15% over 400
+# swings misses entirely about once in 10^28 runs.
+_g, sc, ec = surcharge_at(BASE, 1)
+crits = sum(1 for _ in range(400)
+            if ec.apply("1", "2", sc.blades["1"], sc.blades["2"],
+                        "attack", "win", 100, 0)[0] > 120)
+check(f"Ultimate Blade's crit fires on its own ({crits}/400 swings)",
+      crits > 0, crits)
 
 # The surcharge has to survive contact with the manager the session built,
 # not just the one this file constructed.

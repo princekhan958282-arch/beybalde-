@@ -36,6 +36,7 @@ from . import boss_ai as ai
 from . import boss_card as bcard
 from . import boss_copy as bcopy
 from . import boss_info as binfo
+from . import boss_tiers as btiers
 from . import drakos as dk
 from . import gemini
 
@@ -271,7 +272,8 @@ def boss_theme(key: str) -> tuple[str, str, str, str]:
             theme.get("tint", "#140a1e"))
 
 
-def lobby_card_state(key: str, party: list = None, footer: str = "") -> dict:
+def lobby_card_state(key: str, party: list = None, footer: str = "",
+                     tier: str = None) -> dict:
     """State for boss_card.render_lobby() — the pre-fight card.
 
     Quotes the boss AT THE PARTY'S SIZE, so the HP and attack shown are the
@@ -285,8 +287,12 @@ def lobby_card_state(key: str, party: list = None, footer: str = "") -> dict:
     extra = max(0, len(party) - 1)
     art, accent, glow, tint = boss_theme(key)
 
-    hp = scaled_boss_hp(cfg, extra)
-    atk = cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra)
+    # Quote the card at the CHOSEN tier as well as the party size, so the
+    # numbers a party reads before pressing Start are the numbers they get.
+    tcfg = btiers.get(tier)
+    hp = btiers.scale_hp(scaled_boss_hp(cfg, extra), tcfg["key"])
+    atk = btiers.scale_attack(
+        cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra), tcfg["key"])
     reward = cfg.get("reward", {})
 
     stats = [
@@ -294,8 +300,12 @@ def lobby_card_state(key: str, party: list = None, footer: str = "") -> dict:
         ("Attack",    f"{atk:.0f}"),
         ("Defense",   f"{cfg['defense']}"),
         ("Stamina",   f"{cfg['stamina']}"),
-        ("Difficulty", str(cfg.get("difficulty", "")).title()),
-        ("Reward",    f"{reward.get('coins', 0):,} coins"),
+        ("Difficulty", f"{tcfg['label']} · "
+                       + btiers.walk_difficulty(
+                           cfg.get("difficulty", ""), tcfg["key"]).title()),
+        ("Entry",     "free" if not tcfg["price"]
+                      else f"{tcfg['price']:,} coins each"),
+        ("Reward",    f"{btiers.scale_reward(reward.get('coins', 0), tcfg['key']):,} coins"),
     ]
     return {
         "boss_name": cfg["name"],
@@ -404,12 +414,18 @@ def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
 
 
 class BossFight:
-    def __init__(self, player: discord.Member, key: str, party: list = None):
+    def __init__(self, player: discord.Member, key: str, party: list = None,
+                 tier: str = None):
         cfg = BOSSES[key]
         self.key    = key
         self.cfg    = cfg
         self.player = player                       # host / current turn holder
         self.party  = list(party or [player])
+        # The paid difficulty tier. `btiers.get` resolves anything unknown to
+        # the free tier, so a stale lobby button or a half-applied deploy
+        # gives somebody a standard fight rather than crashing one.
+        self.tier     = btiers.get(tier)["key"]
+        self.tier_cfg = btiers.get(tier)
 
         # Every member gets their own fighter built from their own blade, and
         # their own ability kit.
@@ -429,8 +445,11 @@ class BossFight:
         # fight, so HP climbs steeply and damage only nudges up — more players
         # means a longer fight, not a trivially safer one.
         extra   = max(0, len(self.party) - 1)
-        hp      = scaled_boss_hp(cfg, extra)
-        attack  = cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra)
+        # Party scaling first, then the tier on top — the two are independent
+        # knobs and a four-player Nightmare should be both.
+        hp      = btiers.scale_hp(scaled_boss_hp(cfg, extra), self.tier)
+        attack  = btiers.scale_attack(
+            cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra), self.tier)
 
         self.boss = ai.Fighter(cfg["name"], hp, hp,
                                attack, cfg["defense"], cfg["stamina"],
@@ -500,7 +519,8 @@ class BossFight:
 
         boss_move, _vals = ai.choose_move(
             self.boss, self.foe, self.model,
-            difficulty=self.cfg["difficulty"])
+            difficulty=btiers.walk_difficulty(self.cfg["difficulty"],
+                                              self.tier))
         if not is_round_end:
             boss_move = ai.MOVE_CHARGE if self.boss.can(ai.MOVE_CHARGE) else ai.MOVE_STAMINA
 
@@ -722,7 +742,11 @@ class BossFight:
         return {
             "boss_name":  cfg["name"],
             "tier":       prof.get("rarity", cfg.get("difficulty", "boss")),
-            "difficulty": cfg.get("difficulty", ""),
+            # The AI rung this fight is ACTUALLY running at, not the one
+            # printed in the boss profile — otherwise a Nightmare card claims
+            # to be an elite fight.
+            "difficulty": btiers.walk_difficulty(cfg.get("difficulty", ""),
+                                                 self.tier),
             "boss_hp":    self.boss.hp, "boss_max": self.boss.max_hp,
             "boss_gauge": self.boss.gauge, "boss_sp": self.boss.sp,
             "gauge_max":  ai.SPECIAL_GAUGE_MAX,
@@ -921,7 +945,9 @@ class BossView(discord.ui.View):
         if not f.finished and len(f.party) > 1:
             e.description = ((e.description + "\n") if e.description else "") + \
                 f"### ▶️ {f.active.display_name}'s turn"
-        e.set_footer(text=f"Turn {f.turn} · difficulty: {cfg['difficulty']}"
+        _t = btiers.get(f.tier)
+        e.set_footer(text=f"Turn {f.turn} · {_t['emoji']} {_t['label']} · "
+                          f"AI: {btiers.walk_difficulty(cfg['difficulty'], f.tier)}"
                           + ("" if gemini.available() else " · dialogue offline"))
         return e
 
@@ -957,7 +983,51 @@ class BossLobbyView(discord.ui.View):
         self.key     = key
         self.party   = [host]
         self.started = False
+        self.tier    = btiers.DEFAULT_TIER
         self.message: Optional[discord.Message] = None
+        self._add_tier_select()
+
+    # ── Difficulty ────────────────────────────────────────────────────────────
+
+    def _add_tier_select(self) -> None:
+        """Host-only difficulty picker, defaulting to the free tier.
+
+        Built here rather than declared, because the default has to be marked
+        on the option that is actually current — a Select that shows no
+        selection reads as "nothing chosen" when in fact Standard is chosen.
+        """
+        sel = discord.ui.Select(
+            placeholder="⚪ Difficulty: Standard (free)",
+            row=1,
+            options=[
+                discord.SelectOption(
+                    label=f"{t['label']}"
+                          + ("" if not t["price"] else f" — {t['price']:,} coins"),
+                    value=t["key"], emoji=t["emoji"],
+                    description=t["blurb"][:100],
+                    default=(t["key"] == self.tier),
+                )
+                for t in (btiers.TIERS[k] for k in btiers.ORDERED)
+            ],
+        )
+
+        async def cb(interaction: discord.Interaction):
+            if interaction.user.id != self.host.id:
+                return await interaction.response.send_message(
+                    "Only the host picks the difficulty.", ephemeral=True)
+            if self.started:
+                return await interaction.response.defer()
+            self.tier = btiers.get(sel.values[0])["key"]
+            t = btiers.get(self.tier)
+            sel.placeholder = (f"{t['emoji']} Difficulty: {t['label']}"
+                               + (" (free)" if not t["price"]
+                                  else f" ({t['price']:,} coins)"))
+            for o in sel.options:
+                o.default = (o.value == self.tier)
+            await self.refresh(interaction)
+
+        sel.callback = cb
+        self.add_item(sel)
 
     async def card_file(self) -> Optional[discord.File]:
         """The lobby card, or None to fall back to build_embed().
@@ -969,10 +1039,11 @@ class BossLobbyView(discord.ui.View):
             return None
         try:
             buf = await bcard.render_lobby(lobby_card_state(
-                self.key, self.party,
+                self.key, self.party, tier=self.tier,
                 footer="HP by party size: "
-                       + " / ".join(f"{scaled_boss_hp(BOSSES[self.key], i):,}"
-                                    for i in range(MAX_PARTY))
+                       + " / ".join(
+                           f"{btiers.scale_hp(scaled_boss_hp(BOSSES[self.key], i), self.tier):,}"
+                           for i in range(MAX_PARTY))
                        + f"  ·  +{int(BOSS_ATK_PER_JOIN * 100)}% attack per "
                          f"player  ·  starts in {LOBBY_SECONDS}s"))
             if buf is None:
@@ -1003,8 +1074,9 @@ class BossLobbyView(discord.ui.View):
     def build_embed(self) -> discord.Embed:
         cfg = BOSSES[self.key]
         extra = len(self.party) - 1
-        hp  = scaled_boss_hp(cfg, extra)
-        atk = cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra)
+        hp  = btiers.scale_hp(scaled_boss_hp(cfg, extra), self.tier)
+        atk = btiers.scale_attack(
+            cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra), self.tier)
         e = discord.Embed(
             title=f"{cfg['emoji']}  {cfg['name']}",
             description=(f"**{self.host.display_name}** is challenging this boss.\n"
@@ -1025,6 +1097,16 @@ class BossLobbyView(discord.ui.View):
                    + (f"\n*{len(self.party)} players — solo it has "
                       f"{scaled_boss_hp(cfg, 0):,}*" if extra else "")),
             inline=True,
+        )
+        # Everybody pays their own way in, so the price has to be on the card
+        # BEFORE anyone presses Join — not sprung on them at launch.
+        t = btiers.get(self.tier)
+        e.add_field(
+            name="Difficulty",
+            value=(btiers.summary_line(self.tier)
+                   + ("\n*Free — this is the standard fight.*" if not t["price"]
+                      else f"\n*Each player pays 🪙 {t['price']:,} to enter.*")),
+            inline=False,
         )
         e.set_footer(text="HP by party size: "
                           + " / ".join(f"{scaled_boss_hp(cfg, i):,}"
@@ -1051,6 +1133,15 @@ class BossLobbyView(discord.ui.View):
         ok, msg = self.cog._can_fight(interaction.user.id, self.key)
         if not ok:
             return await interaction.response.send_message(msg, ephemeral=True)
+        # Everybody pays their own entry, so refuse the join rather than let
+        # someone sit in the lobby and get dropped at launch. This is a quote,
+        # not the charge — the balance is re-read under the lock later.
+        if not btiers.can_afford(get_user(interaction.user.id), self.tier):
+            t = btiers.get(self.tier)
+            return await interaction.response.send_message(
+                f"❌ **{t['label']}** costs 🪙 **{t['price']:,}** per player — "
+                f"you can't cover it. Ask the host for an easier tier.",
+                ephemeral=True)
 
         self.party.append(interaction.user)
         self.cog._active.add(interaction.user.id)
@@ -1069,7 +1160,39 @@ class BossLobbyView(discord.ui.View):
         self.started = True
         for c in self.children:
             c.disabled = True
-        fight = BossFight(self.host, self.key, party=self.party)
+
+        # ── Charge the difficulty tier ───────────────────────────────────────
+        # Under the user lock, per member, with the balance re-read there — the
+        # lobby card can sit on screen for 45 seconds and the number printed on
+        # it is a display, not an authority. Raising inside mutate_user
+        # abandons the write, so a refused purchase cannot take the coins.
+        #
+        # Anyone who can no longer pay is DROPPED rather than blocking the
+        # launch: this runs from on_timeout too, where nobody is present to fix
+        # it. And if the host can't pay, the whole fight falls back to the free
+        # tier instead of failing — a lobby that refuses to start is worse than
+        # an easier fight.
+        tier   = self.tier
+        broke: list[discord.Member] = []
+        if btiers.price_of(tier) > 0:
+            try:
+                btiers.charge_for(self.host.id, tier)
+            except btiers.TierError:
+                tier = btiers.DEFAULT_TIER
+            else:
+                for member in self.party[1:]:
+                    try:
+                        btiers.charge_for(member.id, tier)
+                    except btiers.TierError:
+                        broke.append(member)
+                    except Exception as e:           # noqa: BLE001
+                        log.warning("tier charge failed for %s: %s", member.id, e)
+                        broke.append(member)
+        for m in broke:
+            self.party.remove(m)
+            self.cog._active.discard(m.id)
+
+        fight = BossFight(self.host, self.key, party=self.party, tier=tier)
         # Charge the daily attempt for EVERY member, at launch. Charging only
         # the host would let three friends farm a boss by taking turns hosting,
         # and charging on the result would make a loss free.
@@ -1097,6 +1220,24 @@ class BossLobbyView(discord.ui.View):
         elif self.message:
             await self.message.edit(view=self)
             view.message = await self.message.channel.send(**payload)
+
+        # Say so out loud when the tier didn't land the way the lobby showed —
+        # a player silently dropped from a fight, or a party that quietly got
+        # an easier boss than the card promised, is worse than the refusal.
+        notes = []
+        if tier != self.tier:
+            notes.append(f"⚠️ {self.host.display_name} couldn't cover "
+                         f"**{btiers.get(self.tier)['label']}** — this is a "
+                         f"**{btiers.get(tier)['label']}** fight.")
+        if broke:
+            notes.append("⚠️ Left behind (couldn't pay the entry): "
+                         + ", ".join(m.display_name for m in broke))
+        if notes and view.message:
+            try:
+                await view.message.channel.send("\n".join(notes))
+            except Exception:                        # noqa: BLE001
+                pass
+
         self.cog._spawn(view.refresh_line("intro"))
 
     async def on_timeout(self):
@@ -1276,12 +1417,20 @@ class BossCog(commands.Cog, name="Boss"):
         drops: list[tuple] = []          # (member, rolled copy | None)
         first_any = False
 
+        # The tier the party paid for. It buys three things: bigger payouts, a
+        # grade ladder weighted toward the good end, and a shorter Perfect
+        # roll. The middle one is what a player actually feels — even at the
+        # top tier a Perfect is one clear in twenty thousand.
+        tcfg = fight.tier_cfg
+        t_coins  = btiers.scale_reward(reward["coins"],  fight.tier)
+        t_casino = btiers.scale_reward(reward["casino"], fight.tier)
+
         for member in fight.party:
             profile = get_user(member.id)
             first   = fight.key not in set(profile.get("bosses_cleared") or [])
             first_any = first_any or first
 
-            profile["coins"] = profile.get("coins", 0) + reward["coins"] * (2 if first else 1)
+            profile["coins"] = profile.get("coins", 0) + t_coins * (2 if first else 1)
             cleared = list(profile.get("bosses_cleared") or [])
             if first:
                 cleared.append(fight.key)
@@ -1289,20 +1438,22 @@ class BossCog(commands.Cog, name="Boss"):
             update_user(member.id, profile)
 
             await casino_wallet.credit(
-                member.id, reward["casino"] * (2 if first else 1))
+                member.id, t_casino * (2 if first else 1))
             self._cooldowns[(member.id, fight.key)] = time.time()
 
             rolled = None
             if prof is not None:
-                rolled = bcopy.roll_copy(prof)
+                rolled = bcopy.roll_copy(prof,
+                                         perfect_odds=tcfg["perfect_odds"],
+                                         bands=tcfg["bands"])
                 # add_copy re-reads the profile, so it must run AFTER the
                 # update_user above or the coin write would clobber the copy.
                 bcopy.add_copy(member.id, rolled)
             drops.append((member, rolled))
 
         # Headline numbers reflect a first clear if it was one for anybody.
-        coins  = reward["coins"]  * (2 if first_any else 1)
-        casino = reward["casino"] * (2 if first_any else 1)
+        coins  = t_coins  * (2 if first_any else 1)
+        casino = t_casino * (2 if first_any else 1)
 
         line = await gemini.say_with_deadline(
             cfg["name"], cfg["persona"], "defeat", fight.state())
@@ -1582,6 +1733,39 @@ class BossCog(commands.Cog, name="Boss"):
             return await ctx.send(
                 file=discord.File(buf, filename=f"copy_{c['id']}.{ext}"))
         await ctx.send(embed=bcopy_embed(c, prof))
+
+    @commands.command(name="bosstiers", aliases=["bossdifficulty", "btiers"])
+    async def bosstiers(self, ctx: commands.Context):
+        """⚔️ The five boss difficulties, what they cost and what they pay."""
+        coins = int(get_user(ctx.author.id).get("coins", 0) or 0)
+        e = discord.Embed(
+            title="⚔️  Boss difficulty",
+            description=(
+                "The host picks a tier in the lobby and **every player pays "
+                "their own entry**. A harder boss pays more coins, rolls "
+                "better copy grades, and shortens the odds on a 👑 **Perfect** "
+                "— full stats, the complete kit, a guaranteed awakening."),
+            colour=0x8E44AD,
+        )
+        for k in btiers.ORDERED:
+            t = btiers.TIERS[k]
+            gw = sum(b[0] for b in t["bands"])
+            top = sum(w for w, _lo, _hi, g in t["bands"]
+                      if g in ("Pristine", "Flawless"))
+            afford = "" if coins >= t["price"] else "  ⚠️ *can't afford*"
+            e.add_field(
+                name=f"{t['emoji']} {t['label']} — "
+                     + ("free" if not t["price"] else f"🪙 {t['price']:,}")
+                     + afford,
+                value=(f"{t['blurb']}\n"
+                       f"❤️ ×{t['hp_mult']:g} HP · ⚔️ ×{t['atk_mult']:g} ATK · "
+                       f"💰 ×{t['reward_mult']:g} rewards\n"
+                       f"💠 Pristine+ **{top / gw * 100:.0f}%** · "
+                       f"👑 Perfect **1 in {t['perfect_odds']:,}**"),
+                inline=False,
+            )
+        e.set_footer(text=f"You have 🪙 {coins:,}  ·  ;boss to fight one")
+        await ctx.send(embed=e)
 
     @commands.command(name="bosses", aliases=["bosslist"])
     async def bosses(self, ctx: commands.Context):

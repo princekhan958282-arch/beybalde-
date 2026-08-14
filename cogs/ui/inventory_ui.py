@@ -448,7 +448,7 @@ class InventoryView(discord.ui.View):
             return await interaction.followup.send(
                 "⚠️ Couldn't render the card right now — "
                 f"try `;info {it['name']}` instead.", ephemeral=True)
-        fname = f"{it['name'].lower().replace(' ', '_')}_card.png"
+        fname = info_card.card_filename(buf, it["name"])
         await interaction.followup.send(file=discord.File(buf, filename=fname),
                                         ephemeral=True)
 

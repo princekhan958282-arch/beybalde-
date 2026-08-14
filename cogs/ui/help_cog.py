@@ -92,22 +92,46 @@ BATTLE_MOVES = {
 }
 
 # ── Type Matchup Matrix ────────────────────────────────────────────────────────
+# GENERATED from type_system.ADVANTAGE, never hand-written.
+#
+# The hand-written version drifted: it claimed Stamina was "Normal" against
+# Defense when the engine has Stamina beating Defense, and it had no Balance
+# row at all — so a third of the roster's owners were reading a chart that did
+# not describe their blade. A table that restates a rule always eventually
+# contradicts it, so this one derives it.
+from cogs.abilities.type_system import (                        # noqa: E402
+    ADVANTAGE as _ADV, ATTACK_STABILITY_STRIP as _ASS,
+    STAMINA_COST_CUT as _SCC, DEFENSE_REFLECT as _DR,
+)
+
+_TYPE_ORDER = ("Attack", "Defense", "Stamina", "Balance")
+
+# Phrased to follow "it …" in both the Strong and Weak sentences.
+_EDGE = {
+    "Attack":  f"strips {_ASS} stability every hit it lands",
+    "Defense": f"sends back {int(_DR * 100)}% of what it blocks",
+    "Stamina": f"pays {int(_SCC * 100)}% less stamina a move",
+    "Balance": "keeps half bonuses and takes half of any type edge",
+}
+
+
+def _matchup(mine: str, theirs: str) -> str:
+    m, t = mine.lower(), theirs.lower()
+    if m == "balance" or t == "balance":
+        # Balance is always on and never suppresses — see resolve_active_bonuses.
+        return ("⚖️ Both active — Balance is never fully ahead or behind"
+                if m == "balance" else
+                f"⚖️ Both active — {theirs} never suppresses you")
+    if _ADV.get(m) == t:
+        return f"✅ Strong — bonus active, and it {_EDGE[mine]}"
+    if _ADV.get(t) == m:
+        return f"❌ Weak — your bonus is suppressed, and it {_EDGE[theirs]}"
+    return "⚖️ Mirror — neither bonus is active"
+
+
 TYPE_MATCHUPS = {
-    "Attack": {
-        "Attack": "⚖️ Normal",
-        "Defense": "❌ Weak (reduced damage)",
-        "Stamina": "✅ Strong (1.2× bonus)",
-    },
-    "Defense": {
-        "Attack": "✅ Strong (reduce damage)",
-        "Defense": "⚖️ Normal",
-        "Stamina": "❌ Weak (less effective)",
-    },
-    "Stamina": {
-        "Attack": "❌ Weak (takes more damage)",
-        "Defense": "⚖️ Normal",
-        "Stamina": "✅ Strong (heal more)",
-    },
+    mine: {theirs: _matchup(mine, theirs) for theirs in _TYPE_ORDER}
+    for mine in _TYPE_ORDER
 }
 
 # ── Pro Tips & Tricks ──────────────────────────────────────────────────────────
@@ -118,7 +142,7 @@ PRO_TIPS = {
         "🎯 **Scout:** Watch opponent's first move to predict their type",
     ],
     "mid_game": [
-        "⚖️ **Type Counter:** If opponent is Stamina, spam Attack for bonus",
+        "⚖️ **Type Triangle:** Attack ▶ Stamina ▶ Defense ▶ Attack — `;help matchups`",
         "🛡️ **Survive:** Use Defense before you drop below 30% health",
         "📊 **Gauge Management:** You need 150 for Special — plan ahead",
     ],
@@ -255,6 +279,7 @@ COMMAND_DATA = {
         (";boss",                       "👹 Pick a boss and fight it"),
         (";boss <name>",                "Fight one directly, e.g. `;boss drakos`"),
         (";bosses",                     "The roster, HP, rewards and your clears"),
+        (";bosstiers",                  "⚔️ The five difficulties — what each costs and buys"),
         (";bossinfo <name>",            "📖 Info card for a boss-only blade"),
         (";copies",                     "🧬 Boss copies you've won — every one rolls its own kit"),
         (";copy <number|id>",           "Card for one of your copies"),
@@ -399,30 +424,28 @@ def build_matchups_embed() -> discord.Embed:
         color=0xF39C12,
     )
     
+    # Driven by the generated dict, not a hardcoded row order — adding a type
+    # to ADVANTAGE must not need an edit here, and indexing a row that a new
+    # type had not been added to used to raise KeyError.
     for your_type, matchups in TYPE_MATCHUPS.items():
-        matchup_text = "\n".join(
-            f"{symbol} vs {opp_type}: {result}"
-            for opp_type, result in matchups.items()
-            for symbol in [""] if opp_type == "Attack" or opp_type == "Defense" or opp_type == "Stamina"
-        )
-        
-        lines = []
-        for opp_type in ["Attack", "Defense", "Stamina"]:
-            result = matchups[opp_type]
-            lines.append(f"• **vs {opp_type}:** {result}")
-        
+        lines = [f"• **vs {opp}:** {matchups[opp]}"
+                 for opp in TYPE_MATCHUPS if opp in matchups]
         embed.add_field(
             name=f"**{your_type} Type**",
             value="\n".join(lines),
             inline=False,
         )
-    
+
     embed.add_field(
         name="📊 Quick Reference",
         value=(
-            "✅ **Strong** = You get bonus damage or survivability\n"
-            "❌ **Weak** = You take increased damage or struggle\n"
-            "⚖️ **Normal** = No bonus or penalty"
+            "**Attack** beats **Stamina** · **Stamina** beats **Defense** · "
+            "**Defense** beats **Attack**\n"
+            "**Balance** sits outside the triangle — half bonuses, but it is "
+            "never fully countered.\n\n"
+            "✅ **Strong** = your type bonus is active, plus its signature edge\n"
+            "❌ **Weak** = your bonus is suppressed and theirs is not\n"
+            "⚖️ **Mirror** = neither bonus is active"
         ),
         inline=False,
     )

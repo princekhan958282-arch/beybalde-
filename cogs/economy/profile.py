@@ -1126,7 +1126,11 @@ class ProfileCog(commands.Cog, name="Profile"):
                 blade, parts=_viewer_parts(ctx.author.id)
             )
             if buf is not None:
-                fname = f"{blade['name'].lower().replace(' ', '_')}_card.png"
+                # The extension comes from the buffer, not from here. Playwright
+                # returns PNG and the Pillow fallback returns JPEG, and Discord
+                # renders the attachment by its name — hardcoding `.png` showed
+                # a broken image for every card the fallback produced.
+                fname = info_card.card_filename(buf, blade["name"])
                 sent = await ctx.send(file=discord.File(buf, filename=fname),
                                       view=view)
             else:

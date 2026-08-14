@@ -837,7 +837,34 @@ class AttackManager:
                     f"  ⚔️ **Type Bonus ({atk_type_mod.btype.title()})** — "
                         f"{mblade['name']} deals +**{dmg_dealt - pre}** bonus dmg!"
                     )
+            # Attack's signature effect: a landing Attack knocks the opponent
+            # off its axis. Only Attack gets it, and only while advantaged —
+            # which by the chart means against Stamina, or against Balance.
+            logs.extend(self._type_signature_attack(mkey, okey, enemy_type,
+                                                    atk_type_mod))
         return dmg_dealt, logs
+
+    def _type_signature_attack(self, mkey: str, okey: str, enemy_type: str,
+                               mod) -> list[str]:
+        """Attack-type advantage: strip stability from the defender."""
+        from cogs.abilities.type_system import (
+            ATTACK_STABILITY_STRIP, BALANCE_EFFECT_SCALE, normalise_type)
+        if normalise_type(getattr(mod, "btype", "")) != "attack":
+            return []
+        amount = ATTACK_STABILITY_STRIP
+        # Balance is never FULLY disadvantaged — it eats half of any signature
+        # effect aimed at it. That is the counterweight to Balance also
+        # granting its opponent a full bonus.
+        if normalise_type(enemy_type) == "balance":
+            amount = max(1, int(round(amount * BALANCE_EFFECT_SCALE)))
+        sm = getattr(self.session, "stability_manager", None)
+        if sm is None:
+            return []
+        try:
+            out = sm._apply(okey, -amount)
+        except Exception:                            # noqa: BLE001
+            return []
+        return [f"  💢 **Type Edge (Attack)** — stability -{amount}!"] + list(out or [])
 
     def _apply_def_type_mod(
         self,
@@ -868,7 +895,34 @@ class AttackManager:
                     f"  🛡️ **Type Mitigation ({def_type_mod.btype.title()})** — "
                     f"{oblade['name']} reduces damage by **{pre - dmg_dealt}**!"
                 )
+                # Defence's signature effect: what it absorbs, it sends back.
+                # The mitigated amount is already computed right here, so this
+                # costs nothing and is self-limiting — a bigger hit reflects
+                # more, a hit it barely felt reflects nothing.
+                logs.extend(self._type_signature_defense(
+                    okey, mkey, atk_type, def_type_mod, pre - dmg_dealt))
         return dmg_dealt, logs
+
+    def _type_signature_defense(self, okey: str, mkey: str, atk_type: str,
+                                mod, mitigated: int) -> list[str]:
+        """Defence-type advantage: return part of what it just absorbed."""
+        from cogs.abilities.type_system import (
+            DEFENSE_REFLECT, BALANCE_EFFECT_SCALE, normalise_type)
+        if normalise_type(getattr(mod, "btype", "")) != "defense" or mitigated <= 0:
+            return []
+        pct = DEFENSE_REFLECT
+        if normalise_type(atk_type) == "balance":
+            pct *= BALANCE_EFFECT_SCALE
+        back = int(mitigated * pct)
+        if back <= 0:
+            return []
+        hp = getattr(self.session, "hp", None)
+        if hp is None or mkey not in hp:
+            return []
+        hp[mkey] = max(0, hp[mkey] - back)
+        name = self.session.blades.get(mkey, {}).get("name", "the attacker")
+        return [f"  🔃 **Type Edge (Defense)** — **{back}** of that came "
+                f"straight back at {name}!"]
 
     def _apply_extra_stamina_steal(
         self,
