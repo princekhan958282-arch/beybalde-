@@ -328,6 +328,10 @@ def copy_blade(prof: dict) -> dict:
         f"{label} — {w / total_w * 100:.0f}%"
         for w, _ns, _nu, _na, label in bc.LOADOUTS
     ]
+    # Quoted at the FREE tier, since that is what a player gets by default.
+    # The paid tiers move both of these — `;bosstiers` prints the ladder — and
+    # unlike the hidden booster drop these odds are meant to be seen: they are
+    # what the coins buy.
     grade_lines = []
     gw = sum(b[0] for b in bc.GRADE_BANDS)
     for w, _lo, _hi, g in bc.GRADE_BANDS:
@@ -335,6 +339,7 @@ def copy_blade(prof: dict) -> dict:
         grade_lines.append(f"{emoji} {g} — {w / gw * 100:.1f}%")
     grade_lines.append(f"{bc.grade_meta('Perfect')[0]} Perfect — 1 in "
                        f"{bc.PERFECT_ODDS:,}")
+    grade_lines.append("*at Standard difficulty — `;bosstiers` for the rest*")
 
     return {
         "name":           prof["name"].replace(" org", "").strip(),

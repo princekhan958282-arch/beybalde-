@@ -122,18 +122,28 @@ def _weighted(rows, rng):
     return rows[-1]
 
 
-def roll_copy(profile_src: dict, rng: Optional[random.Random] = None) -> dict:
-    """Roll one copy instance from a boss profile."""
-    rng = rng or random
+def roll_copy(profile_src: dict, rng: Optional[random.Random] = None,
+              perfect_odds: Optional[int] = None,
+              bands: Optional[list] = None) -> dict:
+    """Roll one copy instance from a boss profile.
 
-    perfect = rng.randint(1, PERFECT_ODDS) == 1
+    `perfect_odds` and `bands` let a paid difficulty tier shorten the Perfect
+    roll and shift the grade ladder (see boss_tiers.py). Both default to the
+    module constants, so every caller that doesn't know about tiers — and
+    every future one — keeps today's behaviour exactly.
+    """
+    rng = rng or random
+    odds  = int(perfect_odds or PERFECT_ODDS)
+    table = bands or GRADE_BANDS
+
+    perfect = rng.randint(1, max(1, odds)) == 1
 
     if perfect:
         grade, penalty = "Perfect", 0
         n_sp, n_ult, n_ab = 99, 99, 99      # everything
         loadout_label = "Complete kit"
     else:
-        _w, lo, hi, grade = _weighted(GRADE_BANDS, rng)
+        _w, lo, hi, grade = _weighted(table, rng)
         penalty = rng.randint(lo, hi)
         _w2, n_sp, n_ult, n_ab, loadout_label = _weighted(LOADOUTS, rng)
 

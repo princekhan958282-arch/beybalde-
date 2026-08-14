@@ -255,6 +255,7 @@ COMMAND_DATA = {
         (";boss",                       "👹 Pick a boss and fight it"),
         (";boss <name>",                "Fight one directly, e.g. `;boss drakos`"),
         (";bosses",                     "The roster, HP, rewards and your clears"),
+        (";bosstiers",                  "⚔️ The five difficulties — what each costs and buys"),
         (";bossinfo <name>",            "📖 Info card for a boss-only blade"),
         (";copies",                     "🧬 Boss copies you've won — every one rolls its own kit"),
         (";copy <number|id>",           "Card for one of your copies"),
