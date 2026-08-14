@@ -197,9 +197,20 @@ def award(profile: dict, blade_name: str, amount: int) -> dict:
     than sending a message keeps this importable from anywhere, including the
     parts of the bot that must not import discord.
     """
+    # The SINGLE choke point for bey XP — all three grant sites call this — so
+    # the EXP Surge is applied here. It reads the stamp off the `profile` dict
+    # already in hand, costing no extra I/O, and only ever READS it: the
+    # battle and story paths both run award -> update_user -> grant_xp, and
+    # anything this function WROTE could be clobbered by the write in between.
+    #
+    # Unlike trainer XP there is no opt-out. Chat is boosted for bey EXP by
+    # design; see utils/xp_boost.py for what that costs.
+    from utils.xp_boost import apply as _surge
+
     e = entry_for(profile, blade_name)
     before_xp = int(e.get("xp", 0))
     before = level_from_xp(before_xp)
+    amount = _surge(max(0, int(amount)), profile)
     e["xp"] = before_xp + max(0, int(amount))
     after = level_from_xp(e["xp"])
 

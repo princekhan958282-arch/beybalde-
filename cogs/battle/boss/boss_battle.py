@@ -26,7 +26,8 @@ import discord
 from discord.ext import commands
 
 from cogs.casino import casino_wallet
-from utils.database import get_beyblade, get_user, update_user
+from utils.database import get_beyblade, get_user, update_user, grant_xp
+from utils import bey_levels as bcopy_levels
 from utils.mobile_ui import MobileListView
 from utils.embeds import RARITY_EMOJIS, rarity_colour
 
@@ -166,6 +167,16 @@ def scaled_boss_hp(cfg: dict, extra: int) -> int:
 
 
 BOSS_ATK_PER_JOIN  = 0.05    # +5% boss attack per extra player
+
+# EXP for a boss win, before the difficulty tier scales it.
+#
+# Bosses granted ZERO EXP of either kind until now: the hardest content in the
+# game advanced no progression at all, which also meant a purchased EXP Surge
+# did nothing there. Sized against a PvP win (100 trainer / 300-459 bey) and
+# the daily cap of two attempts per boss: a boss is worth about four battles,
+# and at Nightmare (x2.5) about ten.
+BOSS_TRAINER_XP = 400
+BOSS_BEY_XP     = 1_400
 
 
 # ── Roster ────────────────────────────────────────────────────────────────────
@@ -1422,6 +1433,7 @@ class BossCog(commands.Cog, name="Boss"):
         # roll. The middle one is what a player actually feels — even at the
         # top tier a Perfect is one clear in twenty thousand.
         tcfg = fight.tier_cfg
+        xp_gains: list[tuple] = []
         t_coins  = btiers.scale_reward(reward["coins"],  fight.tier)
         t_casino = btiers.scale_reward(reward["casino"], fight.tier)
 
@@ -1435,7 +1447,32 @@ class BossCog(commands.Cog, name="Boss"):
             if first:
                 cleared.append(fight.key)
             profile["bosses_cleared"] = cleared
+
+            # EXP. Bosses used to grant NONE of either kind — the marquee
+            # content in the game paid coins, casino chips and a copy, and
+            # advanced no progression at all. Scaled by the difficulty tier,
+            # like the coins beside it.
+            #
+            # Ordering, as documented in session.py and story_cog.py: bey XP
+            # lands on the profile dict already in hand and is persisted with
+            # everything else, and grant_xp runs AFTER that write because it
+            # re-reads the profile from the store.
+            bey_gain = None
+            blade = profile.get("active_beyblade")
+            if blade and not profile.get("active_copy"):
+                try:
+                    bey_gain = bcopy_levels.award(
+                        profile, blade,
+                        btiers.scale_reward(BOSS_BEY_XP, fight.tier))
+                except Exception:                    # noqa: BLE001
+                    log.warning("boss bey XP failed for %s", member.id)
             update_user(member.id, profile)
+            try:
+                grant_xp(member.id,
+                         btiers.scale_reward(BOSS_TRAINER_XP, fight.tier))
+            except Exception:                        # noqa: BLE001
+                log.warning("boss trainer XP failed for %s", member.id)
+            xp_gains.append((member, bey_gain))
 
             await casino_wallet.credit(
                 member.id, t_casino * (2 if first else 1))
@@ -1464,6 +1501,19 @@ class BossCog(commands.Cog, name="Boss"):
         )
         e.add_field(name="🪙 Beycoins", value=f"+{coins:,}", inline=True)
         e.add_field(name="🎰 Casino", value=f"+{casino:,}", inline=True)
+        # Report what was actually GRANTED, not the constant — an EXP Surge
+        # multiplies inside grant_xp/award, so printing the constant would say
+        # "+400" while ten times that landed.
+        xp_lines = [f"⭐ +{btiers.scale_reward(BOSS_TRAINER_XP, fight.tier):,}"
+                    f" Trainer EXP"]
+        for member, gain in xp_gains:
+            if not gain:
+                continue
+            who = "" if len(xp_gains) == 1 else f" ({member.display_name})"
+            xp_lines.append(
+                f"🌀 **{gain['blade']}**{who} +{gain['gained']:,} EXP"
+                + (f" — **Lv {gain['level']}!**" if gain["leveled"] else ""))
+        e.add_field(name="📈 Experience", value="\n".join(xp_lines), inline=False)
         for member, drop in drops:
             if not drop:
                 continue

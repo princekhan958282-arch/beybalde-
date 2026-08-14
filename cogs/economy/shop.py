@@ -453,6 +453,53 @@ class ShopCog(commands.Cog, name="Shop"):
             f"💡 To buy a Booster Pack, use `;buy booster pack`."
         )
 
+    # ── ;surge ────────────────────────────────────────────────────────────────
+
+    @commands.command(name="surge", aliases=["expsurge", "xpsurge"])
+    async def surge(self, ctx: commands.Context, action: str = None) -> None:
+        """⚡ 10x EXP for an hour. `;surge` to check, `;surge buy` to buy."""
+        from utils import xp_boost as XB
+
+        profile = get_user(ctx.author.id)
+        until   = XB.surge_until(profile)
+        coins   = int(profile.get("coins", 0) or 0)
+
+        if str(action or "").lower() not in ("buy", "purchase", "get"):
+            e = discord.Embed(
+                title="⚡ EXP Surge",
+                description=(
+                    f"**{int(XB.XP_SURGE_MULT)}x EXP** for "
+                    f"**{XB.XP_SURGE_SECONDS // 60} minutes**.\n\n"
+                    "Boosts **bey EXP and Trainer EXP** from battles, Story "
+                    "and boss fights. Chat messages boost **bey EXP only** — "
+                    "Trainer EXP from chat stays at its normal rate.\n\n"
+                    "Buying while one is running **extends** it rather than "
+                    "overlapping."),
+                colour=0xf1c40f,
+            )
+            e.add_field(name="Price", value=f"🪙 {XB.XP_SURGE_PRICE:,}",
+                        inline=True)
+            e.add_field(name="Your coins", value=f"🪙 {coins:,}", inline=True)
+            e.add_field(
+                name="Status",
+                value=(f"🟢 **Active** — ends <t:{until}:R>" if until
+                       else "⚫ Not running"),
+                inline=False)
+            e.set_footer(text="`;surge buy` to start one")
+            return await ctx.send(embed=e)
+
+        try:
+            res = XB.buy_for(ctx.author.id)
+        except XB.SurgeError as exc:
+            return await ctx.send(f"❌ {exc}")
+
+        await ctx.send(
+            ("⚡ **EXP Surge extended!**" if res["extended"]
+             else "⚡ **EXP Surge active!**")
+            + f" {int(XB.XP_SURGE_MULT)}x EXP until <t:{res['until']}:T> "
+              f"(<t:{res['until']}:R>).\n"
+              f"💰 Remaining: **{res['coins']:,}**")
+
     # ── ;sell <part> ──────────────────────────────────────────────────────────
 
     @commands.command(
