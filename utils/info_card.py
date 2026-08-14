@@ -722,6 +722,9 @@ _playwright   = None
 _browser      = None
 _context      = None
 _launch_lock  = asyncio.Lock()          # guards launch only — never a render
+# Set once, to the failure text, when Chromium turns out not to be installed.
+# Truthy means "stop trying" — see _get_context.
+_browser_unavailable: str = ""
 _render_sem   = asyncio.Semaphore(2)    # ≤2 concurrent pages: VPS-friendly,
                                         # but battle spam no longer queues
                                         # behind one slow CDN
@@ -737,6 +740,36 @@ _cache: "OrderedDict[str, bytes]" = OrderedDict()
 # Playwright failure (panels hide logs; this surfaces the reason in Discord).
 last_engine: str = "none"                # "playwright" | "pillow" | "cache" | "none"
 last_playwright_error: str = ""
+
+
+def _named(data: bytes) -> io.BytesIO:
+    """Wrap rendered bytes in a buffer that knows its own file extension.
+
+    Two renderers feed this module — Playwright emits PNG, the Pillow fallback
+    emits JPEG — and the cache holds whichever ran, so no caller can tell from
+    the outside which it is holding. The extension is sniffed from the magic
+    bytes rather than tracked alongside the cache, because a parallel
+    format-per-key dict is a thing that can desync and this cannot.
+
+    Discord names the attachment from the extension; get it wrong and the
+    upload shows as a broken image.
+    """
+    buf = io.BytesIO(data)
+    buf.name = "card.jpg" if data[:2] == b"\xff\xd8" else "card.png"
+    return buf
+
+
+def card_filename(buf, stem: str) -> str:
+    """Build the Discord attachment name for a rendered card.
+
+    Callers used to hardcode `.png`, which was true only while Playwright was
+    the only renderer. Ask the buffer instead — `_named` stamps it — so the
+    name always matches the bytes.
+    """
+    name = getattr(buf, "name", "") or "card.png"
+    ext  = name.rsplit(".", 1)[-1] if "." in name else "png"
+    safe = str(stem).lower().replace(" ", "_").replace("/", "_")
+    return f"{safe}_card.{ext}"
 
 
 def _cache_key(blade: dict, parts: Optional[dict]) -> str:
@@ -770,6 +803,14 @@ async def _get_context():
     if _browser is not None and _browser.is_connected() and _context is not None:
         return _context
 
+    global _browser_unavailable
+    if _browser_unavailable:
+        # Latched: this host has no Chromium binary and never will mid-process.
+        # Without this every uncached `;info` paid four failed launches plus a
+        # ~5 s `async_playwright().start()` on the first one, all to arrive at
+        # the Pillow fallback it was always going to use.
+        raise RuntimeError(f"chromium unavailable: {_browser_unavailable}")
+
     async with _launch_lock:
         # Re-check under the lock — another task may have just relaunched.
         if _browser is not None and _browser.is_connected() and _context is not None:
@@ -780,14 +821,27 @@ async def _get_context():
         base = ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
         try:
             _browser = await _playwright.chromium.launch(args=base)
-        except Exception:
+        except Exception as first:
             # Pterodactyl-style containers often lack the process namespaces
             # Chromium's zygote needs — retry in single-process mode before
             # giving up to the Pillow fallback.
-            _browser = await _playwright.chromium.launch(
-                args=base + ["--no-zygote", "--single-process",
-                             "--disable-extensions", "--mute-audio"]
-            )
+            try:
+                _browser = await _playwright.chromium.launch(
+                    args=base + ["--no-zygote", "--single-process",
+                                 "--disable-extensions", "--mute-audio"]
+                )
+            except Exception as second:
+                # A MISSING BINARY is not a transient failure — no amount of
+                # retrying installs Chromium. Latch it so the fallback becomes
+                # the direct path instead of the path we reach by failing
+                # twice, twice, on every single card. A crash or an OOM is
+                # different and is deliberately NOT latched.
+                if "executable doesn't exist" in str(second).lower() \
+                        or "executable doesn't exist" in str(first).lower():
+                    _browser_unavailable = str(second)[:200]
+                    log.warning("[info_card] Chromium is not installed — "
+                                "using the Pillow renderer from now on")
+                raise
         _context = await _browser.new_context(
             viewport={"width": CARD_WIDTH, "height": 1280},
             device_scale_factor=2,
@@ -864,7 +918,7 @@ async def render_info_card(blade: dict, parts: Optional[dict] = None) -> Optiona
     if key and key in _cache:
         _cache.move_to_end(key)
         last_engine = "cache"
-        return io.BytesIO(_cache[key])   # fresh buffer — discord.File consumes it
+        return _named(_cache[key])       # fresh buffer — discord.File consumes it
 
     try:
         html_doc = build_html(blade, parts)
@@ -884,7 +938,7 @@ async def render_info_card(blade: dict, parts: Optional[dict] = None) -> Optiona
                 _cache.popitem(last=False)
         last_engine = "playwright"
         last_playwright_error = ""
-        return io.BytesIO(png)
+        return _named(png)
 
     except Exception as exc:            # noqa: BLE001 — never break a command
         last_playwright_error = f"{type(exc).__name__}: {exc}"
@@ -894,14 +948,18 @@ async def render_info_card(blade: dict, parts: Optional[dict] = None) -> Optiona
     # ── Pillow fallback: no Chromium needed, deploys on any panel ────────────
     try:
         from utils.info_card_pillow import render_info_card_pillow
-        buf = render_info_card_pillow(blade, parts)
+        # In a thread. This is ~60 ms of pure Pillow CPU and it used to run
+        # inline on the event loop, so every uncached `;info` stalled the whole
+        # bot — every other command, every battle timer — for the duration.
+        # `profile.py` already renders the profile card this way.
+        buf = await asyncio.to_thread(render_info_card_pillow, blade, parts)
         if buf is not None:
             last_engine = "pillow"
             if key:
                 _cache[key] = buf.getvalue()
                 while len(_cache) > _CACHE_MAX:
                     _cache.popitem(last=False)
-                buf = io.BytesIO(_cache[key])
+            buf = _named(buf.getvalue())
         return buf
     except Exception as exc:            # noqa: BLE001
         log.warning("pillow info card failed for %r: %s", blade.get("name"), exc)

@@ -34,6 +34,14 @@ W = 720
 PAD = 30                     # inner padding of the card frame
 STAT_MAX = 200
 
+# JPEG quality for the rendered card, and the extension the caller must use.
+# The same pair `utils/profile_card.py` carries, for the same reason — see the
+# encode comment in `render_info_card_pillow`. The buffer also carries its own
+# filename on `buf.name`, so callers do not have to know which of the two
+# renderers produced it.
+IMAGE_QUALITY = 88
+IMAGE_FORMAT = "jpg"
+
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _SYS_FONTS = [
     os.path.join(_PROJECT_ROOT, "assets", "font.ttf"),
@@ -41,6 +49,54 @@ _SYS_FONTS = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 ]
 _font_cache: dict[int, ImageFont.FreeTypeFont] = {}
+
+
+# Rendered backgrounds, keyed by (height, tint, glow). The gradient and the
+# glow depend on nothing but the card's rarity colours and its height, so every
+# blade of a rarity with the same panel layout produces a byte-identical
+# backdrop — and there are only a handful of rarities. Bounded because height
+# varies with the ability panel and an unbounded dict would creep.
+_BG_CACHE: dict[tuple, Image.Image] = {}
+_BG_CACHE_MAX = 24
+
+# The glow is blurred at quarter scale and enlarged back. A GaussianBlur(60)
+# over the full canvas cost 61 ms of an 88 ms draw — most of the drawing was
+# one soft ellipse. Blur cost scales with area, so quarter scale with a
+# proportionally smaller radius is ~16x cheaper and, on something this diffuse,
+# indistinguishable.
+_GLOW_SCALE = 4
+
+
+def _background(height: int, tint: tuple, glow: tuple) -> Image.Image:
+    """The card backdrop: rarity gradient plus the soft top glow.
+
+    Returns a fresh copy every call — the caller draws the whole card onto it.
+    """
+    key = (height, tuple(tint), tuple(glow))
+    cached = _BG_CACHE.get(key)
+    if cached is not None:
+        return cached.copy()
+
+    # One-pixel-wide gradient stretched to the canvas, rather than `height`
+    # separate ImageDraw.line calls.
+    strip = Image.new("RGB", (1, height))
+    sp = strip.load()
+    for y in range(height):
+        t = y / height
+        sp[0, y] = tuple(int(tint[i] * (1 - t) + 6 * t) for i in range(3))
+    img = strip.resize((W, height), Image.BILINEAR).convert("RGBA")
+
+    gw, gh = max(1, W // _GLOW_SCALE), max(1, height // _GLOW_SCALE)
+    glow_l = Image.new("RGBA", (gw, gh), (0, 0, 0, 0))
+    ImageDraw.Draw(glow_l).ellipse(
+        (-gw * 0.2, -gh * 0.25, gw * 1.2, gh * 0.35), fill=tuple(glow) + (70,))
+    glow_l = glow_l.filter(ImageFilter.GaussianBlur(60 / _GLOW_SCALE))
+    img = Image.alpha_composite(img, glow_l.resize((W, height), Image.BILINEAR))
+
+    if len(_BG_CACHE) >= _BG_CACHE_MAX:
+        _BG_CACHE.pop(next(iter(_BG_CACHE)))
+    _BG_CACHE[key] = img
+    return img.copy()
 
 
 def _font(size: int):
@@ -158,18 +214,7 @@ def _render(blade: dict, parts: dict) -> io.BytesIO:
     H = y_sm + sm_h + PAD + 8
 
     # ── Canvas + card chrome ────────────────────────────────────────────────
-    img = Image.new("RGBA", (W, H), (7, 7, 10, 255))
-    d = ImageDraw.Draw(img)
-
-    # background: tint gradient + top glow
-    for y in range(H):
-        t = y / H
-        col = tuple(int(tint[i] * (1 - t) + 6 * t) for i in range(3))
-        d.line([(0, y), (W, y)], fill=col)
-    glow_l = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(glow_l)
-    gd.ellipse((-W * 0.2, -H * 0.25, W * 1.2, H * 0.35), fill=glow + (70,))
-    img = Image.alpha_composite(img, glow_l.filter(ImageFilter.GaussianBlur(60)))
+    img = _background(H, tint, glow)
     d = ImageDraw.Draw(img)
     _rr(d, (6, 6, W - 7, H - 7), 24, outline=accent, width=3)
 
@@ -360,6 +405,20 @@ def _render(blade: dict, parts: dict) -> io.BytesIO:
                    font=_font(14), fill=accent)
 
     buf = io.BytesIO()
-    img.convert("RGB").save(buf, "PNG", optimize=True)
+    # JPEG, not `PNG optimize=True`. Measured on this 720xH canvas the PNG
+    # encode took 356 ms of a 496 ms render — the encode WAS the render — while
+    # JPEG at q88 does the same picture in 17 ms. The line above already does
+    # `.convert("RGB")`, so there was never any transparency to preserve, and
+    # the card is flat colour over a dark gradient where q88 leaves no visible
+    # artefact on the text. Progressive so it paints top-down on a phone.
+    #
+    # This is the identical fix `utils/profile_card.py` took in v88; it was
+    # simply never applied here.
+    img.convert("RGB").save(buf, format="JPEG", quality=IMAGE_QUALITY,
+                            optimize=True, progressive=True)
     buf.seek(0)
+    # The caller names the Discord attachment from this. Both renderers set it,
+    # so no call site has to guess which one ran — the same `getattr(buf,
+    # "name", ...)` idiom the boss lobby card already uses.
+    buf.name = f"card.{IMAGE_FORMAT}"
     return buf
