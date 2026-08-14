@@ -995,10 +995,10 @@ class ProfileCog(commands.Cog, name="Profile"):
                 p     = cat.get(pname.lower())
                 emoji = PART_TYPE_EMOJI.get(p["type"], "🔩") if p else "🔩"
                 if p:
-                    ps     = p.get("penalty_stat")
-                    pv     = p.get("penalty", 0)
-                    pen    = f"  `−{pv} {ps.capitalize()}`" if ps and pv else ""
-                    bonus  = f"`+{p['bonus']} {p['stat'].capitalize()}`{pen}"
+                    from cogs.economy.shop import part_penalties
+                    pen = "".join(f"  `−{amt} {st.capitalize()}`"
+                                  for st, amt in part_penalties(p).items())
+                    bonus = f"`+{p['bonus']} {p['stat'].capitalize()}`{pen}"
                 else:
                     bonus = ""
                 part_lines.append(f"{emoji} **{pname}** {bonus}")

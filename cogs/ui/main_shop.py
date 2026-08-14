@@ -34,7 +34,8 @@ from discord import ui
 
 # ── Import constants from each subsystem ──────────────────────────────────────
 # Parts (economy/shop.py)
-from cogs.economy.shop import PARTS_CATALOG, PART_TYPE_EMOJI, PART_TYPE_LABEL
+from cogs.economy.shop import (PARTS_CATALOG, PART_TYPE_EMOJI, PART_TYPE_LABEL,
+                               part_effect_line)
 
 # Casino premium (casino/casino_premium.py)
 from cogs.casino.casino_premium import PACKS as PREMIUM_PACKS, PACK_DURATION_DAYS
@@ -145,15 +146,16 @@ def _parts_pages() -> list[discord.Embed]:
             color=COLOR_PARTS,
         )
         for part in chunk:
-            stat  = part["stat"].capitalize()
             ptype = PART_TYPE_LABEL.get(part["type"], part["type"].title())
             emoji = PART_TYPE_EMOJI.get(part["type"], "🔩")
+            # Through the shared formatter. This used to print only the bonus,
+            # so every part with a downside was advertised as a pure upgrade.
             e.add_field(
                 name=(
                     f"{emoji} **{part['name']}** [{ptype}] "
                     f"— {part['price']:,} coins"
                 ),
-                value=f"{part['desc']} *(+{part['bonus']} {stat})*",
+                value=f"{part['desc']}\n{part_effect_line(part)}",
                 inline=False,
             )
         e.set_footer(text=f"Page {idx + 1}/{total} • `;sell <part>` sells for 50% back")

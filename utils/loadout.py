@@ -224,14 +224,19 @@ def summary_lines(breakdown: dict) -> list[str]:
         if not d:
             continue
         extra = d.get("level", 0) + d["parts"] + d["avatar"]
-        if extra <= 0:
+        # `!= 0`, not `<= 0`. This used to skip any stat whose total change was
+        # negative, so a part's downside vanished from the very breakdown that
+        # exists to explain where a number came from — the player saw the
+        # lowered stat and no reason for it. A part that trades -120 Stamina
+        # for +120 Attack has to say both halves out loud.
+        if extra == 0:
             continue
         bits = []
         if d.get("level"):
-            bits.append(f"+{d['level']} level")
+            bits.append(f"{d['level']:+} level")
         if d["parts"]:
-            bits.append(f"+{d['parts']} parts")
+            bits.append(f"{d['parts']:+} parts")
         if d["avatar"]:
-            bits.append(f"+{d['avatar']} avatar")
+            bits.append(f"{d['avatar']:+} avatar")
         out.append(f"{stat.title()} {d['total']} ({', '.join(bits)})")
     return out

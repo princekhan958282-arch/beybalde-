@@ -21,7 +21,6 @@ from __future__ import annotations
 import json
 import os
 import random
-from datetime import datetime
 from dataclasses import dataclass
 from typing import Optional
 
@@ -466,24 +465,24 @@ class AvatarEngine:
 
 # ── Limited-time banner availability ─────────────────────────────────────────
 
-def avatar_is_available(avatar: dict, now: "datetime | None" = None) -> bool:
+def avatar_is_available(avatar: dict, now=None) -> bool:
     """Is this avatar currently pullable?
 
     Non-limited avatars are always available. A limited one stays available
     until ``available_until`` (ISO-8601) passes; leave that field null to run
     the banner open-ended and set a date when you want it to close.
+
+    Delegates to `utils.availability`, which blades use for the same rule.
+    This function existed with a correct implementation and **no callers at
+    all**, so no limited avatar had ever expired; `AvatarShop._build_rarity_map`
+    now consults it, which is what makes the flag mean something.
+
+    `now` accepts a datetime (the old signature) or a unix float.
     """
-    if not avatar.get("limited"):
-        return True
-    until = avatar.get("available_until")
-    if not until:
-        return True
-    try:
-        end = datetime.fromisoformat(str(until).replace("Z", "+00:00"))
-    except ValueError:
-        return True
-    now = now or datetime.now(end.tzinfo)
-    return now <= end
+    from utils.availability import is_available
+    if hasattr(now, "timestamp"):
+        now = now.timestamp()
+    return is_available(avatar, now)
 
 
 # ── Singleton (import this everywhere) ───────────────────────────────────────

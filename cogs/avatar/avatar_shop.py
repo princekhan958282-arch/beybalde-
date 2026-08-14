@@ -325,10 +325,20 @@ class AvatarShop(commands.Cog, name="Avatar"):
     # ── Pack internals ────────────────────────────────────────────────────────
 
     def _build_rarity_map(self, pool: list[str]) -> dict[str, list[dict]]:
-        """Group all non-Exclusive avatars by rarity, filtered to pool."""
+        """Group all pullable non-Exclusive avatars by rarity, filtered to pool.
+
+        This is the single choke point every pack pull goes through
+        (`_pull_from_pool` only ever reads this map), so the limited-time gate
+        belongs here rather than at the two call sites.
+
+        `avatar_is_available` had been written and never called — a limited
+        avatar stayed pullable forever, which meant `limited` was decoration.
+        """
+        from cogs.avatar.avatar_engine import avatar_is_available
         result: dict[str, list[dict]] = {r: [] for r in pool}
         for av in avatar_engine.get_all_avatars():
-            if av["rarity"] in result and av["rarity"] != "Exclusive":
+            if av["rarity"] in result and av["rarity"] != "Exclusive" \
+                    and avatar_is_available(av):
                 result[av["rarity"]].append(av)
         return result
 
