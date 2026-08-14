@@ -25,6 +25,7 @@ from discord.ext import commands
 from discord import ui
 
 from utils.database import get_user, update_user, load_beyblades, mutate_user
+from utils.availability import obtainable
 from utils.embeds import RARITY_EMOJIS
 
 logger = logging.getLogger("beyblade_bot.shop")
@@ -822,9 +823,13 @@ def _load_booster_pool() -> list[dict]:
     except Exception as e:
         logger.warning("Failed to load beyblades for booster pool: %s", e)
         return []
+    # `obtainable` drops anything past its limited-time window and anything
+    # bound to named owners — a shared pool has no player in hand, so
+    # owner-bound content must never be in it.
     return [bey for bey in all_beys.values()
             if bey.get("booster_exclusive") is True
-            and not bey.get(HIDDEN_DROP_KEY)]
+            and not bey.get(HIDDEN_DROP_KEY)
+            and obtainable(bey)]
 
 
 def _hidden_drop_pool() -> list[dict]:
@@ -840,7 +845,7 @@ def _hidden_drop_pool() -> list[dict]:
             n = int(bey.get(HIDDEN_DROP_KEY) or 0)
         except (TypeError, ValueError):
             continue
-        if n > 0 and bey.get("booster_exclusive") is True:
+        if n > 0 and bey.get("booster_exclusive") is True and obtainable(bey):
             out.append(bey)
     return out
 

@@ -199,7 +199,18 @@ def _render(blade: dict, parts: dict) -> io.BytesIO:
         sm_lines = _wrap(meas, sm.get("description", ""), _font(16), W - 2 * PAD - 60)
         sm_h = 16 + 26 + 10 + 30 + len(sm_lines) * 22 + (26 if sm.get("damage_per_hit") else 6) + 16
 
-    booster_h = 40 if blade.get("booster_exclusive") else 0
+    # Badge rows stack, and the layout height is accumulated MANUALLY through
+    # the y_* chain below — a new badge that forgets to add its height here
+    # overlaps the panel underneath it rather than failing.
+    from utils.availability import is_limited, is_owner_bound
+    _badges = []
+    if blade.get("booster_exclusive"):
+        _badges.append("📦 BOOSTER EXCLUSIVE")
+    if is_limited(blade):
+        _badges.append("⏳ LIMITED TIME")
+    if is_owner_bound(blade):
+        _badges.append("👑 PERSONAL BLADE")
+    booster_h = 40 * len(_badges)
 
     # ── Total canvas height ─────────────────────────────────────────────────
     ART_H = 330
@@ -297,11 +308,10 @@ def _render(blade: dict, parts: dict) -> io.BytesIO:
         _rr(d, (lx, y_pill, lx + lw, y_pill + 38), 10, outline=accent, width=2)
         d.text((lx + 16, y_pill + 8), lvl_txt, font=pf, fill=accent)
 
-    if booster_h:
-        bt = "📦 BOOSTER EXCLUSIVE"
+    for _i, bt in enumerate(_badges):
         btf = _font(14)
         bw = _tw(d, bt, btf) + 32
-        yb = y_pill + 48
+        yb = y_pill + 48 + _i * 40
         _rr(d, ((W - bw) // 2, yb, (W + bw) // 2, yb + 30), 8, outline=accent, width=1)
         d.text(((W - bw) // 2 + 16, yb + 6), bt, font=btf, fill=accent)
 

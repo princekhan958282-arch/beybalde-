@@ -47,7 +47,10 @@ def _as_epoch(value) -> float | None:
     if value is None or value == "":
         return None
     if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return float(value)
+        # 0 means "no deadline", matching the redeem-code store, where
+        # `expires: 0` is a code that never expires. Reading it as the Unix
+        # epoch would make a blade that closed in 1970.
+        return float(value) or None
     try:
         text = str(value).strip().replace("Z", "+00:00")
         end = datetime.fromisoformat(text)
