@@ -62,7 +62,13 @@ class ChatXPCog(commands.Cog, name="Chat XP"):
 
     async def _award(self, message: discord.Message, uid: int) -> None:
         # Trainer XP — the half that was missing entirely.
-        grant_xp(uid, random.randint(*TRAINER_XP))
+        #
+        # `boostable=False`: an EXP Surge does NOT multiply trainer XP from
+        # chat. There is no per-message cooldown here (see XP_CHAT_COOLDOWN_S
+        # and the comment above it), so a boosted chat loop would run trainer
+        # level as fast as anything in the game. Bey XP below IS boosted, by
+        # design — that is the deliberate split.
+        grant_xp(uid, random.randint(*TRAINER_XP), boostable=False)
 
         profile = get_user(uid)
         blade = profile.get("active_beyblade")

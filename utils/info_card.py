@@ -438,8 +438,15 @@ def build_html(blade: dict, parts: Optional[dict] = None) -> str:
     art_html = (f'<img class="art-img" src="{_esc(art)}" alt="" '
                 f'onerror="this.remove()">' if art else "")
 
-    booster = ('<div class="booster">📦 BOOSTER EXCLUSIVE</div>'
-               if blade.get("booster_exclusive") else "")
+    from utils.availability import is_limited, is_owner_bound
+    _badges = []
+    if blade.get("booster_exclusive"):
+        _badges.append("📦 BOOSTER EXCLUSIVE")
+    if is_limited(blade):
+        _badges.append("⏳ LIMITED TIME")
+    if is_owner_bound(blade):
+        _badges.append("👑 PERSONAL BLADE")
+    booster = "".join(f'<div class="booster">{b}</div>' for b in _badges)
 
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">

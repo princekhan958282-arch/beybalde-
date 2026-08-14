@@ -31,6 +31,7 @@ from utils.embeds import RARITY_EMOJIS, rarity_colour
 from utils.hp_system import blade_hp_stat, max_hp_for_blade
 from utils import info_card
 from cogs.economy.shop import PARTS_CATALOG
+from cogs.economy.shop import part_penalties as _part_penalties
 
 ITEMS_PER_PAGE = 6
 VIEW_TIMEOUT   = 180
@@ -159,8 +160,10 @@ class InventoryView(discord.ui.View):
                 "kind": "part", "name": nm,
                 "ptype": cat.get("type", "?"), "stat": cat.get("stat"),
                 "bonus": cat.get("bonus", 0),
-                "penalty_stat": cat.get("penalty_stat"),
-                "penalty": cat.get("penalty", 0),
+                # Every stat this part reduces, not just the first. A part can
+                # carry more than one penalty and the singular pair could only
+                # ever show one of them.
+                "penalties": _part_penalties(cat) if cat else {},
                 "equipped": nm.lower() in equipped_parts,
             })
 
@@ -205,8 +208,8 @@ class InventoryView(discord.ui.View):
             sub = f"{RARITY_EMOJIS.get(it['rarity'], '')} {it['rarity']}"
         else:
             sub = f"`+{it['bonus']} {str(it.get('stat'))[:3].upper()}`"
-            if it.get("penalty"):
-                sub += f" `-{it['penalty']} {str(it['penalty_stat'])[:3].upper()}`"
+            for _stat, _amt in (it.get("penalties") or {}).items():
+                sub += f" `-{_amt} {str(_stat)[:3].upper()}`"
         return f"{head}\n{sub}"
 
     def _stat_sub(self, it: dict) -> str:
@@ -271,7 +274,8 @@ class InventoryView(discord.ui.View):
             e.description = (
                 f"{str(it.get('ptype', '?')).title()}\n"
                 f"`+{it['bonus']} {str(it.get('stat')).upper()}`"
-                + (f" `-{it['penalty']} {str(it['penalty_stat']).upper()}`" if it.get("penalty") else "")
+                + "".join(f" `-{a} {str(s).upper()}`"
+                          for s, a in (it.get("penalties") or {}).items())
                 + ("\n✅ **Equipped**" if it["equipped"] else "")
             )
         return e

@@ -39,6 +39,8 @@ import time
 import traceback
 from typing import Optional
 
+from utils.availability import obtainable
+
 import discord
 from discord.ext import commands
 from discord import ui
@@ -102,8 +104,13 @@ def _pick_random_beyblade(beyblades: dict) -> Optional[dict]:
     tier_map: dict[str, list] = {}
     for name, data in beyblades.items():
         r = data.get("rarity", "Common")
-        # Never include booster-exclusive or Exclusive rarity beys
+        # Never include booster-exclusive or Exclusive rarity beys, anything
+        # whose limited-time window has closed, or anything bound to named
+        # owners — a wild spawn has no player in hand, so owner-bound content
+        # must never land in the pool at all.
         if data.get("booster_exclusive") or r in _NEVER_SPAWN:
+            continue
+        if not obtainable(data):
             continue
         tier_map.setdefault(r, []).append(data)
 
@@ -114,7 +121,9 @@ def _pick_random_beyblade(beyblades: dict) -> Optional[dict]:
     if not available_tiers:
         fallback = [
             v for v in beyblades.values()
-            if not v.get("booster_exclusive") and v.get("rarity", "Common") not in _NEVER_SPAWN
+            if not v.get("booster_exclusive")
+            and v.get("rarity", "Common") not in _NEVER_SPAWN
+            and obtainable(v)
         ]
         return random.choice(fallback) if fallback else None
 

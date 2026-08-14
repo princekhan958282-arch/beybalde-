@@ -390,15 +390,31 @@ def user_exists(user_id: int) -> bool:
     return USER_STORE.has(str(user_id))
 
 
-def grant_xp(user_id: int, xp_amount: int) -> tuple[int, int, bool]:
+def grant_xp(user_id: int, xp_amount: int,
+             boostable: bool = True) -> tuple[int, int, bool]:
     """
     Add xp_amount XP to a user and recalculate their level.
     Returns (new_level, total_xp, leveled_up: bool).
+
+    This is the SINGLE choke point for trainer XP — every one of the five
+    grant sites goes through it — so the EXP Surge multiplier is applied here
+    rather than at each caller, where one missed site is a booster that
+    silently covers four fifths of the game.
+
+    `boostable=False` opts a source out. Chat passes it: chat EXP has no
+    cooldown, so a boosted chat loop would run trainer level as fast as bey
+    level, and trainer level gates far more. Admin grants should pass it too —
+    an explicit `;givexp 500` means 500.
     """
     with _users_lock:
         uid       = str(user_id)
         profile   = USER_STORE.get_one(uid) or _default_profile(uid)
         old_level = profile.get("level", 0)
+
+        if boostable:
+            from utils.xp_boost import apply as _surge
+            xp_amount = _surge(xp_amount, profile)
+
         new_xp    = profile.get("xp", 0) + xp_amount
         new_level = level_from_xp(new_xp)
 

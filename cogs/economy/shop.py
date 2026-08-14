@@ -24,7 +24,8 @@ import discord
 from discord.ext import commands
 from discord import ui
 
-from utils.database import get_user, update_user, load_beyblades
+from utils.database import get_user, update_user, load_beyblades, mutate_user
+from utils.availability import obtainable
 from utils.embeds import RARITY_EMOJIS
 
 logger = logging.getLogger("beyblade_bot.shop")
@@ -60,10 +61,18 @@ BEY_QUICKSELL_BLOCKED: set[str] = {"Exclusive"}
 #   bonus        — how much it adds to that stat
 #   penalty_stat — optional stat that is REDUCED (omit for no penalty)
 #   penalty      — how much is subtracted from penalty_stat (omit for no penalty)
+#   penalties    — optional {stat: amount} for a part that reduces MORE THAN
+#                  ONE stat, which the singular pair above cannot express.
+#                  Both forms are merged by `part_penalties`.
 #
 # Design rule: if bonus >= 20, there is always a penalty. Parts with bonus < 20
 # are pure upgrades; parts with bonus 20-30 carry a moderate penalty; bonus 30+
 # carries a heavy penalty. This gives players meaningful build choices.
+#
+# The rule holds above 40 too, just steeply: the one part in the 100+ band
+# (Ragnarok Core) pays for it with two penalties and a price seventeen times
+# the next most expensive part. Nothing should sit between 40 and 100 — that
+# gap is what keeps the ordinary catalog readable.
 PARTS_CATALOG: list[dict] = [
     # ── DRIVERS (17) ──────────────────────────────────────────────────────────
     # Pure / low-bonus drivers
@@ -129,11 +138,106 @@ PARTS_CATALOG: list[dict] = [
     {"name": "Aegis Shield Ring",   "type": "ring",   "price": 2200, "stat": "defense", "bonus":  35, "desc": "Mythic shield ring — blocks almost anything.", "penalty_stat": "attack",  "penalty": 28},
     {"name": "Phantom Veil Ring",   "type": "ring",   "price": 2400, "stat": "stamina", "bonus":  35, "desc": "Ghostly ring — infinite endurance at a cost.", "penalty_stat": "defense", "penalty": 25},
     {"name": "Omega Blaze Ring",    "type": "ring",   "price": 2600, "stat": "attack",  "bonus":  40, "desc": "Blazing omega tips — unstoppable raw power.", "penalty_stat": "stamina", "penalty": 32},
+
+    # ── ENDGAME (1) ───────────────────────────────────────────────────────────
+    # Three times the attack of anything else in the catalog, and four times
+    # the penalty. The description says "level 100" out loud because the maths
+    # is brutal and invisible otherwise: at BASE stats 81 of the 91 blades have
+    # 120 stamina or less, so this drives their stamina stat to zero and the
+    # battle floors it there — a bey with no stamina runs out of moves and
+    # loses on attrition regardless of how hard it hits. At level 100 the
+    # median blade holds 276 stamina, so it keeps 156 and the trade is a real
+    # one. It is a trap on a fresh bey and a monster on a finished one, and a
+    # player should be able to learn that from the shop rather than from
+    # losing.
+    {"name": "Ragnarok Core", "type": "disk", "price": 45_000, "stat": "attack",
+     "bonus": 120, "penalties": {"defense": 50, "stamina": 120},
+     "desc": ("☄️ **Endgame.** Everything routed into the swing and nothing "
+              "left over. Needs a **level 100** bey — below that its stamina "
+              "cost zeroes the bar and the fight ends on attrition.")},
 ]
 
 PART_TYPE_EMOJI = {"ring": "💍", "disk": "🪨", "driver": "⚙️"}
 PART_TYPE_LABEL = {"ring": "Ring", "disk": "Disk", "driver": "Driver"}
 MAX_EQUIPPED_PER_TYPE = 1   # 1 ring + 1 disk + 1 driver = 3 slots total
+
+
+class PurchaseError(Exception):
+    """A refused purchase, carrying the player-facing reason.
+
+    Raised from inside `database.mutate_user`, where raising abandons the whole
+    read-modify-write — so a refusal can never take the coins without handing
+    over the goods, and never the reverse.
+    """
+
+
+def apply_part_purchase(profile: dict, part_name: str) -> dict:
+    """Deduct the price and grant the part, in one mutation.
+
+    Call this INSIDE `database.mutate_user`. The balance is re-read under the
+    lock rather than trusted from whatever a shop card printed ninety seconds
+    ago — the four rules are spelled out in `cogs/avatar/avatar_upgrade.py`,
+    and this is the shop's copy of them.
+    """
+    part = _parts_by_name().get(str(part_name).lower())
+    if not part:
+        raise PurchaseError(f"**{part_name}** isn't in the shop. Try `;shop`.")
+
+    owned = profile.get("parts", []) or []
+    if any(str(p).lower() == part["name"].lower() for p in owned):
+        raise PurchaseError(f"You already own **{part['name']}**.")
+
+    coins = int(profile.get("coins", 0) or 0)
+    price = int(part["price"])
+    if coins < price:
+        raise PurchaseError(
+            f"**{part['name']}** costs 🪙 **{price:,}** — you have "
+            f"**{coins:,}**, short by **{price - coins:,}**.")
+
+    profile["coins"] = coins - price
+    profile.setdefault("parts", []).append(part["name"])
+    return {"part": part["name"], "spent": price, "coins": profile["coins"]}
+
+
+def part_penalties(part: dict) -> dict[str, int]:
+    """Every stat this part REDUCES, as {stat: positive amount}.
+
+    Two shapes are supported. The original one is a single
+    `penalty_stat` + `penalty` pair, which is what all fifty shipped parts
+    use. The newer `penalties` dict carries more than one, because a part
+    cannot express "-50 Defence AND -120 Stamina" in a single pair.
+
+    Both forms are merged rather than one overriding the other, so a part may
+    carry either or both without a reader having to know which.
+    """
+    out: dict[str, int] = {}
+    ps = part.get("penalty_stat")
+    pv = int(part.get("penalty", 0) or 0)
+    if ps and pv:
+        out[ps] = out.get(ps, 0) + pv
+    for stat, amount in (part.get("penalties") or {}).items():
+        amount = int(amount or 0)
+        if stat and amount:
+            out[stat] = out.get(stat, 0) + amount
+    return out
+
+
+def part_effect_line(part: dict) -> str:
+    """The one-line stat summary shown wherever a part is listed for sale.
+
+    THE BUG THIS REPLACES: there were two renderers. `;partsbrowse` printed the
+    bonus AND the penalty; `;shop` — the one players actually open — printed
+    only the bonus. So the Omega Blaze Ring advertised as "(+40 Attack)" with
+    its -32 Stamina invisible, and every one of the fifty parts with a
+    downside was sold dishonestly on the main shop. One formatter now, used by
+    both, so they cannot drift apart again.
+    """
+    bonus = f"**+{part['bonus']} {part['stat'].capitalize()}**"
+    pens = part_penalties(part)
+    if not pens:
+        return bonus
+    return bonus + "  " + " ".join(
+        f"`−{amt} {stat.capitalize()}`" for stat, amt in pens.items())
 
 
 def get_part_stat_deltas(equipped_part_names: list[str]) -> dict[str, int]:
@@ -151,10 +255,8 @@ def get_part_stat_deltas(equipped_part_names: list[str]) -> dict[str, int]:
         if not part:
             continue
         deltas[part["stat"]] = deltas.get(part["stat"], 0) + part["bonus"]
-        ps = part.get("penalty_stat")
-        pv = part.get("penalty", 0)
-        if ps and pv:
-            deltas[ps] = deltas.get(ps, 0) - pv
+        for stat, amount in part_penalties(part).items():
+            deltas[stat] = deltas.get(stat, 0) - amount
     return deltas
 
 ITEMS_PER_PAGE = 6
@@ -286,16 +388,11 @@ class ShopCog(commands.Cog, name="Shop"):
                 color=discord.Color.teal(),
             )
             for part in chunk:
-                stat      = part["stat"].capitalize()
                 ptype     = PART_TYPE_LABEL.get(part["type"], part["type"].title())
                 emoji     = PART_TYPE_EMOJI.get(part["type"], "🔩")
-                ps        = part.get("penalty_stat")
-                pv        = part.get("penalty", 0)
-                bonus_str = f"**+{part['bonus']} {stat}**"
-                pen_str   = f"  `−{pv} {ps.capitalize()}`" if ps and pv else ""
                 embed.add_field(
                     name=f"{emoji} {part['name']} [{ptype}] — **{part['price']:,} coins**",
-                    value=f"{part['desc']}\n{bonus_str}{pen_str}",
+                    value=f"{part['desc']}\n{part_effect_line(part)}",
                     inline=False,
                 )
             embed.set_footer(text=f"Page {idx+1}/{len(chunks)} | `;daily` to earn more coins")
@@ -311,26 +408,23 @@ class ShopCog(commands.Cog, name="Shop"):
         brief="Buy a part 🛍️",
     )
     async def buy(self, ctx: commands.Context, *, item_name: str) -> None:
-        profile = get_user(ctx.author.id)
-        coins   = profile.get("coins", 0)
-
-        # Check parts first
+        # Parts first, through the shared transaction. This used to be a
+        # get_user -> mutate -> update_user sequence, i.e. the exact
+        # read-modify-write race `database.mutate_user` was written to kill —
+        # and it was guarding a coin purchase. Two `;buy` calls landing
+        # together could both read the same balance and both succeed.
         part = _parts_by_name().get(item_name.lower())
         if part:
-            owned_parts = profile.get("parts", [])
-            if any(p.lower() == part["name"].lower() for p in owned_parts):
-                return await ctx.send(f"❌ You already own **{part['name']}**!")
-            if coins < part["price"]:
-                return await ctx.send(
-                    f"❌ Not enough coins! **{part['name']}** costs **{part['price']:,}** "
-                    f"but you have **{coins:,}**."
-                )
-            profile["coins"] = coins - part["price"]
-            profile.setdefault("parts", []).append(part["name"])
-            update_user(ctx.author.id, profile)
+            try:
+                result = mutate_user(
+                    ctx.author.id,
+                    lambda prof: apply_part_purchase(prof, part["name"]))
+            except PurchaseError as exc:
+                return await ctx.send(f"❌ {exc}")
             return await ctx.send(
-                f"✅ Bought **{part['name']}** for **{part['price']:,} coins**!\n"
-                f"💰 Remaining: **{profile['coins']:,}**"
+                f"✅ Bought **{part['name']}** for "
+                f"**{result['spent']:,} coins**!\n"
+                f"💰 Remaining: **{result['coins']:,}**"
             )
 
         # Check if they're trying to buy a booster pack
@@ -358,6 +452,53 @@ class ShopCog(commands.Cog, name="Shop"):
             f"❌ **{item_name}** not found. Use `;shop` to see available parts.\n"
             f"💡 To buy a Booster Pack, use `;buy booster pack`."
         )
+
+    # ── ;surge ────────────────────────────────────────────────────────────────
+
+    @commands.command(name="surge", aliases=["expsurge", "xpsurge"])
+    async def surge(self, ctx: commands.Context, action: str = None) -> None:
+        """⚡ 10x EXP for an hour. `;surge` to check, `;surge buy` to buy."""
+        from utils import xp_boost as XB
+
+        profile = get_user(ctx.author.id)
+        until   = XB.surge_until(profile)
+        coins   = int(profile.get("coins", 0) or 0)
+
+        if str(action or "").lower() not in ("buy", "purchase", "get"):
+            e = discord.Embed(
+                title="⚡ EXP Surge",
+                description=(
+                    f"**{int(XB.XP_SURGE_MULT)}x EXP** for "
+                    f"**{XB.XP_SURGE_SECONDS // 60} minutes**.\n\n"
+                    "Boosts **bey EXP and Trainer EXP** from battles, Story "
+                    "and boss fights. Chat messages boost **bey EXP only** — "
+                    "Trainer EXP from chat stays at its normal rate.\n\n"
+                    "Buying while one is running **extends** it rather than "
+                    "overlapping."),
+                colour=0xf1c40f,
+            )
+            e.add_field(name="Price", value=f"🪙 {XB.XP_SURGE_PRICE:,}",
+                        inline=True)
+            e.add_field(name="Your coins", value=f"🪙 {coins:,}", inline=True)
+            e.add_field(
+                name="Status",
+                value=(f"🟢 **Active** — ends <t:{until}:R>" if until
+                       else "⚫ Not running"),
+                inline=False)
+            e.set_footer(text="`;surge buy` to start one")
+            return await ctx.send(embed=e)
+
+        try:
+            res = XB.buy_for(ctx.author.id)
+        except XB.SurgeError as exc:
+            return await ctx.send(f"❌ {exc}")
+
+        await ctx.send(
+            ("⚡ **EXP Surge extended!**" if res["extended"]
+             else "⚡ **EXP Surge active!**")
+            + f" {int(XB.XP_SURGE_MULT)}x EXP until <t:{res['until']}:T> "
+              f"(<t:{res['until']}:R>).\n"
+              f"💰 Remaining: **{res['coins']:,}**")
 
     # ── ;sell <part> ──────────────────────────────────────────────────────────
 
@@ -729,9 +870,13 @@ def _load_booster_pool() -> list[dict]:
     except Exception as e:
         logger.warning("Failed to load beyblades for booster pool: %s", e)
         return []
+    # `obtainable` drops anything past its limited-time window and anything
+    # bound to named owners — a shared pool has no player in hand, so
+    # owner-bound content must never be in it.
     return [bey for bey in all_beys.values()
             if bey.get("booster_exclusive") is True
-            and not bey.get(HIDDEN_DROP_KEY)]
+            and not bey.get(HIDDEN_DROP_KEY)
+            and obtainable(bey)]
 
 
 def _hidden_drop_pool() -> list[dict]:
@@ -747,7 +892,7 @@ def _hidden_drop_pool() -> list[dict]:
             n = int(bey.get(HIDDEN_DROP_KEY) or 0)
         except (TypeError, ValueError):
             continue
-        if n > 0 and bey.get("booster_exclusive") is True:
+        if n > 0 and bey.get("booster_exclusive") is True and obtainable(bey):
             out.append(bey)
     return out
 

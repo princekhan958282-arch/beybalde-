@@ -8,17 +8,42 @@ All visual theming lives here — one file to change for a full rebrand.
 import discord
 
 # ── Rarity palette ────────────────────────────────────────────────────────────
+# THE BUG THIS REPLACES: these two maps stopped at Legendary while the game
+# shipped Mythic, Ultimate and Exclusive blades. `RARITY_EMOJIS.get(r, "⚪")`
+# and `RARITY_COLOURS.get(r, default)` both fail SILENTLY, so every Ultimate in
+# `;list` rendered with the Common white circle and every Mythic embed came out
+# black. Nothing errored; the rarest blades in the game just looked like the
+# most common ones.
+#
+# Kept deliberately in step with the two other full maps —
+# `cogs/economy/profile.py::RARITY_COLOURS_HEX` and
+# `utils/info_card.py::_RARITY_THEME` — including the two rarities no blade
+# uses yet (Uncommon, State Exclusive), so adding one later cannot reintroduce
+# a half-filled table here.
 RARITY_COLOURS = {
-    "Common":    discord.Color.from_rgb(180, 180, 180),
-    "Rare":      discord.Color.from_rgb(30,  144, 255),
-    "Epic":      discord.Color.from_rgb(148,   0, 211),
-    "Legendary": discord.Color.from_rgb(255, 165,   0),
+    "Common":          discord.Color.from_rgb(149, 165, 166),
+    "Uncommon":        discord.Color.from_rgb( 46, 204, 113),
+    "Rare":            discord.Color.from_rgb( 52, 152, 219),
+    "Epic":            discord.Color.from_rgb(155,  89, 182),
+    "Legendary":       discord.Color.from_rgb(230, 126,  34),
+    "Mythic":          discord.Color.from_rgb(231,  76,  60),
+    "Ultimate":        discord.Color.from_rgb(241, 196,  15),
+    "Exclusive":       discord.Color.from_rgb( 26, 188, 156),
+    "State Exclusive": discord.Color.from_rgb(255, 105, 180),
 }
+# Icons follow RARITY_BANNERS' vocabulary (👑 Ultimate, 💎 Exclusive,
+# 🌟 State Exclusive) rather than continuing the coloured-circle run, so the
+# top three read as distinct at a glance in a long `;list`.
 RARITY_EMOJIS = {
-    "Common":    "⚪",
-    "Rare":      "🔵",
-    "Epic":      "🟣",
-    "Legendary": "🟡",
+    "Common":          "⚪",
+    "Uncommon":        "🟢",
+    "Rare":            "🔵",
+    "Epic":            "🟣",
+    "Legendary":       "🟡",
+    "Mythic":          "🔴",
+    "Ultimate":        "👑",
+    "Exclusive":       "💎",
+    "State Exclusive": "🌟",
 }
 TYPE_EMOJIS = {
     "Attack":  "⚔️",

@@ -43,6 +43,7 @@ from utils.ranks import tier_for_score, rank_score_for
 from utils.mobile_ui import bar as ui_bar, trunc as ui_trunc
 from utils.hp_system import blade_hp_stat, max_hp_for_blade, hp_display_pct
 from utils import info_card
+from utils import availability as _avail
 
 try:
     from utils.profile_card import render_profile_card
@@ -195,6 +196,36 @@ def _viewer_parts(user_id) -> dict:
                 "bit":     by_type.get("driver")}
     except Exception:
         return {}
+
+
+def _availability_fields(blade: dict) -> list[tuple[str, str]]:
+    """Limited-time / personal-blade fields for an info embed.
+
+    Returns (name, value) pairs so the two near-identical embed builders in
+    this file can both use it without a third copy of the wording drifting
+    away from the other two.
+
+    The deadline renders as Discord's relative timestamp, which every viewer
+    reads in their own timezone for free — the same idiom `;codes` uses.
+    """
+    out: list[tuple[str, str]] = []
+    if _avail.is_limited(blade):
+        end = _avail.expires_at(blade)
+        if end is None:
+            body = ("**Limited-time blade**\nStill available — no closing "
+                    "date set yet.")
+        elif _avail.is_available(blade):
+            body = (f"**Limited-time blade**\nAvailable until "
+                    f"<t:{int(end)}:F> — <t:{int(end)}:R>.")
+        else:
+            body = (f"**Limited-time blade**\nThis window closed "
+                    f"<t:{int(end)}:R>. Owners keep theirs; it can no longer "
+                    f"be obtained.")
+        out.append(("⏳ Limited", body))
+    if _avail.is_owner_bound(blade):
+        out.append(("👑 Personal", "**Made for a specific owner.**\nIt cannot "
+                                   "be found, bought, pulled or traded."))
+    return out
 
 
 def _abilities_text(blade: dict) -> str:
@@ -481,6 +512,8 @@ def build_info_embed(blade: dict) -> discord.Embed:
             value="**Booster Pack Exclusive**\nCannot be found in wild spawns.\nObtain via `;booster`.",
             inline=False,
         )
+    for _name, _value in _availability_fields(blade):
+        embed.add_field(name=_name, value=_value, inline=False)
 
     # ── Stats ──────────────────────────────────────────────────────────────
     embed.add_field(
@@ -608,6 +641,8 @@ def build_beypedia_embed(blade: dict) -> discord.Embed:
             value = "**Booster Pack Exclusive**\nCannot be found in wild spawns.\nObtain via `;booster`.",
             inline=False,
         )
+    for _name, _value in _availability_fields(blade):
+        embed.add_field(name=_name, value=_value, inline=False)
 
     # ── ⚔️ Stats with bars ─────────────────────────────────────────────────
     atk = stats.get("attack",  0)
@@ -995,10 +1030,10 @@ class ProfileCog(commands.Cog, name="Profile"):
                 p     = cat.get(pname.lower())
                 emoji = PART_TYPE_EMOJI.get(p["type"], "🔩") if p else "🔩"
                 if p:
-                    ps     = p.get("penalty_stat")
-                    pv     = p.get("penalty", 0)
-                    pen    = f"  `−{pv} {ps.capitalize()}`" if ps and pv else ""
-                    bonus  = f"`+{p['bonus']} {p['stat'].capitalize()}`{pen}"
+                    from cogs.economy.shop import part_penalties
+                    pen = "".join(f"  `−{amt} {st.capitalize()}`"
+                                  for st, amt in part_penalties(p).items())
+                    bonus = f"`+{p['bonus']} {p['stat'].capitalize()}`{pen}"
                 else:
                     bonus = ""
                 part_lines.append(f"{emoji} **{pname}** {bonus}")
@@ -1396,7 +1431,7 @@ class BeyListView(discord.ui.View):
                         for r in group),
                     inline=True,
                 )
-            e.set_footer(text="✅ owned  ⬜ missing  📦 booster exclusive")
+            e.set_footer(text="✅ owned  ⬜ missing  📦 booster  ⏳ limited  👑 personal")
             return e
 
         # ── Tier / missing-only listing ──────────────────────────────────────
@@ -1411,6 +1446,11 @@ class BeyListView(discord.ui.View):
                 mark  = "✅" if n.lower() in self.owned else "⬜"
                 emoji = RARITY_EMOJIS.get(blade.get("rarity", ""), "")
                 pack  = " 📦" if blade.get("booster_exclusive") else ""
+                # Badges, not a separate tier — a Limited Ultimate still
+                # sorts, groups and colours as an Ultimate. The flags only
+                # change how it is obtained.
+                pack += " ⏳" if _avail.is_limited(blade) else ""
+                pack += " 👑" if _avail.is_owner_bound(blade) else ""
                 lines.append(f"{mark} {emoji} **{n}**{pack}")
             body = "\n".join(lines)
 

@@ -250,6 +250,7 @@ COMMAND_DATA = {
         (";list <rarity>",              "Jump to a tier, e.g. `;list mythic`"),
         (";bal",                        "💳 Both wallets, both dailies, your tax — one card"),
         (";daily",                      "Claim your daily Beycoins"),
+        (";surge",                      "⚡ EXP Surge — 10x EXP for an hour"),
         (";redeem <code>",              "🎟️ Claim an event or giveaway code"),
         (";backup",                     "🔐 Get your account recovery code (by DM)"),
         (";restore <code>",             "🔐 Move a backed-up account onto this one"),

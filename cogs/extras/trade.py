@@ -25,7 +25,16 @@ import time
 import discord
 from discord.ext import commands
 
-from utils.database import get_user, update_user
+from utils.database import get_user, update_user, load_beyblades
+from utils.availability import is_owner_bound
+
+
+def _blade_def(name: str) -> dict:
+    """The blade definition behind an inventory entry, or {}."""
+    try:
+        return (load_beyblades() or {}).get(str(name)) or {}
+    except Exception:                                    # noqa: BLE001
+        return {}
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _LOG_PATH = os.path.join(_PROJECT_ROOT, "data", "trade_log.json")
@@ -124,6 +133,16 @@ class TradeCog(commands.Cog, name="Trading"):
 
         a_name = a_item.get("name") if isinstance(a_item, dict) else a_item
         b_name = b_item.get("name") if isinstance(b_item, dict) else b_item
+
+        # Owner-bound blades are made for specific people. Every acquisition
+        # route already refuses them; leaving trade open would make the binding
+        # meaningless, because one trade hands it to somebody it was never
+        # meant for. Neither side of the trade may be one.
+        for side_name in (a_name, b_name):
+            if is_owner_bound(_blade_def(side_name)):
+                return await ctx.send(
+                    f"❌ **{side_name}** is a personal blade — it cannot be "
+                    f"traded.")
 
         self._busy.update({ctx.author.id, target.id})
         try:
