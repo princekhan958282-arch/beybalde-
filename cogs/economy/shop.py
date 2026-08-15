@@ -453,6 +453,54 @@ class ShopCog(commands.Cog, name="Shop"):
             f"💡 To buy a Booster Pack, use `;buy booster pack`."
         )
 
+    # ── ;beyslots ─────────────────────────────────────────────────────────────
+
+    @commands.command(name="beyslots", aliases=["invslots", "invspace"])
+    async def beyslots(self, ctx: commands.Context, action: str = None,
+                    amount: int = 1) -> None:
+        """🎒 Inventory space. `;beyslots` to check, `;beyslots buy [n]`."""
+        from utils import inventory as INV
+
+        profile = get_user(ctx.author.id)
+
+        if str(action or "").lower() not in ("buy", "purchase", "add"):
+            listed = len(profile.get("marketplace_listings") or [])
+            e = discord.Embed(
+                title="🎒 Inventory space",
+                description=(
+                    f"Every player starts with **{INV.BASE_INVENTORY_SLOTS}** "
+                    f"slots. Extra slots are 🪙 **{INV.EXTRA_SLOT_PRICE:,}** "
+                    f"each, permanent, up to **{INV.MAX_INVENTORY_SLOTS:,}**."),
+                colour=0x3498db,
+            )
+            e.add_field(name="Used",
+                        value=f"**{INV.used(profile):,}** / "
+                              f"{INV.capacity(profile):,}", inline=True)
+            e.add_field(name="Free", value=f"**{INV.free(profile):,}**",
+                        inline=True)
+            if listed:
+                # Say this out loud — a player who cannot find the missing
+                # slots should not have to guess where they went.
+                e.add_field(
+                    name="On the marketplace",
+                    value=f"**{listed}** listed bey(s) still take up a slot "
+                          f"each — cancelling always fits.",
+                    inline=False)
+            e.set_footer(text=f"You have 🪙 {int(profile.get('coins', 0) or 0):,}"
+                              f"  ·  ;beyslots buy [n]")
+            return await ctx.send(embed=e)
+
+        try:
+            res = INV.buy_slots_for(ctx.author.id, max(1, int(amount)))
+        except INV.SlotError as exc:
+            return await ctx.send(f"❌ {exc}")
+
+        await ctx.send(
+            f"✅ Bought **{res['bought']:,}** slot(s) for 🪙 "
+            f"**{res['spent']:,}**.\n"
+            f"🎒 Capacity is now **{res['capacity']:,}**  ·  "
+            f"💰 Remaining: **{res['coins']:,}**")
+
     # ── ;surge ────────────────────────────────────────────────────────────────
 
     @commands.command(name="surge", aliases=["expsurge", "xpsurge"])
@@ -965,10 +1013,25 @@ class BoosterCog(commands.Cog, name="Booster"):
         """Buy one or more booster packs to obtain exclusive Beyblades."""
         MAX_PACKS = 50
         amount = max(1, min(amount, MAX_PACKS))
-        total_cost = BOOSTER_PACK_PRICE * amount
 
         user  = get_user(ctx.author.id)
         coins = user.get("coins", 0)
+
+        # Capacity BEFORE the charge. Every pack yields exactly one bey, and
+        # the coins are deducted below in one go — so buying ten packs with
+        # room for three has to be caught here, not at the append. Trimmed to
+        # what fits rather than refused outright, and said out loud.
+        from utils.inventory import free as _inv_free, full_message
+        room = _inv_free(user)
+        if room <= 0:
+            return await ctx.send(full_message(user, "a booster pack's bey"))
+        if room < amount:
+            await ctx.send(
+                f"🎒 Room for **{room}** more bey(s), not {amount} — buying "
+                f"**{room}** pack(s). `;beyslots` for more space.")
+            amount = room
+
+        total_cost = BOOSTER_PACK_PRICE * amount
 
         if coins < total_cost:
             shortage = total_cost - coins
@@ -1409,6 +1472,14 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
             return await ctx.send(
                 f"❌ **{bey_name}** was just sold to someone else. Check `;marketplace` for other listings."
             )
+
+        # BEFORE the seller is paid. This block pays out and delists at :1429
+        # and only grants the bey seven lines later — checking capacity at the
+        # append would have taken the buyer's coins, paid the seller, removed
+        # the listing, and then had nowhere to put the bey.
+        from utils.inventory import can_add as _inv_can_add, full_message
+        if not _inv_can_add(buyer_profile):
+            return await ctx.send(full_message(buyer_profile, bey_name))
 
         # Update seller first — remove listing and pay out
         listings.remove(listing)

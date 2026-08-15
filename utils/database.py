@@ -481,11 +481,20 @@ def add_beyblade_to_inventory(user_id: int, beyblade_name: str) -> bool:
     Append a Beyblade to a user's inventory.
     If the user has no active Beyblade, automatically equip this one.
     Always adds the Beyblade, even if the user already owns a copy (duplicates allowed).
-    Returns True on success.
+    Returns True on success, False when the inventory is at capacity — callers
+    must report that refusal rather than assume the bey landed.
     """
+    from utils.inventory import can_add
     with _users_lock:
         uid     = str(user_id)
         profile = USER_STORE.get_one(uid) or _default_profile(uid)
+        # Refuse rather than overflow. Returning False was already this
+        # function's contract, so every caller has somewhere to put the
+        # refusal — but only three of the nine sites that add a bey come
+        # through here, and the other six check `inventory.require_room`
+        # themselves BEFORE they take anyone's money.
+        if not can_add(profile):
+            return False
         profile.setdefault("inventory", []).append(beyblade_name)
         if profile.get("active_beyblade") is None:
             profile["active_beyblade"] = beyblade_name

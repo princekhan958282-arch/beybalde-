@@ -29,7 +29,7 @@ from discord.ext import commands
 
 from cogs.casino import casino_premium, casino_wallet
 from cogs.economy.profile import fuzzy_find_beyblade
-from utils.database import add_beyblade_to_inventory, get_user, update_user
+from utils.database import add_beyblade_to_inventory, mutate_user
 from utils.mobile_ui import MobileListView
 
 from .code_store import (
@@ -119,20 +119,28 @@ def describe(rewards: list[dict]) -> str:
 async def grant(user_id: int, rewards: list[dict]) -> list[str]:
     """Apply rewards. Returns human-readable lines of what landed."""
     got = []
-    profile = get_user(user_id)
-    dirty = False
+    # Coins are accumulated as a delta and applied at the end through
+    # `mutate_user`, NOT held as a profile snapshot. A snapshot taken here
+    # would be written back below AFTER `add_beyblade_to_inventory` has
+    # already written the inventory under the user lock — silently erasing
+    # any blade from a code that grants coins and a blade together.
+    coin_delta = 0
 
     for r in rewards:
         if r["kind"] == "coins":
-            profile["coins"] = profile.get("coins", 0) + r["value"]
-            dirty = True
+            coin_delta += int(r["value"])
             got.append(f"🪙 **+{r['value']:,}** Beycoins")
         elif r["kind"] == "casino":
             await casino_wallet.credit(user_id, r["value"])
             got.append(f"🎰 **+{r['value']:,}** casino coins")
         elif r["kind"] == "blade":
-            add_beyblade_to_inventory(user_id, r["value"])
-            got.append(f"🌀 **{r['value']}** added to your collection")
+            if add_beyblade_to_inventory(user_id, r["value"]):
+                got.append(f"🌀 **{r['value']}** added to your collection")
+            else:
+                # Say so. Announcing a blade that was never granted is worse
+                # than refusing it — the code is spent either way.
+                got.append(f"🎒 **{r['value']}** could not be added — your "
+                           f"inventory is full (`;beyslots`)")
         elif r["kind"] == "premium":
             try:
                 await casino_premium.grant_premium(user_id, r["value"])
@@ -140,8 +148,10 @@ async def grant(user_id: int, rewards: list[dict]) -> list[str]:
             except Exception:
                 got.append("👑 premium pass could not be applied — tell an admin")
 
-    if dirty:
-        update_user(user_id, profile)
+    if coin_delta:
+        mutate_user(user_id,
+                    lambda prof: prof.__setitem__(
+                        "coins", int(prof.get("coins", 0) or 0) + coin_delta))
     return got
 
 

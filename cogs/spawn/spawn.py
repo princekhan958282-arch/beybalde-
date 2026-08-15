@@ -616,7 +616,19 @@ class SpawnCog(commands.Cog):
             for b in pre_profile.get("inventory", [])
         )
 
-        add_beyblade_to_inventory(user.id, spawned["name"])
+        # A full inventory refuses the claim outright. It must bail BEFORE the
+        # catch counter and the duplicate-sale prompt below — that prompt
+        # re-fetches and removes the last matching copy, so running it after a
+        # refused claim would pop a bey the player still owns.
+        if not add_beyblade_to_inventory(user.id, spawned["name"]):
+            from utils.inventory import full_message
+            try:
+                await channel.send(
+                    f"{user.mention} "
+                    + full_message(get_user(user.id), spawned["name"]))
+            except Exception:                            # noqa: BLE001
+                log.warning("[spawn] could not report a full inventory")
+            return
 
         # Lifetime catch counter for the /leaderboard catches board. Counted
         # here rather than derived from inventory size, because selling a
