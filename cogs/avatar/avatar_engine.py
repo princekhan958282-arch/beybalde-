@@ -40,6 +40,19 @@ from utils.database import (
 _DATA_PATH = os.path.join(os.path.dirname(__file__), "avatar_data.json")
 
 
+# ── Multi-hit tuning ──────────────────────────────────────────────────────────
+#
+# Both of these used to be a doubling, and together on one card they turned a
+# 16-hit Special into 32 hits at double damage — a guaranteed one-shot of a
+# full 2,108 HP pool at level 100, from an avatar rather than from the blade.
+#
+# The extra hits are now FLAT, which is the substantive change: the bonus no
+# longer scales with the payload, so a 2-hit Special gains 100% and a 16-hit
+# one gains 12% instead of both gaining 100%. A card that reads "more hits"
+# should not be worth the most on the blades that already hit the most.
+MULTI_HIT_EXTRA_HITS  = 2      # was: hit count doubled
+MULTI_HIT_DAMAGE_MULT = 1.10   # was: 2.0
+
 # ── Bonus dataclass (what session.py receives) ────────────────────────────────
 
 @dataclass
@@ -82,9 +95,9 @@ class AvatarBonuses:
     # Counter (new mechanic — avatar introduces this)
     counter_chance: float = 0.0   # 0.0–1.0 probability on dodge success
 
-    # Multi-hit modifiers
-    multi_hit_power_double: bool = False  # doubles damage on each hit
-    multi_hit_extra_hits:   bool = False  # adds one extra hit per multi-hit move
+    # Multi-hit modifiers — see MULTI_HIT_* above the class
+    multi_hit_power_double: bool = False  # +MULTI_HIT_DAMAGE_MULT on each hit
+    multi_hit_extra_hits:   bool = False  # +MULTI_HIT_EXTRA_HITS hits
 
     # HP
     hp_flat:    float = 0.0   # bonus HP added at battle start (e.g. +50 HP)
@@ -161,34 +174,45 @@ class AvatarBonuses:
         return (base_damage + self.special_move_flat) * (1.0 + self.special_move_percent)
 
     def apply_hp_bonus(self, base_hp: float) -> float:
-        """Return starting HP after flat + percent bonuses."""
-        return (base_hp + self.hp_flat) * (1.0 + self.hp_percent)
+        """Return starting HP after flat + percent bonuses.
+
+        The cap is re-applied here as well as at load, so a bonuses object
+        built by hand — a test, an older save, a skill block read directly —
+        cannot exceed it either. Same belt-and-braces as `roll_dodge`.
+        """
+        pct = min(self.HP_PERCENT_CAP, max(0.0, self.hp_percent))
+        return (base_hp + self.hp_flat) * (1.0 + pct)
 
     def apply_damage_resistance(self, incoming_damage: float) -> float:
         """Reduce incoming damage by resistance percent."""
         return incoming_damage * (1.0 - self.resistance_damage_percent)
 
     def apply_multi_hit_damage(self, hit_damage: float) -> float:
-        """Double damage per hit if multi_hit_power_double is active."""
+        """Scale per-hit damage if multi_hit_power_double is active."""
         if self.multi_hit_power_double:
-            return hit_damage * 2.0
+            return hit_damage * MULTI_HIT_DAMAGE_MULT
         return hit_damage
 
     def extra_hits(self, base_hits: int) -> int:
         """Return adjusted hit count if multi_hit_extra_hits is active.
 
-        DOUBLES the hit count. It used to add exactly one, which made the
-        bonus worth less the better the Special was: a 2-hit move gained 50%
-        and a 5-hit move only 20%, so the strongest multi-hit blades got the
-        least from it. Doubling is proportional — a 2-hit Special becomes 4.
+        Adds a FLAT +2, and the flatness is the whole point. This doubled the
+        count for a while, chosen at the time for being proportional — a 2-hit
+        Special gained 50% from +1 and a 5-hit only 20%, so the strongest
+        multi-hit blades got the least from it.
+
+        That proportionality is exactly what broke it. The two 16-hit blades
+        in the game went to 32 hits, and at level 100 a Victory Valkyrie X
+        Special removed a full 2,108 HP pool in one move with room to spare.
+        A bonus that scales with the payload is largest where it is least
+        affordable. Flat +2 means a 2-hit Special still gains meaningfully and
+        a 16-hit one gains 12%.
 
         This is deliberately NOT the same effect as `multi_hit_power_double`,
-        which doubles the damage of each hit and leaves the count alone. An
-        avatar carrying both fires twice as many hits AND each of them hits
-        twice as hard.
+        which raises the damage of each hit and leaves the count alone.
         """
         if self.multi_hit_extra_hits:
-            return max(base_hits, int(base_hits) * 2)
+            return max(base_hits, int(base_hits) + MULTI_HIT_EXTRA_HITS)
         return base_hits
 
     # No avatar may dodge more often than this, whatever its card says.
@@ -199,6 +223,21 @@ class AvatarBonuses:
     # rather than editing 16 cards keeps each card's relative ranking intact
     # and makes the ceiling one number to change again later.
     DODGE_CAP = 0.05
+
+    # No avatar may add more than this fraction to a starting HP pool.
+    #
+    # `hp_percent` was a required key on every card and range-checked on none
+    # of them, and one card proved what that costs: Mikasa shipped at 0.69 —
+    # +69% HP, 4.6x the next highest and enough to make one Ultimate
+    # permanently five times better at surviving than any other. A typo of
+    # `12` meaning +1200% would have shipped just as quietly.
+    #
+    # Set above the top of the authored curve (Exclusive/MLBB at 15%) so it is
+    # a guard rail and not a balance lever. HP is worth strictly more per
+    # point than attack — it multiplies a ~2,100 pool and, unlike attack, is
+    # not contested by the opponent's defence — which is why the curve sits
+    # below the attack spread and why this ceiling is close behind it.
+    HP_PERCENT_CAP = 0.20
 
     def roll_dodge(self) -> bool:
         """Roll whether this avatar dodges an incoming attack.
@@ -438,7 +477,10 @@ class AvatarEngine:
             special_move_flat=b.get("special_move_flat", 0.0),
             special_move_percent=b.get("special_move_percent", 0.0),
             hp_flat=b.get("hp_flat", 0.0),
-            hp_percent=b.get("hp_percent", 0.0),
+            # Capped at load for the same reason dodge is: the number a card
+            # DISPLAYS in the shop must be the number that reaches the pool.
+            hp_percent=min(AvatarBonuses.HP_PERCENT_CAP,
+                           max(0.0, float(b.get("hp_percent", 0.0) or 0.0))),
             crit_percent=b.get("crit_percent", 0.0),
             # Capped at load, so the number a card DISPLAYS is the number that
             # actually rolls. Capping only inside roll_dodge would leave the

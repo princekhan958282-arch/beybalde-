@@ -440,9 +440,19 @@ class TournamentCog(commands.Cog, name="Tournaments"):
                 update_user(champ, prof)
             elif t.reward_type == "item":
                 from utils.database import get_user, update_user
+                from utils.inventory import can_add
                 prof = get_user(champ)
-                prof.setdefault("inventory", []).append(t.reward_value)
-                update_user(champ, prof)
+                # A tournament prize is worth saying something about either
+                # way. This whole block sits inside a try/except that swallows
+                # failures, so a full inventory would have eaten the prize in
+                # silence.
+                if can_add(prof):
+                    prof.setdefault("inventory", []).append(t.reward_value)
+                    update_user(champ, prof)
+                else:
+                    log.warning("[tournament] champion %s has a full "
+                                "inventory — prize %r not granted",
+                                champ, t.reward_value)
             elif t.reward_type == "role":
                 guild = self.bot.get_guild(t.guild_id)
                 member = guild.get_member(champ) if guild else None

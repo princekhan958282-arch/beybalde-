@@ -25,6 +25,7 @@ from typing import Optional
 from utils.database import (
     get_user,
     get_beyblade,
+    beyblade_ref,
     load_beyblades,
     set_active_beyblade,
     xp_to_next_level,
@@ -733,8 +734,15 @@ def fuzzy_find_beyblade(query: str):
         if q_lower in name.lower() or any(
             q_lower in word.lower() for word in name.split()
         ):
-            data.setdefault("name", name)
-            return data
+            # A COPY, because `load_beyblades()` now hands back the shared
+            # parse cache and this writes to the record. In practice the
+            # setdefault is a no-op — all 91 blades already carry `name` — so
+            # nothing is being fixed here; the copy is what stops a blade
+            # authored WITHOUT one from quietly editing the cache every other
+            # reader sees.
+            out = dict(data)
+            out.setdefault("name", name)
+            return out
 
     # Strategy 3 — fuzzy closest match
     all_names = list(all_blades.keys())
@@ -749,9 +757,9 @@ def fuzzy_find_beyblade(query: str):
         matched_lower = matches[0]
         for name in all_names:
             if name.lower() == matched_lower:
-                data = all_blades[name]
-                data.setdefault("name", name)
-                return data
+                out = dict(all_blades[name])
+                out.setdefault("name", name)
+                return out
 
     return None
 
@@ -980,8 +988,9 @@ class ProfileCog(commands.Cog, name="Profile"):
         self,
         ctx: commands.Context,
         member: Optional[discord.Member] = None,
+        page: int = 1,
     ) -> None:
-        """;inventory [@user] — Browse your full Beyblade collection."""
+        """;inventory [@user] [page] — Browse your full Beyblade collection."""
         target    = member or ctx.author
         prof      = get_user(target.id)
         inventory = prof.get("inventory", [])
@@ -991,10 +1000,12 @@ class ProfileCog(commands.Cog, name="Profile"):
             await ctx.send(f"🎒 **{target.display_name}** has no Beyblades yet!")
             return
 
-        # Group by rarity for a cleaner display
+        # Group by rarity for a cleaner display. `beyblade_ref` rather than
+        # `get_beyblade` — this only reads, so there is no reason to deepcopy
+        # a record per entry.
         grouped: dict[str, list[str]] = {}
         for blade_name in inventory:
-            blade  = get_beyblade(blade_name)
+            blade  = beyblade_ref(str(blade_name))
             rarity = (blade or {}).get("rarity", "Common")
             grouped.setdefault(rarity, []).append(blade_name)
 
@@ -1012,9 +1023,27 @@ class ProfileCog(commands.Cog, name="Profile"):
                 marker = " ◄ **Active**" if b == active else ""
                 lines.append(f"  • {b}{marker}")
 
+        # THE BUG THIS FIXES: every line went into ONE embed description, and
+        # Discord caps that at 4,096 characters. At roughly 25 characters a
+        # line this raised an HTTPException at about 160 beys — so the command
+        # broke BELOW the new 200-slot cap, today, for anyone with a large
+        # collection. Paged now, with the page count stated.
+        pages: list[str] = []
+        buf = ""
+        for ln in lines:
+            if len(buf) + len(ln) + 1 > 3900:
+                pages.append(buf)
+                buf = ""
+            buf += ln + "\n"
+        if buf or not pages:
+            pages.append(buf)
+        page_no = max(0, min(len(pages) - 1, int(page) - 1))
+
         embed = discord.Embed(
-            title       = f"🎒 {target.display_name}'s Collection — {len(inventory)} Beyblades",
-            description = "\n".join(lines),
+            title       = f"🎒 {target.display_name}'s Collection — {len(inventory)} Beyblades"
+                          + (f"  (page {page_no + 1}/{len(pages)})"
+                             if len(pages) > 1 else ""),
+            description = pages[page_no],
             color       = discord.Color.from_rgb(30, 144, 255),
         )
         embed.set_thumbnail(url=target.display_avatar.url)
@@ -1061,7 +1090,12 @@ class ProfileCog(commands.Cog, name="Profile"):
                 inline=False,
             )
 
-        embed.set_footer(text="Use ;equip <name> to change your active blade  ·  ;myparts to manage parts.")
+        foot = ("Use ;equip <name> to change your active blade  ·  "
+                ";myparts to manage parts.")
+        if len(pages) > 1:
+            foot = (f"Page {page_no + 1}/{len(pages)} — "
+                    f"`;inventory_legacy {page_no + 2}` for the next  ·  ") + foot
+        embed.set_footer(text=foot[:2048])
         await ctx.send(embed=embed)
 
     # ── ;beypedia ─────────────────────────────────────────────────────────────

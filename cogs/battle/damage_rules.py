@@ -163,6 +163,22 @@ def _grind_duration(def_stat: int) -> int:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+# The most a levelled Special may be multiplied by, however far the blade's
+# special stat has outgrown its printed one.
+#
+# Uncapped, this reached **4.09×** on Victory Valkyrie X — its printed special
+# is low relative to a 16-hit payload, so the ratio runs away exactly on the
+# blades whose Specials are already the largest. At level 100 that put a VVX
+# Special at 5,400–6,100 into a 2,108 HP pool: a guaranteed one-shot from full
+# health, before any avatar was involved.
+#
+# 2.5 still means levelling roughly doubles your Special, which is the point of
+# the mechanic and what `sim_levels` asserts — every blade's Special must be
+# stronger at level 100 than at level 1. Flattening the curve is not an option;
+# capping its tail is.
+SPECIAL_SCALE_CAP = 2.5
+
+
 def special_scale(blade: dict, special_stat: Optional[float]) -> float:
     """How much to multiply a blade's authored Special damage by.
 
@@ -173,7 +189,8 @@ def special_scale(blade: dict, special_stat: Optional[float]) -> float:
 
     Returns exactly 1.0 when the stat is absent, unknown or still at its
     printed value — so a level-1 blade deals precisely its authored damage and
-    nothing about the existing roster is rebalanced by this landing.
+    nothing about the existing roster is rebalanced by this landing. Clamped
+    at both ends: never below 1.0, never above `SPECIAL_SCALE_CAP`.
     """
     if special_stat is None:
         return 1.0
@@ -186,7 +203,7 @@ def special_scale(blade: dict, special_stat: Optional[float]) -> float:
         return 1.0
     # Never scale DOWN. A debuff that drops the stat below its printed value
     # should not also retroactively weaken the authored Special.
-    return max(1.0, now / base)
+    return max(1.0, min(SPECIAL_SCALE_CAP, now / base))
 
 
 def resolve_special(blade: dict,

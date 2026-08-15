@@ -8,11 +8,30 @@ Unified Inventory System — mobile-first UI.
 Design rules (phone-screen optimised):
   • 6 items per page, 2 short lines each — fits one screen, no scrolling
   • Categories: 🌀 Beyblades | 🧑 Avatars | ⚙️ Parts | 🎒 All
-  • Nav: ⬅️ Prev | Page x/y (disabled) | ➡️ Next — buttons disabled at edges
+  • Nav: ⏮ ⬅️ Page x/y ➡️ ⏭ — buttons disabled at the edges
   • Item select via dropdown → compact detail view → ⚙️ Equip / 🔄 Change Parts / 🔙 Back
   • Every interaction edits the SAME message (interaction.response.edit_message)
   • Inventory snapshot cached on the view; refreshed only after an equip action
-  • Max 3 component rows, ≤5 buttons per row
+  • Max 5 component rows, ≤5 buttons per row, ≤25 options per select
+
+Built for the 2,000-slot ceiling, not the six beys most players have
+--------------------------------------------------------------------
+At 6 items a page with prev/next only, a full 2,000-bey collection is **334
+pages** and the last one is 333 taps away. Three things fix that, and only
+together:
+
+  • **A rarity filter.** The reason anyone opens a 2,000-item list is to find
+    one blade, and rarity is the axis they think in. Filtering to Ultimate
+    turns 334 pages into one.
+  • **A page-jump select.** 25 evenly-spread destinations, always including
+    the first page, the last page and wherever you already are — so any page
+    in a 334-page collection is at most two taps away.
+  • **A bigger page on the bey tab.** 12 rather than 6: the bey line is the
+    shortest of the four kinds, and this halves the page count outright.
+    The other tabs keep 6, because avatars and parts are counted in dozens.
+
+The filter and the jump each cost a component row, which is why the row budget
+above went from 3 to 5. That is the ceiling — there is no sixth row.
 """
 
 from __future__ import annotations
@@ -24,7 +43,7 @@ import discord
 from discord.ext import commands
 
 from utils.database import (
-    get_user, update_user, get_beyblade,
+    get_user, update_user, beyblade_ref,
     get_avatar_inventory, get_equipped_avatar, set_equipped_avatar,
 )
 from utils.embeds import RARITY_EMOJIS, rarity_colour
@@ -35,6 +54,18 @@ from cogs.economy.shop import part_penalties as _part_penalties
 
 ITEMS_PER_PAGE = 6
 VIEW_TIMEOUT   = 180
+
+# Per-tab page size. Beys get the big page — their line is two short ones and
+# a page of 12 is ~900 characters against Discord's 4,096-character embed
+# description limit, so there is headroom even at the longest blade names.
+PAGE_SIZE = {"bey": 12, "all": 12, "copy": 8}
+
+# Discord's hard limit on a select. Both the item list and the page jump are
+# built against it, so neither can silently drop its tail.
+MAX_SELECT_OPTIONS = 25
+
+# Filterable tabs are the ones whose items carry a rarity. Parts do not.
+RARITY_TABS = ("bey", "copy", "avatar", "all")
 
 TYPE_EMOJI = {"attack": "⚔️", "defense": "🛡️", "stamina": "🌀", "balance": "⚖️"}
 CATEGORIES = [("bey", "🌀 Beys"), ("copy", "🧬 Boss Copies"),
@@ -79,10 +110,13 @@ class InventoryView(discord.ui.View):
         self.can_edit = owner.id == target.id
         self.category = "bey"
         self.page     = 0
+        self.rarity: str | None = None     # active rarity filter, None = all
         self.detail: dict | None = None    # currently opened item
         self.parts_mode = False            # "Change Parts" sub-view
         self.message: discord.Message | None = None
         self._cache: dict[str, list[dict]] = {}
+        self._view_cache: dict[tuple, list[dict]] = {}
+        self._slots: tuple[int, int] | None = None   # (used, capacity)
         self._load_cache()
         self._rebuild()
 
@@ -90,15 +124,25 @@ class InventoryView(discord.ui.View):
 
     def _load_cache(self) -> None:
         prof   = get_user(self.target.id)
+        # Read once, here, off the profile this method already loaded — the
+        # footer must not put a store read on every re-render.
+        from utils.inventory import capacity as _cap, used as _used
+        self._slots = (_used(prof), _cap(prof))
         # A copy and a database bey can share a display name, so while a copy
         # is equipped no bey should render the ✅ — active_copy is the tiebreak.
         active = ("" if prof.get("active_copy")
                   else str(prof.get("active_beyblade") or "").lower())
 
         beys = []
+        # `beyblade_ref` hands back the SHARED cached record instead of a
+        # deepcopy. `get_beyblade` copies ~0.05 ms a record, which is nothing
+        # once and ~100 ms for a two-thousand-item inventory — synchronously,
+        # on the event loop, every time this panel opens. Nothing below writes
+        # to `blade`; it is read for display and handed to the info card,
+        # which also only reads.
         for nm in prof.get("inventory", []):
             name  = nm.get("name") if isinstance(nm, dict) else nm
-            blade = get_beyblade(str(name)) or {}
+            blade = beyblade_ref(str(name)) or {}
             beys.append({
                 "kind": "bey", "name": str(name),
                 "rarity": blade.get("rarity", "?"),
@@ -170,16 +214,82 @@ class InventoryView(discord.ui.View):
         self._cache = {"bey": beys, "copy": copies, "avatar": avatars,
                        "part": parts,
                        "all": beys + copies + avatars + parts}
+        # The filtered view is derived from `_cache`, so it dies with it.
+        self._view_cache = {}
 
-    def _items(self) -> list[dict]:
+    # ── Paging and filtering ─────────────────────────────────────────────────
+
+    def _all_items(self) -> list[dict]:
+        """The whole tab, before the rarity filter — what the counts are of."""
         return self._cache.get(self.category, [])
 
+    def _items(self) -> list[dict]:
+        """The tab as filtered. Memoised: this is called five times a render,
+        and at 2,000 items an un-memoised filter is 10,000 comparisons a tap."""
+        key = (self.category, self.rarity)
+        hit = self._view_cache.get(key)
+        if hit is None:
+            items = self._all_items()
+            if self.rarity:
+                items = [it for it in items if it.get("rarity") == self.rarity]
+            self._view_cache[key] = hit = items
+        return hit
+
+    def _per_page(self) -> int:
+        return PAGE_SIZE.get(self.category, ITEMS_PER_PAGE)
+
     def _pages(self) -> int:
-        return max(1, -(-len(self._items()) // ITEMS_PER_PAGE))
+        return max(1, -(-len(self._items()) // self._per_page()))
+
+    def _clamp_page(self) -> None:
+        """Keep `page` inside the current view.
+
+        Filtering 334 pages down to 2 while sitting on page 300 would otherwise
+        render an empty list with both nav buttons disabled — a dead panel.
+        """
+        self.page = max(0, min(self.page, self._pages() - 1))
 
     def _page_items(self) -> list[dict]:
-        i = self.page * ITEMS_PER_PAGE
-        return self._items()[i:i + ITEMS_PER_PAGE]
+        per = self._per_page()
+        i   = self.page * per
+        return self._items()[i:i + per]
+
+    def _rarities(self) -> list[tuple[str, int]]:
+        """Rarities present in this tab, in roster order, with counts."""
+        counts: dict[str, int] = {}
+        for it in self._all_items():
+            r = it.get("rarity")
+            if r and r != "?":
+                counts[r] = counts.get(r, 0) + 1
+        order = list(RARITY_EMOJIS)
+        return sorted(counts.items(),
+                      key=lambda kv: (order.index(kv[0])
+                                      if kv[0] in order else len(order)))
+
+    def _jump_targets(self) -> list[int]:
+        """Up to 25 page indices to offer as jump destinations.
+
+        Under 25 pages every page is offered. Above it they are spread evenly
+        across the range — and the first page, the last page and the page you
+        are on are forced in, so the select can never fail to show where you
+        already are or refuse to take you to the end.
+        """
+        pages = self._pages()
+        if pages <= MAX_SELECT_OPTIONS:
+            return list(range(pages))
+        last = pages - 1
+        step = last / (MAX_SELECT_OPTIONS - 1)
+        spread = {round(i * step) for i in range(MAX_SELECT_OPTIONS)}
+        spread |= {0, last, self.page}
+        out = sorted(spread)
+        # Forcing the current page in can push the count to 26 or 27; drop
+        # from the middle, never the ends, and never the page you are on.
+        while len(out) > MAX_SELECT_OPTIONS:
+            drop = next((p for p in out[1:-1] if p != self.page), None)
+            if drop is None:
+                break
+            out.remove(drop)
+        return out
 
     # ── Rendering ─────────────────────────────────────────────────────────────
 
@@ -218,15 +328,33 @@ class InventoryView(discord.ui.View):
     def build_embed(self) -> discord.Embed:
         if self.detail:
             return self._detail_embed()
+        self._clamp_page()
         items = self._page_items()
+        per   = self._per_page()
         cat_label = dict(CATEGORIES)[self.category]
+        shown, total = len(self._items()), len(self._all_items())
+
+        if not items and self.rarity:
+            # Reachable only if the tab emptied under the view (an equip that
+            # sold the last one). Say which filter is hiding everything.
+            body = f"*No {self.rarity} items here — tap **All rarities**.*"
+        else:
+            body = "\n".join(self._line(self.page * per + i + 1, it)
+                             for i, it in enumerate(items)) or "*Nothing here yet!*"
+
         e = discord.Embed(
             title=f"{cat_label} — {self.target.display_name} "
                   f"(Page {self.page + 1}/{self._pages()})",
-            description="\n".join(self._line(self.page * ITEMS_PER_PAGE + i + 1, it)
-                                  for i, it in enumerate(items)) or "*Nothing here yet!*",
+            description=body,
             color=discord.Color.blurple(),
         )
+        # The footer is the only place a filtered count can live without
+        # pushing the title past Discord's 256 characters on a long nickname.
+        foot = (f"{shown:,} of {total:,} shown · {self.rarity}"
+                if self.rarity else f"{total:,} item(s)")
+        if self.category in ("bey", "all") and self._slots:
+            foot += f" · 🎒 {self._slots[0]:,}/{self._slots[1]:,} slots"
+        e.set_footer(text=foot)
         return e
 
     def _detail_embed(self) -> discord.Embed:
@@ -300,29 +428,72 @@ class InventoryView(discord.ui.View):
             self.add_item(b)
 
         # Row 1 — item select (current page only)
+        self._clamp_page()
+        per   = self._per_page()
         items = self._page_items()
         if items:
             opts = [
                 discord.SelectOption(
-                    label=f"{self.page * ITEMS_PER_PAGE + i + 1}. {it['name'][:80]}",
+                    label=f"{self.page * per + i + 1}. {it['name'][:80]}",
                     value=str(i),
                     emoji="✅" if it.get("equipped") else None)
-                for i, it in enumerate(items)
+                for i, it in enumerate(items[:MAX_SELECT_OPTIONS])
             ]
             sel = discord.ui.Select(placeholder="Select an item…", options=opts, row=1)
             sel.callback = self._select_cb
             self.add_item(sel)
 
-        # Row 2 — nav
+        # Row 2 — nav. ⏮/⏭ matter more than they look: at 167 pages the last
+        # page is otherwise 166 taps from the first.
+        pages = self._pages()
+        first = discord.ui.Button(label="⏮", style=discord.ButtonStyle.secondary,
+                                  row=2, disabled=self.page <= 0)
+        first.callback = self._first_cb
         prev = discord.ui.Button(label="⬅️", style=discord.ButtonStyle.secondary,
                                  row=2, disabled=self.page <= 0)
         prev.callback = self._prev_cb
-        info = discord.ui.Button(label=f"Page {self.page + 1}/{self._pages()}",
+        info = discord.ui.Button(label=f"Page {self.page + 1}/{pages}",
                                  style=discord.ButtonStyle.secondary, row=2, disabled=True)
         nxt = discord.ui.Button(label="➡️", style=discord.ButtonStyle.secondary,
-                                row=2, disabled=self.page >= self._pages() - 1)
+                                row=2, disabled=self.page >= pages - 1)
         nxt.callback = self._next_cb
-        self.add_item(prev); self.add_item(info); self.add_item(nxt)
+        last = discord.ui.Button(label="⏭", style=discord.ButtonStyle.secondary,
+                                 row=2, disabled=self.page >= pages - 1)
+        last.callback = self._last_cb
+        for b in (first, prev, info, nxt, last):
+            self.add_item(b)
+
+        # Row 3 — rarity filter, only where the items have a rarity and only
+        # when there is more than one to choose between.
+        rarities = self._rarities() if self.category in RARITY_TABS else []
+        if len(rarities) > 1:
+            total = len(self._all_items())
+            opts = [discord.SelectOption(
+                label=f"All rarities ({total:,})", value="",
+                emoji="🎒", default=self.rarity is None)]
+            for r, n in rarities[:MAX_SELECT_OPTIONS - 1]:
+                opts.append(discord.SelectOption(
+                    label=f"{r} ({n:,})", value=r,
+                    emoji=RARITY_EMOJIS.get(r), default=self.rarity == r))
+            sel = discord.ui.Select(placeholder="Filter by rarity…",
+                                    options=opts, row=3)
+            sel.callback = self._rarity_cb
+            self.add_item(sel)
+
+        # Row 4 — page jump. Pointless at one page, essential at 167.
+        if pages > 1:
+            opts = [
+                discord.SelectOption(
+                    label=f"Page {p + 1} of {pages}",
+                    description=f"items {p * per + 1:,}–"
+                                f"{min((p + 1) * per, len(self._items())):,}",
+                    value=str(p), default=p == self.page)
+                for p in self._jump_targets()
+            ]
+            sel = discord.ui.Select(placeholder=f"Jump to a page (1–{pages})…",
+                                    options=opts, row=4)
+            sel.callback = self._jump_cb
+            self.add_item(sel)
 
     def _build_detail_components(self) -> None:
         it = self.detail
@@ -386,12 +557,16 @@ class InventoryView(discord.ui.View):
         return True
 
     async def _refresh(self, interaction: discord.Interaction) -> None:
+        self._clamp_page()
         self._rebuild()
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
 
     def _make_cat_cb(self, key: str):
         async def cb(interaction: discord.Interaction):
             self.category, self.page, self.detail = key, 0, None
+            # The filter is per-tab by nature — "Ultimate" carried from beys
+            # onto parts would show an empty list nobody asked for.
+            self.rarity = None
             await self._refresh(interaction)
         return cb
 
@@ -401,6 +576,29 @@ class InventoryView(discord.ui.View):
 
     async def _next_cb(self, interaction: discord.Interaction):
         self.page = min(self._pages() - 1, self.page + 1)
+        await self._refresh(interaction)
+
+    async def _first_cb(self, interaction: discord.Interaction):
+        self.page = 0
+        await self._refresh(interaction)
+
+    async def _last_cb(self, interaction: discord.Interaction):
+        self.page = self._pages() - 1
+        await self._refresh(interaction)
+
+    async def _jump_cb(self, interaction: discord.Interaction):
+        try:
+            self.page = int(interaction.data["values"][0])
+        except (KeyError, IndexError, TypeError, ValueError):
+            pass
+        await self._refresh(interaction)
+
+    async def _rarity_cb(self, interaction: discord.Interaction):
+        val = (interaction.data.get("values") or [""])[0]
+        # Changing the filter always returns to page 1 — staying on page 40 of
+        # a two-page result is the dead panel `_clamp_page` exists to prevent,
+        # and landing mid-list is disorienting even when it is legal.
+        self.rarity, self.page = (val or None), 0
         await self._refresh(interaction)
 
     async def _select_cb(self, interaction: discord.Interaction):

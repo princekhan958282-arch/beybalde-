@@ -94,6 +94,52 @@ RARITY_WEIGHTS = {
 # Rarities permanently excluded from all spawns — no command can override this
 _NEVER_SPAWN = {"Exclusive"}
 
+# ── Hidden spawns ─────────────────────────────────────────────────────────────
+#
+# A blade carrying `hidden_drop_one_in: N` is removed from the weighted pool
+# entirely and instead gets its own independent 1-in-N test before each spawn.
+#
+# BOTH halves are needed and the exclusion is the half that is easy to forget.
+# The key alone is inert: without it, Ultimate Valkyrie keeps its ordinary
+# 1-in-400 through the Ultimate tier and the hidden roll is decoration on top
+# of odds four orders of magnitude better.
+#
+# Why not a rarity weight: the weights are relative shares of a tier, so there
+# is no weight small enough to express "one in ten million" without dragging
+# every other blade's odds through the same denominator.
+#
+# The odds are never rendered anywhere. Nothing reads this key on the spawn
+# side except `_roll_hidden_spawn`, and a player who finds one sees an
+# ordinary spawn. Keep it that way.
+HIDDEN_SPAWN_KEY = "hidden_drop_one_in"
+
+
+def _hidden_spawn_n(data: dict) -> int:
+    """This blade's hidden 1-in-N, or 0 when it spawns normally."""
+    try:
+        return max(0, int((data or {}).get(HIDDEN_SPAWN_KEY) or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _roll_hidden_spawn(beyblades: dict) -> Optional[dict]:
+    """One spawn's worth of hidden rolls. Returns a winner, or None.
+
+    Each candidate gets its own independent test, so adding a second hidden
+    blade never changes the first one's odds. At 1-in-10,000,000 against a
+    spawn every 15–30 messages this returns None essentially always, which is
+    the entire intent.
+    """
+    for data in (beyblades or {}).values():
+        n = _hidden_spawn_n(data)
+        if n <= 0:
+            continue
+        if data.get("rarity") in _NEVER_SPAWN or not obtainable(data):
+            continue
+        if random.randrange(n) == 0:
+            return data
+    return None
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -112,6 +158,10 @@ def _pick_random_beyblade(beyblades: dict) -> Optional[dict]:
             continue
         if not obtainable(data):
             continue
+        # Hidden blades are not in the weighted pool at all — they only ever
+        # arrive through `_roll_hidden_spawn`.
+        if _hidden_spawn_n(data):
+            continue
         tier_map.setdefault(r, []).append(data)
 
     available_tiers = [
@@ -124,6 +174,7 @@ def _pick_random_beyblade(beyblades: dict) -> Optional[dict]:
             if not v.get("booster_exclusive")
             and v.get("rarity", "Common") not in _NEVER_SPAWN
             and obtainable(v)
+            and not _hidden_spawn_n(v)      # the fallback is still a pool
         ]
         return random.choice(fallback) if fallback else None
 
@@ -485,7 +536,13 @@ class SpawnCog(commands.Cog):
                         if d.get("rarity") == "Exclusive"]
                 chosen = random.choice(pool) if pool else None
             else:
-                chosen = _pick_random_beyblade(beyblades)
+                # The hidden roll goes FIRST and short-circuits the weighted
+                # pick — it is not a re-roll of a normal spawn, it replaces it.
+                chosen = _roll_hidden_spawn(beyblades)
+                if chosen is not None:
+                    log.info("[spawn] hidden spawn: %s", chosen.get("name"))
+                else:
+                    chosen = _pick_random_beyblade(beyblades)
         except Exception as e:
             log.error(f"[spawn] blade pick raised: {e}\n{traceback.format_exc()}")
             return
@@ -616,7 +673,19 @@ class SpawnCog(commands.Cog):
             for b in pre_profile.get("inventory", [])
         )
 
-        add_beyblade_to_inventory(user.id, spawned["name"])
+        # A full inventory refuses the claim outright. It must bail BEFORE the
+        # catch counter and the duplicate-sale prompt below — that prompt
+        # re-fetches and removes the last matching copy, so running it after a
+        # refused claim would pop a bey the player still owns.
+        if not add_beyblade_to_inventory(user.id, spawned["name"]):
+            from utils.inventory import full_message
+            try:
+                await channel.send(
+                    f"{user.mention} "
+                    + full_message(get_user(user.id), spawned["name"]))
+            except Exception:                            # noqa: BLE001
+                log.warning("[spawn] could not report a full inventory")
+            return
 
         # Lifetime catch counter for the /leaderboard catches board. Counted
         # here rather than derived from inventory size, because selling a
@@ -997,19 +1066,22 @@ class SpawnCog(commands.Cog):
         user_profile = get_user(ctx.author.id)
         inventory    = user_profile.get("inventory", [])
 
-        for display_name, rarity, extras, sell_value, earned in to_sell:
-            key     = display_name.lower().strip()
-            removed = 0
-            new_inv = []
-            for bey in inventory:
-                # Keep up to 1 copy; remove the rest
-                if bey.lower().strip() == key and removed < extras:
-                    removed += 1   # skip (sell) this copy
-                else:
-                    new_inv.append(bey)
-            inventory = new_inv
+        # ONE pass, not one per duplicate group. This rebuilt the whole
+        # inventory list once per unique blade — with 91 possible names and a
+        # large collection that is tens of thousands of comparisons and 91
+        # list allocations, synchronously, on the event loop. A budget of how
+        # many of each name to drop turns it into a single sweep.
+        budget = {display_name.lower().strip(): extras
+                  for display_name, _r, extras, _sv, _e in to_sell}
+        kept = []
+        for bey in inventory:
+            key = str(bey).lower().strip()
+            if budget.get(key, 0) > 0:
+                budget[key] -= 1        # sell this copy
+                continue
+            kept.append(bey)
 
-        user_profile["inventory"] = inventory
+        user_profile["inventory"] = kept
         user_profile["coins"]     = user_profile.get("coins", 0) + total_coins
         update_user(ctx.author.id, user_profile)
 

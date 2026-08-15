@@ -26,6 +26,11 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "cogs", "avatar", "avatar_data.json")
 
+sys.path.insert(0, ROOT)
+# Imported, not restated. Two copies of "which keys are outside the split"
+# would be one copy too many the first time either changed.
+from cogs.avatar.avatar_skills import CARD_LEVEL_BONUS_KEYS      # noqa: E402
+
 # Which bonus keys each named skill owns. Every non-zero key on a card must
 # appear exactly once across its three skills — verified below, so a skill
 # cannot silently lose an effect or two skills claim the same one.
@@ -155,7 +160,12 @@ def main() -> int:
         dupes = [k for k, n in claimed.items() if n > 1]
         if dupes:
             problems.append(f"{card['name']}: {dupes} claimed by more than one skill")
-        live = {k for k, v in card["bonuses"].items() if v}
+        # Card-level bonuses are deliberately outside the split: they belong
+        # to the avatar, not to whichever skill is equipped, and bonuses_for
+        # carries them through rather than zeroing them. Excluded here so the
+        # partition rule keeps binding on every key that IS split.
+        live = {k for k, v in card["bonuses"].items()
+                if v and k not in CARD_LEVEL_BONUS_KEYS}
         missing = live - set(claimed)
         extra = set(claimed) - live
         if missing:

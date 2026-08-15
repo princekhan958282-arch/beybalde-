@@ -88,27 +88,40 @@ esrc = open(os.path.join(ROOT, "cogs", "avatar", "avatar_engine.py"),
 check("the cap is applied at LOAD, so displayed values match reality",
       "min(AvatarBonuses.DODGE_CAP" in esrc)
 
-print("\n── 2. multi-hit doubles the COUNT ───────────────────────────────")
+print("\n── 2. multi-hit adds a FLAT +2 ──────────────────────────────────")
+# This doubled the count until v95. The flatness is the nerf: a bonus that
+# scales with the payload is largest exactly where it is least affordable,
+# and on the two 16-hit blades it made a Special a guaranteed one-shot.
+from cogs.avatar.avatar_engine import (                            # noqa: E402
+    MULTI_HIT_DAMAGE_MULT, MULTI_HIT_EXTRA_HITS)
+
 extra = AvatarBonuses(multi_hit_extra_hits=True)
+check("the bonus is flat +2", MULTI_HIT_EXTRA_HITS == 2, MULTI_HIT_EXTRA_HITS)
 check("2 hits become 4", extra.extra_hits(2) == 4, extra.extra_hits(2))
-check("3 become 6", extra.extra_hits(3) == 6)
-check("5 become 10", extra.extra_hits(5) == 10)
-check("1 becomes 2", extra.extra_hits(1) == 2)
+check("3 become 5", extra.extra_hits(3) == 5)
+check("5 become 7", extra.extra_hits(5) == 7)
+check("16 become 18, not 32", extra.extra_hits(16) == 18, extra.extra_hits(16))
+check("1 becomes 3", extra.extra_hits(1) == 3)
 check("without the bonus nothing changes",
       AvatarBonuses().extra_hits(4) == 4)
-check("it is proportional now — a 5-hit move gains as much as a 2-hit one",
-      extra.extra_hits(5) / 5 == extra.extra_hits(2) / 2)
+check("it is NOT proportional — the bigger the payload, the smaller the gain",
+      extra.extra_hits(16) / 16 < extra.extra_hits(2) / 2)
 
 dbl = AvatarBonuses(multi_hit_power_double=True)
 check("power_double is a DIFFERENT effect — it leaves the count alone",
       dbl.extra_hits(2) == 2, dbl.extra_hits(2))
-check("...and doubles the damage instead",
-      dbl.apply_multi_hit_damage(50) == 100)
+# 50 * 1.10 is 55.000000000000007 in binary floating point, so this compares
+# with a tolerance. The engine rounds before it reaches the stadium.
+check("...and raises per-hit damage by 10%",
+      MULTI_HIT_DAMAGE_MULT == 1.10
+      and abs(dbl.apply_multi_hit_damage(50) - 55.0) < 1e-9,
+      dbl.apply_multi_hit_damage(50))
 check("extra_hits does NOT touch damage",
       extra.apply_multi_hit_damage(50) == 50)
 both = AvatarBonuses(multi_hit_extra_hits=True, multi_hit_power_double=True)
-check("an avatar with both gets 2x hits AND 2x damage each",
-      both.extra_hits(2) == 4 and both.apply_multi_hit_damage(50) == 100)
+check("an avatar with both gets +2 hits AND +10% on each",
+      both.extra_hits(2) == 4
+      and abs(both.apply_multi_hit_damage(50) - 55.0) < 1e-9)
 
 print("\n── 3. Shadow Dragon King — Absolute Darkness 55% ────────────────")
 sdk = BLADES["Shadow Dragon King"]

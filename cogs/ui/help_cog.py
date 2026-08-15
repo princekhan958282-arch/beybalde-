@@ -251,6 +251,7 @@ COMMAND_DATA = {
         (";bal",                        "💳 Both wallets, both dailies, your tax — one card"),
         (";daily",                      "Claim your daily Beycoins"),
         (";surge",                      "⚡ EXP Surge — 10x EXP for an hour"),
+        (";beyslots",                   "🎒 Inventory space — and buy more"),
         (";redeem <code>",              "🎟️ Claim an event or giveaway code"),
         (";backup",                     "🔐 Get your account recovery code (by DM)"),
         (";restore <code>",             "🔐 Move a backed-up account onto this one"),

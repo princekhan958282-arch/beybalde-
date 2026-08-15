@@ -211,9 +211,35 @@ def xp_to_next_level(xp: int) -> tuple[int, int, int]:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def load_beyblades() -> dict:
-    """Return the full beyblades registry as a dict keyed by name."""
-    with open(BEYBLADES_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """Return the full beyblades registry as a dict keyed by name.
+
+    THE RETURNED DICT IS SHARED — do not mutate it. Copy what you need, or use
+    `get_beyblade`, which hands back a private copy of one record.
+
+    This was a raw `open` + `json.load` on every call, bypassing the parse
+    cache defined three functions above it. 274 KB re-parsed at 21 call sites —
+    including inside `;buybey` purely to read one blade's rarity, which
+    `get_beyblade` answers for a fiftieth of the cost. At ~2 ms a call that is
+    invisible at one bey and very much not at two thousand.
+    """
+    return _read_json_cached(BEYBLADES_PATH)
+
+
+def beyblade_ref(name: str) -> Optional[dict]:
+    """The SHARED blade record — no copy. Read-only callers only.
+
+    `get_beyblade` deepcopies, which costs ~0.05 ms a record: fine once, ~100 ms
+    when a 2,000-item inventory panel builds its cache, synchronously, on the
+    event loop. Use this where the record is only read and never stored.
+    """
+    blades = _read_json_cached(BEYBLADES_PATH)
+    data = blades.get(name)
+    if data is None:
+        lowered = str(name).lower()
+        for key, val in blades.items():
+            if key.lower() == lowered:
+                return val
+    return data
 
 
 def get_beyblade(name: str) -> Optional[dict]:
@@ -455,11 +481,20 @@ def add_beyblade_to_inventory(user_id: int, beyblade_name: str) -> bool:
     Append a Beyblade to a user's inventory.
     If the user has no active Beyblade, automatically equip this one.
     Always adds the Beyblade, even if the user already owns a copy (duplicates allowed).
-    Returns True on success.
+    Returns True on success, False when the inventory is at capacity — callers
+    must report that refusal rather than assume the bey landed.
     """
+    from utils.inventory import can_add
     with _users_lock:
         uid     = str(user_id)
         profile = USER_STORE.get_one(uid) or _default_profile(uid)
+        # Refuse rather than overflow. Returning False was already this
+        # function's contract, so every caller has somewhere to put the
+        # refusal — but only three of the nine sites that add a bey come
+        # through here, and the other six check `inventory.require_room`
+        # themselves BEFORE they take anyone's money.
+        if not can_add(profile):
+            return False
         profile.setdefault("inventory", []).append(beyblade_name)
         if profile.get("active_beyblade") is None:
             profile["active_beyblade"] = beyblade_name

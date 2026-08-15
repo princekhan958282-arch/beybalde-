@@ -315,5 +315,129 @@ finally:
     DB.get_user = _real_get_user
     ENGINE_MOD.get_equipped_avatar = _real_equipped
 
+print(f"\n{'─' * 66}\n  every avatar has HP%\n{'─' * 66}")
+
+# The curve. HP multiplies a ~2,100 pool and, unlike attack, is not contested
+# by the opponent's defence — 1% HP is worth strictly more than 1% attack — so
+# the spread sits deliberately below the attack one. Defence-type cards take
+# the top of their band, derived from the card's own `type` rather than a
+# hand-kept list.
+HP_BAND = {"Common": 0.02, "Rare": 0.03, "Epic": 0.05, "Legendary": 0.08,
+           "Mythic": 0.10, "Ultimate": 0.12, "Exclusive": 0.15, "MLBB": 0.15}
+HP_DEF_BUMP = 0.01
+
+import json as _json                                               # noqa: E402
+import os as _os                                                   # noqa: E402
+ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+from cogs.avatar import avatar_skills as ASK                       # noqa: E402
+from cogs.avatar.avatar_engine import AvatarBonuses as _AB         # noqa: E402
+
+_CARDS = _json.load(open(_os.path.join(
+    ROOT, "cogs", "avatar", "avatar_data.json"), encoding="utf-8"))["avatars"]
+
+
+def _want(card):
+    return round(HP_BAND[card["rarity"]]
+                 + (HP_DEF_BUMP if card.get("type") == "defense" else 0.0), 4)
+
+
+check(f"all {len(_CARDS)} cards are on a known rarity band",
+      all(c["rarity"] in HP_BAND for c in _CARDS),
+      sorted({c["rarity"] for c in _CARDS} - set(HP_BAND)))
+
+_zero = []
+for c in _CARDS:
+    want = _want(c)
+    if c.get("skills"):
+        # bonuses_for zeroes a skill card's top-level block and writes back
+        # only the active skill's keys — EXCEPT the card-level keys, which it
+        # carries through (avatar_skills.CARD_LEVEL_BONUS_KEYS). HP is one, so
+        # the value lives once at the top level, where the shop reads it, and
+        # still reaches the fight whichever skill is equipped. Asserted through
+        # bonuses_for rather than read off JSON, because the carry-through is
+        # the part that can break.
+        # Slots are 1-indexed — skill_at does `slot - 1`, so slot 0 is not
+        # the first skill, it is no skill at all.
+        for slot in range(1, len(c["skills"]) + 1):
+            got = ASK.bonuses_for(c, slot).get("hp_percent", 0.0)
+            if abs(got - want) > 1e-9:
+                check(f"{c['name']} skill {slot}: HP% is {want}", False, got)
+                break
+        else:
+            check(f"{c['name']:<16} ({c['rarity']}) carries {want:.0%} HP in "
+                  f"all {len(c['skills'])} skills", True)
+    else:
+        got = (c.get("bonuses") or {}).get("hp_percent", 0.0)
+        check(f"{c['name']:<16} ({c['rarity']}) has {want:.0%} HP",
+              abs(got - want) < 1e-9, got)
+    if not want:
+        _zero.append(c["name"])
+
+check("no avatar is left on 0% — that was the whole request", not _zero, _zero)
+
+# Mikasa was 0.69: +69% HP, 4.6x the next highest and off any curve. Left
+# alone she would have made one Ultimate five times better at surviving than
+# any other card in the game.
+_mik = next(c for c in _CARDS if c["name"] == "Mikasa")
+check("Mikasa came down from 0.69 to her band",
+      abs(_mik["bonuses"]["hp_percent"] - _want(_mik)) < 1e-9,
+      _mik["bonuses"]["hp_percent"])
+# Historia was 0.15 — Exclusive-tier HP on a Legendary card. Stated plainly:
+# this is a nerf to a card players already own, and the alternative was a
+# curve with a hole in it.
+_his = next(c for c in _CARDS if c["name"] == "Historia")
+check("Historia came down from 0.15 to her band",
+      abs(_his["bonuses"]["hp_percent"] - _want(_his)) < 1e-9,
+      _his["bonuses"]["hp_percent"])
+
+check("the band rises monotonically with rarity",
+      list(HP_BAND.values()) == sorted(HP_BAND.values()))
+check("a defence card outranks a non-defence card of the same rarity",
+      _want({"rarity": "Epic", "type": "defense"})
+      > _want({"rarity": "Epic", "type": "attack"}))
+
+# The shop renders the card's TOP-LEVEL bonus block (avatar_utils.py:284), so
+# a value that only reaches the fight is a number the buyer never sees. This
+# is the check that catches HP written into the wrong place — on all 36, not
+# just the nine that made it possible.
+from cogs.avatar.avatar_utils import format_bonuses_summary        # noqa: E402
+_noline = [c["name"] for c in _CARDS
+           if "HP" not in format_bonuses_summary(c.get("bonuses") or {})]
+check("all 36 cards show an HP line in the shop", not _noline, _noline)
+check("...and the line shows the real number",
+      all(f"{_want(c):.0%}".rstrip("%") in
+          format_bonuses_summary(c["bonuses"]).replace("+", "")
+          or f"{_want(c) * 100:g}" in format_bonuses_summary(c["bonuses"])
+          for c in _CARDS),
+      format_bonuses_summary(_CARDS[0]["bonuses"]))
+
+print(f"\n{'─' * 66}\n  the HP% ceiling\n{'─' * 66}")
+check("there is a cap", hasattr(_AB, "HP_PERCENT_CAP"))
+check("...set above the top of the curve, so it guards rather than tunes",
+      _AB.HP_PERCENT_CAP > max(HP_BAND.values()) + HP_DEF_BUMP,
+      _AB.HP_PERCENT_CAP)
+check("no shipped card is anywhere near it",
+      all(_want(c) <= _AB.HP_PERCENT_CAP for c in _CARDS))
+_over = _AB(hp_percent=12.0)          # the +1200% typo the validator allowed
+check("a wildly out-of-range value is clamped, not applied",
+      _over.apply_hp_bonus(2000) == 2000 * (1 + _AB.HP_PERCENT_CAP),
+      _over.apply_hp_bonus(2000))
+check("a negative value cannot SHRINK the pool",
+      _AB(hp_percent=-0.5).apply_hp_bonus(2000) == 2000)
+check("apply_hp_bonus still multiplies hp_flat by the percent",
+      _AB(hp_flat=100, hp_percent=0.10).apply_hp_bonus(2000)
+      == (2000 + 100) * 1.10,
+      _AB(hp_flat=100, hp_percent=0.10).apply_hp_bonus(2000))
+check("...and a card with neither changes nothing",
+      _AB().apply_hp_bonus(2000) == 2000)
+
+# hp_percent does NOT grow with card level — growth is attack/defense/stamina
+# only, and this pass does not change that.
+_esrc = open(_os.path.join(ROOT, "cogs", "avatar", "avatar_engine.py"),
+             encoding="utf-8").read()
+check("the load path clamps hp_percent too, so the shop shows what rolls",
+      "HP_PERCENT_CAP,\n                           max(0.0" in _esrc
+      or "min(AvatarBonuses.HP_PERCENT_CAP" in _esrc)
+
 print(f"\n{'=' * 66}\n  {PASS} passed, {FAIL} failed\n{'=' * 66}")
 sys.exit(1 if FAIL else 0)

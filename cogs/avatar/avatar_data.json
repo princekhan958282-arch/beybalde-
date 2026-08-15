@@ -29,7 +29,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.03
       }
     },
     {
@@ -61,7 +61,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.03
       }
     },
     {
@@ -93,7 +93,7 @@
         "resistance_damage_percent": 0.05,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.03
       }
     },
     {
@@ -125,7 +125,7 @@
         "resistance_damage_percent": 0.1,
         "resistance_status_chance": 0.2,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.06
       }
     },
     {
@@ -157,7 +157,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.08
       }
     },
     {
@@ -189,7 +189,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.1
       }
     },
     {
@@ -221,7 +221,7 @@
         "resistance_damage_percent": 0.25,
         "resistance_status_chance": 0.6,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.11
       }
     },
     {
@@ -253,7 +253,7 @@
         "resistance_damage_percent": 0.3,
         "resistance_status_chance": 0.75,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.15
       }
     },
     {
@@ -285,7 +285,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.3,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.1
       }
     },
     {
@@ -317,7 +317,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.08
       }
     },
     {
@@ -349,7 +349,7 @@
         "resistance_damage_percent": 0.05,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.03
       }
     },
     {
@@ -381,7 +381,7 @@
         "resistance_damage_percent": 0.12,
         "resistance_status_chance": 0.15,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.05
       }
     },
     {
@@ -390,7 +390,7 @@
       "rarity": "Ultimate",
       "type": "attack",
       "price": 0,
-      "description": "A phantom that cannot be hit. Maximum dodge, counter, and crit — every multi-hit strike is doubled and extended.",
+      "description": "A phantom that cannot be hit. Maximum dodge, counter, and crit — every multi-hit strike lands harder and more often.",
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520391560192200824/4e1149f60cf0c95a13af779ce24f9ee8.jpg",
       "bonuses": {
         "attack_flat": 15,
@@ -413,7 +413,7 @@
         "resistance_damage_percent": 0.1,
         "resistance_status_chance": 0.2,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.12
       }
     },
     {
@@ -445,7 +445,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.05,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.03
       }
     },
     {
@@ -477,7 +477,7 @@
         "resistance_damage_percent": 0.05,
         "resistance_status_chance": 0.1,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.05
       }
     },
     {
@@ -509,7 +509,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.69
+        "hp_percent": 0.12
       }
     },
     {
@@ -541,7 +541,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.08
       }
     },
     {
@@ -573,7 +573,7 @@
         "resistance_damage_percent": 0.05,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.03
       }
     },
     {
@@ -605,7 +605,7 @@
         "resistance_damage_percent": 0.1,
         "resistance_status_chance": 0.15,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.06
       }
     },
     {
@@ -637,7 +637,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.05,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.03
       }
     },
     {
@@ -701,7 +701,7 @@
         "resistance_damage_percent": 0.05,
         "resistance_status_chance": 0.0,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.03
       }
     },
     {
@@ -733,7 +733,7 @@
         "resistance_damage_percent": 0.08,
         "resistance_status_chance": 0.08,
         "hp_flat": 0,
-        "hp_percent": 0.0
+        "hp_percent": 0.03
       }
     },
     {
@@ -797,7 +797,7 @@
         "resistance_damage_percent": 0.2,
         "resistance_status_chance": 0.3,
         "hp_flat": 40,
-        "hp_percent": 0.15
+        "hp_percent": 0.09
       }
     },
     {
@@ -829,7 +829,7 @@
         "resistance_damage_percent": 0.05,
         "resistance_status_chance": 0.1,
         "hp_flat": 0,
-        "hp_percent": 0.08
+        "hp_percent": 0.12
       }
     },
     {
@@ -861,7 +861,7 @@
         "resistance_damage_percent": 0.3,
         "resistance_status_chance": 0.6,
         "hp_flat": 0,
-        "hp_percent": 0.05
+        "hp_percent": 0.13
       }
     },
     {
@@ -918,7 +918,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0.0,
-        "hp_percent": 0.0,
+        "hp_percent": 0.15,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
         "gauge_on_crit": 50,
@@ -982,7 +982,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0.0,
-        "hp_percent": 0.0,
+        "hp_percent": 0.15,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
         "nth_hit_interval": 3,
@@ -1049,7 +1049,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0.0,
-        "hp_percent": 0.0
+        "hp_percent": 0.13
       }
     },
     {
@@ -1108,7 +1108,7 @@
         "resistance_damage_percent": 0.12,
         "resistance_status_chance": 0.0,
         "hp_flat": 0.0,
-        "hp_percent": 0.0
+        "hp_percent": 0.15
       }
     },
     {
@@ -1166,7 +1166,7 @@
         "resistance_damage_percent": 0.08,
         "resistance_status_chance": 0.0,
         "hp_flat": 0.0,
-        "hp_percent": 0.0
+        "hp_percent": 0.13
       }
     },
     {
@@ -1225,7 +1225,7 @@
         "resistance_damage_percent": 0.15,
         "resistance_status_chance": 0.0,
         "hp_flat": 0.0,
-        "hp_percent": 0.0
+        "hp_percent": 0.15
       }
     },
     {
@@ -1285,7 +1285,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0.0,
-        "hp_percent": 0.0,
+        "hp_percent": 0.15,
         "nth_hit_interval": 3,
         "nth_hit_attack_percent": 0.18
       }
@@ -1349,7 +1349,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0.0,
-        "hp_percent": 0.0,
+        "hp_percent": 0.15,
         "defence_break_min": 0.55,
         "defence_break_max": 0.8,
         "defence_break_rounds": 3
@@ -1412,7 +1412,7 @@
         "resistance_damage_percent": 0.0,
         "resistance_status_chance": 0.0,
         "hp_flat": 0.0,
-        "hp_percent": 0.0
+        "hp_percent": 0.15
       }
     }
   ]
