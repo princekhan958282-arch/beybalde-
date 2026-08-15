@@ -74,8 +74,19 @@ STORY_CRIT_MULT = 1.6
 # multipliers instead. This is a deliberate reinterpretation: the flags keep
 # their spirit ("your Special hits harder") without pretending the resolver
 # models multiple hits.
-MULTI_HIT_DOUBLE_MULT = 2.0    # multi_hit_power_double
-MULTI_HIT_EXTRA_MULT  = 1.5    # multi_hit_extra_hits — a 3rd hit on a 2-hit kit
+#
+# Both were nerfed alongside PvP's MULTI_HIT_* — the same flags on the same
+# cards must not be worth twice as much here as they are in a real fight.
+# The damage one matches PvP exactly, because a per-hit percentage is
+# scale-free and translates one-for-one.
+#
+# The extra-hits one does NOT track the arithmetic. PvP now grants a flat +2
+# hits, which on the roster's median 3-hit Special would be +67% — turning
+# this into a BUFF in the middle of a nerf pass. 1.25 is chosen instead, and
+# chosen rather than derived: Story has no hit structure for a flat bonus to
+# spread across, so the honest translation is "a bit more", not a ratio.
+MULTI_HIT_DOUBLE_MULT = 1.10   # multi_hit_power_double  (was 2.0)
+MULTI_HIT_EXTRA_MULT  = 1.25   # multi_hit_extra_hits    (was 1.5)
 
 
 class _Shim:
@@ -257,7 +268,7 @@ class AvatarLayer:
             logs.append("  ➕ **Avatar** — an extra hit rides the Special!")
         if getattr(self.av, "multi_hit_power_double", False):
             out.dmg_out *= MULTI_HIT_DOUBLE_MULT
-            logs.append("  ✳️ **Avatar** — every hit doubled!")
+            logs.append("  ✳️ **Avatar** — the Special bites harder!")
         return logs
 
 

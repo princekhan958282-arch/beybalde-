@@ -390,7 +390,7 @@
       "rarity": "Ultimate",
       "type": "attack",
       "price": 0,
-      "description": "A phantom that cannot be hit. Maximum dodge, counter, and crit — every multi-hit strike is doubled and extended.",
+      "description": "A phantom that cannot be hit. Maximum dodge, counter, and crit — every multi-hit strike lands harder and more often.",
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520391560192200824/4e1149f60cf0c95a13af779ce24f9ee8.jpg",
       "bonuses": {
         "attack_flat": 15,

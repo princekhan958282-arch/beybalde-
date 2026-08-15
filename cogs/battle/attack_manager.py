@@ -649,10 +649,25 @@ class AttackManager:
             hit_table = resolve_special_hits(mblade, _spc)
         except Exception:                                # noqa: BLE001
             hit_table = [per_hit] * max(1, hits)
+        _authored = len(hit_table)
         # Extra hits granted by an ability are appended at the base value; the
         # authored table only describes the authored hits.
         while len(hit_table) < hits:
             hit_table.append(per_hit)
+
+        # The avatar's per-hit multiplier, applied to the AUTHORED hits.
+        #
+        # `multi_hit_shape` above already folded it into `per_hit`, but this
+        # table is rebuilt from the blade's authored damages and `per_hit` now
+        # only reaches the filler entries appended just above. So the bonus was
+        # landing on the extra hits and none of the real ones: four avatars
+        # advertised a bonus on every hit, printed it in the battle log, and
+        # changed almost nothing. Slicing to `_authored` is what stops the
+        # filler — which already carries it — from being multiplied twice.
+        _mh_mult = AVC.multi_hit_mult(self.session, mkey, hits)
+        if _mh_mult != 1.0:
+            for _i in range(min(_authored, len(hit_table))):
+                hit_table[_i] = int(round(hit_table[_i] * _mh_mult))
 
         # Optional per-hit rider that reads live battle state. Authored as
         # `special_move.per_hit_bonus`, one entry per hit, null where a hit has

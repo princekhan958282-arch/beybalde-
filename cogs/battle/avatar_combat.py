@@ -16,8 +16,8 @@ Currently wired:
   ult_adds_attack_stat    attacker's ATK stat added to the Special   (Dyrroth)
   dodge_chance            incoming hit avoided entirely
   counter_chance          counter-hit after a successful dodge
-  multi_hit_power_double  each Special hit deals double
-  multi_hit_extra_hits    DOUBLES the Special hit count (2 hits -> 4)
+  multi_hit_power_double  each Special hit deals MULTI_HIT_DAMAGE_MULT
+  multi_hit_extra_hits    +MULTI_HIT_EXTRA_HITS hits, flat (2 hits -> 4)
   resistance_damage_pct   flat reduction on every incoming hit
   resistance_status_chance    chance to shrug off silence / burn
 """
@@ -211,12 +211,37 @@ def multi_hit_shape(session, key: str, hits: int,
     if av.multi_hit_extra_hits:
         before = hits
         hits = av.extra_hits(hits)
-        logs.append(f"  ➕ **Avatar** — hit count DOUBLED "
+        logs.append(f"  ➕ **Avatar** — +{hits - before} bonus hit"
+                    f"{'s' if hits - before != 1 else ''} "
                     f"({before} → {hits} hits)!")
     if av.multi_hit_power_double:
         per_hit = int(round(av.apply_multi_hit_damage(per_hit)))
-        logs.append(f"  ✳️ **Avatar** — every hit doubled ({per_hit} each)!")
+        pct = int(round((av.apply_multi_hit_damage(1.0) - 1.0) * 100))
+        logs.append(f"  ✳️ **Avatar** — every hit +{pct}% ({per_hit} each)!")
     return hits, per_hit, logs
+
+
+def multi_hit_mult(session, key: str, hits: int) -> float:
+    """The avatar's per-hit damage multiplier for a Special, or 1.0.
+
+    `multi_hit_shape` folds this into `per_hit`, but `attack_manager` then
+    rebuilds its hit table from the blade's AUTHORED per-hit damages and only
+    falls back to `per_hit` for hits beyond that table. So the multiplier was
+    reaching the extra hits an ability or avatar appended and none of the
+    authored ones — four cards (Storm Reaper, Sukuna, Zero Two, Taki) printed
+    a per-hit bonus in the battle log and changed almost nothing.
+
+    Exposing it separately lets the caller apply it to the authored table too.
+    Same gate as `multi_hit_shape`, so the two cannot disagree about when the
+    bonus is live.
+    """
+    av = _av(session, key)
+    if av is None or hits <= 1 or not av.multi_hit_power_double:
+        return 1.0
+    # Derived from the bonus object rather than read off the constant, so
+    # there is exactly one definition of what "power double" is worth and the
+    # two paths cannot drift apart.
+    return av.apply_multi_hit_damage(1.0)
 
 
 # ── Immortality ──────────────────────────────────────────────────────────────
