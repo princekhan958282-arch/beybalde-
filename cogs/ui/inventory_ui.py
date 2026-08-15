@@ -47,6 +47,7 @@ from utils.database import (
     get_avatar_inventory, get_equipped_avatar, set_equipped_avatar,
 )
 from utils.embeds import RARITY_EMOJIS, rarity_colour
+from utils.mobile_ui import trunc as _trunc
 from utils.hp_system import blade_hp_stat, max_hp_for_blade
 from utils import info_card
 from cogs.economy.shop import PARTS_CATALOG
@@ -66,6 +67,16 @@ MAX_SELECT_OPTIONS = 25
 
 # Filterable tabs are the ones whose items carry a rarity. Parts do not.
 RARITY_TABS = ("bey", "copy", "avatar", "all")
+
+# The "no filter" option's value. It CANNOT be the empty string: Discord
+# requires a select option's value to be 1–100 characters and rejects the whole
+# message with a 400 at send time, so `;inv` did not degrade — it stopped
+# opening at all for anyone holding two or more rarities.
+#
+# `__all__` is this codebase's existing sentinel for exactly this, in
+# `profile.RaritySelect` (the `;list` rarity filter) and in
+# `achievements.py`. Same spelling here so there is one idiom, not three.
+ALL_RARITIES = "__all__"
 
 TYPE_EMOJI = {"attack": "⚔️", "defense": "🛡️", "stamina": "🌀", "balance": "⚖️"}
 CATEGORIES = [("bey", "🌀 Beys"), ("copy", "🧬 Boss Copies"),
@@ -434,7 +445,11 @@ class InventoryView(discord.ui.View):
         if items:
             opts = [
                 discord.SelectOption(
-                    label=f"{self.page * per + i + 1}. {it['name'][:80]}",
+                    # `trunc` strips before it cuts, so a name that is only
+                    # whitespace cannot produce a zero-length label — the same
+                    # 400 as the empty value, one field over.
+                    label=f"{self.page * per + i + 1}. "
+                          f"{_trunc(str(it['name']), 80) or '?'}",
                     value=str(i),
                     emoji="✅" if it.get("equipped") else None)
                 for i, it in enumerate(items[:MAX_SELECT_OPTIONS])
@@ -469,12 +484,16 @@ class InventoryView(discord.ui.View):
         if len(rarities) > 1:
             total = len(self._all_items())
             opts = [discord.SelectOption(
-                label=f"All rarities ({total:,})", value="",
+                label=f"All rarities ({total:,})", value=ALL_RARITIES,
                 emoji="🎒", default=self.rarity is None)]
             for r, n in rarities[:MAX_SELECT_OPTIONS - 1]:
                 opts.append(discord.SelectOption(
+                    # `or None` because an empty-string emoji is a 400 too, the
+                    # same way an empty value is. profile.RaritySelect guards
+                    # it the same way.
                     label=f"{r} ({n:,})", value=r,
-                    emoji=RARITY_EMOJIS.get(r), default=self.rarity == r))
+                    emoji=RARITY_EMOJIS.get(r) or None,
+                    default=self.rarity == r))
             sel = discord.ui.Select(placeholder="Filter by rarity…",
                                     options=opts, row=3)
             sel.callback = self._rarity_cb
@@ -594,7 +613,12 @@ class InventoryView(discord.ui.View):
         await self._refresh(interaction)
 
     async def _rarity_cb(self, interaction: discord.Interaction):
-        val = (interaction.data.get("values") or [""])[0]
+        val = (interaction.data.get("values") or [ALL_RARITIES])[0]
+        # `""` stays in the check deliberately: a panel opened before the
+        # restart still has the old empty-valued option on screen, and a press
+        # on it should clear the filter rather than filter by nothing.
+        if val in ("", ALL_RARITIES):
+            val = None
         # Changing the filter always returns to page 1 — staying on page 40 of
         # a two-page result is the dead panel `_clamp_page` exists to prevent,
         # and landing mid-list is disorienting even when it is legal.
