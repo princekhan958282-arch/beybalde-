@@ -377,5 +377,68 @@ if spawnable is not None:
     check("the Black Edition is not spawnable",
           BLACK not in {b.get("name") for b in spawnable})
 
+print("\n── 10. Ultimate Valkyrie is a HIDDEN spawn, 1 in 10,000,000 ─────")
+UV = BASE
+uv = DB[UV]
+check("it carries a hidden spawn chance", uv.get("hidden_drop_one_in"))
+check("...of exactly 10,000,000", uv["hidden_drop_one_in"] == 10_000_000,
+      uv.get("hidden_drop_one_in"))
+check("...and it is NOT booster-exclusive, so the two systems stay separate",
+      not uv.get("booster_exclusive"))
+
+# The exclusion is the half that is easy to forget. Without it the key is
+# inert: Ultimate Valkyrie keeps its ordinary 1-in-400 through the Ultimate
+# tier and the hidden roll is decoration on odds 25,000x better.
+check("the weighted pool excludes hidden blades",
+      SPAWN._hidden_spawn_n(uv) > 0
+      and "_hidden_spawn_n(data)" in ssrc)
+
+import random as _rnd                                              # noqa: E402
+_seen = set()
+for _ in range(200_000):
+    got = SPAWN._pick_random_beyblade(DB)
+    if got:
+        _seen.add(got.get("name"))
+check(f"200,000 weighted spawns produce no Ultimate Valkyrie "
+      f"({len(_seen)} distinct blades seen)", UV not in _seen)
+check("...and the pool is still healthy — this is not an empty-pool pass",
+      len(_seen) > 50, len(_seen))
+check("the Black Edition stays out too", BLACK not in _seen)
+
+# The other half: a forced roll DOES produce one.
+_real_range = _rnd.randrange
+try:
+    _rnd.randrange = lambda n: 0                    # every hidden test hits
+    hit = SPAWN._roll_hidden_spawn(DB)
+    check("a forced hidden roll produces Ultimate Valkyrie",
+          hit is not None and hit.get("name") == UV,
+          hit and hit.get("name"))
+    _rnd.randrange = lambda n: 1                    # every hidden test misses
+    check("a missed hidden roll produces nothing at all",
+          SPAWN._roll_hidden_spawn(DB) is None)
+finally:
+    _rnd.randrange = _real_range
+
+# 10,000,000 spawns is not simulable, so the ODDS are asserted structurally:
+# each candidate gets its own independent randrange(N) against its own N.
+_calls = []
+try:
+    _rnd.randrange = lambda n: _calls.append(n) or 1
+    SPAWN._roll_hidden_spawn(DB)
+finally:
+    _rnd.randrange = _real_range
+check("the roll uses each blade's own N, once each",
+      10_000_000 in _calls and len(_calls) == len(set(_calls)), _calls)
+check("...and the hidden roll runs BEFORE the weighted pick in the spawner",
+      ssrc.index("_roll_hidden_spawn(beyblades)")
+      < ssrc.index("chosen = _pick_random_beyblade(beyblades)"))
+
+for token in ("10000000", "10,000,000"):
+    leaked = [ln.strip() for ln in ssrc.splitlines()
+              if token in ln and ("await" in ln or "add_field" in ln
+                                  or "description=" in ln or "title=" in ln
+                                  or "set_footer" in ln)]
+    check(f"no user-facing spawn string mentions {token!r}", not leaked, leaked)
+
 print(f"\n{PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)

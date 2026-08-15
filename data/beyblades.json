@@ -7189,7 +7189,8 @@
           }
         ]
       }
-    ]
+    ],
+    "hidden_drop_one_in": 10000000
   },
   "Ultimate Valkyrie (Black Edition)": {
     "id": "BB089",

@@ -75,8 +75,13 @@ for av in SIGNATURE:
           [s["name"] for s in av["skills"] if not s.get("bonuses")])
 
 print("\n── 3. the split is lossless ─────────────────────────────────────")
+# Card-level bonuses sit OUTSIDE the split on purpose: they belong to the
+# avatar rather than to whichever skill is equipped, and `bonuses_for` carries
+# them through instead of zeroing them. Excluded from `live` so the partition
+# rules below keep binding, unweakened, on every key that IS split.
 for av in SIGNATURE:
-    live = {k for k, v in av["bonuses"].items() if v}
+    live = {k for k, v in av["bonuses"].items()
+            if v and k not in AS.CARD_LEVEL_BONUS_KEYS}
     claimed: dict[str, int] = {}
     for sk in av["skills"]:
         for k in sk["bonuses"]:
@@ -94,6 +99,36 @@ for av in SIGNATURE:
                if av["bonuses"].get(k) != v}
         check(f"{av['name']} / {sk['name']}: values match the card",
               not bad, bad)
+
+# ...and the exemption must not become a hiding place. Every card-level key is
+# still required to be live on the card and to reach the fight at every slot.
+for av in SIGNATURE:
+    for key in sorted(AS.CARD_LEVEL_BONUS_KEYS):
+        in_skill = [sk["name"] for sk in av["skills"] if key in sk["bonuses"]]
+        check(f"{av['name']}: {key} is not duplicated into the skills",
+              not in_skill, in_skill)
+    got = [AS.bonuses_for(av, slot).get("hp_percent") for slot in (1, 2, 3)]
+    want = av["bonuses"]["hp_percent"]
+    check(f"{av['name']}: HP% survives every slot ({want:.0%})",
+          got == [want, want, want], got)
+    check(f"{av['name']}: ...and is non-zero, so the exemption is doing work",
+          want > 0, want)
+    # The shop renders the card's TOP-LEVEL block. If HP% lived only in the
+    # skills it would be granted invisibly — this is the check that catches it.
+    from cogs.avatar.avatar_utils import format_bonuses_summary       # noqa: E402
+    check(f"{av['name']}: the shop shows an HP line",
+          "HP" in format_bonuses_summary(av["bonuses"]),
+          format_bonuses_summary(av["bonuses"]))
+
+# Every OTHER key must still be zeroed outside its own skill, or the exemption
+# has quietly swallowed the whole mechanism.
+_argus = CARDS["Argus"]
+_b1 = AS.bonuses_for(_argus, 1)
+check("a split key is still zeroed outside its skill",
+      not _b1["crit_percent"] and not _b1["immortal_rounds"], _b1)
+check("the exemption covers HP only — nothing else leaks through",
+      AS.CARD_LEVEL_BONUS_KEYS == frozenset({"hp_percent", "hp_flat"}),
+      sorted(AS.CARD_LEVEL_BONUS_KEYS))
 
 print("\n── 4. the price ladder is monotonic ─────────────────────────────")
 # Scored by the same weights the migration used, so this test fails if someone

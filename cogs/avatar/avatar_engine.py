@@ -174,8 +174,14 @@ class AvatarBonuses:
         return (base_damage + self.special_move_flat) * (1.0 + self.special_move_percent)
 
     def apply_hp_bonus(self, base_hp: float) -> float:
-        """Return starting HP after flat + percent bonuses."""
-        return (base_hp + self.hp_flat) * (1.0 + self.hp_percent)
+        """Return starting HP after flat + percent bonuses.
+
+        The cap is re-applied here as well as at load, so a bonuses object
+        built by hand — a test, an older save, a skill block read directly —
+        cannot exceed it either. Same belt-and-braces as `roll_dodge`.
+        """
+        pct = min(self.HP_PERCENT_CAP, max(0.0, self.hp_percent))
+        return (base_hp + self.hp_flat) * (1.0 + pct)
 
     def apply_damage_resistance(self, incoming_damage: float) -> float:
         """Reduce incoming damage by resistance percent."""
@@ -217,6 +223,21 @@ class AvatarBonuses:
     # rather than editing 16 cards keeps each card's relative ranking intact
     # and makes the ceiling one number to change again later.
     DODGE_CAP = 0.05
+
+    # No avatar may add more than this fraction to a starting HP pool.
+    #
+    # `hp_percent` was a required key on every card and range-checked on none
+    # of them, and one card proved what that costs: Mikasa shipped at 0.69 —
+    # +69% HP, 4.6x the next highest and enough to make one Ultimate
+    # permanently five times better at surviving than any other. A typo of
+    # `12` meaning +1200% would have shipped just as quietly.
+    #
+    # Set above the top of the authored curve (Exclusive/MLBB at 15%) so it is
+    # a guard rail and not a balance lever. HP is worth strictly more per
+    # point than attack — it multiplies a ~2,100 pool and, unlike attack, is
+    # not contested by the opponent's defence — which is why the curve sits
+    # below the attack spread and why this ceiling is close behind it.
+    HP_PERCENT_CAP = 0.20
 
     def roll_dodge(self) -> bool:
         """Roll whether this avatar dodges an incoming attack.
@@ -456,7 +477,10 @@ class AvatarEngine:
             special_move_flat=b.get("special_move_flat", 0.0),
             special_move_percent=b.get("special_move_percent", 0.0),
             hp_flat=b.get("hp_flat", 0.0),
-            hp_percent=b.get("hp_percent", 0.0),
+            # Capped at load for the same reason dodge is: the number a card
+            # DISPLAYS in the shop must be the number that reaches the pool.
+            hp_percent=min(AvatarBonuses.HP_PERCENT_CAP,
+                           max(0.0, float(b.get("hp_percent", 0.0) or 0.0))),
             crit_percent=b.get("crit_percent", 0.0),
             # Capped at load, so the number a card DISPLAYS is the number that
             # actually rolls. Capping only inside roll_dodge would leave the
