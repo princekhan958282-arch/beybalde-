@@ -211,9 +211,35 @@ def xp_to_next_level(xp: int) -> tuple[int, int, int]:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def load_beyblades() -> dict:
-    """Return the full beyblades registry as a dict keyed by name."""
-    with open(BEYBLADES_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """Return the full beyblades registry as a dict keyed by name.
+
+    THE RETURNED DICT IS SHARED — do not mutate it. Copy what you need, or use
+    `get_beyblade`, which hands back a private copy of one record.
+
+    This was a raw `open` + `json.load` on every call, bypassing the parse
+    cache defined three functions above it. 274 KB re-parsed at 21 call sites —
+    including inside `;buybey` purely to read one blade's rarity, which
+    `get_beyblade` answers for a fiftieth of the cost. At ~2 ms a call that is
+    invisible at one bey and very much not at two thousand.
+    """
+    return _read_json_cached(BEYBLADES_PATH)
+
+
+def beyblade_ref(name: str) -> Optional[dict]:
+    """The SHARED blade record — no copy. Read-only callers only.
+
+    `get_beyblade` deepcopies, which costs ~0.05 ms a record: fine once, ~100 ms
+    when a 2,000-item inventory panel builds its cache, synchronously, on the
+    event loop. Use this where the record is only read and never stored.
+    """
+    blades = _read_json_cached(BEYBLADES_PATH)
+    data = blades.get(name)
+    if data is None:
+        lowered = str(name).lower()
+        for key, val in blades.items():
+            if key.lower() == lowered:
+                return val
+    return data
 
 
 def get_beyblade(name: str) -> Optional[dict]:

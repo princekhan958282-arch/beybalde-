@@ -24,7 +24,7 @@ import discord
 from discord.ext import commands
 
 from utils.database import (
-    get_user, update_user, get_beyblade,
+    get_user, update_user, beyblade_ref,
     get_avatar_inventory, get_equipped_avatar, set_equipped_avatar,
 )
 from utils.embeds import RARITY_EMOJIS, rarity_colour
@@ -96,9 +96,15 @@ class InventoryView(discord.ui.View):
                   else str(prof.get("active_beyblade") or "").lower())
 
         beys = []
+        # `beyblade_ref` hands back the SHARED cached record instead of a
+        # deepcopy. `get_beyblade` copies ~0.05 ms a record, which is nothing
+        # once and ~100 ms for a two-thousand-item inventory — synchronously,
+        # on the event loop, every time this panel opens. Nothing below writes
+        # to `blade`; it is read for display and handed to the info card,
+        # which also only reads.
         for nm in prof.get("inventory", []):
             name  = nm.get("name") if isinstance(nm, dict) else nm
-            blade = get_beyblade(str(name)) or {}
+            blade = beyblade_ref(str(name)) or {}
             beys.append({
                 "kind": "bey", "name": str(name),
                 "rarity": blade.get("rarity", "?"),

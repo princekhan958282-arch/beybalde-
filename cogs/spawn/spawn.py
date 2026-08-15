@@ -997,19 +997,22 @@ class SpawnCog(commands.Cog):
         user_profile = get_user(ctx.author.id)
         inventory    = user_profile.get("inventory", [])
 
-        for display_name, rarity, extras, sell_value, earned in to_sell:
-            key     = display_name.lower().strip()
-            removed = 0
-            new_inv = []
-            for bey in inventory:
-                # Keep up to 1 copy; remove the rest
-                if bey.lower().strip() == key and removed < extras:
-                    removed += 1   # skip (sell) this copy
-                else:
-                    new_inv.append(bey)
-            inventory = new_inv
+        # ONE pass, not one per duplicate group. This rebuilt the whole
+        # inventory list once per unique blade — with 91 possible names and a
+        # large collection that is tens of thousands of comparisons and 91
+        # list allocations, synchronously, on the event loop. A budget of how
+        # many of each name to drop turns it into a single sweep.
+        budget = {display_name.lower().strip(): extras
+                  for display_name, _r, extras, _sv, _e in to_sell}
+        kept = []
+        for bey in inventory:
+            key = str(bey).lower().strip()
+            if budget.get(key, 0) > 0:
+                budget[key] -= 1        # sell this copy
+                continue
+            kept.append(bey)
 
-        user_profile["inventory"] = inventory
+        user_profile["inventory"] = kept
         user_profile["coins"]     = user_profile.get("coins", 0) + total_coins
         update_user(ctx.author.id, user_profile)
 
