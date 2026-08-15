@@ -49,6 +49,9 @@ ROSTER = list(DB.load_beyblades())
 # Discord's documented ceilings — the numbers this file exists to stay under.
 MAX_ROWS, MAX_BTN_PER_ROW = 5, 5
 MAX_OPTS, MAX_DESC, MAX_TITLE = 25, 4096, 256
+# Per-option label/value/description, and the select's placeholder. A select
+# option's value has a MINIMUM of 1 — an empty string is a 400, not a default.
+MAX_FIELD, MAX_PLACEHOLDER = 100, 150
 
 
 class FakeMember:
@@ -134,6 +137,30 @@ def audit(v, label):
             vals = [o.value for o in s.options]
             check(f"{label}: row {idx} option values are unique",
                   len(set(vals)) == len(vals), vals)
+            check(f"{label}: row {idx} placeholder ≤{MAX_PLACEHOLDER}",
+                  len(s.placeholder or "") <= MAX_PLACEHOLDER, s.placeholder)
+            # At most one option may be pre-selected in a single-choice select.
+            ndef = sum(1 for o in s.options if o.default)
+            check(f"{label}: row {idx} has at most one default", ndef <= 1, ndef)
+            # Per-OPTION field lengths. This block is the one that was missing,
+            # and its absence is why `;inv` shipped broken: the "All rarities"
+            # option carried `value=""`, Discord rejects the whole message with
+            # a 400 at SEND time, and the panel simply never opened for anyone
+            # holding two or more rarities — 75% of the players who own beys.
+            #
+            # Counting options and checking they are unique is not the same as
+            # checking each one is legal. Assert the documented contract, not
+            # the parts of it that came to mind.
+            for i, o in enumerate(s.options):
+                check(f"{label}: row {idx} opt {i} value is 1–{MAX_FIELD}",
+                      1 <= len(str(o.value)) <= MAX_FIELD,
+                      f"len={len(str(o.value))} {o.value!r}")
+                check(f"{label}: row {idx} opt {i} label is 1–{MAX_FIELD}",
+                      1 <= len(str(o.label)) <= MAX_FIELD,
+                      f"len={len(str(o.label))} {o.label!r}")
+                check(f"{label}: row {idx} opt {i} description ≤{MAX_FIELD}",
+                      len(str(o.description or "")) <= MAX_FIELD,
+                      f"len={len(str(o.description or ''))}")
     e = v.build_embed()
     check(f"{label}: description under {MAX_DESC}",
           len(e.description or "") <= MAX_DESC, len(e.description or ""))
@@ -198,7 +225,8 @@ check("a rarity filter appears on the bey tab",
 check("...offering at most 25 options", len(filt.options) <= MAX_OPTS,
       len(filt.options))
 check("...with 'All rarities' first and selected",
-      filt.options[0].value == "" and filt.options[0].default)
+      filt.options[0].value == UI.ALL_RARITIES and filt.options[0].default,
+      filt.options[0].value)
 check("...and every option carrying a count",
       all("(" in o.label for o in filt.options[1:]))
 
@@ -262,6 +290,40 @@ class FakeInteraction:
         self.user = FakeMember(uid)
         self.response = FakeResponse()
 
+
+print("\n── 4b. the empty-value 400 (regression) ─────────────────────────")
+# `;inv` shipped in v95 with `value=""` on the "All rarities" option. Discord
+# requires 1-100 characters and rejects the whole message with a 400 at SEND
+# time, so the panel did not degrade — it never opened, for every player
+# holding two or more rarities. 50 of the 67 who own beys.
+v = view(uid=7, n_beys=2000)
+filt = next(c for c in v.children if c.row == 3)
+allopt = filt.options[0]
+check("the 'all rarities' option has a non-empty value",
+      len(str(allopt.value)) >= 1, repr(allopt.value))
+check("...and it is the sentinel this codebase already uses elsewhere",
+      allopt.value == UI.ALL_RARITIES == "__all__", allopt.value)
+check("no option anywhere in the panel has an empty value",
+      all(len(str(o.value)) >= 1
+          for c in v.children if isinstance(c, discord.ui.Select)
+          for o in c.options))
+check("every rarity option carries a real emoji or none at all",
+      all(o.emoji is None or str(o.emoji) for o in filt.options),
+      [str(o.emoji) for o in filt.options])
+
+# The sentinel must round-trip back to "no filter", or picking All would
+# filter the list down to zero blades whose rarity is literally "__all__".
+v.rarity, v.page = v._rarities()[0][0], 3
+asyncio.run(v._rarity_cb(FakeInteraction([UI.ALL_RARITIES])))
+check("picking 'all rarities' clears the filter", v.rarity is None)
+check("...and shows the whole tab again",
+      len(v._items()) == len(v._all_items()))
+# A panel opened before the restart still has the old empty-valued option on
+# screen. Pressing it must clear, not filter by nothing.
+v.rarity = v._rarities()[0][0]
+asyncio.run(v._rarity_cb(FakeInteraction([""])))
+check("a stale empty value from an open panel still clears the filter",
+      v.rarity is None)
 
 v = view(uid=7, n_beys=2000)
 v.page = 120
