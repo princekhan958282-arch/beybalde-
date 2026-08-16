@@ -19,6 +19,14 @@ which looks like a database problem and is actually a file that didn't copy.
 half-applied deploy is one line in the log instead of a mystery in a week.
 
 Bump VERSION whenever a build ships.
+
+Version format: `vMAJOR.MINOR`, minor zero-padded to two digits — v1.02, v1.03,
+… v1.99, then v2.00. This string is DISPLAY ONLY: nothing parses it, compares
+it or sorts by it, which is why the run of flat builds (v88 … v102) could be
+re-cut into this shape without touching anything else. Keep it that way — the
+moment something starts comparing versions, "v1.9" vs "v1.10" becomes a bug
+waiting to happen, and the zero-padding above is the cheap insurance against
+it.
 """
 
 from __future__ import annotations
@@ -29,7 +37,7 @@ import sys
 
 log = logging.getLogger("beyblade_bot.build")
 
-VERSION = "v102"
+VERSION = "v1.02"
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
