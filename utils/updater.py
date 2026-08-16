@@ -303,8 +303,17 @@ def head_commit(repo: str, branch: str, token: str) -> Optional[dict]:
                       "repo. Check it has Contents: Read-only and lists "
                       f"{repo} under 'Only select repositories'.")
         elif exc.code == 404:
-            detail = (f"{repo}@{branch} not found — check GITHUB_REPO and "
-                      f"GITHUB_BRANCH, or the token can't see this repo.")
+            # GitHub answers 404 rather than 403 for a private repo the token
+            # cannot see — it hides existence. So the single most common cause
+            # of this message is not a typo in the repo name at all: it is a
+            # PUBLIC-scoped token pointed at a repo that has since been made
+            # private. That case is named first because it is the one that
+            # looks least like what the status code says.
+            detail = (f"{repo}@{branch} not found. If the repo is PRIVATE, the "
+                      f"token must be a fine-grained PAT with "
+                      f"'Only select repositories' -> {repo} and Contents: "
+                      f"Read-only — a public-scoped token gets a 404 here, not "
+                      f"a 403. Otherwise check GITHUB_REPO and GITHUB_BRANCH.")
         else:
             detail = f"GitHub returned HTTP {exc.code}"
         log.error("[update] %s", detail)
