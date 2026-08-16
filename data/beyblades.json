@@ -7643,6 +7643,9 @@
     "burst_height": "Mid",
     "dual_spin": true,
     "limited": true,
+    "owner_ids": [
+      1412473875819663471
+    ],
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537309143613046825/1786593422587.png?ex=6a8286b5&is=6a813535&hm=3a2d833437ea9ff453cec66df9ce78f9336bfe53284a39181be310ec945bdbdf&",
     "description": "Two faces on one axis, and only one of them is ever forward. Turned to Sunder it cleaves guard and never loses its footing; turned to Bulwark it takes the blow and sends it back with interest. The blader chooses which face meets the stadium.",
     "stats": {
