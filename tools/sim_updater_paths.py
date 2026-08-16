@@ -129,5 +129,27 @@ check("...carrying the new 25% special bonus",
 check("this file would now ship in an update",
       not U._is_protected("data/beyblades.json"))
 
+print("\n── the version string ───────────────────────────────────────────")
+# `;version` is how you tell whether an upload actually landed — the panel can
+# extract a zip partially, leaving new cogs calling old utils. So the string
+# has to be right, and it has to keep its shape as builds are cut.
+import re                                                          # noqa: E402
+from utils.buildinfo import VERSION, selfcheck                     # noqa: E402
+
+m = re.fullmatch(r"v(\d+)\.(\d{2})", VERSION)
+check(f"VERSION is vMAJOR.MINOR with a two-digit minor ({VERSION})", bool(m),
+      VERSION)
+check("...and the minor is zero-padded, so v1.9 can never sit between v1.10 "
+      "and v1.20 if anything ever does start sorting these",
+      bool(m) and len(m.group(2)) == 2)
+check("selfcheck reports that exact string — it is the one a player sees",
+      selfcheck(verbose=False)["version"] == VERSION)
+check("nothing in the tree parses or compares the version",
+      not [ln for ln in open(os.path.join(ROOT, "utils", "buildinfo.py"),
+                             encoding="utf-8").read().splitlines()
+           if "VERSION" in ln and any(op in ln for op in ("int(", "float(",
+                                                          "<", ">", "split("))
+           and not ln.strip().startswith("#")])
+
 print(f"\n{'=' * 66}\n  {PASS} passed, {FAIL} failed\n{'=' * 66}")
 sys.exit(1 if FAIL else 0)
