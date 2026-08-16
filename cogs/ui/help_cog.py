@@ -225,7 +225,7 @@ COMMAND_DATA = {
         (";beyrace <bet>  |  Solo",              "🆕 Bet on one of 5 Beyblades to win the race"),
         (";minesmp <entry> [mines]  |  MP 2-8",  "🆕 Shared-grid Mines — last blade standing takes the pot"),
         # Solo Games
-        (";blackjack <bet>  |  Solo",            "vs dealer AI — hit / stand / double down / split"),
+        (";blackjack <bet>  |  Solo",            "vs the dealer — hit / stand / double down / split"),
         (";slots <bet>  |  Solo",                "5-reel slot machine — Beyblade jackpot at 500x"),
         (";roulette  |  Solo",                   "Bet on numbers, colors, or groups then spin"),
         (";dice <bet>  |  Solo",                 "Pick risk tier (70/50/30/10/5%) and roll vs house"),

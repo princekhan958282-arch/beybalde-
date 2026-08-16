@@ -976,7 +976,7 @@ class BossView(discord.ui.View):
                 f"### ▶️ {f.active.display_name}'s turn"
         _t = btiers.get(f.tier)
         e.set_footer(text=f"Turn {f.turn} · {_t['emoji']} {_t['label']} · "
-                          f"AI: {btiers.walk_difficulty(cfg['difficulty'], f.tier)}"
+                          f"Opponent: {btiers.walk_difficulty(cfg['difficulty'], f.tier)}"
                           + ("" if gemini.available() else " · dialogue offline"))
         return e
 

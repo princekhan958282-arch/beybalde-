@@ -447,7 +447,7 @@ class CasinoHub(commands.Cog):
         e.add_field(
             name="🃏 Single Player",
             value=(
-                "`;blackjack` — vs dealer AI, hit/stand/double/split\n"
+                "`;blackjack` — vs the dealer, hit/stand/double/split\n"
                 "`;slots` — 5-reel slot machine, Beyblade jackpot\n"
                 "`;roulette` — bet on numbers, colors, groups\n"
                 "`;dice` — pick your risk multiplier\n"
