@@ -110,6 +110,10 @@ WEIGHT: dict[str, float] = {
     "dodge_chance":              900.0,
     "counter_chance":            120.0,
     "resistance_damage_percent": 420.0,
+    # Shrugging off a status is worth less per point than cutting damage:
+    # it is a CHANCE at avoiding one effect, where resistance_damage_percent
+    # is a certainty applied to every incoming hit.
+    "resistance_status_chance":  110.0,
     "gauge_on_crit":             0.35,
     "immortal_rounds":           60.0,
     "nth_hit_interval":          0.0,       # priced through its percent

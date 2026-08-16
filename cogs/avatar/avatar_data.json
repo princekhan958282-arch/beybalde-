@@ -1414,6 +1414,66 @@
         "hp_flat": 0.0,
         "hp_percent": 0.15
       }
+    },
+    {
+      "id": "avatar_u001",
+      "name": "Dr. W. D. Gaster",
+      "rarity": "Ultimate",
+      "type": "balance",
+      "price": 0,
+      "description": "The royal scientist who fell into his own creation and came apart across it. He is not in one place, he is not in one time, and he is still working.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1538467523886981200/IMG_20260803_211420.jpg?ex=6a82c909&is=6a817789&hm=29b8bddf914afe92eefac67d7dcc1ec34224aa5c6ff07c3afd1c42ad154fc079&",
+      "limited": false,
+      "available_until": null,
+      "skills": [
+        {
+          "name": "Wing Dings",
+          "description": "He speaks in a font nobody can read. Incoming damage cut 8%, and a 20% chance to shrug off any status the opponent tries to name him with.",
+          "bonuses": {
+            "resistance_damage_percent": 0.08,
+            "resistance_status_chance": 0.2
+          }
+        },
+        {
+          "name": "Scattered Across Time",
+          "description": "He is not entirely here. Attacks slip through him outright, and what misses gets answered — 35% counter off a dodge.",
+          "bonuses": {
+            "dodge_chance": 0.05,
+            "counter_chance": 0.35
+          }
+        },
+        {
+          "name": "Gaster Blaster",
+          "description": "The skull opens and the beam does the rest. Special damage +70%, and a 40% crit window to fire it through.",
+          "bonuses": {
+            "special_move_percent": 0.7,
+            "crit_percent": 0.4
+          }
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 0.0,
+        "attack_percent": 0.0,
+        "defence_flat": 0.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 0.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 0.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.7,
+        "crit_percent": 0.4,
+        "dodge_chance": 0.05,
+        "counter_chance": 0.35,
+        "resistance_damage_percent": 0.08,
+        "resistance_status_chance": 0.2,
+        "hp_flat": 0.0,
+        "hp_percent": 0.12,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false
+      }
     }
   ]
 }

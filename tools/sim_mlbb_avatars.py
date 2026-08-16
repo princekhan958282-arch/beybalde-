@@ -315,7 +315,12 @@ check("levelling costs are unchanged by the rarity move",
       and all(AL.card_stat_bonus(CARDS[n]["type"], 5) for n in MLBB_ROSTER))
 
 print("\n── 8. nothing already in the game moved ─────────────────────────")
-check("the roster grew by exactly seven", len(CARDS) == 36, len(CARDS))
+# Was `len(CARDS) == 36`. The point of this section is that the MLBB banner
+# did not disturb what was already there, and a literal total asserts the
+# opposite of that — it fails every time an unrelated card is added, which
+# has now happened twice.
+check(f"the roster is {len(CARDS)} cards and still holds the pre-MLBB ones",
+      len(CARDS) >= 36, len(CARDS))
 for old in ("Argus", "Dyrroth", "Omega Prime"):
     check(f"{old} is still present", old in CARDS)
 check("Argus still has its 3 skills", len(CARDS["Argus"]["skills"]) == 3)
