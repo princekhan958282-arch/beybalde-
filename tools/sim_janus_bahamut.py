@@ -438,6 +438,41 @@ check("no stored choice means the default form",
 check("a stored choice is honoured",
       SM.chosen({SM.K_MODE: {NAME: "Defense"}}, J) == "Defense")
 
+print("\n── 11b. bound to one blader, on every route ────────────────────")
+from utils.availability import (                                   # noqa: E402
+    obtainable, owned_by, owner_ids, is_owner_bound)
+
+OWNER = 1412473875819663471
+check("it is owner-bound", is_owner_bound(J))
+check(f"...to exactly one id ({OWNER})", owner_ids(J) == [OWNER], owner_ids(J))
+check("the owner may have it", owned_by(J, OWNER))
+check("...even when the id arrives as a string, which is how Discord "
+      "hands them over", owned_by(J, str(OWNER)))
+check("nobody else may", not owned_by(J, 956773141265391676))
+check("a junk user id is refused, not crashed on", not owned_by(J, "abc"))
+
+# `obtainable(entry)` with no player in hand is what every POOL builder asks.
+# Owner-bound content must answer False there or it lands in a shared pool.
+check("with no player in hand it is NOT obtainable — so it can never enter "
+      "a shared pool", not obtainable(J))
+check("...but it is obtainable by its owner", obtainable(J, OWNER))
+
+import cogs.spawn.spawn as SPAWN                                   # noqa: E402
+import cogs.economy.shop as SHOP                                   # noqa: E402
+seen = {SPAWN._pick_random_beyblade(BLADES)["name"] for _ in range(20000)}
+check(f"20,000 wild spawns never produce it ({len(seen)} blades seen)",
+      NAME not in seen)
+check("...and the pool is healthy, so this is not an empty-pool pass",
+      len(seen) > 50, len(seen))
+check("it is not in the booster pool",
+      NAME not in {b["name"] for b in SHOP._load_booster_pool()})
+check("...nor the hidden-drop pool",
+      NAME not in {b["name"] for b in SHOP._hidden_drop_pool()})
+check("it is the FIRST blade in the game to use owner_ids — the mechanism "
+      "existed and had never been exercised",
+      [n for n, b in BLADES.items() if b.get("owner_ids")] == [NAME],
+      [n for n, b in BLADES.items() if b.get("owner_ids")])
+
 print("\n── 12. nothing else moved ──────────────────────────────────────")
 check("the roster grew by exactly one", len(BLADES) == 92, len(BLADES))
 check("every blade still has a name and rarity",
