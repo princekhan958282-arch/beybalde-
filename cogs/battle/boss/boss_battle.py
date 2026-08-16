@@ -97,6 +97,15 @@ COOLDOWN_MIN   = 10          # per boss, per player
 # let a player retry a loss forever, which is not a daily limit at all.
 DAILY_LIMIT_H  = 2           # hours between attempts at the same boss
 
+# Bosses that charge coins to enter are not ALSO time-gated.
+#
+# Argus asks 100,000 at Standard and 1,000,000 at Nightmare, every attempt, and
+# pays back nothing in coins. The wallet is the limiter, and a much harder one
+# than the clock: a player who can afford to queue it repeatedly has already
+# paid for the privilege, and one who cannot is stopped whether or not two
+# hours have passed. Stacking a timer on top only punishes the people who paid.
+UNTIMED_BOSSES = frozenset({"argus"})
+
 # NEMESIS is gated behind a Drakos clear. It is the legend-tier boss and the
 # harder of the two by a wide margin, so meeting it first reads as the bot
 # being broken rather than as a challenge. Drakos is the tutorial for the
@@ -111,6 +120,8 @@ def _daily_key(key: str) -> str:
 def daily_remaining(profile: dict, key: str, now: Optional[float] = None
                     ) -> float:
     """Seconds until this boss can be fought again. 0 when it's available."""
+    if key in UNTIMED_BOSSES:
+        return 0.0
     now = now if now is not None else time.time()
     last = float((profile.get("boss_daily") or {}).get(key, 0) or 0)
     return max(0.0, DAILY_LIMIT_H * 3600 - (now - last))
@@ -118,6 +129,11 @@ def daily_remaining(profile: dict, key: str, now: Optional[float] = None
 
 def charge_daily(user_id: int, key: str, now: Optional[float] = None) -> None:
     """Consume today's attempt at this boss."""
+    if key in UNTIMED_BOSSES:
+        # Checked here as well as in daily_remaining. Skipping the write means
+        # an untimed boss never leaves a stale timestamp behind, so putting it
+        # back on the clock later is a one-line change with no data to clean up.
+        return
     now = now if now is not None else time.time()
     profile = get_user(user_id)
     daily = dict(profile.get("boss_daily") or {})
@@ -738,6 +754,17 @@ class BossFight:
             self.foe.eff_defense, self.foe.hp / self.foe.max_hp,
             ai.DMG_SCALE,
         )
+        # Every boss module is supposed to return (damage, effects_dict), and
+        # Argus returned (damage, list_of_strings) instead — so `effects.get`
+        # below raised AttributeError on every Argus Special and froze the
+        # fight. Argus is fixed at the source; this normalisation is here so the
+        # NEXT boss written against the wrong shape loses its side effects for
+        # one turn instead of taking the whole battle down with it. A contract
+        # this easy to get wrong deserves one line of tolerance at the reader.
+        if not isinstance(effects, dict):
+            log.warning("[boss] %s.special_damage returned %s, expected dict",
+                        getattr(mod, "__name__", mod), type(effects).__name__)
+            effects = {}
         # A block still helps, unless the move is flagged true damage.
         if player_move == ai.MOVE_DEFENSE and not spec.get("true_damage"):
             dmg *= 0.55
@@ -750,6 +777,14 @@ class BossFight:
             # damage line bypasses _raw_damage, so it needs dmg_mult explicitly
             # or the player's counter during a boss Special ignores their type.
             raw  = self.foe.eff_attack * ai.DMG_SCALE * mult * self.foe.dmg_mult
+            if player_move == ai.MOVE_SPECIAL:
+                # The 20% Special cut applies here too. This branch hand-rolls
+                # its damage instead of going through ai._raw_damage, so it was
+                # the one path where a player Special still hit a boss at full
+                # strength — and it is reachable on any turn the boss fires a
+                # Special, which is exactly when a player is most likely to
+                # answer with theirs. A rule with a hole that size is not a rule.
+                raw *= ai.PLAYER_SPECIAL_VS_BOSS
             back = max(1.0, raw * max(0.4, 1 - self.boss.eff_defense / 400.0))
             if hasattr(st, "absorb"):
                 back, _shattered = st.absorb(back)
@@ -768,6 +803,13 @@ class BossFight:
         self.boss.gauge = 0.0
         if back > 0:
             st.bank_debt(back)
+            # ...and break_stars, which ai.resolve() calls alongside bank_debt
+            # and this path did not. Countering through a boss Special was the
+            # one way to hit a boss without ever shaking its Stars or Eyes
+            # loose, which made firing a Special the safest moment in the fight
+            # for exactly the bosses those mechanics are meant to punish.
+            if hasattr(st, "break_stars"):
+                st.break_stars(back, self.boss.max_hp)
             self.foe.gauge = min(ai.SPECIAL_GAUGE_MAX,
                                  self.foe.gauge + ai.GAUGE_PER_DMG_TAKEN)
         if spec["ultimate"]:
@@ -913,6 +955,47 @@ class BossView(discord.ui.View):
                 if f.finished:
                     await self.cog.finish(f, interaction.channel)
                     self.stop()
+            except Exception:                            # noqa: BLE001
+                # The turn is applied to `f` on the very first line of this
+                # block, so by the time anything below can fail the fight has
+                # already moved. Letting the exception escape into discord.py's
+                # default handler logged it and did nothing else: the message
+                # kept showing the previous turn, the buttons kept pointing at
+                # a state that no longer existed, and the fight sat there until
+                # the view timed out six minutes later. That is the "bot
+                # suddenly stops responding mid-boss-battle" report.
+                #
+                # Catch it, redraw from whatever the fight actually is now, and
+                # say so. A broken renderer or a failed reward write costs the
+                # player a message, not the battle.
+                log.exception("[boss] turn failed for %s", interaction.user.id)
+                try:
+                    # Redraw through self.message rather than the interaction:
+                    # if the failure happened before the defer, the interaction
+                    # token has nothing to edit, and self.message is the fight
+                    # either way.
+                    await self.push(None)
+                except Exception:                        # noqa: BLE001
+                    pass
+                note = ("⚠️ Something went wrong drawing that turn — the fight "
+                        "is still live, take your next move.")
+                try:
+                    # f.step() runs BEFORE the defer, so a failure there leaves
+                    # the interaction unanswered and followup would 404.
+                    if interaction.response.is_done():
+                        await interaction.followup.send(note, ephemeral=True)
+                    else:
+                        await interaction.response.send_message(
+                            note, ephemeral=True)
+                except Exception:                        # noqa: BLE001
+                    pass
+                # A fight that finished but failed to pay out must still release
+                # the player, or `;boss` answers "you're already in a fight"
+                # forever.
+                if f.finished:
+                    for m in f.party:
+                        self.cog._active.discard(m.id)
+                    self.stop()
             finally:
                 self.busy = False
         return cb
@@ -921,7 +1004,19 @@ class BossView(discord.ui.View):
         """Redraw the fight — PNG card when it renders, embed when it doesn't."""
         buf = None
         if USE_CARD:
-            buf = await bcard.render(self.fight.card_state())
+            # A failed render must never end the fight. This ran unguarded, and
+            # `push` is awaited from inside the move callback — so one Chromium
+            # failure (out of disk, out of memory, browser died) threw straight
+            # out of the callback. The turn had already been applied to the
+            # fight by then, so the state moved on and the message never did:
+            # the buttons stayed on the previous turn and the bot looked like it
+            # had stopped responding mid-battle. The card is decoration; the
+            # embed below is the fight.
+            try:
+                buf = await bcard.render(self.fight.card_state())
+            except Exception:                            # noqa: BLE001
+                log.debug("[boss] battle card failed", exc_info=True)
+                buf = None
 
         if buf is not None:
             fname = getattr(buf, "name", "boss.png")
@@ -1274,7 +1369,12 @@ class BossLobbyView(discord.ui.View):
         view  = BossView(self.cog, fight)
         fight.line = gemini.canned("intro", fight.cfg["name"])
 
-        buf = await bcard.render(fight.card_state()) if USE_CARD else None
+        buf = None
+        if USE_CARD:
+            try:
+                buf = await bcard.render(fight.card_state())
+            except Exception:                            # noqa: BLE001
+                log.debug("[boss] opening card failed", exc_info=True)
         if buf is not None:
             fname = getattr(buf, "name", "boss.png")
             e = discord.Embed(color=fight.cfg["colour"])
@@ -1642,10 +1742,12 @@ class BossCog(commands.Cog, name="Boss"):
             return False, (f"🌙 You've faced that boss recently.\n"
                            f"Next attempt in **{_fmt_wait(left)}**.")
 
-        last = self._cooldowns.get((user_id, key), 0)
-        left = COOLDOWN_MIN * 60 - (time.time() - last)
-        if left > 0:
-            return False, f"⏳ You've just beaten that one. Try again in {int(left // 60) + 1}m."
+        if key not in UNTIMED_BOSSES:
+            last = self._cooldowns.get((user_id, key), 0)
+            left = COOLDOWN_MIN * 60 - (time.time() - last)
+            if left > 0:
+                return False, (f"⏳ You've just beaten that one. "
+                               f"Try again in {int(left // 60) + 1}m.")
         return True, ""
 
     # ── Commands ─────────────────────────────────────────────────────────────
@@ -1685,6 +1787,8 @@ class BossCog(commands.Cog, name="Boss"):
             need = BOSS_REQUIRES.get(k)
             if need and need not in cleared:
                 return f"🔒 Beat {BOSSES[need]['name']} first"
+            if k in UNTIMED_BOSSES:
+                return "✅ No timer — pay the fee, fight again"
             left = daily_remaining(profile, k)
             if left > 0:
                 return f"🌙 Again in {_fmt_wait(left)}"
@@ -1701,6 +1805,7 @@ class BossCog(commands.Cog, name="Boss"):
             color=0x9b59b6,
         )
         e.set_footer(text=f"One attempt per boss every {DAILY_LIMIT_H}h  "
+                          f"•  paid bosses have no timer  "
                           f"•  first clear pays double")
         e.add_field(
             name="👁️ God tier",

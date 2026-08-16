@@ -40,6 +40,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from .boss_abilities import BaseBossState
+from .boss_ai import CRIT_DAMAGE_BONUS
 
 # ── Ability 1: Hundred-Eyed Vigil ─────────────────────────────────────────────
 EYE_MAX              = 6
@@ -103,6 +104,20 @@ class ArgusState(BaseBossState):
         # including any party scaling applied above it.
         return 1.0 + self.attack_pct()
 
+    def crit_mult(self) -> float:
+        """The other half of the Vigil, which used to do nothing.
+
+        `crit_pct()` was computed and then read by absolutely nobody: the word
+        "crit" did not appear anywhere in boss_ai, so half of the advertised
+        ability was decoration. boss_ai.CRIT_DAMAGE_BONUS now gives it a price,
+        and it is folded in as expected value rather than rolled — see the note
+        there for why the search cannot tolerate a die roll.
+
+        At full sight: 1 + 0.60 x 0.55 = 1.33, on top of the +60% attack. Both
+        halves of "+60% attack and crit" now cost the player something.
+        """
+        return 1.0 + self.crit_pct() * CRIT_DAMAGE_BONUS
+
     def absorb(self, damage: float) -> tuple[float, bool]:
         """The single gate every damage path already runs through.
 
@@ -137,9 +152,27 @@ class ArgusState(BaseBossState):
             return floor
         return hp
 
-    def bank_debt(self, damage_taken: float) -> None:
-        """Called with every hit that lands. A committed blow closes eyes."""
-        return None
+    def break_stars(self, damage: float, max_hp: float) -> int:
+        """A committed blow closes eyes. Returns how many actually closed.
+
+        The name is boss_ai's, not mine — it is the one hook in the engine that
+        receives both the damage AND the victim's max HP, which is what a
+        "worth 2.8% of its health" threshold needs. `bank_debt` gets the damage
+        alone, so the eye-break was written against it, could not compute the
+        threshold, and was left as `return None`.
+
+        The consequence was that eyes NEVER closed. Argus opened one every
+        round to six and stayed there for the rest of the fight, and the
+        counterplay its own ability text promises — "a hit worth 2.8% of its
+        health closes 2 Eyes. Pressure is the only answer." — did not exist.
+        The player was told to do something the code ignored.
+
+        While the Aegis is up nothing lands, so nothing can shake an eye loose
+        either: `absorb()` has already zeroed the damage before this is called.
+        """
+        if max_hp <= 0 or damage < max_hp * EYE_BREAK_DAMAGE:
+            return 0
+        return self.close_eyes(EYES_LOST_PER_BREAK)
 
     def should_ascend(self, hp_fraction: float) -> bool:
         return (not self.overdriven) and hp_fraction <= AEGIS_HP_GATE
@@ -239,14 +272,37 @@ def pick_special(state: ArgusState, gauge_ready: bool,
 
 def special_damage(spec_key: str, boss_attack: float, state: ArgusState,
                    foe_defense: float, foe_hp_fraction: float,
-                   dmg_scale: float) -> tuple[float, list[str]]:
+                   dmg_scale: float) -> tuple[float, dict]:
     """Damage and side effects for one Argus Special.
 
-    Mirrors drakos.special_damage's shape so boss_battle needs no per-boss
-    branch: returns (damage, effect_log_lines).
+    Returns (damage, effects), where `effects` is the same DICT that
+    boss_battle._fire_special reads from every boss:
+
+        drain  → heal Argus for this much
+        strip  → wipe the player's gauge
+        freeze → lock the player's gauge for this many rounds
+        lines  → human-readable notes, ignored by the engine
+
+    It used to return a LIST of those note strings, and the docstring here
+    claimed that mirrored Drakos. It did not — drakos.special_damage and
+    boss_abilities.special_damage both return a dict, and `_fire_special`
+    reads it as one on the very next line:
+
+        heal = effects.get("drain", 0.0)
+
+    So every Argus Special raised AttributeError: 'list' object has no
+    attribute 'get'. The move callback in BossView had a `finally` and no
+    `except`, so the error escaped into discord.py's default handler, the
+    already-applied turn never reached the screen, and the fight sat frozen —
+    the "bot suddenly stops responding during a boss battle" report. It fired
+    the first time Argus's gauge filled, which is most Argus fights.
+
+    The buttons stayed clickable, which is why it read as the bot dying rather
+    than as one boss being broken.
     """
     spec = SPECIALS[spec_key]
-    effects: list[str] = []
+    lines: list[str] = []
+    effects: dict = {"lines": lines}
 
     raw = boss_attack * dmg_scale * float(spec["mult"])
 
@@ -255,12 +311,17 @@ def special_damage(spec_key: str, boss_attack: float, state: ArgusState,
     if amp and state.eyes:
         bonus = amp * state.eyes
         raw += bonus
-        effects.append(f"👁️ {state.eyes} eye(s) sharpen the strike (+{bonus:.0f}).")
+        lines.append(f"👁️ {state.eyes} eye(s) sharpen the strike (+{bonus:.0f}).")
 
     pierce = float(spec.get("pierce", 0.0))
     eff_def = foe_defense * (1.0 - pierce)
     mitig = max(0.4, 1.0 - eff_def / 400.0)
-    dmg = max(1.0, raw * mitig)
+    # Sight sharpens the Specials as well as the ordinary swings. The ability
+    # says "+60% Attack and crit" without carving out the Specials, and Specials
+    # go through this function rather than through ai.resolve's offence(), so
+    # the crit multiplier has to be applied here or half the ability stops at
+    # the boss's biggest move.
+    dmg = max(1.0, raw * mitig * state.crit_mult())
 
     if spec.get("grant_aegis"):
         # Immunity AND immortality run on the same counter, so they can never
@@ -276,11 +337,17 @@ def special_damage(spec_key: str, boss_attack: float, state: ArgusState,
         state.aegis_turns = max(state.aegis_turns, turns)
         state.aegis_used = True
         state.ultimate_used = True
-        effects.append(f"🛡️ Nothing reaches Argus for **{turns}** rounds — "
-                       f"and nothing can end it.")
+        lines.append(f"🛡️ Nothing reaches Argus for **{turns}** rounds — "
+                     f"and nothing can end it.")
 
     if spec.get("drain"):
-        effects.append(f"🔥 The sweep drags {spec['drain']:.2f} stamina away.")
+        # This was a log line and nothing else: Watchfire Sweep advertised a
+        # drain and healed Argus for zero, because the value never reached the
+        # `effects["drain"]` key that _fire_special pays out from. Now it does,
+        # scaled off the damage the sweep actually landed — the same shape
+        # Drakos and NEMESIS use for their drains.
+        effects["drain"] = dmg * float(spec["drain"])
+        lines.append(f"🔥 The sweep drags back {effects['drain']:.0f} health.")
 
     return dmg, effects
 

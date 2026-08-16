@@ -259,6 +259,21 @@ def type_damage_mult(blade_type: Optional[str]) -> float:
 # still work exactly as before.
 PLAYER_SPECIAL_VS_BOSS = 0.20
 
+# Crit damage, as a multiplier on the hit that crits.
+#
+# Ability text across the roster talks about "crit chance", and until now the
+# engine had no crit of any kind — `crit` did not appear once in this file, so
+# every point of it was decoration. Argus advertises +60% crit at full sight
+# and got nothing for it.
+#
+# It is folded in as EXPECTED VALUE, not rolled: `resolve` is the function the
+# 2-ply search evaluates, and its docstring is explicit that randomness lives in
+# move selection so the search stays honest. A rolled crit would make the AI
+# plan against a fight that doesn't happen and turn the whole battle swingy.
+# A 40% chance at +CRIT_DAMAGE_BONUS is therefore applied as a flat
+# 1 + 0.40 * CRIT_DAMAGE_BONUS on every hit — same long-run damage, no dice.
+CRIT_DAMAGE_BONUS = 0.55
+
 
 def _raw_damage(src: Fighter, special: bool = False,
                 vs_boss: bool = False) -> float:
@@ -322,6 +337,14 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
         pierce = src.state.pierce() if src.state else 0.0
         eff_def = dst.eff_defense * (1.0 - pierce)
         dmg *= max(0.4, 1 - eff_def / 400.0)
+
+        # Crit. Applied after mitigation so it is a clean multiplier on what
+        # actually lands, and read from the state so a boss without a crit
+        # ability is bit-for-bit unchanged (BaseBossState.crit_mult returns 1.0).
+        if src.state is not None:
+            crit = getattr(src.state, "crit_mult", None)
+            if crit is not None:
+                dmg *= max(1.0, float(crit()))
         return max(1.0, dmg)
 
     dmg_b = offence(a, b, move_a, move_b, "a")

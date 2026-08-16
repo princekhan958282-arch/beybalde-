@@ -79,6 +79,7 @@ class BaseBossState:
     def reflect(self) -> float:           return 0.0
     def stat_multiplier(self) -> float:   return 1.0
     def gauge_multiplier(self) -> float:  return 1.0
+    def crit_mult(self) -> float:         return 1.0
     def bank_debt(self, damage_taken: float) -> None: return None
     def flip_stance(self) -> None:        return None
     def should_ascend(self, hp_fraction: float) -> bool: return False
