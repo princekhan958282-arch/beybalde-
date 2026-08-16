@@ -7633,5 +7633,295 @@
         ]
       }
     ]
+  },
+  "Janus Bahamut": {
+    "id": "BB092",
+    "name": "Janus Bahamut",
+    "rarity": "Exclusive",
+    "type": "Attack",
+    "spin_direction": "Dual",
+    "burst_height": "Mid",
+    "dual_spin": true,
+    "limited": true,
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537309143613046825/1786593422587.png?ex=6a8286b5&is=6a813535&hm=3a2d833437ea9ff453cec66df9ce78f9336bfe53284a39181be310ec945bdbdf&",
+    "description": "Two faces on one axis, and only one of them is ever forward. Turned to Sunder it cleaves guard and never loses its footing; turned to Bulwark it takes the blow and sends it back with interest. The blader chooses which face meets the stadium.",
+    "stats": {
+      "attack": 144,
+      "defense": 111,
+      "stamina": 101,
+      "special": 118,
+      "hp": 112
+    },
+    "special_move": {
+      "name": "Gatecleaver",
+      "description": "Six descending cuts along one line, each one opening the guard a little wider for the next. The opponent is left spinning down, and the forward face stays open.",
+      "hits": 6,
+      "damage_per_hit": 30,
+      "total_damage": 180,
+      "flavour_texts": [
+        "⚔️ **Gatecleaver** — Janus opens the gate and walks in!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Sundering Edge",
+        "trigger": "on_attack_hit",
+        "description": "The forward face bites. Janus ignores half of what it is hitting, drives 15% harder on every connection, and steadies itself 5 stability each time it lands — attacks and Special hits alike.",
+        "rules": [
+          {
+            "when": "passive",
+            "do": [
+              {
+                "op": "ignore_defense_pct",
+                "value": 50,
+                "ampable": true
+              }
+            ]
+          },
+          {
+            "when": "on_attack_hit",
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 15,
+                "ampable": true
+              },
+              {
+                "op": "gain_stability",
+                "value": 5,
+                "ampable": true
+              }
+            ]
+          },
+          {
+            "when": "on_hit",
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 15,
+                "ampable": true
+              },
+              {
+                "op": "gain_stability",
+                "value": 5,
+                "ampable": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Gatecleaver",
+        "trigger": "on_special",
+        "description": "On use: drains 0.5 stamina from the opponent and doubles Sundering Edge for 5 turns — 100% pierce, +30% per hit, +10 stability.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "drain_stamina",
+                "value": 0.5
+              },
+              {
+                "op": "ability_amp",
+                "value": 2,
+                "turns": 5
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "spin_modes": {
+      "Attack": {
+        "label": "⚔️ Sunder Form",
+        "spin_direction": "Right",
+        "type": "Attack",
+        "stats": {
+          "attack": 144,
+          "defense": 111,
+          "stamina": 101,
+          "special": 118,
+          "hp": 112
+        },
+        "special_move": {
+          "name": "Gatecleaver",
+          "description": "Six descending cuts along one line, each one opening the guard a little wider for the next. The opponent is left spinning down, and the forward face stays open.",
+          "hits": 6,
+          "damage_per_hit": 30,
+          "total_damage": 180,
+          "flavour_texts": [
+            "⚔️ **Gatecleaver** — Janus opens the gate and walks in!"
+          ]
+        },
+        "abilities": [
+          {
+            "name": "Sundering Edge",
+            "trigger": "on_attack_hit",
+            "description": "The forward face bites. Janus ignores half of what it is hitting, drives 15% harder on every connection, and steadies itself 5 stability each time it lands — attacks and Special hits alike.",
+            "rules": [
+              {
+                "when": "passive",
+                "do": [
+                  {
+                    "op": "ignore_defense_pct",
+                    "value": 50,
+                    "ampable": true
+                  }
+                ]
+              },
+              {
+                "when": "on_attack_hit",
+                "do": [
+                  {
+                    "op": "bonus_damage_pct",
+                    "value": 15,
+                    "ampable": true
+                  },
+                  {
+                    "op": "gain_stability",
+                    "value": 5,
+                    "ampable": true
+                  }
+                ]
+              },
+              {
+                "when": "on_hit",
+                "do": [
+                  {
+                    "op": "bonus_damage_pct",
+                    "value": 15,
+                    "ampable": true
+                  },
+                  {
+                    "op": "gain_stability",
+                    "value": 5,
+                    "ampable": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Gatecleaver",
+            "trigger": "on_special",
+            "description": "On use: drains 0.5 stamina from the opponent and doubles Sundering Edge for 5 turns — 100% pierce, +30% per hit, +10 stability.",
+            "rules": [
+              {
+                "when": "on_special",
+                "do": [
+                  {
+                    "op": "drain_stamina",
+                    "value": 0.5
+                  },
+                  {
+                    "op": "ability_amp",
+                    "value": 2,
+                    "turns": 5
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "Defense": {
+        "label": "🛡️ Bulwark Form",
+        "spin_direction": "Left",
+        "type": "Defense",
+        "stats": {
+          "attack": 111,
+          "defense": 144,
+          "stamina": 101,
+          "special": 118,
+          "hp": 112
+        },
+        "special_move": {
+          "name": "Threshold Judgment",
+          "description": "One braced blow on the turn, and a door held shut behind it. Anything that comes through the same turn is thrown back harder than it arrived.",
+          "hits": 1,
+          "damage_per_hit": 140,
+          "total_damage": 140,
+          "flavour_texts": [
+            "🛡️ **Threshold Judgment** — Janus holds the threshold!"
+          ]
+        },
+        "abilities": [
+          {
+            "name": "Aegis Recoil",
+            "trigger": "on_defend",
+            "description": "The reverse face absorbs and answers. Counters land 50% harder, and holding the line or unleashing the Special banks +15% Defence and half a point of stamina.",
+            "rules": [
+              {
+                "when": "passive",
+                "do": [
+                  {
+                    "op": "counter_damage_pct",
+                    "value": 50,
+                    "ampable": true
+                  }
+                ]
+              },
+              {
+                "when": "on_defend",
+                "do": [
+                  {
+                    "op": "buff",
+                    "stat": "defense",
+                    "value": 15,
+                    "turns": 2,
+                    "ampable": true
+                  },
+                  {
+                    "op": "gain_stamina",
+                    "value": 0.5,
+                    "ampable": true
+                  }
+                ]
+              },
+              {
+                "when": "on_special",
+                "do": [
+                  {
+                    "op": "buff",
+                    "stat": "defense",
+                    "value": 15,
+                    "turns": 2,
+                    "ampable": true
+                  },
+                  {
+                    "op": "gain_stamina",
+                    "value": 0.5,
+                    "ampable": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Threshold Judgment",
+            "trigger": "on_special",
+            "description": "On use: opens a 150% counter stance for the turn — an opponent who attacks or Specials into it eats 150% of their own hit — and doubles Aegis Recoil for 4 turns.",
+            "rules": [
+              {
+                "when": "on_special",
+                "do": [
+                  {
+                    "op": "reflect_pct_turns",
+                    "value": 150,
+                    "turns": 1
+                  },
+                  {
+                    "op": "ability_amp",
+                    "value": 2,
+                    "turns": 4
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
   }
 }

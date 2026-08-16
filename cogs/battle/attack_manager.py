@@ -207,6 +207,24 @@ class AttackManager:
                 # but guard it anyway.
                 dmg_taken = 0
 
+        # ── Defender's counter bonus ─────────────────────────────────────────
+        # `dmg_taken` is the counter the DEFENDER lands on us, so the bonus is
+        # read off THEIR blade. After the pierce block above, so a nullified
+        # counter stays nullified rather than being nullified and then
+        # amplified back into existence.
+        if dmg_taken > 0:
+            try:
+                cpct = self.session.ability.counter_damage_pct(okey, oblade)
+            except Exception:                            # noqa: BLE001
+                cpct = 0.0
+            if cpct > 0:
+                extra = math.ceil(dmg_taken * cpct / 100)
+                if extra > 0:
+                    dmg_taken += extra
+                    logs.append(
+                        f"  ↩️ **Counter Surge** — {oblade['name']}'s counter "
+                        f"hits **{cpct:g}%** harder (+{extra})!")
+
         # NOTE: stat_mult (level bonus) is now baked into the effective stats
         # dict built by session.py before resolve_pair is called.  Do NOT apply
         # it again here — doing so would double-scale the level bonus.

@@ -146,6 +146,15 @@ class AbilityEngine:
         # key -> rounds during which this attacker's hits cannot be dodged.
         # Ticked down alongside the other durations at end of round.
         self.undodgeable_turns: dict[str, int] = {}
+        # key -> [multiplier, rounds_left] while an `ability_amp` window is
+        # open. It scales ONLY ops and passives that opt in with
+        # `"ampable": true`, so a blade's Special can amplify its own kit
+        # without silently amplifying anything else the player happens to
+        # carry. Swept by tick_dmg_amps() with the rest.
+        self.ability_amp: dict[str, list] = {}
+        # key -> [percent, rounds_left]. Opened by `reflect_pct_turns` and
+        # consumed in _fire_defensive on whatever hit actually lands.
+        self.reflect_windows: dict[str, list] = {}
         self.post_rebirth_reflect  = self.st.post_rebirth_reflect
         self.demon_mode_atk_stacks = self.st.demon_mode_atk_stacks
         self.ability_2_disabled    = self.st.ability_2_disabled
@@ -174,8 +183,18 @@ class AbilityEngine:
         return list(abs_)
 
     def _rules_for(self, blade: dict, key: str = "") -> list[tuple[int, dict]]:
-        """Compiled (rule_id, rule) list for a blade — cached per blade name."""
+        """Compiled (rule_id, rule) list for a blade — cached per blade form.
+
+        The cache key carries the active mode, not just the name. A two-form
+        blade whose modes have DIFFERENT ability lists is one blade with one
+        name, so a name-only key would let whichever form compiled first serve
+        both — and both players in a mirror match can be holding the same
+        blade in opposite forms.
+        """
         name = blade.get("name", "?")
+        mode = blade.get("active_spin_mode")
+        if mode:
+            name = f"{name}#{mode}"
         if name not in self._compiled:
             rules: list[dict] = []
             # `_ab_index` was never written by either path, so the
@@ -377,12 +396,53 @@ class AbilityEngine:
         if gained > 0:
             logs.append(f"💚 **{label}** — healed **{gained}** HP!")
 
+    def amp_mult(self, key: str) -> float:
+        """The live `ability_amp` multiplier for this player, or 1.0.
+
+        Read by `_run_ops` for opt-in ops and by the two passive readers
+        (partial pierce, counter bonus) so one window scales the whole kit
+        rather than only the parts that happen to run through an op.
+
+        **Dormant on the round it is granted.** A Special that grants an amp
+        fires its `on_special` rule on the FIRST hit, so without this the
+        remaining hits of that same Special are already amplified — the move
+        pays its own reward, and "+X for the next N turns" quietly becomes
+        "+X right now as well". The granting round is recorded and skipped.
+        """
+        entry = (getattr(self, "ability_amp", None) or {}).get(key)
+        try:
+            if not entry or entry[1] <= 0:
+                return 1.0
+            if len(entry) > 2 and entry[2] == int(
+                    getattr(self.session, "round", 0) or 0):
+                return 1.0
+            return float(entry[0])
+        except (TypeError, ValueError, IndexError):      # noqa: BLE001
+            return 1.0
+
+    def _amped(self, key: str, op: dict, val):
+        """Scale an op's value if it opted in AND a window is open.
+
+        Opt-in rather than a name whitelist: the blade that grants the amp is
+        the blade that decides what doubles, so an amp can never reach across
+        into an unrelated ability the same player is carrying.
+        """
+        if not op.get("ampable"):
+            return val
+        mult = self.amp_mult(key)
+        if mult == 1.0:
+            return val
+        try:
+            return type(val)(val * mult) if isinstance(val, int) else val * mult
+        except (TypeError, ValueError):                  # noqa: BLE001
+            return val
+
     def _run_ops(self, rule: dict, ab_name: str, key: str, okey: str,
                  move: str, dmg_dealt: int, dmg_taken: int,
                  logs: list[str]) -> tuple[int, int]:
         for op in rule.get("do") or []:
             kind = op.get("op")
-            val  = op.get("value", 0)
+            val  = self._amped(key, op, op.get("value", 0))
 
             # ── outgoing damage ──────────────────────────────────────────────
             if kind == "bonus_damage":
@@ -504,6 +564,54 @@ class AbilityEngine:
                         logs.extend(stm._apply(key, -amt) or [])
                 except Exception:
                     pass
+            elif kind == "gain_stability":
+                # The mirror of `lose_stability`. That op guards on `amt > 0`
+                # and negates, so it cannot express a heal at all — a blade
+                # that steadies itself as it lands hits had no way to say so.
+                try:
+                    stm = getattr(self.session, "stability_manager", None)
+                    amt = float(val)
+                    if stm is not None and amt > 0:
+                        logs.extend(stm._apply(key, amt) or [])
+                except Exception:                        # noqa: BLE001
+                    pass
+            elif kind == "reflect_pct_turns":
+                pct   = float(val or 0)
+                turns = int(op.get("turns", 1) or 1)
+                if pct > 0 and turns > 0:
+                    prev = self.reflect_windows.get(key)
+                    # Refresh, never stack — see ability_amp for the same call.
+                    if prev and prev[0] >= pct:
+                        prev[1] = max(int(prev[1]), turns)
+                    else:
+                        self.reflect_windows[key] = [pct, turns]
+                    logs.append(f"🪞 **{ab_name}** — counter stance up: "
+                                f"{int(pct)}% returned for {turns} turn(s)!")
+            elif kind == "ability_amp":
+                # Amplify this blade's OWN opted-in ability numbers for N
+                # turns. `turns` is required in spirit: an amp with no expiry
+                # is a permanent stat line wearing a Special's clothes.
+                mult  = float(val or 2.0)
+                turns = int(op.get("turns", 0) or 0)
+                if turns > 0 and mult > 1.0:
+                    now = int(getattr(self.session, "round", 0) or 0)
+                    # `turns + 1`, because the granting round is dormant (see
+                    # amp_mult) and is then decremented by this round's own
+                    # tick — so "5 turns" is five LIVE turns, not four.
+                    prev = self.ability_amp.get(key)
+                    # Re-firing refreshes rather than stacks. Two overlapping
+                    # windows multiplying to 4x is not what "double" means,
+                    # and it is what a player would try first.
+                    if prev and prev[0] >= mult:
+                        # Extend, but KEEP the original grant round. Stamping
+                        # `now` here would re-arm the dormancy on an already
+                        # live window, so casting the Special a second time
+                        # would switch your own amp off for that round.
+                        prev[1] = max(int(prev[1]), turns + 1)
+                    else:
+                        self.ability_amp[key] = [mult, turns + 1, now]
+                    logs.append(f"⚜️ **{ab_name}** — its kit is AMPLIFIED "
+                                f"×{mult:g} for {turns} turn(s)!")
             elif kind == "buff_all_pct":
                 # +X% to every stat, resolved against the blade's own base
                 # stats. The flat `buff` op can't express this: the legacy
@@ -1074,6 +1182,24 @@ class AbilityEngine:
         """Defender-phase rules: on_defend (any attempt) + on_take_damage."""
         dmg_dealt, dmg_taken = self._fire("on_defend", dkey, akey, dblade,
                                           move, matchup, dmg_dealt, dmg_taken, logs)
+
+        # Windowed reflect, opened by the `reflect_pct_turns` op. The plain
+        # `reflect_pct` op can only fire from a rule that is already running,
+        # which cannot express "whoever hits me over the next N turns eats a
+        # counter" — the rule would have to know in advance that it was going
+        # to be attacked. Applied here, on the real incoming hit, so the
+        # counter is a percentage of what actually landed.
+        win = (getattr(self, "reflect_windows", None) or {}).get(dkey)
+        if win and dmg_dealt > 0 and win[1] > 0:
+            try:
+                ref = math.ceil(dmg_dealt * float(win[0]) / 100)
+            except (TypeError, ValueError):              # noqa: BLE001
+                ref = 0
+            if ref > 0:
+                dmg_taken += ref
+                logs.append(f"  🪞 **Counter Stance** — {int(win[0])}% of that "
+                            f"hit comes straight back ({ref})!")
+
         if dmg_dealt > 0:
             dmg_dealt, dmg_taken = self._fire("on_take_damage", dkey, akey, dblade,
                                               move, matchup, dmg_dealt, dmg_taken, logs)
@@ -1110,6 +1236,31 @@ class AbilityEngine:
                     undodgeable[key] = left
                 else:
                     undodgeable.pop(key, None)
+        windows = getattr(self, "reflect_windows", None)
+        if windows:
+            for key, entry in list(windows.items()):
+                try:
+                    entry[1] = int(entry[1]) - 1
+                except (TypeError, ValueError, IndexError):   # noqa: BLE001
+                    windows.pop(key, None)
+                    continue
+                if entry[1] <= 0:
+                    windows.pop(key, None)
+                    logs.append("  ⏳ The counter stance drops.")
+
+        # `ability_amp` windows expire here too — one sweep, one place, so a
+        # new timed mechanism cannot be added without an expiry by accident.
+        amps = getattr(self, "ability_amp", None)
+        if amps:
+            for key, entry in list(amps.items()):
+                try:
+                    entry[1] = int(entry[1]) - 1
+                except (TypeError, ValueError, IndexError):   # noqa: BLE001
+                    amps.pop(key, None)
+                    continue
+                if entry[1] <= 0:
+                    amps.pop(key, None)
+                    logs.append("  ⏳ The amplified kit settles back down.")
         if not getattr(self, "timed_dmg_amps", None):
             return logs
         still: list[list] = []
@@ -1193,6 +1344,51 @@ class AbilityEngine:
         per  = shat.get("defense_reduction_per_stack", 5)
         cap  = shat.get("max_defense_reduction", 50)
         return min(stacks * per, cap)
+
+    # ── Passive properties read straight off the blade ────────────────────────
+    #
+    # These two are read from the ability list at the moment they matter rather
+    # than granted by a trigger, for the same reason `get_shatter_defense_
+    # reduction` is: they describe what the blade IS in this form, not
+    # something that happens to it. Routing them through a trigger would make
+    # them depend on whether the owner's ability fired before or after the
+    # damage it is supposed to modify — an ordering question with no good
+    # answer inside a single round.
+
+    def _passive_pct(self, key: str, blade: dict, want_op: str) -> float:
+        """Sum the values of every `want_op` on this blade, amp included."""
+        total = 0.0
+        for _rid, rule in self._compiled_for(blade):
+            for op in rule.get("do") or []:
+                if op.get("op") != want_op:
+                    continue
+                try:
+                    total += float(self._amped(key, op, op.get("value", 0)))
+                except (TypeError, ValueError):          # noqa: BLE001
+                    continue
+        return total
+
+    def pierce_pct(self, key: str, blade: dict) -> float:
+        """How much of the defender's DEF this blade ignores, 0–100.
+
+        Deliberately separate from `ignore_defense`, which zeroes DEF outright
+        AND nullifies the opponent's counter. Partial pierce does neither of
+        those things — it shaves the stat and leaves the counter alone, so a
+        50% pierce is half of a full pierce rather than most of one.
+        """
+        return max(0.0, min(100.0, self._passive_pct(key, blade,
+                                                     "ignore_defense_pct")))
+
+    def counter_damage_pct(self, key: str, blade: dict) -> float:
+        """Extra percent this blade adds to a counter it lands."""
+        return max(0.0, self._passive_pct(key, blade, "counter_damage_pct"))
+
+    def _compiled_for(self, blade: dict) -> list:
+        """Compiled rules for a blade, tolerating anything unexpected."""
+        try:
+            return self._rules_for(blade or {}) or []
+        except Exception:                                # noqa: BLE001
+            return []
 
     def resolve_pre_battle_choice(self, key: str, mode: str) -> list[str]:
         self.modes[key] = mode
