@@ -107,7 +107,7 @@ st.overdriven = True
 dmg, effects = AG.special_damage("aegis", P["attack"], st, 90, 0.5, AI.DMG_SCALE)
 check(f"the Special still lands ({dmg:.0f} damage)", dmg > 0)
 check("...and says how long the wall is up",
-      any("5" in e for e in effects), effects)
+      any("5" in e for e in effects["lines"]), effects)
 
 immune = []
 for rd in range(1, 10):
@@ -248,12 +248,104 @@ for label, prof, mk in (("argus", P, AG.ArgusState),
 
 check("Argus is harder than Drakos — the player survives fewer rounds",
       result["argus"][0] < result["drakos"][0], result)
-check("...and not harder than NEMESIS, which is the god-tier gate",
-      result["argus"][0] >= result["nemesis"][0] - 2, result)
+# This used to assert the opposite — that Argus stayed BELOW NEMESIS, the
+# free god-tier gate. v1.07 wired Argus's abilities into the engine (its crit
+# was read by nobody and its eyes never closed), and the ordering flipped:
+# NEMESIS ~22 rounds, Argus ~16. That is deliberate. Argus is the one boss you
+# pay 100,000 to 1,000,000 coins to face, every attempt, for no coins back —
+# if it were the easier fight, the fee would be buying a worse boss.
+check("Argus is now the hardest fight in the game — it is the one you pay for",
+      result["argus"][0] < result["nemesis"][0], result)
 check("the fight is not instant — the player lasts more than 10 rounds",
       result["argus"][0] > 10, result["argus"][0])
 check("...and Argus does take real damage, so it is not a wall",
       result["argus"][1] < 0.95, result["argus"][1])
+
+print("\n── 9a. v1.07 — the half of the Vigil that did nothing ──────────")
+# `crit_pct()` was computed and read by nobody: the string "crit" did not
+# appear once in boss_ai. Argus advertised "+60% Attack and crit" and was paid
+# for exactly half of it. Same story one method down — `bank_debt` cannot see
+# max_hp, so the eye-break written against it could never compute its own
+# threshold and shipped as `return None`. EYE_BREAK_DAMAGE and
+# EYES_LOST_PER_BREAK were dead constants and the counterplay the ability text
+# promises did not exist.
+check("the engine has a crit multiplier at all",
+      hasattr(NM.BaseBossState, "crit_mult"))
+check("...and a boss that doesn't use crit is bit-for-bit unchanged",
+      NM.BaseBossState().crit_mult() == 1.0
+      and DK.DrakosState().crit_mult() == 1.0
+      and NM.BossState().crit_mult() == 1.0)
+check("a blind Argus crits for nothing",
+      AG.ArgusState(eyes=0).crit_mult() == 1.0)
+check(f"...and a fully-sighted one for +{AI.CRIT_DAMAGE_BONUS * 0.60:.0%}",
+      abs(AG.ArgusState(eyes=AG.EYE_MAX).crit_mult()
+          - (1 + 0.60 * AI.CRIT_DAMAGE_BONUS)) < 1e-9,
+      AG.ArgusState(eyes=AG.EYE_MAX).crit_mult())
+check("the stated +60% crit is a ceiling, exactly — not 0.5999999",
+      abs(AG.ArgusState(eyes=AG.EYE_MAX).crit_pct() - 0.60) < 1e-9)
+# Through the real engine, not just the state object.
+_a = AI.Fighter(name="A", hp=3200, max_hp=3200, attack=130, defense=87,
+                stamina_stat=109, is_boss=True)
+_a.state = AG.ArgusState(eyes=0)
+_p = AI.Fighter(name="P", hp=9e9, max_hp=9e9, attack=120, defense=100,
+                stamina_stat=100)
+AI.resolve(_a, _p, AI.MOVE_ATTACK, AI.MOVE_CHARGE)
+blind_hit = 9e9 - _p.hp
+_a.state = AG.ArgusState(eyes=AG.EYE_MAX)
+_p.hp = 9e9
+AI.resolve(_a, _p, AI.MOVE_ATTACK, AI.MOVE_CHARGE)
+sighted_hit = 9e9 - _p.hp
+check(f"an open eye is felt in resolve(), not only in the state "
+      f"({blind_hit:.0f} -> {sighted_hit:.0f})",
+      sighted_hit > blind_hit * 1.9, (blind_hit, sighted_hit))
+
+check("the eye-break lives on break_stars, the hook that gets max_hp",
+      hasattr(AG.ArgusState, "break_stars"))
+_st = AG.ArgusState(eyes=AG.EYE_MAX)
+check("chip damage does not close an eye",
+      _st.break_stars(3200 * (AG.EYE_BREAK_DAMAGE / 2), 3200) == 0
+      and _st.eyes == AG.EYE_MAX)
+check(f"...but a hit worth {AG.EYE_BREAK_DAMAGE:.1%} of its health closes "
+      f"{AG.EYES_LOST_PER_BREAK}",
+      _st.break_stars(3200 * AG.EYE_BREAK_DAMAGE, 3200)
+      == AG.EYES_LOST_PER_BREAK
+      and _st.eyes == AG.EYE_MAX - AG.EYES_LOST_PER_BREAK)
+_st.eyes = 1
+check("it can never close more eyes than are open",
+      _st.break_stars(9999.0, 3200) == 1 and _st.eyes == 0)
+_st.eyes, _st.aegis_turns = AG.EYE_MAX, 3
+check("nothing shakes an eye loose through the Aegis — absorb() already "
+      "zeroed the hit before break_stars is reached",
+      _st.absorb(9999.0)[0] == 0.0)
+# And it actually fires in a real fight, rather than being a threshold nothing
+# ever crosses — the failure mode Drakos's Stars were written around.
+_breaks = 0
+for _bn in TESTERS:
+    for _sd in range(10):
+        _rnd = random.Random(_sd)
+        _bs = BLADES[_bn]["stats"]
+        _boss = AI.Fighter(name="A", hp=P["hp"], max_hp=P["hp"],
+                           attack=P["attack"], defense=P["defense"],
+                           stamina_stat=P["stamina"], is_boss=True)
+        _boss.state = AG.ArgusState()
+        _mdl = AI.OpponentModel()
+        _foe = AI.Fighter(name=_bn, hp=2108, max_hp=2108, attack=_bs["attack"],
+                          defense=_bs["defense"], stamina_stat=_bs["stamina"])
+        for _rd in range(1, 80):
+            _boss.state.tick()
+            _was = _boss.state.eyes
+            _pm = _rnd.choice([AI.MOVE_ATTACK] * 6 + [AI.MOVE_DEFENSE,
+                                                      AI.MOVE_STAMINA,
+                                                      AI.MOVE_CHARGE])
+            _bm, _ = AI.choose_move(_boss, _foe, _mdl, rng=_rnd,
+                                    difficulty="elite")
+            AI.resolve(_foe, _boss, _pm, _bm)
+            _mdl.observe(_pm)
+            _breaks += _boss.state.eyes < _was
+            if _foe.hp <= 0 or _boss.hp <= 0:
+                break
+check(f"and it fires in real fights — {_breaks} eye-breaks over "
+      f"{len(TESTERS) * 10} of them", _breaks > 0, _breaks)
 
 print("\n── 9b. the v1.04 rules ─────────────────────────────────────────")
 # Player Specials deal 20% against a boss. Some blades were ending a boss with
@@ -339,6 +431,49 @@ check("a player who can pay is charged exactly the Argus price",
       BT.charge(_p, "standard", "argus") == 100_000 and _p["coins"] == 150_000,
       _p)
 
+# ...and because the wallet is the limiter, the clock is not. A boss that costs
+# up to a million coins an attempt and pays nothing back does not also need a
+# two-hour timer: the fee stops anyone who cannot afford it, and taxes anyone
+# who can, which is a far harder gate than waiting.
+check("Argus is exempt from the daily timer", "argus" in BB.UNTIMED_BOSSES)
+check("...and the other two are not — the exemption is for PAID bosses",
+      not (BB.UNTIMED_BOSSES & {"drakos", "nemesis"}), BB.UNTIMED_BOSSES)
+_fresh = {"boss_daily": {"argus": __import__("time").time(),
+                         "drakos": __import__("time").time()}}
+check("a just-fought Argus is immediately available again",
+      BB.daily_remaining(_fresh, "argus") == 0.0)
+check("...while a just-fought Drakos still has hours to run",
+      BB.daily_remaining(_fresh, "drakos") > 3600)
+# charge_daily must also skip, or the profile accumulates a timestamp that
+# means nothing and would silently re-arm if the exemption were ever lifted.
+# Asserted by watching for the write rather than by reading the source: the
+# point is that no profile is touched at all, and only a call can show that.
+_writes = []
+_real_get, _real_upd = BB.get_user, BB.update_user
+BB.get_user = lambda uid: {"boss_daily": {}}
+BB.update_user = lambda uid, prof: _writes.append((uid, prof))
+try:
+    BB.charge_daily(1, "argus")
+    check("charging an untimed boss writes nothing", _writes == [], _writes)
+    BB.charge_daily(1, "drakos")
+    check("...while a timed one still records the attempt",
+          len(_writes) == 1 and "drakos" in _writes[0][1]["boss_daily"], _writes)
+finally:
+    BB.get_user, BB.update_user = _real_get, _real_upd
+
+print("\n── 9e. the Special counter no longer dodges the 20% rule ───────")
+# _fire_special hand-rolls the player's counter-hit instead of going through
+# ai._raw_damage, and that made it the one path where a player Special still
+# reached a boss at full strength — on precisely the turns a boss fires its
+# own Special, which is when a player is most likely to answer with theirs.
+_src = open(os.path.join(ROOT, "cogs", "battle", "boss", "boss_battle.py"),
+            encoding="utf-8").read()
+_body = _src.split("def _fire_special")[1].split("\n    def ")[0]
+check("the counter-hit applies PLAYER_SPECIAL_VS_BOSS",
+      "PLAYER_SPECIAL_VS_BOSS" in _body)
+check("...and it breaks Stars/Eyes too, the way ai.resolve() does",
+      "break_stars" in _body)
+
 print("\n── 9d. the Aegis is immunity AND immortality ───────────────────")
 st = AG.ArgusState()
 st.aegis_turns = 3
@@ -367,6 +502,154 @@ bf2.hp = 40.0
 AI.resolve(pf2, bf2, AI.MOVE_ATTACK, AI.MOVE_ATTACK)
 check("...and dies to the same exchange once the window is over",
       bf2.hp <= 0.0, bf2.hp)
+
+print("\n── 9e2. THE hang: special_damage returned the wrong shape ──────")
+# The report was "during boss battle the bot suddenly stops responding", and
+# this was it. Argus's special_damage returned (damage, list_of_note_strings)
+# where every other boss returns (damage, effects_DICT) — and _fire_special
+# reads it as a dict on the very next line, `effects.get("drain", 0.0)`.
+#
+# So every Argus Special raised AttributeError. BossView's move callback had a
+# `finally` and no `except`, so it escaped into discord.py's default handler:
+# the turn had already been applied to the fight, the message never updated,
+# and the buttons stayed live but pointing at a state that no longer existed.
+# It fired the first time Argus's gauge filled, which is most Argus fights.
+#
+# Checked across EVERY boss and EVERY Special, not just the one that broke —
+# a fourth boss written against the wrong shape would fail exactly the same way.
+for _mod, _label in ((AG, "argus"), (DK, "drakos"), (NM, "nemesis")):
+    _bad = []
+    for _k in _mod.SPECIALS:
+        _s = _mod.ArgusState() if _mod is AG else (
+            _mod.DrakosState() if _mod is DK else _mod.BossState())
+        _s.eyes = getattr(_s, "eyes", 0) and AG.EYE_MAX
+        try:
+            _d, _e = _mod.special_damage(_k, 130.0, _s, 100.0, 0.5, AI.DMG_SCALE)
+        except Exception as _exc:                                # noqa: BLE001
+            _bad.append((_k, repr(_exc)[:80]))
+            continue
+        if not isinstance(_e, dict):
+            _bad.append((_k, f"returned {type(_e).__name__}, not dict"))
+        elif not isinstance(_d, (int, float)):
+            _bad.append((_k, f"damage is {type(_d).__name__}"))
+    check(f"{_label}: every Special returns (float, dict) — the shape "
+          f"_fire_special reads", not _bad, _bad)
+
+# And through the real fight object, which is where it actually bit.
+class _Member:
+    def __init__(self, i):
+        self.id, self.display_name, self.mention = i, f"p{i}", f"<@{i}>"
+
+
+_crashes, _fired, _fights = [], 0, 0
+for _key in BB.BOSSES:
+    for _seed in range(6):
+        _rnd = random.Random(_seed)
+        _m = _Member(9000 + _seed)
+        try:
+            _f = BB.BossFight(_m, _key, party=[_m], tier="standard")
+            for _ in range(60):
+                if _f.finished:
+                    break
+                _f.boss.gauge = AI.SPECIAL_GAUGE_MAX      # force the Special
+                _mv = AI.MOVE_ATTACK if _f.foe.can(AI.MOVE_ATTACK) \
+                    else AI.MOVE_CHARGE
+                _fired += bool(_f.step(_mv).get("god_special"))
+            _fights += 1
+        except Exception as _exc:                                # noqa: BLE001
+            _crashes.append((_key, _seed, repr(_exc)[:120]))
+check(f"{_fights} full fights, {_fired} boss Specials, no exception escapes "
+      f"BossFight.step()", not _crashes, _crashes[:3])
+check("...and every boss got through it, Argus included",
+      _fights == len(BB.BOSSES) * 6, _fights)
+
+# The reader is tolerant too, so the NEXT boss with the wrong shape loses its
+# side effects for a turn rather than taking the battle down.
+_fs = open(os.path.join(ROOT, "cogs", "battle", "boss", "boss_battle.py"),
+           encoding="utf-8").read().split("def _fire_special")[1]
+check("_fire_special normalises a non-dict rather than trusting the module",
+      "isinstance(effects, dict)" in _fs)
+
+# Watchfire Sweep advertised a drain and healed for zero: the value went into a
+# log string and never into the key _fire_special pays out from.
+_d, _e = AG.special_damage("watchfire", 130.0, AG.ArgusState(eyes=3),
+                           100.0, 0.5, AI.DMG_SCALE)
+check("the sweep's drain reaches the engine, not just the log",
+      _e.get("drain", 0) > 0, _e)
+check(f"...and it is {AG.SPECIALS['watchfire']['drain']:.0%} of what it hit",
+      abs(_e["drain"] - _d * AG.SPECIALS["watchfire"]["drain"]) < 1e-6,
+      (_d, _e.get("drain")))
+
+print("\n── 9f. a dead renderer must not end the fight ──────────────────")
+# The bug report: "during boss battle bot suddenly stop responding".
+#
+# BossView.push() awaited bcard.render() unguarded, and push() is awaited from
+# inside the move callback — whose try block had a `finally` and no `except`.
+# So one Chromium failure (out of disk, out of memory, browser gone) threw
+# straight out of the callback into discord.py's default handler, which logs
+# and does nothing else. By then f.step() had already applied the turn, so the
+# fight had moved and the message had not: buttons frozen on the previous turn,
+# nothing to click that helps, and the player still held in cog._active so
+# `;boss` answered "you're already in a fight" for the next six minutes.
+#
+# Driven through the real BossView.push with a renderer that always raises.
+import asyncio                                                      # noqa: E402
+import types                                                        # noqa: E402
+
+
+class _FakeMsg:
+    def __init__(self):
+        self.edits = 0
+
+    async def edit(self, **kw):
+        self.edits += 1
+
+
+_view = BB.BossView.__new__(BB.BossView)
+_view.fight = types.SimpleNamespace(
+    card_state=lambda: {}, cfg={"colour": 0},
+)
+_view.embed = lambda: "embed"
+_view.message = _FakeMsg()
+
+_real_render = BB.bcard.render
+
+
+async def _boom(_state):
+    raise RuntimeError("no space left on device")
+
+
+BB.bcard.render = _boom
+try:
+    asyncio.run(_view.push(None))
+    check("push() survives a renderer that raises", True)
+except Exception as exc:                                            # noqa: BLE001
+    check("push() survives a renderer that raises", False, repr(exc))
+finally:
+    BB.bcard.render = _real_render
+check("...and still redraws the fight, as the plain embed",
+      _view.message.edits == 1, _view.message.edits)
+
+_cb_src = BB.__file__.replace(".pyc", ".py")
+_src_all = open(_cb_src, encoding="utf-8").read()
+_cb = _src_all.split("def _make_cb")[1].split("\n    async def ")[0]
+check("the move callback catches, rather than only un-setting `busy`",
+      "except Exception" in _cb, _cb[-200:])
+check("...and releases the party when a finished fight fails to pay out — "
+      "otherwise ;boss refuses forever",
+      "_active.discard" in _cb)
+# Every card render in the cog, not just the one that was reported. An
+# unguarded one is a fight that stops responding, and there is no reason for a
+# decorative PNG to be able to do that anywhere.
+_lines = _src_all.splitlines()
+_unguarded = [
+    (i + 1, ln.strip()) for i, ln in enumerate(_lines)
+    if "bcard.render" in ln
+    and not any(l.strip() == "try:" for l in _lines[max(0, i - 6):i])
+]
+check(f"every one of the {sum('bcard.render' in l for l in _lines)} card "
+      f"renders in the boss cog sits inside a try",
+      not _unguarded, _unguarded)
 
 print("\n── 10. nothing else moved ──────────────────────────────────────")
 check("still three bosses with kits", len(BB.BOSSES) == 3, sorted(BB.BOSSES))

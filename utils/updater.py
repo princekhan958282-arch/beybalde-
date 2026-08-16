@@ -617,6 +617,92 @@ def check_and_apply() -> None:
     log.warning("=" * 66)
 
 
+def diagnose() -> dict:
+    """Ask GitHub what it actually says, and report it verbatim.
+
+    The updater's recorded reason tells you a check failed; it cannot tell you
+    WHICH of repo, branch or token is wrong, because a wrong token and a wrong
+    repo name produce the same 404 — GitHub hides the existence of a private
+    repo rather than admitting you lack access. Diagnosing that by editing the
+    panel and restarting is a guess-and-restart loop.
+
+    So this makes the calls live, on demand, from the host that actually has
+    the token, and reports the status code of each. The two calls separate the
+    two causes: if `/repos/{repo}` succeeds and `/commits/{branch}` 404s, the
+    token is fine and the BRANCH is wrong. If both 404, it is the token or the
+    repo name.
+
+    Read-only, and never raises. The token is never returned — only its length
+    and prefix family, which is what tells a fine-grained PAT from a classic
+    one without putting the secret in a Discord message.
+    """
+    repo_raw = _cfg("GITHUB_REPO", DEFAULT_REPO) or DEFAULT_REPO
+    repo     = normalise_repo(repo_raw) or DEFAULT_REPO
+    branch   = _cfg("GITHUB_BRANCH", DEFAULT_BRANCH)
+    token    = _cfg("GITHUB_TOKEN")
+
+    out: dict = {
+        "repo_raw": repo_raw, "repo": repo, "branch": branch,
+        "token_set": bool(token), "token_len": len(token),
+        "token_family": ("fine-grained" if token.startswith("github_pat_")
+                         else "classic" if token.startswith("ghp_")
+                         else "none" if not token else "unrecognised"),
+        "checks": [], "verdict": "",
+    }
+    if not token:
+        out["verdict"] = ("No GITHUB_TOKEN is set. The updater skips entirely "
+                          "without one, even on a public repo.")
+        return out
+
+    def _probe(label: str, url: str) -> int:
+        req = urllib.request.Request(url, headers={
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "beycord-updater",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "Authorization": f"Bearer {token}",
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                code = int(r.status)
+        except urllib.error.HTTPError as exc:
+            code = int(exc.code)
+        except Exception:                            # noqa: BLE001
+            code = 0
+        out["checks"].append({"label": label, "url": url, "code": code})
+        return code
+
+    api = "https://api.github.com"
+    repo_code   = _probe("repo",   f"{api}/repos/{repo}")
+    branch_code = _probe("branch", f"{api}/repos/{repo}/commits/{branch}")
+    _probe("main", f"{api}/repos/{repo}/commits/main")
+
+    if repo_code == 200 and branch_code == 200:
+        out["verdict"] = "All green — repo, branch and token all resolve."
+    elif repo_code == 200 and branch_code != 200:
+        out["verdict"] = (f"The token can see the repo, so the TOKEN IS FINE. "
+                          f"`{branch}` is what fails ({branch_code}) — set "
+                          f"GITHUB_BRANCH to a branch that exists, normally "
+                          f"`main`.")
+    elif repo_code == 401:
+        out["verdict"] = ("Token rejected (401) — expired. Fine-grained tokens "
+                          "default to 30 days; generate a new one.")
+    elif repo_code == 403:
+        out["verdict"] = ("Token refused (403) — it reaches GitHub but not this "
+                          "repo. Give it Contents: Read-only.")
+    elif repo_code == 404:
+        out["verdict"] = (f"404 on the repo itself. On a PRIVATE repo this "
+                          f"means the token cannot see it: its Repository "
+                          f"access must be 'Only select repositories' with "
+                          f"{repo} listed — 'Public repositories' 404s here. "
+                          f"Otherwise GITHUB_REPO is wrong.")
+    elif repo_code == 0:
+        out["verdict"] = ("Could not reach api.github.com at all — network or "
+                          "DNS, not configuration.")
+    else:
+        out["verdict"] = f"GitHub answered HTTP {repo_code} on the repo."
+    return out
+
+
 def status() -> dict:
     """What the updater last did — for ;version and friends."""
     return _read_state()
