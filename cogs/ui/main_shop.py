@@ -240,7 +240,7 @@ def _avatar_embed() -> discord.Embed:
             "Cosmetic avatar packs with guaranteed rarity slots.\n"
             "**Currency:** Beycoins 💰\n"
             "**Buy:** `;buypack <tier>`\n"
-            "**Browse avatars:** `;avatarshop`\n"
+            "**Avatar packs:** `;avatarpacks`\n"
             "──────────────────────────────────────"
         ),
         color=COLOR_AVATAR,

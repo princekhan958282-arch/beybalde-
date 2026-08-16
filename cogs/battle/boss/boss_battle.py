@@ -176,6 +176,43 @@ BOSS_ATK_PER_JOIN  = 0.05    # +5% boss attack per extra player
 # did nothing there. Sized against a PvP win (100 trainer / 300-459 bey) and
 # the daily cap of two attempts per boss: a boss is worth about four battles,
 # and at Nightmare (x2.5) about ten.
+# Every boss fights at bey level 100.
+#
+# Boss statlines were authored as raw numbers while player blades grew with
+# levels, so a levelled collection eventually out-scaled every boss on stats
+# alone. Running the boss through the same growth curve the players use keeps
+# the two on one ladder instead of two.
+#
+# Applied at the three places a boss statline is read — the fight itself and the
+# two preview embeds — through `boss_stats()`, so the number a player is shown
+# before the fight is the number they then face.
+BOSS_LEVEL = 100
+
+
+def boss_stats(cfg: dict) -> tuple[float, float, float]:
+    """(attack, defense, stamina) for a boss, scaled to BOSS_LEVEL."""
+    prof = _module_for(cfg)
+    btype = "balance"
+    for attr in ("ARGUS", "DRAKOS", "NEMESIS"):
+        p = getattr(prof, attr, None)
+        if isinstance(p, dict) and p.get("type"):
+            btype = str(p["type"]).lower()
+            break
+    try:
+        from utils import bey_levels as _bl
+        out = _bl.stats_at({"type": btype,
+                            "stats": {"attack": cfg["attack"],
+                                      "defense": cfg["defense"],
+                                      "stamina": cfg["stamina"]}},
+                           BOSS_LEVEL)
+        return (float(out["attack"]), float(out["defense"]),
+                float(out["stamina"]))
+    except Exception:                                    # noqa: BLE001
+        # A boss that cannot be levelled still has to be fightable.
+        return (float(cfg["attack"]), float(cfg["defense"]),
+                float(cfg["stamina"]))
+
+
 BOSS_TRAINER_XP = 400
 BOSS_BEY_XP     = 1_400
 
@@ -319,7 +356,7 @@ def lobby_card_state(key: str, party: list = None, footer: str = "",
     tcfg = btiers.get(tier)
     hp = btiers.scale_hp(scaled_boss_hp(cfg, extra), tcfg["key"])
     atk = btiers.scale_attack(
-        cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra), tcfg["key"])
+        boss_stats(cfg)[0] * (1 + BOSS_ATK_PER_JOIN * extra), tcfg["key"])
     reward = cfg.get("reward", {})
 
     stats = [
@@ -477,11 +514,12 @@ class BossFight:
         # Party scaling first, then the tier on top — the two are independent
         # knobs and a four-player Nightmare should be both.
         hp      = btiers.scale_hp(scaled_boss_hp(cfg, extra), self.tier)
+        _batk, _bdef, _bsta = boss_stats(cfg)
         attack  = btiers.scale_attack(
-            cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra), self.tier)
+            _batk * (1 + BOSS_ATK_PER_JOIN * extra), self.tier)
 
         self.boss = ai.Fighter(cfg["name"], hp, hp,
-                               attack, cfg["defense"], cfg["stamina"],
+                               attack, _bdef, _bsta,
                                sp=BOSS_START_SP, is_boss=True,
                                # 340% + 50% of attack. Set only here, so story
                                # opponents — which are also is_boss=True — keep
@@ -1031,7 +1069,8 @@ class BossLobbyView(discord.ui.View):
             options=[
                 discord.SelectOption(
                     label=f"{t['label']}"
-                          + ("" if not t["price"] else f" — {t['price']:,} coins"),
+                          + ("" if not btiers.price_of(t["key"], self.key)
+                             else f" — {btiers.price_of(t['key'], self.key):,} coins"),
                     value=t["key"], emoji=t["emoji"],
                     description=t["blurb"][:100],
                     default=(t["key"] == self.tier),
@@ -1105,7 +1144,7 @@ class BossLobbyView(discord.ui.View):
         extra = len(self.party) - 1
         hp  = btiers.scale_hp(scaled_boss_hp(cfg, extra), self.tier)
         atk = btiers.scale_attack(
-            cfg["attack"] * (1 + BOSS_ATK_PER_JOIN * extra), self.tier)
+            boss_stats(cfg)[0] * (1 + BOSS_ATK_PER_JOIN * extra), self.tier)
         e = discord.Embed(
             title=f"{cfg['emoji']}  {cfg['name']}",
             description=(f"**{self.host.display_name}** is challenging this boss.\n"
@@ -1165,10 +1204,12 @@ class BossLobbyView(discord.ui.View):
         # Everybody pays their own entry, so refuse the join rather than let
         # someone sit in the lobby and get dropped at launch. This is a quote,
         # not the charge — the balance is re-read under the lock later.
-        if not btiers.can_afford(get_user(interaction.user.id), self.tier):
+        if not btiers.can_afford(get_user(interaction.user.id), self.tier,
+                                 self.key):
             t = btiers.get(self.tier)
+            _p = btiers.price_of(self.tier, self.key)
             return await interaction.response.send_message(
-                f"❌ **{t['label']}** costs 🪙 **{t['price']:,}** per player — "
+                f"❌ **{t['label']}** costs 🪙 **{_p:,}** per player — "
                 f"you can't cover it. Ask the host for an easier tier.",
                 ephemeral=True)
 
@@ -1203,15 +1244,15 @@ class BossLobbyView(discord.ui.View):
         # an easier fight.
         tier   = self.tier
         broke: list[discord.Member] = []
-        if btiers.price_of(tier) > 0:
+        if btiers.price_of(tier, self.key) > 0:
             try:
-                btiers.charge_for(self.host.id, tier)
+                btiers.charge_for(self.host.id, tier, self.key)
             except btiers.TierError:
                 tier = btiers.DEFAULT_TIER
             else:
                 for member in self.party[1:]:
                     try:
-                        btiers.charge_for(member.id, tier)
+                        btiers.charge_for(member.id, tier, self.key)
                     except btiers.TierError:
                         broke.append(member)
                     except Exception as e:           # noqa: BLE001

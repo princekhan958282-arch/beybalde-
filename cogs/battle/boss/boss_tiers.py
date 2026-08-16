@@ -157,8 +157,35 @@ def get(key: Optional[str]) -> dict:
     return TIERS.get(str(key or "").strip().lower(), TIERS[DEFAULT_TIER])
 
 
-def price_of(key: Optional[str]) -> int:
-    return int(get(key)["price"])
+# Per-boss entry-price overrides, tier -> coins.
+#
+# The tier table prices the DIFFICULTY. A boss can also be priced as its own
+# thing, which is what makes an entry fee a gate on the boss rather than on the
+# tier: Argus costs 100,000 to face at all, rising to 1,000,000 at Nightmare,
+# and pays no coins back at any tier. It is a sink, not a farm.
+BOSS_PRICES: dict[str, dict[str, int]] = {
+    "argus": {
+        "standard":  100_000,
+        "hardened":  175_000,
+        "savage":    300_000,
+        "merciless": 600_000,
+        "nightmare": 1_000_000,
+    },
+}
+
+
+def price_of(key: Optional[str], boss_key: Optional[str] = None) -> int:
+    """This tier's entry price, honouring any per-boss override.
+
+    `boss_key` is optional so every existing caller keeps working unchanged and
+    keeps paying the tier price.
+    """
+    tier = get(key)
+    if boss_key:
+        over = BOSS_PRICES.get(str(boss_key).strip().lower())
+        if over and tier["key"] in over:
+            return int(over[tier["key"]])
+    return int(tier["price"])
 
 
 def walk_difficulty(base: Optional[str], key: Optional[str]) -> str:
@@ -191,7 +218,8 @@ def scale_reward(amount: int, key: Optional[str]) -> int:
     return int(round(int(amount) * get(key)["reward_mult"]))
 
 
-def charge(profile: dict, key: Optional[str]) -> int:
+def charge(profile: dict, key: Optional[str],
+           boss_key: Optional[str] = None) -> int:
     """Deduct this tier's price. Mutates `profile`. Returns what was spent.
 
     Call this INSIDE `database.mutate_user`, never around it. The balance has
@@ -201,7 +229,7 @@ def charge(profile: dict, key: Optional[str]) -> int:
     cannot take the coins without granting the tier.
     """
     tier  = get(key)
-    price = int(tier["price"])
+    price = price_of(key, boss_key)
     if price <= 0:
         return 0
     coins = int(profile.get("coins", 0) or 0)
@@ -213,14 +241,17 @@ def charge(profile: dict, key: Optional[str]) -> int:
     return price
 
 
-def charge_for(player_id: int, key: Optional[str]) -> int:
+def charge_for(player_id: int, key: Optional[str],
+               boss_key: Optional[str] = None) -> int:
     """`charge` under the user lock. Raises TierError if they can't pay."""
     from utils.database import mutate_user
-    return mutate_user(int(player_id), lambda prof: charge(prof, key))
+    return mutate_user(int(player_id),
+                       lambda prof: charge(prof, key, boss_key))
 
 
-def can_afford(profile: dict, key: Optional[str]) -> bool:
-    return int(profile.get("coins", 0) or 0) >= price_of(key)
+def can_afford(profile: dict, key: Optional[str],
+               boss_key: Optional[str] = None) -> bool:
+    return int(profile.get("coins", 0) or 0) >= price_of(key, boss_key)
 
 
 def summary_line(key: Optional[str]) -> str:

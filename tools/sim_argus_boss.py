@@ -55,6 +55,7 @@ from cogs.battle.boss import boss_abilities as NM                  # noqa: E402
 from cogs.battle.boss import boss_ai as AI                         # noqa: E402
 from cogs.battle.boss import boss_info as BI                       # noqa: E402
 from cogs.battle.boss import boss_battle as BB                     # noqa: E402
+from cogs.battle.boss import boss_tiers as BT                      # noqa: E402
 
 BLADES = load_beyblades()
 P = AG.ARGUS
@@ -253,6 +254,119 @@ check("the fight is not instant — the player lasts more than 10 rounds",
       result["argus"][0] > 10, result["argus"][0])
 check("...and Argus does take real damage, so it is not a wall",
       result["argus"][1] < 0.95, result["argus"][1])
+
+print("\n── 9b. the v1.04 rules ─────────────────────────────────────────")
+# Player Specials deal 20% against a boss. Some blades were ending a boss with
+# one button; a boss that dies to one button is not a boss.
+check("the cut is 20%", AI.PLAYER_SPECIAL_VS_BOSS == 0.20,
+      AI.PLAYER_SPECIAL_VS_BOSS)
+pf = AI.Fighter(name="P", hp=2108, max_hp=2108, attack=140, defense=100,
+                stamina_stat=100)
+full = AI._raw_damage(pf, special=True, vs_boss=False)
+cut  = AI._raw_damage(pf, special=True, vs_boss=True)
+check(f"a player Special vs a boss is a fifth ({full:.0f} -> {cut:.0f})",
+      abs(cut - full * 0.20) < 1e-6, (full, cut))
+check("...and an ordinary ATTACK is untouched — the cut is aimed at the one "
+      "thing that was one-shotting",
+      AI._raw_damage(pf, special=False, vs_boss=True)
+      == AI._raw_damage(pf, special=False, vs_boss=False))
+bf = AI.Fighter(name="B", hp=3200, max_hp=3200, attack=130, defense=87,
+                stamina_stat=109, is_boss=True,
+                special_atk_pct=AI.BOSS_SPECIAL_TOTAL)
+check("...and the BOSS's own Special is untouched — it runs on "
+      "special_atk_pct, a different branch",
+      AI._raw_damage(bf, special=True, vs_boss=True)
+      == AI._raw_damage(bf, special=True, vs_boss=False))
+# The scoping bug this check exists for: Story opponents are also is_boss=True,
+# and gating on that cut their incoming Specials by 80% — measured 0% win rate
+# on the Story finale, every stage unwinnable. `special_atk_pct` is the real
+# discriminator, set by boss_battle on bosses and left unset by Story.
+story = AI.Fighter(name="S", hp=1500, max_hp=1500, attack=110, defense=90,
+                   stamina_stat=100, is_boss=True)
+check("a STORY opponent is is_boss but has no special_atk_pct",
+      story.is_boss and story.special_atk_pct is None)
+check("...so Story Specials are NOT cut — gating on is_boss made the finale "
+      "a guaranteed loss",
+      getattr(story, "special_atk_pct", None) is None)
+check("a real boss DOES carry special_atk_pct",
+      bf.special_atk_pct is not None)
+check("the source gates on special_atk_pct, not is_boss",
+      "special_atk_pct" in open(
+          os.path.join(ROOT, "cogs", "battle", "boss", "boss_ai.py"),
+          encoding="utf-8").read().split("def offence")[1][:900])
+
+check("PvP never sees this — it lives in the boss engine, not damage_rules",
+      "PLAYER_SPECIAL_VS_BOSS" not in open(
+          os.path.join(ROOT, "cogs", "battle", "damage_rules.py"),
+          encoding="utf-8").read())
+
+# Every boss fights at level 100.
+check("the boss level is 100", BB.BOSS_LEVEL == 100, BB.BOSS_LEVEL)
+for key in BB.BOSSES:
+    cfg = BB.BOSSES[key]
+    a, d, st_ = BB.boss_stats(cfg)
+    check(f"{key} scales up at level 100 "
+          f"({cfg['attack']}/{cfg['defense']}/{cfg['stamina']} -> "
+          f"{a:.0f}/{d:.0f}/{st_:.0f})",
+          a > cfg["attack"] and d > cfg["defense"] and st_ > cfg["stamina"])
+check("boss_stats degrades to the authored line rather than raising",
+      BB.boss_stats({"attack": 10, "defense": 10, "stamina": 10}) is not None)
+
+print("\n── 9c. Argus is paid for, and pays nothing back ────────────────")
+check("no coin prize at all", P["reward"]["coins"] == 0, P["reward"])
+check("...but the casino chips and the copy remain, so it is not a "
+      "zero-reward fight", P["reward"]["casino"] > 0)
+prices = [BT.price_of(t, "argus") for t in BT.TIERS]
+check(f"entry runs 100,000 -> 1,000,000 {prices}",
+      prices[0] == 100_000 and prices[-1] == 1_000_000, prices)
+check("...and it only ever rises", prices == sorted(prices), prices)
+check("every other boss keeps the tier price",
+      all(BT.price_of(t) == BT.price_of(t, "drakos") == BT.price_of(t, "nemesis")
+          for t in BT.TIERS))
+check("an unknown boss key falls back to the tier price",
+      BT.price_of("savage", "nobody") == BT.price_of("savage"))
+# The charge must refuse rather than half-apply: raising inside mutate_user
+# abandons the whole write, so a refused entry cannot take the coins.
+try:
+    BT.charge({"coins": 50_000}, "standard", "argus")
+    check("a player short of the fee is refused", False, "it went through")
+except BT.TierError as exc:
+    check("a player short of the fee is refused", True)
+    check("...and the message names the real Argus price",
+          "100,000" in str(exc), str(exc))
+_p = {"coins": 250_000}
+check("a player who can pay is charged exactly the Argus price",
+      BT.charge(_p, "standard", "argus") == 100_000 and _p["coins"] == 150_000,
+      _p)
+
+print("\n── 9d. the Aegis is immunity AND immortality ───────────────────")
+st = AG.ArgusState()
+st.aegis_turns = 3
+check("it reports immune", st.is_immune())
+check("...and immortal", st.is_immortal())
+check("absorb stops damage that ASKS", st.absorb(9999.0)[0] == 0.0)
+check("guard_hp stops damage that does NOT ask — it holds at 1, never 0",
+      st.guard_hp(-500.0) == 1.0 and st.guard_hp(0.0) == 1.0)
+check("...and never resurrects or inflates a healthy bar",
+      st.guard_hp(1500.0) == 1500.0)
+st.aegis_turns = 0
+check("once the window closes, neither holds",
+      not st.is_immortal() and st.guard_hp(-5.0) == -5.0)
+# Through the real engine: something writes hp directly, bypassing absorb.
+bf2 = AI.Fighter(name="B", hp=40.0, max_hp=3200, attack=130, defense=87,
+                 stamina_stat=109, is_boss=True)
+bf2.state = AG.ArgusState()
+bf2.state.aegis_turns = 5
+pf2 = AI.Fighter(name="P", hp=2000, max_hp=2108, attack=200, defense=100,
+                 stamina_stat=100)
+AI.resolve(pf2, bf2, AI.MOVE_ATTACK, AI.MOVE_ATTACK)
+check("an immortal Argus survives an exchange that would have killed it",
+      bf2.hp >= 1.0, bf2.hp)
+bf2.state.aegis_turns = 0
+bf2.hp = 40.0
+AI.resolve(pf2, bf2, AI.MOVE_ATTACK, AI.MOVE_ATTACK)
+check("...and dies to the same exchange once the window is over",
+      bf2.hp <= 0.0, bf2.hp)
 
 print("\n── 10. nothing else moved ──────────────────────────────────────")
 check("still three bosses with kits", len(BB.BOSSES) == 3, sorted(BB.BOSSES))

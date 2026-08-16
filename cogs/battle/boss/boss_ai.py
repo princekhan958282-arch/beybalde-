@@ -246,7 +246,22 @@ def type_damage_mult(blade_type: Optional[str]) -> float:
     return TYPE_DAMAGE_MULT.get(str(blade_type or "").strip().lower(), 1.0)
 
 
-def _raw_damage(src: Fighter, special: bool = False) -> float:
+# How much of a PLAYER's Special reaches a boss.
+#
+# The Special path is `attack x DMG_SCALE x SPECIAL_MULT x special_mult`, and
+# `special_mult` grows with the wielder's levelled `special` stat — so the best
+# blades in the game were arriving with enough on one move to end a boss
+# outright. A boss that dies to a single button is not a boss.
+#
+# Applied to the player's branch only. The boss's own Special uses
+# `special_atk_pct` and is untouched, and ordinary attacks are untouched — the
+# cut is aimed at the one thing that was one-shotting, so pressure and attrition
+# still work exactly as before.
+PLAYER_SPECIAL_VS_BOSS = 0.20
+
+
+def _raw_damage(src: Fighter, special: bool = False,
+                vs_boss: bool = False) -> float:
     base = src.eff_attack * DMG_SCALE * src.dmg_mult
     if not special:
         return base
@@ -256,7 +271,10 @@ def _raw_damage(src: Fighter, special: bool = False) -> float:
     # special_mult is the wielder's `special` stat relative to its printed
     # value, so a levelled bey's Special grows. Applied on this branch only —
     # ordinary attacks must not inherit it.
-    return base * SPECIAL_MULT * max(1.0, src.special_mult)
+    out = base * SPECIAL_MULT * max(1.0, src.special_mult)
+    if vs_boss:
+        out *= PLAYER_SPECIAL_VS_BOSS
+    return out
 
 
 def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
@@ -276,7 +294,14 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
         if move not in (MOVE_ATTACK, MOVE_SPECIAL):
             return 0.0
         special = move == MOVE_SPECIAL
-        dmg = _raw_damage(src, special)
+        # NOT `dst.is_boss` — Story opponents set that too, and cutting their
+        # incoming Specials by 80% turned the Story finale into a guaranteed
+        # loss (measured: 0% win rate, every stage unwinnable). The real
+        # discriminator is `special_atk_pct`, which boss_battle sets on actual
+        # bosses and Story deliberately leaves unset; the comment at that
+        # assignment says so in as many words.
+        dmg = _raw_damage(src, special,
+                          vs_boss=getattr(dst, "special_atk_pct", None) is not None)
 
         if other_move == MOVE_DEFENSE:
             soak = DEFENSE_SOAK * (1 + dst.eff_defense / 200.0)
@@ -360,6 +385,18 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
 
     b.hp = max(0.0, min(b.max_hp, b.hp - dmg_b + heal_b))
     a.hp = max(0.0, min(a.max_hp, a.hp - dmg_a + heal_a))
+
+    # Immortality, applied AFTER hp is written rather than before the damage is
+    # computed. A state that claims to be unkillable has to survive damage that
+    # never asked `absorb()` — true damage, a drain, anything that reaches hp by
+    # another road. Optional hook: a state without `guard_hp` is untouched.
+    for f in (a, b):
+        guard = getattr(f.state, "guard_hp", None) if f.state else None
+        if guard is not None:
+            try:
+                f.hp = float(guard(f.hp))
+            except Exception:                            # noqa: BLE001
+                pass
 
     for f, mv, took in ((a, move_a, dmg_a), (b, move_b, dmg_b)):
         gmult = f.state.gauge_multiplier() if f.state else 1.0
