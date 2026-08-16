@@ -23,17 +23,20 @@ import discord
 
 from . import boss_abilities as ab
 from . import drakos as dk
+from . import argus as ag
 
 # Every boss-only blade with a full profile. Ordinary bosses (Iron Sentinel and
 # friends) have no ability kit, so they aren't listed here.
 REGISTRY: dict[str, dict] = {
     ab.NEMESIS["key"]: ab.NEMESIS,
     dk.DRAKOS["key"]:  dk.DRAKOS,
+    ag.ARGUS["key"]:   ag.ARGUS,
 }
 
 SPECIAL_MODULES = {
     ab.NEMESIS["key"]: ab,
     dk.DRAKOS["key"]:  dk,
+    ag.ARGUS["key"]:   ag,
 }
 
 RARITY_COLOURS = {

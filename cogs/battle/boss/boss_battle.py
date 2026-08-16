@@ -39,6 +39,7 @@ from . import boss_copy as bcopy
 from . import boss_info as binfo
 from . import boss_tiers as btiers
 from . import drakos as dk
+from . import argus as ag
 from . import gemini
 
 # The player's HP pool in a boss fight. Matches PvP (cogs.core.constants
@@ -202,6 +203,21 @@ BOSSES = {
         "boss_only":  True,
         "module":     "drakos",
     },
+    "argus": {
+        "name":       ag.ARGUS["name"],
+        "emoji":      ag.ARGUS["emoji"],
+        "difficulty": ag.ARGUS["difficulty"],
+        "persona":    ag.ARGUS["persona"],
+        "hp":         ag.ARGUS["hp"],   # solo HP; see PARTY_HP_MULT
+        "attack":     ag.ARGUS["attack"],
+        "defense":    ag.ARGUS["defense"],
+        "stamina":    ag.ARGUS["stamina"],
+        "colour":     ag.ARGUS["colour"],
+        "reward":     ag.ARGUS["reward"],
+        "blurb":      ag.ARGUS["blurb"],
+        "boss_only":  True,
+        "module":     "argus",
+    },
     "nemesis": {
         "name":       ab.NEMESIS["name"],
         "emoji":      ab.NEMESIS["emoji"],
@@ -333,7 +349,7 @@ def lobby_card_state(key: str, party: list = None, footer: str = "",
 
 def _module_for(cfg: dict):
     """Which ability module drives this boss, if any."""
-    return {"nemesis": ab, "drakos": dk}.get(cfg.get("module"))
+    return {"nemesis": ab, "drakos": dk, "argus": ag}.get(cfg.get("module"))
 
 
 def _make_state(cfg: dict):
@@ -342,6 +358,8 @@ def _make_state(cfg: dict):
         return ab.BossState()
     if mod is dk:
         return dk.DrakosState()
+    if mod is ag:
+        return ag.ArgusState()
     return None
 
 
