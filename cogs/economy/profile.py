@@ -765,7 +765,11 @@ def fuzzy_find_beyblade(query: str):
 
 
 class SpinModeView(discord.ui.View):
-    """Right / Left buttons under a dual-spin blade's `;info` card.
+    """One button per form under a two-form blade's `;info` card.
+
+    Built from `spin_mode.modes(blade)`, so it does not care what the modes
+    are called — Right/Left for a dual-spin blade, Attack/Defense for a blade
+    that changes its whole kit.
 
     The choice is stored on the player's profile and read by
     `utils.spin_mode.resolve`, which runs in front of BOTH stat paths — so
@@ -808,7 +812,7 @@ class SpinModeView(discord.ui.View):
             if interaction.user.id != self.owner.id:
                 return await interaction.response.send_message(
                     "That's not your Beyblade — run `;info` yourself to pick "
-                    "a spin mode.", ephemeral=True)
+                    "a mode.", ephemeral=True)
             from utils.spin_mode import set_choice, label as _label
             set_choice(self.owner.id, self.blade.get("name", ""), mode)
 

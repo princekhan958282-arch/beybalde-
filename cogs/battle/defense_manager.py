@@ -160,6 +160,24 @@ class DefenseManager:
             d[mkey] = max(0, pierce_turns - 1)
             return ostats, logs   # pierce already zeroed DEF; skip buff/shatter
 
+        # 1b. PARTIAL defense pierce. Separate from the full pierce above,
+        # which returns early and nullifies the counter — this one only shaves
+        # the stat, so a 50% pierce is genuinely half of a full pierce instead
+        # of most of one. It stacks with (runs before) buffs and shatter.
+        try:
+            pierce_pct = ab_eng.pierce_pct(mkey, mblade)
+        except Exception:                                # noqa: BLE001
+            pierce_pct = 0.0
+        if pierce_pct > 0:
+            ostats = dict(ostats)
+            before = int(ostats.get("defense", 50))
+            ostats["defense"] = max(0, int(round(before * (1 - pierce_pct / 100))))
+            if ostats["defense"] != before:
+                logs.append(
+                    f"  🗡️ **Defense Pierce** — {mblade['name']} cuts through "
+                    f"**{pierce_pct:g}%** of {oblade['name']}'s Defense "
+                    f"({before} → {ostats['defense']})!")
+
         # 2. Active defense buff on the defender
         def_buf = ab_eng._get_buf_bonus(okey, "defense")
         if def_buf:

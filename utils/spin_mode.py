@@ -1,17 +1,21 @@
 """
-utils/spin_mode.py — which way a dual-spin blade is mounted.
+utils/spin_mode.py — which configuration a two-form blade is mounted in.
 
-A dual-spin blade carries TWO complete configurations. Master Diabolos spins
-right and hunts, or is flipped over to spin left and endure — different stats,
-a different type, and a different Special. The blader chooses, on `;info`, and
-the choice sticks.
+A two-form blade carries TWO complete configurations. Master Diabolos spins
+right and hunts, or is flipped over to spin left and endure. The blader
+chooses, on `;info`, and the choice sticks.
+
+The modes do not have to be spin directions — the keys are arbitrary. A blade
+can just as well carry "Attack" and "Defense" forms with different stats,
+different abilities and a different Special each; nothing here reads the mode
+name except to look it up and label it.
 
 The shape in beyblades.json
 ---------------------------
     "dual_spin": true,
     "spin_modes": {
         "Right": {"label": ..., "spin_direction": "Right", "type": "Attack",
-                  "stats": {...}, "special_move": {...}},
+                  "stats": {...}, "special_move": {...}, "abilities": [...]},
         "Left":  {...}
     }
 
@@ -42,6 +46,17 @@ log = logging.getLogger("beyblade_bot.spin_mode")
 K_MODE = "spin_mode"
 
 DEFAULT_MODE = "Right"
+
+# What a mode block may override. `abilities` is here because a mode is not
+# always a spin direction: an Attack/Defence blade changes its whole KIT, not
+# just its numbers, and an ability list that stayed on the top-level record
+# would mean a blade advertising two forms and fighting with one.
+#
+# Safe to swap because `resolve()` runs in front of both stat paths
+# (`loadout.effective_blade` and `battle._apply_parts`), so what lands in
+# `session.blades` — which is what AbilityEngine compiles — is already the
+# resolved form.
+MODE_FIELDS = ("stats", "special_move", "spin_direction", "type", "abilities")
 
 
 def is_dual(blade: Optional[dict]) -> bool:
@@ -85,7 +100,7 @@ def resolve(profile: Optional[dict], blade: Optional[dict]) -> dict:
         return blade
 
     out = dict(blade)
-    for field in ("stats", "special_move", "spin_direction", "type"):
+    for field in MODE_FIELDS:
         if field in cfg:
             out[field] = cfg[field]
     out["active_spin_mode"] = mode
