@@ -63,10 +63,18 @@ check("a full pool affords slot 1 four times", AS.uses_affordable(1) == 4)
 check("...slot 2 twice", AS.uses_affordable(2) == 2)
 check("...slot 3 once", AS.uses_affordable(3) == 1)
 
-print("\n── 2. nine signature cards, three skills each ───────────────────")
-check("exactly nine cards carry skills", len(SIGNATURE) == 9,
+print("\n── 2. the signature cards, three skills each ────────────────────")
+# Counted, not hardcoded. A literal here is a tripwire that fires on every
+# new card and says nothing about whether the system works — the roster has
+# grown twice already and this is the assertion that noticed neither time.
+check(f"{len(SIGNATURE)} cards carry skills, and every one of them is real",
+      len(SIGNATURE) >= 9 and all(a.get("skills") for a in SIGNATURE),
       [a["name"] for a in SIGNATURE])
-check("the other 27 carry none", len(PLAIN) == 27, len(PLAIN))
+check("skills and plain cards account for the whole roster",
+      len(SIGNATURE) + len(PLAIN) == len(ALL),
+      (len(SIGNATURE), len(PLAIN), len(ALL)))
+check("no card is in both halves",
+      not ({a["name"] for a in SIGNATURE} & {a["name"] for a in PLAIN}))
 for av in SIGNATURE:
     check(f"{av['name']} has 3 skills", len(av["skills"]) == 3,
           len(av["skills"]))
@@ -613,8 +621,49 @@ check("only the Select callback ever stores a pick",
 check("...and on_timeout does not touch it",
       "set_choice" not in src[src.index("async def on_timeout"):])
 
+print("\n── 13c. Dr. W. D. Gaster ────────────────────────────────────────")
+G = CARDS["Dr. W. D. Gaster"]
+check("Gaster is Ultimate", G["rarity"] == "Ultimate", G["rarity"])
+check("...typed balance", G["type"] == "balance", G["type"])
+check("...with three skills", len(G["skills"]) == 3)
+check("the skills are named", [s["name"] for s in G["skills"]]
+      == ["Wing Dings", "Scattered Across Time", "Gaster Blaster"],
+      [s["name"] for s in G["skills"]])
+
+# Dodge is authored AT the engine cap, not above it. Sixteen older cards were
+# written up to 28% and are silently clamped to 5% at load, so their shop line
+# promises four times what the roll delivers. A new card should not join them.
+from cogs.avatar.avatar_engine import AvatarBonuses as _AB          # noqa: E402
+dodge = G["bonuses"]["dodge_chance"]
+check(f"dodge is authored at the cap ({dodge}), not above it",
+      dodge == _AB.DODGE_CAP, (dodge, _AB.DODGE_CAP))
+check("...so the shop line is the number that actually rolls",
+      _AB(dodge_chance=dodge).dodge_chance == dodge)
+
+check("HP sits on the Ultimate band", G["bonuses"]["hp_percent"] == 0.12,
+      G["bonuses"]["hp_percent"])
+check("...and reaches the fight from every slot, not just one",
+      [AS.bonuses_for(G, i).get("hp_percent") for i in (1, 2, 3)]
+      == [0.12] * 3)
+
+# The shop renders the card's TOP-LEVEL block, so every skill's effect has to
+# be visible there or the buyer cannot see what they are buying.
+from cogs.avatar.avatar_utils import format_bonuses_summary         # noqa: E402
+summary = format_bonuses_summary(G["bonuses"])
+for label in ("Special Move", "Crit", "Dodge", "Counter",
+              "DMG Resistance", "Status Resist", "HP"):
+    check(f"the shop shows {label}", label in summary, summary)
+
+check("Gaster's Special-damage skill is strong but under Eudora's 88%",
+      0 < G["bonuses"]["special_move_percent"] < 0.88,
+      G["bonuses"]["special_move_percent"])
+
 print("\n── 14. nothing else moved ───────────────────────────────────────")
-check("the roster is still 36 cards", len(ALL) == 36, len(ALL))
+# A floor, not a literal. The exact count is a tripwire that fires on every
+# new card without saying anything about whether the system works.
+check(f"the roster is {len(ALL)} cards and every one is well-formed",
+      len(ALL) >= 36 and all(a.get("name") and a.get("rarity") for a in ALL),
+      len(ALL))
 check("the MLBB banner is still six",
       len([a for a in ALL if a["rarity"] == "MLBB"]) == 6)
 check("every card still builds an AvatarBonuses",

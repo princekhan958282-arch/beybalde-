@@ -126,10 +126,18 @@ def special(mode, oblade=None, sess=None):
 
 print("\n── 1. the blade exists and carries both forms ──────────────────")
 check(f"{NAME} is in the roster", J is not None)
-check("rarity is Exclusive — so it can never spawn",
-      J["rarity"] == "Exclusive", J.get("rarity"))
-check("...and Exclusive is hard-excluded from spawns",
-      "Exclusive" in __import__("cogs.spawn.spawn", fromlist=["x"])._NEVER_SPAWN)
+check("rarity is Ultimate", J["rarity"] == "Ultimate", J.get("rarity"))
+# Ultimate is a SPAWNABLE tier — unlike Exclusive it is not in _NEVER_SPAWN.
+# So the rarity no longer keeps this blade out of the wild and `owner_ids` is
+# the only thing that does. That is the whole reason section 11b measures the
+# spawn pool instead of trusting the tier.
+import cogs.spawn.spawn as _SP                                     # noqa: E402
+check("...and Ultimate is NOT a hard-excluded tier, so the owner gate is now "
+      "the only exclusion", J["rarity"] not in _SP._NEVER_SPAWN)
+check("other Ultimates really do spawn — proving the tier is live",
+      any(b.get("rarity") == "Ultimate" and not b.get("owner_ids")
+          and not b.get("booster_exclusive")
+          and not b.get("hidden_drop_one_in") for b in BLADES.values()))
 check("it is flagged limited", J.get("limited") is True)
 check("it is NOT booster-exclusive — it is not a pack blade",
       not J.get("booster_exclusive"))
@@ -460,8 +468,12 @@ check("...but it is obtainable by its owner", obtainable(J, OWNER))
 import cogs.spawn.spawn as SPAWN                                   # noqa: E402
 import cogs.economy.shop as SHOP                                   # noqa: E402
 seen = {SPAWN._pick_random_beyblade(BLADES)["name"] for _ in range(20000)}
-check(f"20,000 wild spawns never produce it ({len(seen)} blades seen)",
+check(f"20,000 wild spawns never produce it ({len(seen)} blades seen) — and "
+      f"since v98 its rarity does not help, this is the owner gate alone",
       NAME not in seen)
+check("...while OTHER Ultimates do come out of that same pool",
+      any(BLADES[n].get("rarity") == "Ultimate" for n in seen),
+      sorted(n for n in seen if BLADES[n].get("rarity") == "Ultimate"))
 check("...and the pool is healthy, so this is not an empty-pool pass",
       len(seen) > 50, len(seen))
 check("it is not in the booster pool",
