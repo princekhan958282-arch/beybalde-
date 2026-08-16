@@ -538,6 +538,47 @@ class AdminCog(commands.Cog, name="Admin"):
                        f"freeing **{freed / 1024:.1f} KB**.\n"
                        f"Restart to load the new code.")
 
+    @commands.command(name="updatecheck", aliases=["upcheck", "updiag"],
+                      hidden=True)
+    @is_master()
+    async def updatecheck(self, ctx: commands.Context) -> None:
+        """[Admin] Ask GitHub why the updater is failing, right now.
+
+        `;ver` reports THAT the last check failed. This reports WHY, by making
+        the calls live from the host that holds the token — because a wrong
+        token and a wrong repo name produce the same 404, and telling them
+        apart otherwise means editing the panel and restarting on a hunch.
+        """
+        from utils import updater as up
+        await ctx.typing()
+        try:
+            d = await asyncio.to_thread(up.diagnose)
+        except Exception as exc:                     # noqa: BLE001
+            return await ctx.send(f"❌ Diagnose failed to run: `{exc}`")
+
+        ok = all(c["code"] == 200 for c in d["checks"][:2]) if d["checks"] else False
+        e = discord.Embed(title="📥 Update diagnostics",
+                          colour=0x57F287 if ok else 0xED4245)
+        e.add_field(name="Repo",
+                    value=f"`{d['repo']}`\n-# from `{d['repo_raw'][:60]}`",
+                    inline=False)
+        e.add_field(name="Branch", value=f"`{d['branch']}`", inline=True)
+        # Length and family only — never the token itself.
+        e.add_field(name="Token",
+                    value=(f"{d['token_family']} · {d['token_len']} chars"
+                           if d["token_set"] else "❌ not set"),
+                    inline=True)
+        if d["checks"]:
+            e.add_field(
+                name="GitHub says",
+                value="\n".join(
+                    f"{'✅' if c['code'] == 200 else '❌'} `{c['label']:<6}` "
+                    f"HTTP **{c['code'] or 'no reply'}**"
+                    for c in d["checks"]),
+                inline=False)
+        e.add_field(name="Verdict", value=d["verdict"][:1000], inline=False)
+        await ctx.send(embed=e)
+
     @commands.command(name="version", aliases=["build", "ver"], hidden=True)
     @is_master()
     async def version(self, ctx: commands.Context) -> None:
