@@ -216,7 +216,7 @@ class StoryFightView(discord.ui.View):
         if f.level_gap > 0:
             foot += f" · ⚠️ {f.level_gap} levels under"
         if not f.avatar_active:
-            foot += " · no avatar equipped (;avatarshop)"
+            foot += " · no avatar equipped (;avatarpacks)"
         e.set_footer(text=foot)
         return e
 
@@ -455,7 +455,7 @@ class StoryCog(commands.Cog, name="Story"):
                             value=f"{fight.level_gap} levels under this stage",
                             inline=True)
             if not fight.avatar_active:
-                e.set_footer(text="No avatar equipped — ;avatarshop, then "
+                e.set_footer(text="No avatar equipped — ;avatarpacks, then "
                                   ";equipavatar")
             view = StoryRewardView(self, player, retry_id=st["id"])
             try:
@@ -512,7 +512,7 @@ class StoryCog(commands.Cog, name="Story"):
                         value="You have cleared every stage. Replays still pay.",
                         inline=False)
         if not fight.avatar_active:
-            e.set_footer(text="No avatar equipped — ;avatarshop, then ;equipavatar")
+            e.set_footer(text="No avatar equipped — ;avatarpacks, then ;equipavatar")
 
         if DISPATCH_BATTLE_EVENTS:
             self.bot.dispatch("beycord_battle_end", player.id, [player.id],

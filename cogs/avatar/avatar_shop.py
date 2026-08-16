@@ -4,7 +4,6 @@ avatar_shop.py
 Discord cog for avatar purchasing, pack opening, and inventory management.
 
 Commands:
-  ;avatarshop               — Browse all avatars available for direct purchase
   ;avatarpacks / ;apacks    — View available avatar packs
   ;buypack <pack>           — Open an avatar pack (common/rare/epic/legendary/mlbb)
   ;myavatars                — View owned avatars
@@ -422,7 +421,6 @@ class AvatarShop(commands.Cog, name="Avatar"):
         embed.add_field(
             name="🛒 Browse & Buy",
             value=(
-                "`;avatarshop` / `;ashop` — Browse all avatars\n"
                 "`;avatarinfo <id>` / `;ainfo <id>` — Inspect an avatar"
             ),
             inline=False,
@@ -446,49 +444,6 @@ class AvatarShop(commands.Cog, name="Avatar"):
             inline=False,
         )
         embed.set_footer(text=f"Balance: {coins:,} coins")
-        await ctx.send(embed=embed)
-
-    @commands.command(name="avatarshop", aliases=["ashop"])
-    async def avatar_shop(self, ctx: commands.Context) -> None:
-        """Browse all avatars available for direct purchase."""
-        all_avatars = sorted(
-            avatar_engine.get_all_avatars(), key=rarity_sort_key, reverse=True
-        )
-
-        if not all_avatars:
-            await ctx.send("❌ No avatars are available right now.")
-            return
-
-        owned_ids   = self._get_owned_avatar_ids(ctx.author.id)
-        equipped_id = self._get_equipped_id(ctx.author.id)
-
-        embed = discord.Embed(
-            title="🎭 Avatar Shop",
-            description=(
-                "Equip an avatar to gain passive battle bonuses.\n"
-                "Use `;avatarpacks` to open random packs.\n"
-                "Use `;avatarinfo <id>` to inspect an avatar.\n\n"
-                + " • ".join(f"{RARITY_EMOJI[r]} {r}" for r in RARITY_ORDER)
-            ),
-            color=0xE67E22,
-        )
-
-        for av in all_avatars:
-            emoji  = RARITY_EMOJI.get(av["rarity"], "⚪")
-            status = ""
-            if av["id"] == equipped_id:
-                status = " ✅"
-            elif av["id"] in owned_ids:
-                status = " 📦"
-
-            embed.add_field(
-                name=f"{emoji} {av['name']}{status}  —  {format_price(av['price'])}",
-                value=f"`{av['id']}`  •  {av['rarity']}\n_{av['description']}_",
-                inline=False,
-            )
-
-        coins = self._get_player_coins(ctx.author.id)
-        embed.set_footer(text=f"Your balance: {coins:,} coins")
         await ctx.send(embed=embed)
 
     @commands.command(name="avatarpacks", aliases=["apacks"])
@@ -715,7 +670,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
         if not owned_ids:
             await ctx.send(
                 "You don't own any avatars yet. "
-                "Use `;avatarshop` to browse or `;avatarpacks` to open packs."
+                "Use `;avatarpacks` to open packs."
             )
             return
 

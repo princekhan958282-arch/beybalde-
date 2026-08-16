@@ -117,6 +117,26 @@ class ArgusState(BaseBossState):
     def is_immune(self) -> bool:
         return self.aegis_turns > 0
 
+    def is_immortal(self) -> bool:
+        """Immunity's backstop, and not the same thing as immunity.
+
+        `absorb()` covers every damage path that ASKS it, which is every path
+        in the engine today. Immortality covers the ones that might not:
+        anything that writes `hp` directly — true damage, a drain, a future
+        effect written by someone who has never heard of this state.
+
+        Belt and braces on purpose. "Immune for five rounds" that a single
+        unrouted subtraction can end is not immune, and the failure would be
+        invisible until it happened in a real fight.
+        """
+        return self.aegis_turns > 0
+
+    def guard_hp(self, hp: float, floor: float = 1.0) -> float:
+        """Clamp an HP value while immortal. Never resurrects — only holds."""
+        if self.aegis_turns > 0 and hp < floor:
+            return floor
+        return hp
+
     def bank_debt(self, damage_taken: float) -> None:
         """Called with every hit that lands. A committed blow closes eyes."""
         return None
@@ -243,6 +263,8 @@ def special_damage(spec_key: str, boss_attack: float, state: ArgusState,
     dmg = max(1.0, raw * mitig)
 
     if spec.get("grant_aegis"):
+        # Immunity AND immortality run on the same counter, so they can never
+        # disagree about how many rounds are left.
         turns = int(spec["grant_aegis"])
         # Set to exactly `turns`, NOT turns+1. The granting round is already
         # immune — `absorb()` is consulted before this round's `tick()` spends
@@ -254,7 +276,8 @@ def special_damage(spec_key: str, boss_attack: float, state: ArgusState,
         state.aegis_turns = max(state.aegis_turns, turns)
         state.aegis_used = True
         state.ultimate_used = True
-        effects.append(f"🛡️ Nothing reaches Argus for **{turns}** rounds.")
+        effects.append(f"🛡️ Nothing reaches Argus for **{turns}** rounds — "
+                       f"and nothing can end it.")
 
     if spec.get("drain"):
         effects.append(f"🔥 The sweep drags {spec['drain']:.2f} stamina away.")
@@ -287,7 +310,11 @@ ARGUS = {
     "defense": 87,
     "stamina": 109,
     "colour": 0xFFB300,
-    "reward": {"coins": 80000, "casino": 18000},
+    # No coin prize, by design. Argus is the one boss you PAY to face —
+    # 100,000 at Standard rising to 1,000,000 at Nightmare — and it pays
+    # nothing back in coins at any tier. What you fight it for is the copy, the
+    # casino chips and the XP; the coins are a one-way door.
+    "reward": {"coins": 0, "casino": 18000},
     "copy_total_range": [370, 469],
     "blurb": "Opens an eye every round. Close them, or meet all six.",
     "description": (
@@ -311,9 +338,11 @@ ARGUS = {
             "name": "Aegis of the Sleepless",
             "emoji": "🛡️",
             "desc": ("Once per battle, below 65% health: **immune to all "
-                     "damage for 5 rounds.** Not reduced — immune. Spend those "
-                     "rounds banking stamina and gauge, because the sixth "
-                     "arrives with every Eye open."),
+                     "damage AND immortal for 5 rounds.** Not reduced — "
+                     "immune, and it cannot be killed even by damage that "
+                     "ignores defences. Spend those rounds banking stamina "
+                     "and gauge, because the sixth arrives with every Eye "
+                     "open."),
         },
     ],
 }

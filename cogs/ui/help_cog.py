@@ -296,7 +296,6 @@ COMMAND_DATA = {
     "avatar": [
         # Browse
         (";av",                         "Avatar system overview"),
-        (";avatarshop  or  ;ashop",     "Browse all available avatars"),
         (";avatarinfo <id>  or  ;ainfo <id>", "Inspect a specific avatar"),
         # Buying
         (";buypack <type>  or  ;bpack <type>", "Open a pack — types: common rare epic legendary"),
