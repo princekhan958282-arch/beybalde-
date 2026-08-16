@@ -124,6 +124,17 @@ def special(mode, oblade=None, sess=None):
     return int(dmg), logs, s
 
 
+
+
+def special_of(blade, oblade=None):
+    """Total damage of one Special for an arbitrary blade dict."""
+    s = Sess(blade, oblade or FOE)
+    am = AttackManager.__new__(AttackManager)
+    am.session = s
+    dmg, _logs = pinned(am._resolve_special, "m", "o", MOVE_SPECIAL,
+                        blade, s.blades["o"], [])
+    return int(dmg)
+
 print("\n── 1. the blade exists and carries both forms ──────────────────")
 check(f"{NAME} is in the roster", J is not None)
 check("rarity is Ultimate", J["rarity"] == "Ultimate", J.get("rarity"))
@@ -484,6 +495,77 @@ check("it is the FIRST blade in the game to use owner_ids — the mechanism "
       "existed and had never been exercised",
       [n for n, b in BLADES.items() if b.get("owner_ids")] == [NAME],
       [n for n, b in BLADES.items() if b.get("owner_ids")])
+
+print("\n── 11c. the two-form system now serves more than one blade ─────")
+# Janus was the first blade whose form changes its kit. Cho-Z Achilles is the
+# second, and it exercises the parts Janus does not: it keeps ONE type across
+# both forms, and it reuses the same ability NAME in both. If `_rules_for`
+# still keyed its cache on the blade name alone, or on name+type, this blade
+# would serve one form's kit to the other.
+CZA = "Cho-Z Achilles"
+A = BLADES[CZA]
+check(f"{CZA} is a two-form blade", SM.is_dual(A))
+check("...with the same two form keys as Janus",
+      SM.modes(A) == ["Attack", "Defense"], SM.modes(A))
+check("...labelled for its own Specials",
+      (SM.label(A, "Attack"), SM.label(A, "Defense"))
+      == ("⚔️ Sword Mode", "🛡️ Shield Mode"),
+      (SM.label(A, "Attack"), SM.label(A, "Defense")))
+
+sword = SM.resolve({SM.K_MODE: {CZA: "Attack"}}, A)
+shield = SM.resolve({SM.K_MODE: {CZA: "Defense"}}, A)
+check("Sword Mode is 138/98/110",
+      [sword["stats"][k] for k in ("attack", "defense", "stamina")]
+      == [138, 98, 110], sword["stats"])
+check("Shield Mode is 98/138/110",
+      [shield["stats"][k] for k in ("attack", "defense", "stamina")]
+      == [98, 138, 110], shield["stats"])
+check("the forms mirror each other",
+      sword["stats"]["attack"] == shield["stats"]["defense"]
+      and sword["stats"]["defense"] == shield["stats"]["attack"])
+check("Turbo Sword and Turbo Shield",
+      (sword["special_move"]["name"], shield["special_move"]["name"])
+      == ("Turbo Sword", "Turbo Shield"),
+      (sword["special_move"]["name"], shield["special_move"]["name"]))
+
+# The identity Janus does NOT test: type held constant across forms.
+check("BOTH forms stay Balance — Achilles is the balance bey, the modes swap "
+      "its spread and its Special, not what it is",
+      sword["type"] == shield["type"] == "Balance",
+      (sword["type"], shield["type"]))
+check("...which is the opposite choice from Janus, deliberately",
+      SM.resolve({SM.K_MODE: {NAME: "Attack"}}, J)["type"]
+      != SM.resolve({SM.K_MODE: {NAME: "Defense"}}, J)["type"])
+
+# Same ability NAME in both forms, different rules. This is the case a
+# name-keyed rule cache gets wrong.
+check("both forms name their ability Cho-Z Awakening",
+      sword["abilities"][0]["name"] == shield["abilities"][0]["name"]
+      == "Cho-Z Awakening")
+_s = Sess(sword, FOE)
+r_sword = _s.ability._rules_for(sword)
+r_shield = _s.ability._rules_for(shield)
+check("...and one engine still compiles them SEPARATELY — the case a "
+      "name-keyed cache would silently get wrong",
+      r_sword != r_shield, (len(r_sword), len(r_shield)))
+
+# The kits actually behave differently in a fight.
+_sh = Sess(shield, FOE)
+logs = []
+pinned(_sh.ability._fire, "on_take_damage", "m", "o", shield,
+       "attack", "lose", 100, 0, logs)
+check("Shield Mode reduces and reflects an incoming hit",
+      any("reduced" in l for l in logs) and any("reflected" in l for l in logs),
+      logs)
+_sw = Sess(sword, FOE)
+logs = []
+pinned(_sw.ability._fire, "on_take_damage", "m", "o", sword,
+       "attack", "lose", 100, 0, logs)
+check("...and Sword Mode does not — it has no guard to give",
+      not logs, logs)
+
+check("neither Special one-shots a full pool",
+      all(special_of(f) < POOL for f in (sword, shield)))
 
 print("\n── 12. nothing else moved ──────────────────────────────────────")
 # A floor. I wrote `== 92` here two commits ago and it fired the first time

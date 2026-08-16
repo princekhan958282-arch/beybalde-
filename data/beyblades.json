@@ -8156,29 +8156,29 @@
     "spin_direction": "Right",
     "burst_height": "Mid",
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565814221930546/311f015b93f3612550360a245124a035.jpg?ex=6a832493&is=6a81d313&hm=4b6abd1b2b1f36458a2c608cf56c4dbd12e1f166972ca3be88a76b8d4fd9f9c6&",
-    "description": "The shield and the sword on one axis. Achilles reads the exchange it is in and hardens or sharpens to suit it — never both, never neither.",
+    "description": "The shield and the sword on one axis, and only one of them forward at a time. Turned to Sword, Achilles gives up its guard for reach; turned to Shield it gives up its reach to become a wall. Balance either way — it is the same blade choosing which half to lead with.",
     "stats": {
-      "attack": 118,
-      "defense": 118,
+      "attack": 138,
+      "defense": 98,
       "stamina": 110,
       "special": 126,
       "hp": 118
     },
     "special_move": {
-      "name": "Achilles Blade Attack",
-      "description": "The guard opens into a blade and Achilles answers three times in the shape of whatever it was just handed.",
-      "hits": 3,
-      "damage_per_hit": 50,
-      "total_damage": 150,
+      "name": "Turbo Sword",
+      "description": "The guard folds away entirely and Achilles goes forward as an edge — four rising cuts with nothing kept back for the return trip.",
+      "hits": 4,
+      "damage_per_hit": 40,
+      "total_damage": 160,
       "flavour_texts": [
-        "⚖️ **Achilles Blade Attack** — the guard becomes the edge!"
+        "⚔️ **Turbo Sword** — the guard becomes the edge!"
       ]
     },
     "abilities": [
       {
         "name": "Cho-Z Awakening",
         "trigger": "on_any_win",
-        "description": "Any exchange won banks +7 Attack and +7 Defence a stack, to 4 — Achilles is paid for whichever half of itself the round needed.",
+        "description": "Sword Mode banks the win as edge: +10 Attack a stack to 4, and every strike takes 5 stability off the opponent.",
         "rules": [
           {
             "when": "on_any_win",
@@ -8186,22 +8186,135 @@
               {
                 "op": "stacking_buff",
                 "stat": "attack",
-                "per_stack": 7,
+                "per_stack": 10,
                 "max": 4,
-                "name": "choz_atk"
-              },
+                "name": "choz_sword"
+              }
+            ]
+          },
+          {
+            "when": "on_attack_hit",
+            "do": [
               {
-                "op": "stacking_buff",
-                "stat": "defense",
-                "per_stack": 7,
-                "max": 4,
-                "name": "choz_def"
+                "op": "enemy_lose_stability",
+                "value": 5
               }
             ]
           }
         ]
       }
-    ]
+    ],
+    "dual_spin": true,
+    "spin_modes": {
+      "Attack": {
+        "label": "⚔️ Sword Mode",
+        "spin_direction": "Right",
+        "type": "Balance",
+        "stats": {
+          "attack": 138,
+          "defense": 98,
+          "stamina": 110,
+          "special": 126,
+          "hp": 118
+        },
+        "special_move": {
+          "name": "Turbo Sword",
+          "description": "The guard folds away entirely and Achilles goes forward as an edge — four rising cuts with nothing kept back for the return trip.",
+          "hits": 4,
+          "damage_per_hit": 40,
+          "total_damage": 160,
+          "flavour_texts": [
+            "⚔️ **Turbo Sword** — the guard becomes the edge!"
+          ]
+        },
+        "abilities": [
+          {
+            "name": "Cho-Z Awakening",
+            "trigger": "on_any_win",
+            "description": "Sword Mode banks the win as edge: +10 Attack a stack to 4, and every strike takes 5 stability off the opponent.",
+            "rules": [
+              {
+                "when": "on_any_win",
+                "do": [
+                  {
+                    "op": "stacking_buff",
+                    "stat": "attack",
+                    "per_stack": 10,
+                    "max": 4,
+                    "name": "choz_sword"
+                  }
+                ]
+              },
+              {
+                "when": "on_attack_hit",
+                "do": [
+                  {
+                    "op": "enemy_lose_stability",
+                    "value": 5
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "Defense": {
+        "label": "🛡️ Shield Mode",
+        "spin_direction": "Right",
+        "type": "Balance",
+        "stats": {
+          "attack": 98,
+          "defense": 138,
+          "stamina": 110,
+          "special": 126,
+          "hp": 118
+        },
+        "special_move": {
+          "name": "Turbo Shield",
+          "description": "Achilles plants and the whole layer becomes wall. Two braced blows, and the wall is still standing behind them.",
+          "hits": 2,
+          "damage_per_hit": 62,
+          "total_damage": 124,
+          "flavour_texts": [
+            "🛡️ **Turbo Shield** — the wall answers!"
+          ]
+        },
+        "abilities": [
+          {
+            "name": "Cho-Z Awakening",
+            "trigger": "on_take_damage",
+            "description": "Shield Mode banks the win as guard: +10 Defence a stack to 4, 12% off every incoming hit, and 18% of what lands is sent back.",
+            "rules": [
+              {
+                "when": "on_any_win",
+                "do": [
+                  {
+                    "op": "stacking_buff",
+                    "stat": "defense",
+                    "per_stack": 10,
+                    "max": 4,
+                    "name": "choz_shield"
+                  }
+                ]
+              },
+              {
+                "when": "on_take_damage",
+                "do": [
+                  {
+                    "op": "reduce_damage_pct",
+                    "value": 12
+                  },
+                  {
+                    "op": "reflect_pct",
+                    "value": 18
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
   },
   "Wild Wyvern": {
     "id": "BB098",
