@@ -486,7 +486,11 @@ check("it is the FIRST blade in the game to use owner_ids — the mechanism "
       [n for n, b in BLADES.items() if b.get("owner_ids")])
 
 print("\n── 12. nothing else moved ──────────────────────────────────────")
-check("the roster grew by exactly one", len(BLADES) == 92, len(BLADES))
+# A floor. I wrote `== 92` here two commits ago and it fired the first time
+# an unrelated blade was added — the same tripwire I removed from two other
+# suites in v99 and then immediately reintroduced.
+check(f"the roster is {len(BLADES)} blades and Janus is one of them",
+      len(BLADES) >= 92 and NAME in BLADES, len(BLADES))
 check("every blade still has a name and rarity",
       all("name" in b and "rarity" in b for b in BLADES.values()))
 check("Master Diabolos still resolves both its spin modes",

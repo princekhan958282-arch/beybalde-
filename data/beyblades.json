@@ -7926,5 +7926,330 @@
         ]
       }
     }
+  },
+  "Cho-Z Valkyrie": {
+    "id": "BB093",
+    "name": "Cho-Z Valkyrie",
+    "rarity": "Legendary",
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538564232323530752/Turbo_Valtryek_V3_Render.webp?ex=6a83231a&is=6a81d19a&hm=4e5ddc03974e183811a2a1b8722b863c6f6e5167af81fa8dc3b392582a1c24ff&",
+    "description": "The Turbo layer answers to resonance, not to force. When Valkyrie's blader pushes past his own limit the layer wakes with him, and the wings come off the axis as whips.",
+    "stats": {
+      "attack": 132,
+      "defense": 96,
+      "stamina": 102,
+      "special": 130,
+      "hp": 112
+    },
+    "special_move": {
+      "name": "Turbo Valkyrie Whip",
+      "description": "Valkyrie climbs the wall, drops off the rim and lashes down across the stadium three times on the way through.",
+      "hits": 3,
+      "damage_per_hit": [
+        58,
+        44,
+        44
+      ],
+      "total_damage": 146,
+      "flavour_texts": [
+        "⚡ **Turbo Valkyrie Whip** — the wings come alive!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Turbo Awakening",
+        "trigger": "on_attack_win",
+        "description": "Every exchange won wakes the layer further: +9 Attack a stack to 4 stacks, and the gauge fills faster with it.",
+        "rules": [
+          {
+            "when": "on_attack_win",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack": 9,
+                "max": 4,
+                "name": "turbo"
+              },
+              {
+                "op": "enemy_lose_stability",
+                "value": 4
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Drain Fafnir": {
+    "id": "BB094",
+    "name": "Drain Fafnir",
+    "rarity": "Epic",
+    "type": "Stamina",
+    "spin_direction": "Left",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565694516502588/86d8568c9fc11b628be2d1f033f63e61.jpg?ex=6a832476&is=6a81d2f6&hm=0f82683c3e09aa7a1ccbc7b874a97b313782106ce13eaaeb78b7b32eb5404858&",
+    "description": "A left-spin layer built to take rather than to give. Fafnir does not block the attack — it accepts it, and keeps whatever the attacker brought with them.",
+    "stats": {
+      "attack": 74,
+      "defense": 92,
+      "stamina": 128,
+      "special": 108,
+      "hp": 124
+    },
+    "special_move": {
+      "name": "Nothing Break",
+      "description": "Fafnir absorbs the charge and gives none of it back, draining the stadium dry in two long pulls.",
+      "hits": 2,
+      "damage_per_hit": 52,
+      "total_damage": 104,
+      "flavour_texts": [
+        "🌀 **Nothing Break** — Fafnir takes it all!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Drain Spin",
+        "trigger": "on_take_damage",
+        "description": "Every hit taken is stamina stolen: 0.6 off the attacker and onto Fafnir, and a little HP with it.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "drain_stamina",
+                "value": 0.6
+              },
+              {
+                "op": "heal_per_drain",
+                "value": 14
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Geist Fafnir": {
+    "id": "BB095",
+    "name": "Geist Fafnir",
+    "rarity": "Legendary",
+    "type": "Stamina",
+    "spin_direction": "Left",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565700958949446/37087cb8c50fb00373931f996a96bd62.jpg?ex=6a832478&is=6a81d2f8&hm=eb7914e10efa60cfb8e3c3b3527494194848858b9288eacd61bae75819b20047&",
+    "description": "Fafnir returns with the drain sharpened into a hand. What it takes it no longer merely keeps — it turns around and opens with it.",
+    "stats": {
+      "attack": 88,
+      "defense": 104,
+      "stamina": 138,
+      "special": 122,
+      "hp": 126
+    },
+    "special_move": {
+      "name": "Geist Claw",
+      "description": "The absorbed spin comes back out as a four-fingered rake across the opponent's track.",
+      "hits": 4,
+      "damage_per_hit": 36,
+      "total_damage": 144,
+      "flavour_texts": [
+        "👻 **Geist Claw** — what it drank, it returns!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Geist Spin",
+        "trigger": "on_take_damage",
+        "description": "Drains 0.8 stamina from the attacker, heals from the theft, and cuts 12% off the hit that fed it.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "drain_stamina",
+                "value": 0.8
+              },
+              {
+                "op": "heal_per_drain",
+                "value": 18
+              },
+              {
+                "op": "reduce_damage_pct",
+                "value": 12
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Nightmare Longinus": {
+    "id": "BB096",
+    "name": "Nightmare Longinus",
+    "rarity": "Mythic",
+    "type": "Attack",
+    "spin_direction": "Left",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565711683649718/4be5f5ca1faa269234175db728fc2030.jpg?ex=6a83247a&is=6a81d2fa&hm=a4f8efbc746b451ff345a79cdfb1d9f460f03f1089e100da168bfa2c5448173c&",
+    "description": "Left-spin and unrepentant. Longinus in its cruelest dress hunts the opposing spin head-on and takes the recoil as the price of the meeting.",
+    "stats": {
+      "attack": 142,
+      "defense": 88,
+      "stamina": 96,
+      "special": 138,
+      "hp": 108
+    },
+    "special_move": {
+      "name": "Dragon Crash",
+      "description": "The dragon comes down the centre of the stadium with nothing held back — one climb, one fall, and whatever is under it.",
+      "hits": 2,
+      "damage_per_hit": [
+        96,
+        62
+      ],
+      "total_damage": 158,
+      "flavour_texts": [
+        "🐲 **Dragon Crash** — the nightmare lands!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Nightmare Impact",
+        "trigger": "on_attack_hit",
+        "description": "Opposite-spin contact is where Longinus lives: +18% damage into a right-spin opponent, and 7 stability off them on every strike.",
+        "rules": [
+          {
+            "when": "on_attack_hit",
+            "if": [
+              {
+                "cond": "opposite_spin",
+                "value": true
+              }
+            ],
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 18
+              }
+            ]
+          },
+          {
+            "when": "on_attack_hit",
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "value": 7
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Cho-Z Achilles": {
+    "id": "BB097",
+    "name": "Cho-Z Achilles",
+    "rarity": "Legendary",
+    "type": "Balance",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565814221930546/311f015b93f3612550360a245124a035.jpg?ex=6a832493&is=6a81d313&hm=4b6abd1b2b1f36458a2c608cf56c4dbd12e1f166972ca3be88a76b8d4fd9f9c6&",
+    "description": "The shield and the sword on one axis. Achilles reads the exchange it is in and hardens or sharpens to suit it — never both, never neither.",
+    "stats": {
+      "attack": 118,
+      "defense": 118,
+      "stamina": 110,
+      "special": 126,
+      "hp": 118
+    },
+    "special_move": {
+      "name": "Achilles Blade Attack",
+      "description": "The guard opens into a blade and Achilles answers three times in the shape of whatever it was just handed.",
+      "hits": 3,
+      "damage_per_hit": 50,
+      "total_damage": 150,
+      "flavour_texts": [
+        "⚖️ **Achilles Blade Attack** — the guard becomes the edge!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Cho-Z Awakening",
+        "trigger": "on_any_win",
+        "description": "Any exchange won banks +7 Attack and +7 Defence a stack, to 4 — Achilles is paid for whichever half of itself the round needed.",
+        "rules": [
+          {
+            "when": "on_any_win",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack": 7,
+                "max": 4,
+                "name": "choz_atk"
+              },
+              {
+                "op": "stacking_buff",
+                "stat": "defense",
+                "per_stack": 7,
+                "max": 4,
+                "name": "choz_def"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Wild Wyvern": {
+    "id": "BB098",
+    "name": "Wild Wyvern",
+    "rarity": "Epic",
+    "type": "Defense",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565799156125716/5d8b5b14a328f313771892ccd9768a7e.jpg?ex=6a83248f&is=6a81d30f&hm=41ef51644eaccd2846f9a547cbc24e397fef612f0e19b2800c74b07103f52092&",
+    "description": "A wing folded over the axis. Wyvern does not chase — it plants itself on the rim and makes the stadium come to it, then throws back whatever arrives.",
+    "stats": {
+      "attack": 78,
+      "defense": 130,
+      "stamina": 96,
+      "special": 104,
+      "hp": 128
+    },
+    "special_move": {
+      "name": "Wyvern Wing Guard",
+      "description": "The wings close, take the blow across their full span, and open again on the follow-through.",
+      "hits": 2,
+      "damage_per_hit": 54,
+      "total_damage": 108,
+      "flavour_texts": [
+        "🛡️ **Wyvern Wing Guard** — the wings snap shut!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Wyvern Wall",
+        "trigger": "on_take_damage",
+        "description": "Wyvern gives ground slowly: 14% off every incoming hit, and 20% of what still lands is sent back.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "reduce_damage_pct",
+                "value": 14
+              },
+              {
+                "op": "reflect_pct",
+                "value": 20
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }
