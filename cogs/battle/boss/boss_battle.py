@@ -399,6 +399,13 @@ def lobby_card_state(key: str, party: list = None, footer: str = "",
         ("Difficulty", f"{tcfg['label']} · "
                        + btiers.walk_difficulty(
                            cfg.get("difficulty", ""), tcfg["key"]).title()),
+        # What a higher tier actually buys, stated up front. Difficulty that is
+        # only a bigger health bar reads as padding and can be out-levelled;
+        # IQ is the half the player can feel and cannot out-stat, so it belongs
+        # on the card next to the price rather than hidden in the AI.
+        ("Boss IQ",   ai.iq_label(btiers.walk_difficulty(
+                          cfg.get("difficulty", ""), tcfg["key"]))
+                      + " — reads your habits"),
         ("Entry",     "free" if not tcfg["price"]
                       else f"{tcfg['price']:,} coins each"),
         ("Reward",    f"{btiers.scale_reward(reward.get('coins', 0), tcfg['key']):,} coins"),
@@ -743,6 +750,19 @@ class BossFight:
             self.boss.hp = max(0.0, self.boss.hp - bonus)
             extra["ability_bonus"] = bonus
 
+        # Flat channels, added in v1.11 alongside the DSL parser. Kept separate
+        # from the percentage ones on purpose: `bonus_damage` is a printed
+        # number of points, and folding it into `dmg_amp` would have been wrong
+        # units AND would have scaled it by whatever the swing happened to be.
+        #
+        # Wired here at the same time as the parser that produces them. A kit
+        # field nothing reads is exactly the bug this whole change is fixing —
+        # Argus's crit sat unread for two versions.
+        flat = getattr(kit, "flat_damage", 0.0)
+        if dealt > 0 and flat:
+            self.boss.hp = max(0.0, self.boss.hp - flat)
+            extra["ability_bonus"] = extra.get("ability_bonus", 0.0) + flat
+
         # Damage reduction and lifesteal are paid out as HP AFTER resolve() has
         # already clamped the loser to 0, so a fighter that died this exchange
         # was refunded back above zero and simply carried on. Anything with
@@ -759,6 +779,14 @@ class BossFight:
             back = taken * kit.reduction
             self.foe.hp = min(self.foe.max_hp, self.foe.hp + back)
             extra["ability_soak"] = back
+        flat_red = getattr(kit, "flat_reduction", 0.0)
+        if taken > 0 and flat_red and alive:
+            # Capped at the damage that actually landed: a flat soak larger
+            # than the hit would otherwise HEAL the player for the difference,
+            # which is a refund turning into a fountain.
+            back = min(float(flat_red), taken)
+            self.foe.hp = min(self.foe.max_hp, self.foe.hp + back)
+            extra["ability_soak"] = extra.get("ability_soak", 0.0) + back
         if taken > 0 and kit.reflect:
             self.boss.hp = max(0.0, self.boss.hp - kit.reflect)
             extra["ability_reflect"] = kit.reflect
@@ -1136,8 +1164,9 @@ class BossView(discord.ui.View):
             e.description = ((e.description + "\n") if e.description else "") + \
                 f"### ▶️ {f.active.display_name}'s turn"
         _t = btiers.get(f.tier)
+        _rung = btiers.walk_difficulty(cfg["difficulty"], f.tier)
         e.set_footer(text=f"Turn {f.turn} · {_t['emoji']} {_t['label']} · "
-                          f"Opponent: {btiers.walk_difficulty(cfg['difficulty'], f.tier)}"
+                          f"Opponent: {_rung} · {ai.iq_label(_rung)}"
                           + ("" if gemini.available() else " · dialogue offline"))
         return e
 

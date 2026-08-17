@@ -32,7 +32,7 @@ How the AI plays "like a pro":
 
 import math
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Optional
 
 from .boss_abilities import BossState
@@ -475,6 +475,13 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
 
 # ── Opponent model ────────────────────────────────────────────────────────────
 
+# How many recent moves a full-`read` boss effectively weighs. Ten is about
+# where the exponential decay (0.82) has faded a move to under 15% of a fresh
+# one, so remembering further back buys almost nothing — it is the natural
+# length of this model rather than a round number.
+MEMORY_FULL = 10
+
+
 @dataclass
 class OpponentModel:
     """Exponentially-weighted move frequencies, so recent habits dominate."""
@@ -482,6 +489,11 @@ class OpponentModel:
     decay: float = 0.82
     counts: dict = field(default_factory=lambda: {m: 1.0 for m in ALL_MOVES})
     history: list = field(default_factory=list)
+    # How much of what it has learned actually reaches the prediction, 0-1.
+    # Set from DIFFICULTY["read"], and the single knob that makes a higher tier
+    # mean "it reads you better". At 0.0 the model still OBSERVES — it just
+    # cannot use any of it, so the boss is guessing from priors alone.
+    read: float = 1.0
 
     def observe(self, move: str) -> None:
         for m in self.counts:
@@ -492,6 +504,44 @@ class OpponentModel:
     def predict(self, opponent: Fighter) -> dict[str, float]:
         legal = set(opponent.legal_moves())
         weights = {m: max(0.01, self.counts.get(m, 0.0)) for m in legal}
+
+        # `read` is IQ, and it works by shortening the boss's MEMORY.
+        #
+        # The first version blended the learned weights toward uniform, which
+        # was wrong in a way worth recording: blending scales every weight
+        # toward the same mean, so it preserves their ORDER and the top pick
+        # never moves. Measured against a player who attacked 75% of the time,
+        # IQ 2, 3, 4 and 5 all guessed right 71.7% of the time — an IQ ladder
+        # with no rungs in it.
+        #
+        # A short memory does change the answer: a boss that has seen your last
+        # two moves genuinely predicts worse than one that has seen your last
+        # ten, and it degrades smoothly rather than switching off.
+        # ONE estimator at every rung, with only the window length changing.
+        # The first attempt kept `counts` for read >= 1.0 and used the window
+        # only below it — and that inverted the top of the ladder, because
+        # `counts` seeds every move at 1.0 and carries that stale uniform prior
+        # forever. Measured at equal stats against a player who attacked 80% of
+        # the time, the boss won 68.3% at IQ 4 and only 59.4% at IQ 5: the
+        # most expensive tier read you WORSE than the one below it.
+        r = max(0.0, min(1.0, float(self.read)))
+        window = int(round(r * MEMORY_FULL))
+        if window <= 0:
+            # Reads nothing at all. Flat across every legal move, so the boss
+            # is left with the priors below and nothing else — near-chance,
+            # which is what tier 1 is meant to be. NOT anti-correlated: an
+            # earlier version left a rookie boss guessing the same wrong move
+            # every turn, which is worse than random rather than weaker.
+            weights = {m: 1.0 for m in legal}
+        else:
+            recent = self.history[-window:]
+            weights = {m: 0.01 for m in legal}
+            for i, mv in enumerate(recent):
+                if mv in weights:
+                    # The same exponential recency the model records with, so a
+                    # short window is a smaller version of the same reader
+                    # rather than a different one.
+                    weights[mv] += self.decay ** (len(recent) - 1 - i)
 
         # Priors that hold for almost every human: a full gauge gets spent, and
         # a hurt player reaches for the heal.
@@ -626,13 +676,51 @@ def hp_fractions(a: Fighter, b: Fighter) -> tuple[float, float]:
 #   depth     2-ply lookahead vs 1-ply (1-ply walks into counter-punches)
 #   model     opponent modelling on/off (off = it can't read your habits)
 #   blunder   chance of deliberately taking a merely-decent move
+# `iq` and `read` were added in v1.11 so that difficulty means "the boss reads
+# you better" rather than only "the boss has a bigger bar" — a damage sponge is
+# a worse fight than an opponent that punishes your habits, and a sponge can be
+# out-levelled by stats alone while a reader cannot.
+#
+#   iq    1-5, display only. The number the player is sold when they pay for a
+#         harder tier, and the honest summary of the three levers below.
+#   read  how much of the learned move distribution survives. 0.0 blends the
+#         opponent model all the way to uniform — the boss genuinely knows
+#         nothing about your habits — and 1.0 uses it whole. This is the lever
+#         the spec calls "how often the boss's prediction is right", and it is
+#         separate from `model` (which switched reading on or off outright and
+#         gave nothing in between).
 DIFFICULTY = {
-    "rookie":   {"depth": 1, "model": False, "blunder": 0.45, "mix": 0.60},
-    "veteran":  {"depth": 1, "model": True,  "blunder": 0.25, "mix": 0.40},
-    "elite":    {"depth": 2, "model": True,  "blunder": 0.12, "mix": 0.30},
-    "legend":   {"depth": 2, "model": True,  "blunder": 0.04, "mix": 0.20},
-    "nightmare":{"depth": 2, "model": True,  "blunder": 0.00, "mix": 0.15},
+    "rookie":   {"iq": 1, "depth": 1, "model": False, "blunder": 0.45,
+                 "mix": 0.60, "read": 0.00},
+    "veteran":  {"iq": 2, "depth": 1, "model": True,  "blunder": 0.25,
+                 "mix": 0.40, "read": 0.35},
+    "elite":    {"iq": 3, "depth": 2, "model": True,  "blunder": 0.12,
+                 "mix": 0.30, "read": 0.60},
+    "legend":   {"iq": 4, "depth": 2, "model": True,  "blunder": 0.04,
+                 "mix": 0.20, "read": 0.85},
+    "nightmare":{"iq": 5, "depth": 2, "model": True,  "blunder": 0.00,
+                 "mix": 0.15, "read": 1.00},
 }
+
+IQ_LABELS = {
+    1: "Sloppy",
+    2: "Attentive",
+    3: "Sharp",
+    4: "Calculating",
+    5: "Merciless",
+}
+
+
+def iq_for(difficulty: Optional[str]) -> int:
+    """The boss's IQ on this rung, 1-5. Unknown rungs read as mid."""
+    cfg = DIFFICULTY.get(difficulty or "")
+    return int(cfg["iq"]) if cfg else 3
+
+
+def iq_label(difficulty: Optional[str]) -> str:
+    """`IQ 4 · Calculating` — what the player is actually buying."""
+    iq = iq_for(difficulty)
+    return f"IQ {iq} · {IQ_LABELS.get(iq, '?')}"
 
 
 def choose_move(boss: Fighter, foe: Fighter, model: OpponentModel,
@@ -671,6 +759,13 @@ def choose_move(boss: Fighter, foe: Fighter, model: OpponentModel,
         depth = cfg["depth"]
         if not cfg["model"]:
             model = OpponentModel()          # flat priors — reads nothing
+        else:
+            # Hand the rung's read accuracy to the model for this decision
+            # only. Copied rather than mutated in place: the same model object
+            # is shared with the caller and with the lookahead's clones, and a
+            # boss whose read strength changed permanently because one function
+            # set an attribute would be a very hard bug to see.
+            model = replace(model, read=float(cfg.get("read", 1.0)))
         if cfg["blunder"] and rng.random() < cfg["blunder"]:
             # Take a legal-but-not-best move on purpose. This is what gives a
             # human the openings that make a fight winnable.

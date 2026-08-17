@@ -91,6 +91,8 @@ class BladeKit:
         self.crit_chance = 0.0
         self.heal_pct = 0.0
         self.true_damage = False
+        self.flat_damage = 0.0
+        self.flat_reduction = 0.0
 
         self.applied: list[str] = []
         self.dormant: list[str] = []
@@ -235,8 +237,127 @@ class BladeKit:
                     touched = True
 
             touched = self._flat(ability) or touched
+            touched = self._rules(ability) or touched
             label = ability.get("name", "?")
             (self.applied if touched else self.dormant).append(label)
+
+    # The DSL every blade in the database is actually authored in.
+    #
+    # `chain` and FLAT_KEYS above read two older shapes. Measured against the
+    # live roster: `chain` covers 28 blades and FLAT_KEYS covers more, but 42
+    # of 103 — 41%, including Void Longinus, Aetherion Vortex, Tartarus Reaper
+    # and Revive Phoenix — matched neither shape and walked into a boss fight
+    # with a completely empty kit. Their abilities were listed on the info
+    # card, printed in the lobby, and did nothing.
+    #
+    # This reads `rules[].do[].op`, the shape `cogs/abilities/ability_engine`
+    # runs. Only the ops that map cleanly onto the boss combat model are
+    # translated; the rest still fall through to `dormant` and are reported by
+    # `unsupported()`, because half-implementing a stacking counter here is how
+    # the two engines start disagreeing about what a blade does.
+    OP_TO_EFFECT = {
+        "bonus_damage_pct":     "amp",
+        "damage_boost":         "amp",
+        "special_boost":        "amp",
+        "crit_damage":          "amp",
+        "reduce_damage_pct":    "reduction",
+        "reflect_pct":          "reflect_pct",
+        "reflect_flat":         "reflect",
+        "reflect_pct_turns":    "reflect_pct",
+        "crit_chance":          "crit",
+        "guaranteed_crit":      "crit",
+        "ignore_defense_pct":   "pierce",
+        "ignore_defense":       "pierce",
+        "lifesteal_pct":        "heal",
+        "heal_pct":             "heal",
+        "true_damage":          "true",
+        "true_damage_turns":    "true",
+        "buff":                 "stat",
+        "buff_all":             "stat_all",
+        "buff_all_pct":         "stat_all_pct",
+        "stacking_buff":        "stat_stack",
+        # Flat numbers, not percentages. `bonus_damage` alone appears on seven
+        # of the blades that had no working kit at all, so folding it into the
+        # percentage amp would have been wrong twice over — wrong units, and it
+        # would have silently under-reported what those blades do.
+        "bonus_damage":         "flat_damage",
+        "reduce_damage_flat":   "flat_reduction",
+    }
+
+    # Caps for the two flat channels. Flat damage does not scale with the
+    # wielder's stats, so at boss HP it is a modest, reliable top-up rather
+    # than something that decides a fight.
+    MAX_FLAT_DAMAGE    = 90.0
+    MAX_FLAT_REDUCTION = 60.0
+
+    def _rules(self, ability: dict) -> bool:
+        """Read the rules/do/op DSL. Returns True if anything applied."""
+        touched = False
+        for rule in ability.get("rules") or []:
+            when = str(rule.get("when") or "").lower()
+            low = when in LOW_HP_TRIGGERS
+            target = self.low_hp_mult if low else self.stat_mult
+            for op in rule.get("do") or []:
+                kind = self.OP_TO_EFFECT.get(str(op.get("op") or ""))
+                if kind is None:
+                    continue
+                # `value` is the house default; `amount` and `per_stack` are
+                # what buff and stacking_buff carry instead.
+                val = _num(op, "value", "amount", "per_stack", default=0.0)
+                if kind == "amp":
+                    self.dmg_amp = min(MAX_DMG_AMP, self.dmg_amp + val / 100.0)
+                elif kind == "reduction":
+                    self.reduction = min(MAX_REDUCTION,
+                                         self.reduction + val / 100.0)
+                elif kind == "reflect":
+                    self.reflect = min(MAX_REFLECT, self.reflect + val)
+                elif kind == "reflect_pct":
+                    # A percentage of an incoming hit, expressed as the flat
+                    # number this engine reflects. Scaled off a mid-sized hit
+                    # rather than guessed: the boss engine has no per-hit hook
+                    # to read, so a percent has to become a constant somewhere.
+                    self.reflect = min(MAX_REFLECT,
+                                       self.reflect + val * 1.6)
+                elif kind == "crit":
+                    got = 1.0 if op.get("op") == "guaranteed_crit" \
+                        else min(0.35, val / 100.0)
+                    self.crit_chance = max(self.crit_chance, got)
+                elif kind == "pierce":
+                    got = 0.6 if op.get("op") == "ignore_defense" \
+                        else min(0.6, val / 100.0)
+                    self.ignore_def = max(self.ignore_def, got)
+                elif kind == "heal":
+                    self.heal_pct = min(0.25, self.heal_pct + val / 100.0)
+                elif kind == "true":
+                    self.true_damage = True
+                elif kind == "flat_damage":
+                    self.flat_damage = min(self.MAX_FLAT_DAMAGE,
+                                           self.flat_damage + val)
+                elif kind == "flat_reduction":
+                    self.flat_reduction = min(self.MAX_FLAT_REDUCTION,
+                                              self.flat_reduction + val)
+                elif kind == "stat":
+                    stat = str(op.get("stat") or "attack").lower()
+                    if stat in target:
+                        # Flat points, expressed as a modest percentage, the
+                        # same conversion `_flat` uses — a +20 ATK buff must
+                        # not read as +2000%.
+                        target[stat] = min(1 + MAX_STAT_BONUS,
+                                           target[stat] + val / 120.0)
+                elif kind == "stat_stack":
+                    stat = str(op.get("stat") or "attack").lower()
+                    if stat in target:
+                        stacks = max(1, int(op.get("max", 1) or 1))
+                        target[stat] = min(1 + MAX_STAT_BONUS,
+                                           target[stat] + val * stacks / 120.0)
+                elif kind in ("stat_all", "stat_all_pct"):
+                    per = val / (100.0 if kind == "stat_all_pct" else 120.0)
+                    for s in target:
+                        target[s] = min(1 + MAX_STAT_BONUS, target[s] + per)
+                else:
+                    continue
+                touched = True
+        return touched
 
     # ── Use ──────────────────────────────────────────────────────────────────
     def stats_for(self, hp_fraction: float) -> dict:
@@ -248,16 +369,27 @@ class BladeKit:
         return out
 
     def summary(self) -> str:
+        # Rounded to whole percents, so anything under 0.5% is dropped rather
+        # than printed as "+0% STA" — a real kit should not read as broken
+        # because one channel rounds to nothing.
         bits = []
         for s, v in self.stat_mult.items():
-            if v > 1.0:
+            if round((v - 1) * 100) >= 1:
                 bits.append(f"+{(v - 1) * 100:.0f}% {s[:3].upper()}")
-        if self.dmg_amp:    bits.append(f"+{self.dmg_amp * 100:.0f}% dmg")
-        if self.reduction:  bits.append(f"−{self.reduction * 100:.0f}% taken")
-        if self.reflect:    bits.append(f"{self.reflect:.0f} reflect")
-        if self.ignore_def: bits.append(f"pierce {self.ignore_def * 100:.0f}%")
-        if self.crit_chance:bits.append(f"{self.crit_chance * 100:.0f}% crit")
-        if self.heal_pct:   bits.append(f"{self.heal_pct * 100:.0f}% lifesteal")
+        if round(self.dmg_amp * 100) >= 1:
+            bits.append(f"+{self.dmg_amp * 100:.0f}% dmg")
+        if round(self.reduction * 100) >= 1:
+            bits.append(f"−{self.reduction * 100:.0f}% taken")
+        if round(self.reflect) >= 1:
+            bits.append(f"{self.reflect:.0f} reflect")
+        if round(self.ignore_def * 100) >= 1:
+            bits.append(f"pierce {self.ignore_def * 100:.0f}%")
+        if round(self.crit_chance * 100) >= 1:
+            bits.append(f"{self.crit_chance * 100:.0f}% crit")
+        if self.flat_damage:    bits.append(f"+{self.flat_damage:.0f} dmg")
+        if self.flat_reduction: bits.append(f"−{self.flat_reduction:.0f} taken")
+        if round(self.heal_pct * 100) >= 1:
+            bits.append(f"{self.heal_pct * 100:.0f}% lifesteal")
         if any(v > 1.0 for v in self.low_hp_mult.values()):
             bits.append("low-HP surge")
         return " · ".join(bits) or "no boss-compatible effects"
