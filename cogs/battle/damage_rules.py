@@ -226,6 +226,25 @@ def resolve_special(blade: dict,
     scale = special_scale(blade, special_stat)
     sm = blade.get("special_move")
     if sm:
+        # A Special that deals no damage at all.
+        #
+        # Every other path in this function floors the per-hit damage at 1 —
+        # `max(1, ...)` appears three times — so authoring `damage_per_hit: 0`
+        # produces 0 at level 1 and silently becomes 1 the moment the wielder's
+        # special stat scales the number, which is a different move at level 2
+        # than at level 1. There was no way to say "this move does not deal
+        # damage" and have it stay true.
+        #
+        # Declared rather than inferred, because 0 and "I forgot to fill this
+        # in" look identical in JSON and only one of them should skip the
+        # damage floor. Everything the move DOES do lives in its ability rules.
+        if sm.get("non_damage"):
+            flavour = sm.get("flavour_texts") or sm.get("flavour_text")
+            if isinstance(flavour, str):
+                flavour = [flavour]
+            if not flavour:
+                flavour = [f"🌀 {sm.get('name', 'Special')}!"]
+            return int(sm.get("hits", 1) or 1), 0, flavour, False
         hits = sm.get("hits", 1)
         # Guard: hits must be int (JSON may store as string)
         if not isinstance(hits, int):
@@ -283,6 +302,11 @@ def resolve_special_hits(blade: dict,
     """
     hits, per_hit, _flavour, _ig = resolve_special(blade, special_stat)
     sm = blade.get("special_move") or {}
+    # A declared non-damage Special stays at zero here too. The `max(1, ...)`
+    # in the list branch below would otherwise turn every authored 0 into a 1,
+    # which is the exact floor the flag exists to opt out of.
+    if sm.get("non_damage"):
+        return [0] * max(1, hits)
     raw = sm.get("damage_per_hit")
     if not isinstance(raw, list) or not raw:
         return [per_hit] * max(1, hits)

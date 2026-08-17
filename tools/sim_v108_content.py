@@ -6,7 +6,7 @@ Four pieces of content and one bug fix, and the reason this file exists is that
 three of them are the kind of thing that LOOKS right in JSON and does nothing
 at run time:
 
-**Surge Xcalibur's two-stage Special.** The bank-then-cash mechanic is built
+**Surge Xcalius's two-stage Special.** The bank-then-cash mechanic is built
 out of two rules on the SAME trigger, and the whole thing hinges on their
 ORDER: the consume rule has to run before the rule that banks, or the first
 Special ever fired cashes a charge that was placed a microsecond earlier and
@@ -124,7 +124,8 @@ def take(sess, incoming, move=MOVE_ATTACK, matchup="win"):
 
 # ══════════════════════════════════════════════════════════════════════════════
 print("\n── 1. the three blades landed ──────────────────────────────────")
-NEW_BLADES = ("Drain Fafnir (Black Edition)", "Twin Nemesis", "Surge Xcalibur")
+NEW_BLADES = ("Drain Fafnir (Black Edition)", "Twin Nemesis",
+              "Surge Xcalius")
 for n in NEW_BLADES:
     check(f"{n} is in the roster", n in BLADES)
 check("the roster grew — floor, not an exact count, because it grows again",
@@ -245,8 +246,8 @@ check(f"...and {back:.0f} reflected straight back", back > 0, back)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n── 4. Surge Xcalibur — everything rewritten as attack ──────────")
-sx = BLADES["Surge Xcalibur"]
+print("\n── 4. Surge Xcalius — everything rewritten as attack ───────────")
+sx = BLADES["Surge Xcalius"]
 check("Attack type", sx["type"] == "Attack")
 check("Mythic", sx["rarity"] == "Mythic")
 # The stat line IS the ability: a Mythic with 47 Defence is a statement, and it
@@ -273,17 +274,17 @@ check("the SECOND cashes the bank for 230", seen[1] == 230, seen)
 check("...and every Special after it collects too, because the bank re-arms",
       seen[2] == 230 and seen[3] == 230, seen)
 
+# Stability moved OFF on_special in v1.10. `on_special` fires once, on the
+# first hit, so the 30 that used to live there could never be "10 each" across
+# three sabers — it rides on_hit now, and section 10 measures it there. Left
+# here as an explicit zero so the move is not silently double-charging.
 s = Sess(sx, FOE)
-before = s.stability_manager.stability.get("o") if hasattr(
-    s.stability_manager, "stability") else None
-fire(s, "on_special", 0.0, 0.0)
-after = s.stability_manager.stability.get("o") if hasattr(
-    s.stability_manager, "stability") else None
-if before is not None and after is not None:
-    check(f"the first surge takes 30 stability ({before} -> {after})",
-          after < before, (before, after))
-else:
-    check("the first surge takes stability", True, "manager shape differs")
+before = s.stability_manager.stability.get("o")
+fire(s, "on_special", 0, 0)
+check(f"on_special itself takes NO stability any more ({before} -> "
+      f"{s.stability_manager.stability.get('o')}) — it rides on_hit, so the "
+      f"three sabers are 10 each rather than one 30",
+      s.stability_manager.stability.get("o") == before, before)
 
 print("      Recover, converted:")
 for trig in ("on_stamina_win", "on_stamina_mirror", "on_stamina_loss"):
@@ -530,6 +531,178 @@ check(f"...so the largest painted art is 500px, and TARGET_PX "
 check("the art is circle-cropped with object-fit: cover — which is why "
       "square source matters more than resolution",
       'object-fit:cover' in _ic.replace(" ", ""))
+
+print("\n── 9. Deep Caynox, and a Special that really deals nothing ────")
+from cogs.battle.damage_rules import (                              # noqa: E402
+    resolve_special, resolve_special_hits)
+
+for _n in ("Deep Caynox", "Deep Caynox ELT"):
+    check(f"{_n} is in the roster", _n in BLADES)
+
+_dc, _elt = BLADES["Deep Caynox"], BLADES["Deep Caynox ELT"]
+check("the stats are the ones asked for: 50 / 101 / 121",
+      (_dc["stats"]["attack"], _dc["stats"]["defense"],
+       _dc["stats"]["stamina"]) == (50, 101, 121), _dc["stats"])
+check("Stamina type, Legendary",
+      _dc["type"] == "Stamina" and _dc["rarity"] == "Legendary")
+check("50 Attack really is the lowest of any Legendary — the card is meant "
+      "to read that way",
+      _dc["stats"]["attack"] == min(
+          b["stats"]["attack"] for b in BLADES.values()
+          if b["rarity"] == "Legendary"), _dc["stats"]["attack"])
+
+# The non-damage Special. Every other path in resolve_special floors per-hit
+# damage at 1, so authoring `damage_per_hit: 0` gives 0 at level 1 and silently
+# becomes 1 the moment the special stat scales it — a different move at level 2
+# than at level 1. `non_damage` is what makes "deals nothing" stay true.
+check("Levitation Launch is declared non_damage, not merely authored as 0",
+      _dc["special_move"].get("non_damage") is True)
+for _lbl, _stat in (("unlevelled", None), ("heavily levelled", 300.0)):
+    _h, _p, _f, _ig = resolve_special(_dc, _stat)
+    _tbl = resolve_special_hits(_dc, _stat)
+    check(f"...and deals exactly 0 when {_lbl} (per_hit={_p}, table={_tbl})",
+          _p == 0 and sum(_tbl) == 0, (_p, _tbl))
+# The floor it opts out of, shown rather than asserted about: an ordinary
+# blade authored at 0 would be dragged up to 1.
+_fake = {"name": "x", "stats": _dc["stats"],
+         "special_move": {"name": "y", "hits": 1, "damage_per_hit": 0}}
+check("...and WITHOUT the flag the engine floors it at 1, which is the whole "
+      "reason the flag exists",
+      resolve_special_hits(_fake, 300.0) == [1],
+      resolve_special_hits(_fake, 300.0))
+
+# A non-damage Special with no ability rules would be a button that does
+# nothing at all, so everything it does lives in the kit.
+_s = Sess(_dc, FOE)
+_s.hp["m"] = 1000
+_s.stability_manager.stability["m"] = 55
+_sp0 = _s.stamina_manager.stamina.get("m")
+_dealt, _, _logs = fire(_s, "on_special", 0, 0)
+check("Levitation Launch deals no damage through the engine either",
+      _dealt == 0, _dealt)
+check(f"...but heals ({1000} -> {_s.hp['m']})", _s.hp["m"] > 1000)
+check(f"...restores stamina ({_sp0:.1f} -> "
+      f"{_s.stamina_manager.stamina.get('m'):.1f})",
+      _s.stamina_manager.stamina.get("m") > _sp0)
+check(f"...restores stability (55 -> "
+      f"{_s.stability_manager.stability.get('m')})",
+      _s.stability_manager.stability.get("m") > 55)
+check("...and leaves a shield", any("shield" in l.lower() for l in _logs), _logs)
+check("...and a Defence buff that LASTS, unlike reduce_damage_pct — that op "
+      "takes no `turns` and would have shaved a hit that isn't happening",
+      any("Defense" in l and "turns" in l for l in _logs), _logs)
+
+# Switch Strike: 50 Attack is only playable because the strike is not made of
+# Attack.
+_s = Sess(_dc, FOE)
+_hit, _, _ = fire(_s, "on_attack_hit", 40, 0)
+check(f"Switch Strike puts Stamina behind the blow (40 -> {_hit})",
+      _hit > 40 + _dc["stats"]["attack"] * 0.5, _hit)
+check("...and the bonus is read off the STAMINA stat, not a printed constant",
+      any(op.get("stat") == "stamina"
+          for ab in _dc["abilities"] for r in ab["rules"]
+          for op in r["do"] if op["op"] == "bonus_damage_stat"))
+
+print("      ELT — same blade, better ability:")
+for _f in ("type", "spin_direction", "burst_height"):
+    check(f"same {_f}", _elt[_f] == _dc[_f], (_elt[_f], _dc[_f]))
+check("same stat line, exactly", _elt["stats"] == _dc["stats"],
+      (_elt["stats"], _dc["stats"]))
+check("same Special name and non_damage flag",
+      _elt["special_move"]["name"] == _dc["special_move"]["name"]
+      and _elt["special_move"].get("non_damage") is True)
+check("but its own flavour line",
+      _elt["special_move"]["flavour_texts"]
+      != _dc["special_move"]["flavour_texts"])
+check("booster-exclusive", _elt.get("booster_exclusive") is True)
+_b_ops, _e_ops = ops_of(_dc), ops_of(_elt)
+check("nothing got WORSE — 'better ability' means better on every axis",
+      all(_e_ops.get(k, 0) >= v for k, v in _b_ops.items()),
+      {k: (v, _e_ops.get(k)) for k, v in _b_ops.items()
+       if _e_ops.get(k, 0) < v})
+_e_hit, _, _ = fire(Sess(_elt, FOE), "on_attack_hit", 40, 0)
+check(f"...and it hits harder through the engine ({_hit} -> {_e_hit})",
+      _e_hit > _hit, (_hit, _e_hit))
+_b_thru, _, _ = take(Sess(_dc, FOE), 200)
+_e_thru, _, _ = take(Sess(_elt, FOE), 200)
+check(f"...and soaks more of a 200 hit ({_b_thru} -> {_e_thru} through)",
+      _e_thru < _b_thru, (_b_thru, _e_thru))
+
+
+print("\n── 10. Surge Xcalibur -> Surge Xcalius, and Triple Saber ──────")
+# Safe as a straight rename ONLY because nobody held it: measured against the
+# live store, 0 owners and 0 equipped, since it shipped the day before. A
+# rename of anything anyone held would need a profile migration, because
+# inventories store the NAME, not the id.
+check("the new name is in the roster", "Surge Xcalius" in BLADES)
+check("...and the old one is gone", "Surge Xcalibur" not in BLADES)
+_sx = BLADES["Surge Xcalius"]
+check("its inner name matches too, not just the key",
+      _sx["name"] == "Surge Xcalius", _sx["name"])
+check("it kept its id — a rename is not a new blade", _sx["id"] == "BB101",
+      _sx["id"])
+check("everything else is the same blade: 158 / 47 / 92, Mythic, Attack",
+      (_sx["stats"]["attack"], _sx["stats"]["defense"],
+       _sx["stats"]["stamina"]) == (158, 47, 92)
+      and _sx["rarity"] == "Mythic" and _sx["type"] == "Attack", _sx["stats"])
+# A stale "Xcalibur" in runtime code or data would be a dead lookup, so those
+# are swept. The `tools/add_*` migration scripts are excluded on purpose: the
+# one that PERFORMS the rename has to name both sides of it, and the v1.08
+# script carries a note saying what the blade originally shipped as. Excluding
+# the whole repo would make the check meaningless; excluding nothing would make
+# it unsatisfiable.
+import subprocess                                                   # noqa: E402
+_sweep = subprocess.run(
+    ["grep", "-rn", "Surge Xcalibur",
+     os.path.join(ROOT, "cogs"), os.path.join(ROOT, "utils"),
+     os.path.join(ROOT, "data"), os.path.join(ROOT, "README.md")],
+    capture_output=True, text=True)
+_hits = [h for h in _sweep.stdout.strip().splitlines()
+         if h and "__pycache__" not in h]
+check("no stale 'Surge Xcalibur' left in cogs/, utils/, data/ or the README",
+      not _hits, _hits[:3])
+
+_sm = _sx["special_move"]
+check("the Special is renamed to Triple Saber",
+      _sm["name"] == "Triple Saber", _sm["name"])
+check("...with 3 hits", _sm["hits"] == 3, _sm["hits"])
+check("...and the SAME total damage — 'everything will be same'. A scalar "
+      "would have been 34//3 = 11 and quietly shaved a point",
+      sum(resolve_special_hits(_sx, None)) == 34,
+      resolve_special_hits(_sx, None))
+check("...which needs a per-hit LIST to express",
+      isinstance(_sm["damage_per_hit"], list), _sm["damage_per_hit"])
+
+# 10 stability per hit. Moved from on_special (fires ONCE, on the first hit) to
+# on_hit (the per-Special-hit trigger), so "10 each" is three separate 10s
+# rather than one 30 wearing a different label.
+_s = Sess(_sx, FOE)
+_st0 = _s.stability_manager.stability.get("o")
+_per = []
+for _ in range(3):
+    fire(_s, "on_hit", 0, 0)
+    _per.append(_s.stability_manager.stability.get("o"))
+check(f"each saber takes 10 stability ({_st0} -> {_per})",
+      _per == [_st0 - 10, _st0 - 20, _st0 - 30], (_st0, _per))
+check("...totalling the same 30 the single-hit version took",
+      _st0 - _per[-1] == 30)
+check("the stability rides on_hit, not on_special — on_special fires once, "
+      "so 3x10 there would have been 10",
+      not any(op["op"] == "enemy_lose_stability"
+              for ab in _sx["abilities"] for r in ab["rules"]
+              if r.get("when") == "on_special" for op in r["do"]))
+# And the rest of the blade is untouched, which is the other half of
+# "everything will be same".
+_s = Sess(_sx, FOE)
+check("the bank-then-cash Special is unchanged: 0, then 230 every time after",
+      [fire(_s, "on_special", 0, 0)[0] for _ in range(4)]
+      == [0, 230, 230, 230])
+_s = Sess(_sx, FOE)
+check("Recover still lands 59 instead of restoring",
+      fire(_s, "on_stamina_win", 0, 0)[0] == 59)
+check("...and Defend still counters 20% harder",
+      _s.ability.counter_damage_pct("m", _sx) == 20.0)
+
 
 print(f"\n{PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)
