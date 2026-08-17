@@ -8364,5 +8364,254 @@
         ]
       }
     ]
+  },
+  "Drain Fafnir (Black Edition)": {
+    "id": "BB099",
+    "name": "Drain Fafnir (Black Edition)",
+    "rarity": "Mythic",
+    "type": "Stamina",
+    "spin_direction": "Left",
+    "burst_height": "Mid",
+    "booster_exclusive": true,
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565725105561610/b70537c94b4a53b0bfc56c3a70d06b71.jpg?ex=6a83247e&is=6a81d2fe&hm=b55e357de44fe4256c73f119ce6894c136bd9538d7f77137a3c87eed681d44c4&",
+    "description": "The same left-spin layer in funeral black. Nothing about the shape changed — what changed is how much it keeps. Where Drain Fafnir takes a share of what hits it, the Black Edition takes the hit itself, the spin behind it, and the stamina that was going to pay for the next one.",
+    "abilities": [
+      {
+        "name": "Void Drain",
+        "trigger": "on_take_damage",
+        "description": "Drain Spin, doubled and then some. Steals **1.2 stamina** from the attacker, heals **26** from the theft, and cuts **22%** off the hit that fed it. Every third hit taken bursts for 70 true damage — Fafnir has been full for a while by then.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "drain_stamina",
+                "value": 1.2
+              },
+              {
+                "op": "heal_per_drain",
+                "value": 26
+              },
+              {
+                "op": "reduce_damage_pct",
+                "value": 22
+              },
+              {
+                "op": "add_counter",
+                "name": "void",
+                "amount": 1,
+                "max": 3
+              },
+              {
+                "op": "counter_burst",
+                "name": "void",
+                "at": 3,
+                "damage": 70,
+                "reset": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stats": {
+      "attack": 74,
+      "defense": 92,
+      "stamina": 128,
+      "special": 108,
+      "hp": 124
+    },
+    "special_move": {
+      "name": "Nothing Break",
+      "description": "Fafnir absorbs the charge and gives none of it back, draining the stadium dry in two long pulls.",
+      "hits": 2,
+      "damage_per_hit": 52,
+      "total_damage": 104,
+      "flavour_texts": [
+        "🖤 **Nothing Break** — the black layer gives nothing back!"
+      ]
+    }
+  },
+  "Twin Nemesis": {
+    "id": "BB100",
+    "name": "Twin Nemesis",
+    "rarity": "Legendary",
+    "type": "Balance",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565822400827452/f61b5a67f0ec747cec4736c7111b4e44.jpg?ex=6a832495&is=6a81d315&hm=a19f219c94f5bcb383ead467982cd3edec3cd4b6eb2c170f06125adc047895e5&",
+    "description": "Two beasts sharing one axis and refusing to share anything else. One head takes the hit, the other answers it, and the blade is never doing both at once — which is exactly why it never runs out of the one it needs.",
+    "stats": {
+      "attack": 124,
+      "defense": 121,
+      "stamina": 118,
+      "special": 130,
+      "hp": 126
+    },
+    "special_move": {
+      "name": "Twin Fang Devour",
+      "description": "Both heads come off the axis at once and close from opposite sides. There is no gap between the two bites to step out of.",
+      "hits": 4,
+      "damage_per_hit": 39,
+      "total_damage": 156,
+      "flavour_texts": [
+        "🐍 **Twin Fang Devour** — both heads close at once!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Beast Alternation",
+        "trigger": "on_attack_hit",
+        "description": "The heads trade off. Every strike takes **6 stability** and banks a Fang; at **3 Fangs** the second head bites for **85** and the count resets. Meanwhile every hit taken is answered with **12% reduction and 16 reflected** — whichever head is not attacking is guarding.",
+        "rules": [
+          {
+            "when": "on_attack_hit",
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "value": 6
+              },
+              {
+                "op": "add_counter",
+                "name": "fang",
+                "amount": 1,
+                "max": 3
+              },
+              {
+                "op": "counter_burst",
+                "name": "fang",
+                "at": 3,
+                "damage": 85,
+                "reset": true
+              }
+            ]
+          },
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "reduce_damage_pct",
+                "value": 12
+              },
+              {
+                "op": "reflect_flat",
+                "value": 16
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "Surge Xcalibur": {
+    "id": "BB101",
+    "name": "Surge Xcalibur",
+    "rarity": "Mythic",
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "High",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565731757592627/675efa73338f2bfa315c44ee0da84cb6.jpg?ex=6a83247f&is=6a81d2ff&hm=37d4b281b1238a0bbfbed0faf00dcc7dc2610a0521928ad57c76222b974fdd3f&",
+    "description": "A sword that has forgotten how to be anything else. Surge Xcalibur cannot recover and cannot guard — the recovery comes out as a strike and the guard comes out as a counter, because the blade has no other gear to shift into. 47 Defence is not a weakness it carries; it is the weight it threw away.",
+    "stats": {
+      "attack": 158,
+      "defense": 47,
+      "stamina": 92,
+      "special": 152,
+      "hp": 112
+    },
+    "special_move": {
+      "name": "Excalibur Surge",
+      "description": "The first surge does not go for health at all — it goes for the footing, and takes 30 stability out from under the opponent. The next one collects.",
+      "hits": 1,
+      "damage_per_hit": 34,
+      "total_damage": 34,
+      "flavour_texts": [
+        "⚡ **Excalibur Surge** — the ground goes first!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Surge Overwrite",
+        "trigger": "on_special",
+        "description": "Every defensive option is rewritten as an attack.\n• **Recover** stops restoring and lands **59 damage** instead.\n• **Defend** stops soaking and counters **20% harder**, off the normal defence-counter calculation.\n• The **Special** takes **30 stability** and banks it. The NEXT Special cashes that bank for **230 damage** and banks again, so from the second one onward every Special collects.",
+        "rules": [
+          {
+            "when": "on_special",
+            "if": [
+              {
+                "cond": "counter_at_least",
+                "value": 1,
+                "name": "surge_charge"
+              }
+            ],
+            "do": [
+              {
+                "op": "consume_counter",
+                "name": "surge_charge",
+                "amount": 1,
+                "damage_per_stack": 230
+              }
+            ],
+            "_name": "Surge Overwrite"
+          },
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "value": 30
+              },
+              {
+                "op": "add_counter",
+                "name": "surge_charge",
+                "amount": 1,
+                "max": 1
+              }
+            ],
+            "_name": "Surge Overwrite"
+          },
+          {
+            "when": "on_stamina_win",
+            "do": [
+              {
+                "op": "bonus_damage",
+                "value": 59
+              }
+            ],
+            "_name": "Surge Overwrite"
+          },
+          {
+            "when": "on_stamina_mirror",
+            "do": [
+              {
+                "op": "bonus_damage",
+                "value": 59
+              }
+            ],
+            "_name": "Surge Overwrite"
+          },
+          {
+            "when": "on_stamina_loss",
+            "do": [
+              {
+                "op": "bonus_damage",
+                "value": 59
+              }
+            ],
+            "_name": "Surge Overwrite"
+          },
+          {
+            "when": "setup",
+            "do": [
+              {
+                "op": "counter_damage_pct",
+                "value": 20
+              }
+            ],
+            "_name": "Surge Overwrite"
+          }
+        ]
+      }
+    ]
   }
 }

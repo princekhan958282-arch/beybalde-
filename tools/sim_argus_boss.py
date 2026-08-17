@@ -652,7 +652,16 @@ check(f"every one of the {sum('bcard.render' in l for l in _lines)} card "
       not _unguarded, _unguarded)
 
 print("\n── 10. nothing else moved ──────────────────────────────────────")
-check("still three bosses with kits", len(BB.BOSSES) == 3, sorted(BB.BOSSES))
+# A floor, not an exact count. This read `== 3`, and adding Lionheart broke it
+# — which is the fifth time a hardcoded roster size in these suites has failed
+# for the crime of the roster growing. The thing worth asserting is that the
+# three that were here are still here, not that nothing was ever added.
+check("every boss that had a kit still has one",
+      {"drakos", "argus", "nemesis"} <= set(BB.BOSSES), sorted(BB.BOSSES))
+check("...and every one of them still resolves to a module and a state",
+      all(BB._module_for(BB.BOSSES[k]) is not None
+          and BB._make_state(BB.BOSSES[k]) is not None for k in BB.BOSSES),
+      [k for k in BB.BOSSES if BB._module_for(BB.BOSSES[k]) is None])
 check("Drakos's Stars still ramp",
       DK.DrakosState().copy() is not None)
 check("boss keys are unique", len(set(BB.BOSSES)) == len(BB.BOSSES))

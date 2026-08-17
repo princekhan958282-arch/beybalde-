@@ -80,8 +80,31 @@ def _starter_pool() -> list[dict]:
     return pool or [b for b in beys.values() if b.get("name")]
 
 
+# Written the moment a starter is actually claimed. Before this existed,
+# "have you started?" was INFERRED, and one of the two things it inferred from
+# was wrong — see below.
+K_STARTED = "starter_claimed"
+
+
 def _has_started(profile: dict) -> bool:
-    return bool(profile.get("inventory")) or profile.get("xp", 0) > 0
+    """Has this player been through `;start` and come out with a blade?
+
+    The old answer was `inventory or xp > 0`, and the `xp > 0` half was a trap:
+    XP can be handed out by a redeem code, an admin grant or a migration
+    without a blade ever changing hands. Five live accounts sat on exactly
+    60,000 XP, 110,999 coins, level 34 and an EMPTY inventory — so `;start`
+    told them "You're already started!" and closed, they never got to pick,
+    and nothing that needs a blade would work. That is the reported bug, and
+    it was unrecoverable without an admin: there is no second door.
+
+    Owning a blade is now the only thing that counts, plus an explicit flag so
+    the answer survives the player later selling or trading every blade away.
+    Without the flag, "no blades" would read as "never started" and hand out
+    another free starter and another STARTER_COINS — an exploit, and the reason
+    the xp check was there in the first place. The flag says what the xp was
+    standing in for, and says it correctly.
+    """
+    return bool(profile.get(K_STARTED)) or bool(profile.get("inventory"))
 
 
 def _stat_line(bey: dict) -> str:
@@ -118,8 +141,16 @@ class StarterButton(discord.ui.Button):
         add_beyblade_to_inventory(uid, name)
         set_active_beyblade(uid, name)
 
+        # Re-read AFTER add_beyblade_to_inventory, never before: that call
+        # writes the profile itself, so a snapshot taken earlier would be
+        # written back here and erase the blade we just granted. Same bug that
+        # ate blades in redeem.grant.
         profile = get_user(uid)
         profile["coins"] = profile.get("coins", 0) + STARTER_COINS
+        # The flag goes down here, not in ;start, because this is the line
+        # where the player actually HAS something. Setting it when the picker
+        # opens would strand anyone who closed it or let it time out.
+        profile[K_STARTED] = True
         update_user(uid, profile)
 
         for c in view.children:
@@ -320,13 +351,20 @@ class OnboardingCog(commands.Cog):
 
         if _has_started(profile):
             casino_bal = await casino_wallet.get_balance(ctx.author.id)
+            held = len(profile.get("inventory") or [])
             e = discord.Embed(
                 title="✅  You're already started!",
                 description=(
-                    f"**{len(profile.get('inventory', []))}** blade(s) collected.\n"
+                    f"**{held}** blade(s) collected.\n"
                     f"Need a refresher? `;whatnext`"
+                    # Reachable only by selling or trading away every blade.
+                    # "Already started" plus an empty bag is a dead end unless
+                    # the message says where to get another one.
+                    if held else
+                    "You've traded or sold every blade you had.\n"
+                    "Catch one from a wild spawn, or buy one with `;shop`."
                 ),
-                color=0x2ecc71,
+                color=0x2ecc71 if held else 0xf1c40f,
             )
             e.add_field(name="🪙 Beycoins",
                         value=f"**{profile.get('coins', 0):,}**", inline=True)
