@@ -129,6 +129,68 @@ class AdminCog(commands.Cog, name="Admin"):
         update_user(member.id, profile)
         await ctx.send(f"✅ Gave **{canonical_name}** to {member.mention}.", delete_after=10)
 
+    # ── ;giveavatar @user "Avatar Name" ───────────────────────────────────────
+    @commands.command(name="giveavatar", aliases=["grantavatar", "givecard"],
+                      hidden=True)
+    @is_master()
+    async def giveavatar(self, ctx: commands.Context, member: discord.Member,
+                         *, query: str) -> None:
+        """Grant an avatar card. Accepts the name or the id.
+
+        The counterpart to `;givebey`, and the only way to hand out an
+        **Exclusive** card: `_build_rarity_map` filters Exclusive out of every
+        pack pull, so those cards have no other route into a player's hands.
+
+        Matching accepts either the id (`avatar_u001`) or the name, exact
+        first and then a unique prefix/substring. An ambiguous name lists the
+        candidates rather than guessing — handing the wrong Exclusive to
+        somebody is not a mistake with an undo.
+        """
+        from cogs.avatar import avatar_engine
+        from utils.database import add_avatar_to_inventory, player_owns_avatar
+
+        q = query.strip().strip('"').strip("'")
+        if not q:
+            return await ctx.send("❌ Usage: `;giveavatar @user <name or id>`",
+                                  delete_after=15)
+
+        cards = avatar_engine.get_all_avatars()
+        ql = q.lower()
+        exact = [a for a in cards
+                 if a["id"].lower() == ql or a["name"].lower() == ql]
+        hits = exact or [a for a in cards if ql in a["name"].lower()]
+
+        if not hits:
+            return await ctx.send(
+                f"❌ No avatar matches **{q}**. `;avatars` lists them.",
+                delete_after=15)
+        if len(hits) > 1:
+            # Cap the list: 37 cards today and a one-letter query matches most
+            # of them, which would blow the 2,000-character message limit.
+            shown = ", ".join(f"**{a['name']}**" for a in hits[:8])
+            more = f" …and {len(hits) - 8} more" if len(hits) > 8 else ""
+            return await ctx.send(
+                f"❌ **{q}** matches {len(hits)} avatars: {shown}{more}\n"
+                f"Use the full name or the id.", delete_after=30)
+
+        av = hits[0]
+        if player_owns_avatar(member.id, av["id"]):
+            return await ctx.send(
+                f"ℹ️ {member.mention} already owns **{av['name']}**.",
+                delete_after=15)
+
+        # Through the same database helper the shop uses, not a hand-rolled
+        # profile write. `add_beyblade_to_inventory` writes the profile itself,
+        # and a stale snapshot written back on top of it is what erased blades
+        # in redeem.grant — going through the helper is how that stays fixed.
+        add_avatar_to_inventory(member.id, av["id"])
+        logger.info("[admin] %s granted avatar %s (%s) to %s",
+                    ctx.author.id, av["id"], av["name"], member.id)
+        await ctx.send(
+            f"✅ Gave **{av['name']}** *({av['rarity']})* to {member.mention}.\n"
+            f"They can equip it with `;equipavatar {av['id']}`.",
+            delete_after=30)
+
     # ── ;resetplayer @user ────────────────────────────────────────────────────
     @commands.command(name="resetplayer", hidden=True)
     @is_master()

@@ -33,7 +33,6 @@ grants without a blade ever changing hands. Five live accounts were stuck.
 Run:  python3 tools/sim_v108_content.py
 """
 import os
-import random
 import sys
 import types as _t
 
@@ -442,11 +441,95 @@ src = open(os.path.join(ROOT, "cogs", "core", "onboarding.py"),
            encoding="utf-8").read()
 check("the flag is written where the blade is actually granted, not when the "
       "picker opens — a closed picker must not strand anyone",
-      f'profile[K_STARTED] = True' in src.split("class StarterPickView")[0])
+      "profile[K_STARTED] = True" in src.split("class StarterPickView")[0])
 check("the four authored starters are still what a new player chooses from",
       len(STARTER_NAMES) == 4 and all(n in BLADES for n in STARTER_NAMES),
       STARTER_NAMES)
 
+
+print("\n── 7. ;giveavatar — the only route an Exclusive card has ───────")
+from cogs.avatar import avatar_engine as _ae                        # noqa: E402
+
+_cards = _ae.get_all_avatars()
+
+
+def _match(q):
+    """The matcher from AdminCog.giveavatar, restated for testing.
+
+    Kept in step with the command by the source check below rather than by
+    hope: if the two ever disagree the last check in this block fails.
+    """
+    ql = q.strip().strip('"').strip("'").lower()
+    if not ql:
+        return []
+    exact = [a for a in _cards
+             if a["id"].lower() == ql or a["name"].lower() == ql]
+    return exact or [a for a in _cards if ql in a["name"].lower()]
+
+
+_adm = open(os.path.join(ROOT, "cogs", "admin", "admin.py"),
+            encoding="utf-8").read()
+check("the command exists and is master-gated like ;givebey",
+      'name="giveavatar"' in _adm
+      and "@is_master()" in _adm.split('name="giveavatar"')[1][:200])
+check("...and hidden, like every other command in the admin cog",
+      "hidden=True" in _adm.split('name="giveavatar"')[1][:120])
+_body = _adm.split("async def giveavatar")[1].split("\n    # ──")[0]
+check("it grants through the shop's own database helper, not a hand-rolled "
+      "profile write — a stale snapshot written back is what ate blades in "
+      "redeem.grant", "add_avatar_to_inventory" in _body)
+check("...and checks ownership first rather than duplicating a card",
+      "player_owns_avatar" in _body)
+
+check("an exact id resolves", len(_match("avatar_u001")) == 1)
+check("an exact name resolves", len(_match("Dr. W. D. Gaster")) == 1)
+check("a unique substring resolves",
+      len(_match("gaster")) == 1 and _match("gaster")[0]["id"] == "avatar_u001")
+check("an unknown name resolves to nothing rather than to something",
+      _match("zzzznope") == [])
+# The reason ambiguity is refused rather than guessed: handing the wrong
+# Exclusive to somebody has no undo, and one-letter queries match most of the
+# roster.
+_amb = _match("a")
+check(f"an ambiguous query is refused, not guessed ({len(_amb)} matches)",
+      len(_amb) > 1, len(_amb))
+check("exact wins over substring — 'Argus' must not be ambiguous just "
+      "because some other card contains it",
+      len(_match("Argus")) == 1, [a["name"] for a in _match("Argus")])
+
+# The gap this command closes. _build_rarity_map filters Exclusive out of
+# every pack pull, so those cards had no route into a player's hands at all.
+_excl = [a for a in _cards if a["rarity"] == "Exclusive"]
+check(f"there are Exclusive cards ({len(_excl)}) and packs cannot pull them",
+      _excl and 'av["rarity"] != "Exclusive"' in open(
+          os.path.join(ROOT, "cogs", "avatar", "avatar_shop.py"),
+          encoding="utf-8").read(),
+      [a["name"] for a in _excl])
+for _a in _excl:
+    check(f"...so {_a['name']} is reachable by name through ;giveavatar",
+          len(_match(_a["name"])) == 1)
+
+
+print("\n── 8. blade art has ONE ceiling, and it is stated once ─────────")
+# "What size should bey photos be?" — answered by the renderers, not by taste.
+# TARGET_PX is the single number, and it has to stay >= what the largest
+# consumer actually paints or the optimiser silently degrades the info card.
+from tools import optimize_assets as _oa                            # noqa: E402
+
+check("the optimiser states the ceiling once, as a constant",
+      isinstance(_oa.TARGET_PX, int), _oa.TARGET_PX)
+_ic = open(os.path.join(ROOT, "utils", "info_card.py"), encoding="utf-8").read()
+check("the info card is still 720 CSS px at device scale 2",
+      "CARD_WIDTH   = 720" in _ic and "device_scale_factor=2" in _ic)
+# .disc is 250 CSS px; at deviceScaleFactor 2 that is 500 real px, and it is
+# the largest thing any surface paints blade art into.
+check(f"...so the largest painted art is 500px, and TARGET_PX "
+      f"({_oa.TARGET_PX}) clears it",
+      "width: 250px; height: 250px" in _ic and _oa.TARGET_PX >= 500,
+      _oa.TARGET_PX)
+check("the art is circle-cropped with object-fit: cover — which is why "
+      "square source matters more than resolution",
+      'object-fit:cover' in _ic.replace(" ", ""))
 
 print(f"\n{PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)

@@ -79,6 +79,49 @@ Edit `data/beyblades.json`. Each entry follows this schema:
 }
 ```
 
+### Blade artwork — what size to make it
+
+**512 × 512 px, square, PNG or WebP with a transparent background.**
+
+That is not a preference, it is what the renderers paint. The largest surface
+is the `;info` card: `utils/info_card.py` draws blade art into a 250 CSS-px
+disc at `device_scale_factor=2`, so **500 real pixels** is the most any pixel
+of source art will ever be shown at. `tools/optimize_assets.py` therefore caps
+everything at `TARGET_PX = 512` — the next power of two above 500, with a
+little headroom. Anything larger is disk, RAM and render time spent on pixels
+nobody sees; at 101 blades that is the difference between ~7 MB of art and
+~120 MB, which matters on a Pterodactyl panel.
+
+Every surface that paints blade art:
+
+| Surface | Painted at | Shape |
+|---|---|---|
+| `;info` card (`info_card.py`) | **500 × 500** | circle, `object-fit: cover` |
+| Profile card (`profile_card.py`) | 208 × 208 | circle |
+| Battle card (`image_generator.py`) | 360 × 360 | circle |
+| Boss battle card (`boss_card.py`) | 120–150 | circle |
+| Discord embed thumbnail | ~80 × 80 | square |
+| Discord embed image (`set_image`) | ~400 wide | uncropped |
+
+**Square matters more than resolution.** Every card crops to a circle with
+`object-fit: cover`, so a 16:9 image loses its sides and a portrait one loses
+its top and bottom — the blade ends up cropped through the middle no matter
+how sharp the source was. Keep the blade centred and leave a margin: the
+corners of the square are outside the circle and are always discarded, so
+treat the **inscribed circle (~70% of the width)** as the safe zone for
+anything that must survive.
+
+Transparent background, because the disc paints its own coloured gradient
+behind the art. A white or black rectangle behind the blade shows up as a
+square patch inside the circle.
+
+Local files go in `assets/beys/` named after the blade; run
+`python tools/optimize_assets.py` afterwards and it converts to WebP q92 in
+place (measured: ~3/255 mean RGB error at final render size, **zero** alpha
+error, so cutout edges survive). If there is no local file the renderer falls
+back to the entry's `image_url`, which is what every blade currently uses —
+the same 512 px guidance applies to whatever you upload there.
+
 **Rarity tiers and spawn weights:**
 
 | Rarity    | Spawn Chance | Colour  |
