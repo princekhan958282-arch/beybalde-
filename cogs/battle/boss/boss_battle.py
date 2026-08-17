@@ -40,6 +40,7 @@ from . import boss_info as binfo
 from . import boss_tiers as btiers
 from . import drakos as dk
 from . import argus as ag
+from . import lionheart as lh
 from . import gemini
 
 # The player's HP pool in a boss fight. Matches PvP (cogs.core.constants
@@ -271,6 +272,21 @@ BOSSES = {
         "boss_only":  True,
         "module":     "argus",
     },
+    "lionheart": {
+        "name":       lh.LIONHEART["name"],
+        "emoji":      lh.LIONHEART["emoji"],
+        "difficulty": lh.LIONHEART["difficulty"],
+        "persona":    lh.LIONHEART["persona"],
+        "hp":         lh.LIONHEART["hp"],   # solo HP; see PARTY_HP_MULT
+        "attack":     lh.LIONHEART["attack"],
+        "defense":    lh.LIONHEART["defense"],
+        "stamina":    lh.LIONHEART["stamina"],
+        "colour":     lh.LIONHEART["colour"],
+        "reward":     lh.LIONHEART["reward"],
+        "blurb":      lh.LIONHEART["blurb"],
+        "boss_only":  True,
+        "module":     "lionheart",
+    },
     "nemesis": {
         "name":       ab.NEMESIS["name"],
         "emoji":      ab.NEMESIS["emoji"],
@@ -402,7 +418,8 @@ def lobby_card_state(key: str, party: list = None, footer: str = "",
 
 def _module_for(cfg: dict):
     """Which ability module drives this boss, if any."""
-    return {"nemesis": ab, "drakos": dk, "argus": ag}.get(cfg.get("module"))
+    return {"nemesis": ab, "drakos": dk, "argus": ag,
+            "lionheart": lh}.get(cfg.get("module"))
 
 
 def _make_state(cfg: dict):
@@ -413,6 +430,17 @@ def _make_state(cfg: dict):
         return dk.DrakosState()
     if mod is ag:
         return ag.ArgusState()
+    if mod is lh:
+        st = lh.LionheartState()
+        # Lionheart converts Defence into damage, and a state cannot read its
+        # own fighter — `attack_bonus()` is called on the state, not on the
+        # Fighter. The LEVELLED defence is handed over once, here, because this
+        # is the only place the state and the stat line exist together.
+        try:
+            st.base_defense = boss_stats(cfg)[1]
+        except Exception:                                # noqa: BLE001
+            st.base_defense = float(cfg.get("defense", 0) or 0)
+        return st
     return None
 
 
