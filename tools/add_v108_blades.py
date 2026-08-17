@@ -159,7 +159,7 @@ NEW["Twin Nemesis"] = {
     ],
 }
 
-# ── 3. Surge Xcalibur ────────────────────────────────────────────────────────
+# ── 3. Surge Xcalius (shipped as "Surge Xcalibur"; renamed in v1.10) ────────────────────────────────────────────────────────
 # The brief: "ability change everything into attack", 1 stamina heal = 59
 # damage, defence counters at 20, and a Special that banks 30 stability on its
 # first use and cashes it for 230 on the next.
@@ -170,9 +170,9 @@ NEW["Twin Nemesis"] = {
 # counters 20% harder off the normal defence-counter calculation. The stat line
 # says the same thing — 47 Defence on a Mythic is not an oversight, it is the
 # ability printed in the numbers.
-NEW["Surge Xcalibur"] = {
+NEW["Surge Xcalius"] = {
     "id": bid(),
-    "name": "Surge Xcalibur",
+    "name": "Surge Xcalius",
     "rarity": "Mythic",
     "type": "Attack",
     "spin_direction": "Right",
@@ -183,7 +183,7 @@ NEW["Surge Xcalibur"] = {
                   "?ex=6a83247f&is=6a81d2ff&hm=37d4b281b1238a0bbfbed0faf00dcc"
                   "7dc2610a0521928ad57c76222b974fdd3f&"),
     "description": (
-        "A sword that has forgotten how to be anything else. Surge Xcalibur "
+        "A sword that has forgotten how to be anything else. Surge Xcalius "
         "cannot recover and cannot guard — the recovery comes out as a strike "
         "and the guard comes out as a counter, because the blade has no other "
         "gear to shift into. 47 Defence is not a weakness it carries; it is "
