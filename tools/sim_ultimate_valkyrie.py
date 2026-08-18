@@ -406,13 +406,28 @@ check("...and the pool is still healthy — this is not an empty-pool pass",
 check("the Black Edition stays out too", BLACK not in _seen)
 
 # The other half: a forced roll DOES produce one.
+#
+# Scoped to a roster holding ONLY Ultimate Valkyrie. `_roll_hidden_spawn`
+# returns the first candidate whose own test hits, so once a second hidden
+# blade exists — v1.15 gave Dead Phoenix a 1-in-1000 — a forced roll over the
+# whole roster returns whichever comes first in file order, which is a fact
+# about JSON ordering and not about this blade. The claim being made here is
+# "Ultimate Valkyrie can be produced by the hidden roll", and that is what this
+# now tests. Its independence from any other hidden blade is asserted below.
 _real_range = _rnd.randrange
+_solo = {UV: DB[UV]}
 try:
     _rnd.randrange = lambda n: 0                    # every hidden test hits
-    hit = SPAWN._roll_hidden_spawn(DB)
+    hit = SPAWN._roll_hidden_spawn(_solo)
     check("a forced hidden roll produces Ultimate Valkyrie",
           hit is not None and hit.get("name") == UV,
           hit and hit.get("name"))
+    # Over the full roster a forced roll must still produce SOME hidden blade,
+    # never nothing — that would mean the mechanism had stopped working.
+    hit_all = SPAWN._roll_hidden_spawn(DB)
+    check("...and over the whole roster it still produces a hidden blade",
+          hit_all is not None and bool(hit_all.get("hidden_drop_one_in")),
+          hit_all and hit_all.get("name"))
     _rnd.randrange = lambda n: 1                    # every hidden test misses
     check("a missed hidden roll produces nothing at all",
           SPAWN._roll_hidden_spawn(DB) is None)
@@ -429,6 +444,26 @@ finally:
     _rnd.randrange = _real_range
 check("the roll uses each blade's own N, once each",
       10_000_000 in _calls and len(_calls) == len(set(_calls)), _calls)
+# Each candidate is tested independently, so a second hidden blade cannot
+# dilute this one's odds — the reason a 1-in-1000 and a 1-in-10,000,000 blade
+# can share the mechanism.
+#
+# The expected set is computed with `_roll_hidden_spawn`'s OWN filters rather
+# than restated, which is how this check surfaced something worth knowing:
+# that function gates on `_NEVER_SPAWN` and `obtainable()` and does NOT check
+# `booster_exclusive`, while `_pick_random_beyblade` right beside it does. So
+# the Black Edition — a booster-pack-only blade — is eligible for the wild
+# hidden roll at its 1-in-5,000,000. Pre-existing, unrelated to any of the
+# blades here, and left alone deliberately: it is asserted as the behaviour
+# that exists so that changing it is a decision somebody makes on purpose.
+from utils.availability import obtainable as _obtainable           # noqa: E402
+
+_expected = sorted(int(b["hidden_drop_one_in"]) for b in DB.values()
+                   if b.get("hidden_drop_one_in")
+                   and b.get("rarity") not in SPAWN._NEVER_SPAWN
+                   and _obtainable(b))
+check("...including every other hidden blade, at its own N",
+      sorted(_calls) == _expected, (sorted(_calls), _expected))
 check("...and the hidden roll runs BEFORE the weighted pick in the spawner",
       ssrc.index("_roll_hidden_spawn(beyblades)")
       < ssrc.index("chosen = _pick_random_beyblade(beyblades)"))
