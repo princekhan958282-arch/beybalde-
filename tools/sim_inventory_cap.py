@@ -190,11 +190,12 @@ try:
           * INV.EXTRA_SLOT_PRICE == 18_000_000)
 
     print("\n── 5. an admin grant bypasses on purpose ────────────────────────")
-    # ;givebey writes the inventory directly and is meant to. An admin handing
-    # out a bey is an explicit act by someone who can also raise the cap.
-    admin = src("cogs/admin/admin.py")
-    give = admin[admin.index("async def givebey"):][:2500]
-    check("givebey does not import the cap helper",
+    # The admin give writes the inventory directly and is meant to. An admin
+    # handing out a bey is an explicit act by someone who can also raise the
+    # cap. v1.13 moved it from `cogs/admin/admin.py` to the action registry.
+    admin = src("cogs/admin/actions.py")
+    give = admin[admin.index("async def _givebey"):][:2500]
+    check("the givebey action does not import the cap helper",
           "utils.inventory" not in give)
     _fake["9"] = profile(n_inv=200)
     _fake["9"].setdefault("inventory", []).append("Admin Gift")

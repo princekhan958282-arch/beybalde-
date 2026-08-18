@@ -236,15 +236,26 @@ check("control lock is independent of verification being on",
           "verify_enabled": True, "verify_guild_id": 999,
           "control_guild_id": HOME}}))
 
+# v1.13 moved these settings out of `;rankadmin` and into the admin action
+# registry under 🎖️ Ranked. Both locks had to move with them: owner-only
+# answers "who", the control server answers "where", and losing the second one
+# would have let a role-holder in any server the bot is in flip the ranked
+# verification gate for everybody.
 csrc = open(os.path.join(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))), "cogs", "ranked", "ranked_cog.py"),
+    os.path.abspath(__file__))), "cogs", "admin", "actions.py"),
     encoding="utf-8").read()
-check("the cog checks the owner", "!= MASTER_ID" in csrc)
-check("the cog checks the control server too", "control_error" in csrc)
-check("`status` is exempt so the owner can always find the control server",
-      'if act != "status"' in csrc)
+check("the settings are owner-only", "def may_run(" in csrc
+      and "owner_only: bool = True" in csrc)
+check("...and gated on the control server too", "def _rank_locked(" in csrc)
+check("every ranked WRITE goes through that gate",
+      csrc.count("why = _rank_locked(ctx)") == 5,
+      csrc.count("why = _rank_locked(ctx)"))
+check("`Ranked settings` is exempt so the owner can always find the control "
+      "server", "_rank_locked" not in
+      csrc[csrc.index("async def _rank_settings("):
+           csrc.index("async def _rank_verify(")])
 check("an unreachable lock is ignored rather than bricking the settings",
-      "unenforceable" in csrc)
+      "get_guild(locked) is None" in csrc)
 check("there is a way back out", '"unlock", "none", "off"' in csrc)
 check("setting the verify server also closes the bootstrap window",
       'changes["control_guild_id"] = gid' in csrc)
@@ -409,7 +420,7 @@ check("a second tag does not overwrite the first",
       sess.finish_for("7") == RK.FINISH_RINGOUT)
 check("other players are unaffected", sess.finish_for("8") == RK.FINISH_BURST)
 
-bsrc = _insp.getsource(BATTLE) if False else open(
+bsrc = open(
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                  "cogs", "battle", "battle.py"), encoding="utf-8").read()
 check("a ranked match runs a loop, not a single fight",

@@ -15,7 +15,6 @@ Run:  python3 tools/sim_servers.py
 import asyncio
 import os
 import sys
-import types
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -33,8 +32,7 @@ def check(label, cond, detail=""):
 
 
 import discord                                        # noqa: E402
-from discord.ext import commands                      # noqa: E402
-import cogs.admin.admin as ADMIN                      # noqa: E402
+import cogs.admin.actions as ADMIN                    # noqa: E402
 
 
 class FakeGuild:
@@ -93,14 +91,21 @@ class FakeCtx:
 
 
 def run(cached, rest, **kw):
+    """Drive the `servers` action headlessly.
+
+    v1.13 moved this out of `AdminCog.servers` and into the registry, which is
+    the whole point of the actions/panel split: the reconciliation is a plain
+    async function taking an `ActionCtx`, so it needs no cog, no Context and no
+    permission gate to test.
+    """
     bot = FakeBot(cached, rest, **kw)
-    cog = ADMIN.AdminCog(bot)
-    ctx = FakeCtx()
-    # .callback bypasses the is_master check and the cog_check, which is the
-    # point — this tests the reconciliation, not the permission gate.
-    asyncio.get_event_loop().run_until_complete(
-        ADMIN.AdminCog.servers.callback(cog, ctx))
-    return ctx.sent
+    res = asyncio.get_event_loop().run_until_complete(
+        ADMIN.run("servers", ADMIN.ActionCtx(bot=bot)))
+    sent = list(res.embeds) if res.embeds else (
+        [res.embed] if res.embed is not None else [])
+    if res.message:
+        sent.append(res.message)
+    return sent
 
 
 def text_of(sent):
