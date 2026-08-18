@@ -37,7 +37,6 @@ import logging
 from typing import Optional
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 from utils.database import get_user, mutate_user
@@ -467,85 +466,12 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
         await ctx.send(embed=e)
 
 
-class AvatarUpgradeCommands(commands.Cog, name="Avatar (slash)"):
-    """Slash entry points, delegating to the prefix commands rather than
-    duplicating their logic — a second copy is how the two paths drift."""
-
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
-
-    avatar = app_commands.Group(name="avatar",
-                                description="Avatar cards — levels and upgrades")
-
-    async def _run(self, interaction: discord.Interaction, command_name: str,
-                   *args, **kwargs) -> None:
-        cmd = self.bot.get_command(command_name)
-        if cmd is None:
-            return await interaction.response.send_message(
-                f"`{command_name}` isn't loaded right now.", ephemeral=True)
-        ctx = await commands.Context.from_interaction(interaction)
-        await ctx.invoke(cmd, *args, **kwargs)
-
-    async def _owned_autocomplete(self, interaction: discord.Interaction,
-                                  current: str):
-        try:
-            from utils.database import get_avatar_inventory
-            owned = set(get_avatar_inventory(interaction.user.id))
-        except Exception:                                # noqa: BLE001
-            owned = set()
-        cur = (current or "").lower()
-        out = []
-        for a in avatar_engine.get_all_avatars():
-            if a["id"] not in owned:
-                continue
-            if cur and cur not in a["name"].lower() and cur not in a["id"].lower():
-                continue
-            out.append(app_commands.Choice(name=f"{a['name']} ({a['rarity']})",
-                                           value=a["id"]))
-            if len(out) >= 25:
-                break
-        return out
-
-    @avatar.command(name="upgrade", description="Buy levels for an avatar card")
-    @app_commands.describe(avatar="Which card (defaults to the one equipped)",
-                           levels="How many levels to buy at once")
-    @app_commands.autocomplete(avatar=_owned_autocomplete)
-    async def a_upgrade(self, interaction: discord.Interaction,
-                        avatar: Optional[str] = None, levels: int = 1) -> None:
-        await self._run(interaction, "avatarupgrade", avatar=avatar, levels=levels)
-
-    @avatar.command(name="reset",
-                    description="Reset a card to Lv1 and refund 70% of the spend")
-    @app_commands.describe(avatar="Which card")
-    @app_commands.autocomplete(avatar=_owned_autocomplete)
-    async def a_reset(self, interaction: discord.Interaction,
-                      avatar: str) -> None:
-        await self._run(interaction, "avatarreset", avatar=avatar)
-
-    @avatar.command(name="costs", description="The full avatar upgrade curve")
-    async def a_costs(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "avatarcost")
-
-    @avatar.command(name="skill",
-                    description="Pick which skill your avatar fights with")
-    @app_commands.describe(
-        slot="1 = 25⚡ · 2 = 50⚡ · 3 = 75⚡. Leave empty to just look.",
-        avatar="Which card (defaults to the one equipped)")
-    @app_commands.choices(slot=[
-        app_commands.Choice(name="Skill 1 — 25 energy", value=1),
-        app_commands.Choice(name="Skill 2 — 50 energy", value=2),
-        app_commands.Choice(name="Skill 3 — 75 energy", value=3),
-    ])
-    @app_commands.autocomplete(avatar=_owned_autocomplete)
-    async def a_skill(self, interaction: discord.Interaction,
-                      slot: Optional[int] = None,
-                      avatar: Optional[str] = None) -> None:
-        await self._run(interaction, "avatarskill", slot=slot, avatar=avatar)
-
-    @avatar.command(name="refill",
-                    description="Top avatar energy back to full for coins")
-    async def a_refill(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "energyrefill")
+# The `/avatar` group lived here — five subcommands, and Discord lists them
+# FLAT in the picker, so five lines in front of every player. v1.14 replaced it
+# with one `/avatar` command opening a panel; see `cogs/ui/panels.py:AvatarSpec`,
+# which invokes the prefix commands above. The owned-card autocomplete is gone
+# with it: the panel asks for a card in its modal, and every prefix command
+# already resolves a blank card to the equipped one.
 
 
 # No setup() here on purpose. cogs/avatar/__init__.py adds both cogs, and this

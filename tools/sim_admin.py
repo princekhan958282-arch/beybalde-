@@ -78,6 +78,10 @@ import discord                                          # noqa: E402
 
 from cogs.admin import actions as A                     # noqa: E402
 from cogs.admin import panel as P                       # noqa: E402
+# v1.14 moved the view itself into the shared kit — /admin, /player, /casino,
+# /avatar and /story all use it. The components are asserted where they now
+# live; what stays in P is the admin-specific spec and the cog.
+from cogs.ui import panel_kit as K                      # noqa: E402
 from utils import errorlog                              # noqa: E402
 
 loop = asyncio.new_event_loop()
@@ -403,16 +407,16 @@ def live(cls):
 
 
 check("the panel opens on a real category", panel.category in A.CATEGORY_ORDER)
-check("row 0 is the category select", isinstance(panel.children[0], P.CategorySelect))
-check("row 1 is the action select", isinstance(panel.children[1], P.ActionSelect))
-check("no user picker until an action needs one", live(P.TargetSelect) is None)
-check("Run is disabled with nothing chosen", live(P.RunButton).disabled)
+check("row 0 is the category select", isinstance(panel.children[0], K.CategorySelect))
+check("row 1 is the action select", isinstance(panel.children[1], K.ActionSelect))
+check("no user picker until an action needs one", live(K.TargetSelect) is None)
+check("Run is disabled with nothing chosen", live(K.RunButton).disabled)
 
-cat = live(P.CategorySelect)
+cat = live(K.CategorySelect)
 check("every category option carries a non-empty value",
       all(o.value for o in cat.options))
 check("...and they are unique", len({o.value for o in cat.options}) == len(cat.options))
-act = live(P.ActionSelect)
+act = live(K.ActionSelect)
 check("the action select is filtered to the open category",
       {o.value for o in act.options} == {a.key for a in A.actions_in(panel.category)})
 check("every action option carries a non-empty value",
@@ -423,8 +427,8 @@ check("every action option description is inside the 100-char cap",
 panel.action_key = "givecoins"
 panel.build()
 check("picking a player-shaped action adds the user picker",
-      isinstance(live(P.TargetSelect), discord.ui.UserSelect))
-check("...and Run becomes pressable", not live(P.RunButton).disabled)
+      isinstance(live(K.TargetSelect), discord.ui.UserSelect))
+check("...and Run becomes pressable", not live(K.RunButton).disabled)
 check("the view stays inside Discord's five action rows",
       len({c.row for c in panel.children}) <= 5,
       sorted({c.row for c in panel.children}))
@@ -434,7 +438,7 @@ check("...and no row holds more than five components",
 panel.action_key = "audit"
 panel.build()
 check("an action that needs nobody drops the picker again",
-      live(P.TargetSelect) is None)
+      live(K.TargetSelect) is None)
 
 # Carrying an amount over from the last action is how you give somebody 5,000
 # of the wrong thing.
@@ -450,7 +454,7 @@ panel.target = PLAYER
 panel.target_id = PLAYER.id
 panel.pending_confirm = True
 panel.build()
-btn = live(P.RunButton)
+btn = live(K.RunButton)
 check("a pending confirmation turns the button red",
       btn.style == discord.ButtonStyle.danger, btn.style)
 check("...and relabels it so a reflex press isn't the same press",
@@ -467,7 +471,7 @@ check("the embed stays inside the 6,000-character total",
 panel.pending_confirm = False
 panel.build()
 check("the button goes back to green once the confirmation is cleared",
-      live(P.RunButton).style == discord.ButtonStyle.success)
+      live(K.RunButton).style == discord.ButtonStyle.success)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -476,7 +480,7 @@ print("\n── 10. the modal asks only for what the action declared ───�
 for key, want in (("givecoins", {"amount"}), ("givebey", {"text"}),
                   ("ban", {"text"}), ("code_create", {"text"})):
     panel.action_key = key
-    m = P.InputModal(panel, A.REGISTRY[key])
+    m = K.InputModal(panel, P._as_panel_action(A.REGISTRY[key]))
     got = set()
     if m.amount_field is not None:
         got.add("amount")
@@ -485,29 +489,39 @@ for key, want in (("givecoins", {"amount"}), ("givebey", {"text"}),
     check(f"`{key}` asks for exactly {sorted(want)}", got == want, got)
 
 panel.action_key = "audit"
-m = P.InputModal(panel, A.REGISTRY["audit"])
+m = K.InputModal(panel, P._as_panel_action(A.REGISTRY["audit"]))
 check("an action needing nothing typed builds an empty modal",
       m.amount_field is None and m.text_field is None)
 check("a modal never exceeds Discord's five inputs",
-      all(len(P.InputModal(panel, a).children) <= 5 for a in A.REGISTRY.values()))
+      all(len(K.InputModal(panel, P._as_panel_action(a)).children) <= 5
+          for a in A.REGISTRY.values()))
 check("a modal title fits Discord's 45-character cap",
-      all(len(P.InputModal(panel, a).title) <= 45 for a in A.REGISTRY.values()))
+      all(len(K.InputModal(panel, P._as_panel_action(a)).title) <= 45
+          for a in A.REGISTRY.values()))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 print("\n── 11. only the admin who opened it can drive it ────────────────")
 
 pan = code("cogs/admin/panel.py")
+# v1.14 moved the view into the shared kit, so these two claims are now true
+# of panel_kit.py. They are asserted where the code is rather than deleted:
+# every panel in the bot depends on them, not just this one.
+kit = code("cogs/ui/panel_kit.py")
 check("the panel checks the invoker, not just ephemerality",
-      "interaction_check" in pan and "Not your panel" in pan)
-check("...and re-checks admin rights per interaction, since roles change",
-      "A.is_admin(interaction.user)" in pan)
+      "interaction_check" in kit and "Not your panel" in kit)
+check("...and re-checks permission per interaction, since roles change",
+      "spec.may_open(interaction.user)" in kit)
+check("...and /admin's spec answers that with is_admin",
+      "def may_open" in pan and "A.is_admin(user)" in pan)
 check("the slash command refuses non-admins outright",
-      "Not authorized" in pan)
+      "Not authorized" in pan or "Not authorized" in kit)
 check("the panel is ephemeral — an admin console is not an announcement",
       "ephemeral=True" in pan)
 check("every component callback is wrapped so a failure can't freeze the panel",
-      pan.count("@_guard") >= 5, pan.count("@_guard"))
+      kit.count("@guard") >= 5, kit.count("@guard"))
+check("...and the wrapper records what broke, rather than swallowing it",
+      "errorlog.record(" in kit)
 
 # ── the escalation this nearly shipped ───────────────────────────────────
 # `is_admin` accepts a role named "Tournament Admin", which anyone with Manage
@@ -837,15 +851,15 @@ def press(component, values=None, user=OWNER):
     return i
 
 
-i = press(comp(P.CategorySelect), ["players"])
+i = press(comp(K.CategorySelect), ["players"])
 check("picking a category redraws the panel in place",
       pan2.category == "players" and bool(i.response.edited))
 
-i = press(comp(P.ActionSelect), ["resetplayer"])
+i = press(comp(K.ActionSelect), ["resetplayer"])
 check("picking an action that takes a player reveals the picker",
-      any(isinstance(c, P.TargetSelect) for c in pan2.children))
+      any(isinstance(c, K.TargetSelect) for c in pan2.children))
 
-press(comp(P.TargetSelect), [PLAYER])
+press(comp(K.TargetSelect), [PLAYER])
 check("the user picker sets the target", pan2.target_id == PLAYER.id)
 
 ran = {"n": 0}
@@ -862,10 +876,10 @@ A.REGISTRY["resetplayer"] = A.Action(
     category=_saved.category, handler=_spy, needs=_saved.needs,
     confirm=_saved.confirm)
 try:
-    press(comp(P.RunButton))
+    press(comp(K.RunButton))
     check("the FIRST press of a destructive action does not run it",
           ran["n"] == 0 and pan2.pending_confirm)
-    i = press(comp(P.RunButton))
+    i = press(comp(K.RunButton))
     check("...the second press does", ran["n"] == 1)
     check("...and the answer comes back to the admin",
           bool(i.response.sent or i.followup.sent))
@@ -876,9 +890,9 @@ finally:
 
 pan2.action_key, pan2.pending_confirm = "givecoins", False
 pan2.build()
-i = press(comp(P.RunButton))
+i = press(comp(K.RunButton))
 check("an action that needs typing opens a modal instead of firing",
-      isinstance(i.response.modal, P.InputModal))
+      isinstance(i.response.modal, K.InputModal))
 check("...and the modal is the FIRST response — Discord allows no other order",
       i.response.sent == [])
 

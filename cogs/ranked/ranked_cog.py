@@ -25,7 +25,6 @@ import logging
 from typing import Optional
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 from utils.database import get_user, update_user, load_users
@@ -224,45 +223,11 @@ class RankedCog(commands.Cog, name="Ranked"):
     # for every profile.
 
 
-class RankedCommands(commands.Cog, name="Ranked (slash)"):
-    """Slash entry points, delegating to the prefix commands above."""
+# `/leaderboard`, `/rank` and `/verify` lived here as three separate top-level
+# slash commands. Their subject is the player, so v1.14 folded them into the
+# `/player` panel — see `cogs/ui/panels.py:PlayerSpec`, which invokes the
+# prefix commands above. The five leaderboards became five select options
+# built from `RK.CATEGORIES`, the same table the board itself sorts on, rather
+# than a category string typed into a parameter.
 
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
 
-    async def _run(self, interaction: discord.Interaction, name: str,
-                   *args, **kwargs) -> None:
-        cmd = self.bot.get_command(name)
-        if cmd is None:
-            return await interaction.response.send_message(
-                f"`{name}` isn't loaded right now.", ephemeral=True)
-        ctx = await commands.Context.from_interaction(interaction)
-        await ctx.invoke(cmd, *args, **kwargs)
-
-    # Choices are generated from the same CATEGORIES table the board sorts on,
-    # so a new category cannot appear in one place and not the other.
-    @app_commands.command(name="leaderboard",
-                          description="Ranked leaderboards")
-    @app_commands.describe(category="Which board to show")
-    @app_commands.choices(category=[
-        app_commands.Choice(name=f"{s['emoji']} {s['label']} — {s['describe']}"[:100],
-                            value=k)
-        for k, s in RK.CATEGORIES.items()
-    ])
-    async def s_leaderboard(self, interaction: discord.Interaction,
-                            category: Optional[app_commands.Choice[str]] = None
-                            ) -> None:
-        await self._run(interaction, "leaderboard",
-                        category=(category.value if category
-                                  else RK.DEFAULT_CATEGORY))
-
-    @app_commands.command(name="rank", description="Your ranked card")
-    @app_commands.describe(user="Whose card (defaults to you)")
-    async def s_rank(self, interaction: discord.Interaction,
-                     user: Optional[discord.Member] = None) -> None:
-        await self._run(interaction, "rank", user)
-
-    @app_commands.command(name="verify",
-                          description="Verify your account for ranked play")
-    async def s_verify(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "verify")

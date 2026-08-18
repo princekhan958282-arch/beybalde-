@@ -12,7 +12,7 @@ Cog entry point (loaded by bot):
 
 from .avatar_engine import avatar_engine, AvatarBonuses, NULL_BONUSES
 from .avatar_shop import AvatarShop
-from .avatar_upgrade import AvatarUpgrade, AvatarUpgradeCommands
+from .avatar_upgrade import AvatarUpgrade
 
 __all__ = ["avatar_engine", "AvatarBonuses", "NULL_BONUSES"]
 
@@ -21,4 +21,3 @@ async def setup(bot) -> None:
     avatar_engine.load()
     await bot.add_cog(AvatarShop(bot))
     await bot.add_cog(AvatarUpgrade(bot))
-    await bot.add_cog(AvatarUpgradeCommands(bot))
