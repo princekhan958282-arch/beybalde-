@@ -33,10 +33,8 @@ from utils.database import (
     get_stat_multiplier,
 )
 from utils.embeds import (
-    beyblade_info_embed,
     rarity_colour,
     RARITY_EMOJIS,
-    stat_bar,
     xp_bar,
     level_badge,
 )
@@ -470,7 +468,7 @@ def build_profile_embed(
         )
 
     embed.set_footer(
-        text  = f"Use ;equip <name> to change blade  ·  ;inventory to see collection",
+        text  = "Use ;equip <name> to change blade  ·  ;inventory to see collection",
         icon_url = target.display_avatar.url,
     )
     return embed
@@ -1568,62 +1566,12 @@ async def award_xp(
     return new_total, old_level, new_level
 
 
-class PlayerCommands(commands.Cog, name="Player"):
-    """Slash-only grouping for the per-player commands.
-
-    These delegate to the existing prefix commands rather than duplicating
-    their logic: the originals own the validation, cooldowns and rendering,
-    and a second copy is how the two paths quietly drift apart. Prefix
-    commands keep working exactly as before.
-    """
-
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
-
-    player = discord.app_commands.Group(
-        name="player", description="Your profile, quests and progress")
-
-    async def _run(self, interaction: discord.Interaction, command_name: str,
-                   *args) -> None:
-        cmd = self.bot.get_command(command_name)
-        if cmd is None:
-            return await interaction.response.send_message(
-                f"`{command_name}` isn't loaded right now.", ephemeral=True)
-        ctx = await commands.Context.from_interaction(interaction)
-        await ctx.invoke(cmd, *args)
-
-    @player.command(name="profile", description="Show a blader's profile card")
-    @discord.app_commands.describe(member="Whose profile (defaults to you)")
-    async def p_profile(self, interaction: discord.Interaction,
-                        member: Optional[discord.Member] = None) -> None:
-        await self._run(interaction, "profile", member)
-
-    @player.command(name="quests", description="View your daily & weekly quests")
-    async def p_quests(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "quests")
-
-    @player.command(name="claim",
-                    description="Claim rewards for completed quests")
-    async def p_claim(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "questclaim")
-
-    @player.command(name="inventory", description="Your Beyblade collection")
-    async def p_inventory(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "inventory")
-
-    @player.command(name="balance", description="Your Beycoin balance")
-    async def p_balance(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "bal")
-
-    @player.command(name="achievements", description="Your achievements")
-    async def p_achievements(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "achievements")
-
-    @player.command(name="mastery", description="Your blade mastery levels")
-    async def p_mastery(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "mastery")
+# The `/player` group lived here — seven subcommands, and Discord lists them
+# FLAT in the picker, so it was seven lines in front of every player. v1.14
+# replaced it with one `/player` command opening a panel; see
+# `cogs/ui/panels.py:PlayerSpec`, which invokes these same prefix commands.
+# `;profile` and every other prefix command below are untouched.
 
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(ProfileCog(bot))
-    await bot.add_cog(PlayerCommands(bot))

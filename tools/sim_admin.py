@@ -78,6 +78,10 @@ import discord                                          # noqa: E402
 
 from cogs.admin import actions as A                     # noqa: E402
 from cogs.admin import panel as P                       # noqa: E402
+# v1.14 moved the view itself into the shared kit — /admin, /player, /casino,
+# /avatar and /story all use it. The components are asserted where they now
+# live; what stays in P is the admin-specific spec and the cog.
+from cogs.ui import panel_kit as K                      # noqa: E402
 from utils import errorlog                              # noqa: E402
 
 loop = asyncio.new_event_loop()
@@ -119,11 +123,32 @@ check("every action has a coroutine handler",
 # The reverse direction: a handler that is not reachable from the registry is
 # dead code that looks live. `console.py` had a `# ── admin ──` header over
 # nothing for exactly this reason.
+# Matched by SIGNATURE, not by the leading underscore. Every handler takes
+# exactly one argument called `ctx`; helpers in the same module (`_post`,
+# `_announce_target`) take other things, and flagging those as dead code
+# would train me to ignore this check — which is the one that catches the
+# `console.py` bug for real.
+import inspect                                          # noqa: E402
+
 handlers = {id(a.handler) for a in A.REGISTRY.values()}
+
+
+def _is_handler_shaped(fn) -> bool:
+    if not asyncio.iscoroutinefunction(fn):
+        return False
+    try:
+        params = list(inspect.signature(fn).parameters)
+    except (TypeError, ValueError):
+        return False
+    return params == ["ctx"]
+
+
 orphans = [n for n, fn in vars(A).items()
-           if n.startswith("_") and asyncio.iscoroutinefunction(fn)
-           and id(fn) not in handlers]
+           if _is_handler_shaped(fn) and id(fn) not in handlers]
 check("no orphaned handler functions", not orphans, orphans)
+check("...and the check can still see the handlers it is guarding",
+      sum(1 for fn in vars(A).values() if _is_handler_shaped(fn))
+      >= len(A.REGISTRY), len(A.REGISTRY))
 
 check("every action's category is a real one",
       all(a.category in A.CATEGORY_ORDER for a in A.REGISTRY.values()))
@@ -382,16 +407,16 @@ def live(cls):
 
 
 check("the panel opens on a real category", panel.category in A.CATEGORY_ORDER)
-check("row 0 is the category select", isinstance(panel.children[0], P.CategorySelect))
-check("row 1 is the action select", isinstance(panel.children[1], P.ActionSelect))
-check("no user picker until an action needs one", live(P.TargetSelect) is None)
-check("Run is disabled with nothing chosen", live(P.RunButton).disabled)
+check("row 0 is the category select", isinstance(panel.children[0], K.CategorySelect))
+check("row 1 is the action select", isinstance(panel.children[1], K.ActionSelect))
+check("no user picker until an action needs one", live(K.TargetSelect) is None)
+check("Run is disabled with nothing chosen", live(K.RunButton).disabled)
 
-cat = live(P.CategorySelect)
+cat = live(K.CategorySelect)
 check("every category option carries a non-empty value",
       all(o.value for o in cat.options))
 check("...and they are unique", len({o.value for o in cat.options}) == len(cat.options))
-act = live(P.ActionSelect)
+act = live(K.ActionSelect)
 check("the action select is filtered to the open category",
       {o.value for o in act.options} == {a.key for a in A.actions_in(panel.category)})
 check("every action option carries a non-empty value",
@@ -402,8 +427,8 @@ check("every action option description is inside the 100-char cap",
 panel.action_key = "givecoins"
 panel.build()
 check("picking a player-shaped action adds the user picker",
-      isinstance(live(P.TargetSelect), discord.ui.UserSelect))
-check("...and Run becomes pressable", not live(P.RunButton).disabled)
+      isinstance(live(K.TargetSelect), discord.ui.UserSelect))
+check("...and Run becomes pressable", not live(K.RunButton).disabled)
 check("the view stays inside Discord's five action rows",
       len({c.row for c in panel.children}) <= 5,
       sorted({c.row for c in panel.children}))
@@ -413,7 +438,7 @@ check("...and no row holds more than five components",
 panel.action_key = "audit"
 panel.build()
 check("an action that needs nobody drops the picker again",
-      live(P.TargetSelect) is None)
+      live(K.TargetSelect) is None)
 
 # Carrying an amount over from the last action is how you give somebody 5,000
 # of the wrong thing.
@@ -429,7 +454,7 @@ panel.target = PLAYER
 panel.target_id = PLAYER.id
 panel.pending_confirm = True
 panel.build()
-btn = live(P.RunButton)
+btn = live(K.RunButton)
 check("a pending confirmation turns the button red",
       btn.style == discord.ButtonStyle.danger, btn.style)
 check("...and relabels it so a reflex press isn't the same press",
@@ -446,7 +471,7 @@ check("the embed stays inside the 6,000-character total",
 panel.pending_confirm = False
 panel.build()
 check("the button goes back to green once the confirmation is cleared",
-      live(P.RunButton).style == discord.ButtonStyle.success)
+      live(K.RunButton).style == discord.ButtonStyle.success)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -455,7 +480,7 @@ print("\n── 10. the modal asks only for what the action declared ───�
 for key, want in (("givecoins", {"amount"}), ("givebey", {"text"}),
                   ("ban", {"text"}), ("code_create", {"text"})):
     panel.action_key = key
-    m = P.InputModal(panel, A.REGISTRY[key])
+    m = K.InputModal(panel, P._as_panel_action(A.REGISTRY[key]))
     got = set()
     if m.amount_field is not None:
         got.add("amount")
@@ -464,29 +489,39 @@ for key, want in (("givecoins", {"amount"}), ("givebey", {"text"}),
     check(f"`{key}` asks for exactly {sorted(want)}", got == want, got)
 
 panel.action_key = "audit"
-m = P.InputModal(panel, A.REGISTRY["audit"])
+m = K.InputModal(panel, P._as_panel_action(A.REGISTRY["audit"]))
 check("an action needing nothing typed builds an empty modal",
       m.amount_field is None and m.text_field is None)
 check("a modal never exceeds Discord's five inputs",
-      all(len(P.InputModal(panel, a).children) <= 5 for a in A.REGISTRY.values()))
+      all(len(K.InputModal(panel, P._as_panel_action(a)).children) <= 5
+          for a in A.REGISTRY.values()))
 check("a modal title fits Discord's 45-character cap",
-      all(len(P.InputModal(panel, a).title) <= 45 for a in A.REGISTRY.values()))
+      all(len(K.InputModal(panel, P._as_panel_action(a)).title) <= 45
+          for a in A.REGISTRY.values()))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 print("\n── 11. only the admin who opened it can drive it ────────────────")
 
 pan = code("cogs/admin/panel.py")
+# v1.14 moved the view into the shared kit, so these two claims are now true
+# of panel_kit.py. They are asserted where the code is rather than deleted:
+# every panel in the bot depends on them, not just this one.
+kit = code("cogs/ui/panel_kit.py")
 check("the panel checks the invoker, not just ephemerality",
-      "interaction_check" in pan and "Not your panel" in pan)
-check("...and re-checks admin rights per interaction, since roles change",
-      "A.is_admin(interaction.user)" in pan)
+      "interaction_check" in kit and "Not your panel" in kit)
+check("...and re-checks permission per interaction, since roles change",
+      "spec.may_open(interaction.user)" in kit)
+check("...and /admin's spec answers that with is_admin",
+      "def may_open" in pan and "A.is_admin(user)" in pan)
 check("the slash command refuses non-admins outright",
-      "Not authorized" in pan)
+      "Not authorized" in pan or "Not authorized" in kit)
 check("the panel is ephemeral — an admin console is not an announcement",
       "ephemeral=True" in pan)
 check("every component callback is wrapped so a failure can't freeze the panel",
-      pan.count("@_guard") >= 5, pan.count("@_guard"))
+      kit.count("@guard") >= 5, kit.count("@guard"))
+check("...and the wrapper records what broke, rather than swallowing it",
+      "errorlog.record(" in kit)
 
 # ── the escalation this nearly shipped ───────────────────────────────────
 # `is_admin` accepts a role named "Tournament Admin", which anyone with Manage
@@ -816,15 +851,15 @@ def press(component, values=None, user=OWNER):
     return i
 
 
-i = press(comp(P.CategorySelect), ["players"])
+i = press(comp(K.CategorySelect), ["players"])
 check("picking a category redraws the panel in place",
       pan2.category == "players" and bool(i.response.edited))
 
-i = press(comp(P.ActionSelect), ["resetplayer"])
+i = press(comp(K.ActionSelect), ["resetplayer"])
 check("picking an action that takes a player reveals the picker",
-      any(isinstance(c, P.TargetSelect) for c in pan2.children))
+      any(isinstance(c, K.TargetSelect) for c in pan2.children))
 
-press(comp(P.TargetSelect), [PLAYER])
+press(comp(K.TargetSelect), [PLAYER])
 check("the user picker sets the target", pan2.target_id == PLAYER.id)
 
 ran = {"n": 0}
@@ -841,10 +876,10 @@ A.REGISTRY["resetplayer"] = A.Action(
     category=_saved.category, handler=_spy, needs=_saved.needs,
     confirm=_saved.confirm)
 try:
-    press(comp(P.RunButton))
+    press(comp(K.RunButton))
     check("the FIRST press of a destructive action does not run it",
           ran["n"] == 0 and pan2.pending_confirm)
-    i = press(comp(P.RunButton))
+    i = press(comp(K.RunButton))
     check("...the second press does", ran["n"] == 1)
     check("...and the answer comes back to the admin",
           bool(i.response.sent or i.followup.sent))
@@ -855,9 +890,9 @@ finally:
 
 pan2.action_key, pan2.pending_confirm = "givecoins", False
 pan2.build()
-i = press(comp(P.RunButton))
+i = press(comp(K.RunButton))
 check("an action that needs typing opens a modal instead of firing",
-      isinstance(i.response.modal, P.InputModal))
+      isinstance(i.response.modal, K.InputModal))
 check("...and the modal is the FIRST response — Discord allows no other order",
       i.response.sent == [])
 
@@ -870,7 +905,162 @@ check("...with a reason, not a silent no-op",
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n── 18. secrets never reach a message ────────────────────────────")
+print("\n── 18. announcements ────────────────────────────────────────────")
+# Nothing here fires on its own: the bot is in many servers and deploys by
+# extracting a zip over a live install, so a feature that posts automatically
+# is one bad boot away from spamming every server it is in.
+
+import utils.database as _DB                            # noqa: E402
+
+
+class FakeChannel:
+    def __init__(self, cid=555, fail=None):
+        self.id = cid
+        self.mention = f"<#{cid}>"
+        self.guild = None
+        self.sent = []
+        self._fail = fail
+
+    async def send(self, content=None, *, embed=None, view=None):
+        if self._fail:
+            raise self._fail
+        self.sent.append({"content": content, "embed": embed, "view": view})
+        return types.SimpleNamespace(jump_url="https://x/1")
+
+
+class AGuild:
+    id = 4321
+    name = "Test"
+
+
+_chan = FakeChannel()
+_store: dict = {}
+
+
+def _fake_get(gid):
+    return _store.get(str(gid))
+
+
+def _fake_set(gid, cid):
+    if cid is None:
+        _store.pop(str(gid), None)
+    else:
+        _store[str(gid)] = cid
+
+
+_real_get_a, _real_set_a = _DB.get_announce_channel, _DB.set_announce_channel
+_DB.get_announce_channel, _DB.set_announce_channel = _fake_get, _fake_set
+
+
+class AnnounceBot(FakeBot):
+    def __init__(self, tcog=None):
+        super().__init__()
+        self._tcog = tcog
+
+    def get_channel(self, cid):
+        return _chan if cid == _chan.id else None
+
+    def get_cog(self, name):
+        return self._tcog if name == "Tournaments" else None
+
+
+abot = AnnounceBot()
+
+
+def actx(**kw):
+    kw.setdefault("bot", abot)
+    kw.setdefault("guild", AGuild())
+    kw.setdefault("invoker", OWNER)
+    kw.setdefault("invoker_id", A.MASTER_ID)
+    return A.ActionCtx(**kw)
+
+
+try:
+    # Posting before a channel is set must say what to do, not fail obscurely.
+    r = loop.run_until_complete(A.run("announce_post", actx(text="hello")))
+    check("posting with no channel set is refused", not r.ok)
+    check("...and names the action that fixes it",
+          "announcement channel" in r.message.lower(), r.message)
+
+    r = loop.run_until_complete(A.run("announce_channel", actx(channel=_chan)))
+    check("setting the channel works", r.ok and _fake_get(AGuild.id) == _chan.id)
+
+    r = loop.run_until_complete(A.run(
+        "announce_post", actx(text="Server event\nDouble coins all weekend.")))
+    check("an announcement posts to that channel", r.ok and len(_chan.sent) == 1)
+    e = _chan.sent[0]["embed"]
+    check("...the first line becomes the title", "Server event" in (e.title or ""))
+    check("...and the rest the body", "Double coins" in (e.description or ""))
+    check("...with a jump link back to it", "http" in r.message, r.message)
+
+    _chan.sent.clear()
+    r = loop.run_until_complete(A.run("announce_post", actx(text="One liner")))
+    check("a one-line announcement is a body, not a bare heading",
+          "One liner" in (_chan.sent[0]["embed"].description or ""))
+
+    # The draft cannot claim a version the install is not running.
+    from utils.buildinfo import VERSION
+    check("the update draft names the running build", VERSION in A.update_note())
+    _chan.sent.clear()
+    r = loop.run_until_complete(A.run("announce_update", actx(text="Fixed stuff")))
+    check("an update announcement posts", r.ok and len(_chan.sent) == 1)
+    check("...titled with the version",
+          VERSION in (_chan.sent[0]["embed"].title or ""))
+
+    # A missing permission is the one failure an admin can actually fix.
+    bad = FakeChannel(cid=_chan.id, fail=discord.Forbidden.__new__(discord.Forbidden))
+    abot.get_channel = lambda cid: bad
+    r = loop.run_until_complete(A.run("announce_post", actx(text="x")))
+    check("a Forbidden is turned into the permission to grant",
+          not r.ok and "Send Messages" in r.message, r.message)
+    abot.get_channel = lambda cid: _chan if cid == _chan.id else None
+
+    # ── the Join button ──────────────────────────────────────────────────────
+    # The whole point of a tournament announcement: it must carry the REAL
+    # panel, not a copy of it that nobody can join.
+    from cogs.tournament import tournament as T
+
+    tcog = T.TournamentCog.__new__(T.TournamentCog)
+    tcog.bot = abot
+    tcog.lobbies, tcog._active, tcog.banned = {}, set(), set()
+    tcog._tasks, tcog.panels = set(), {}
+    abot._tcog = tcog
+    _chan.sent.clear()
+    _chan.guild = AGuild()
+
+    r = loop.run_until_complete(A.run(
+        "announce_tournament", actx(text="Saturday night — get in here")))
+    check("a tournament announcement posts", r.ok and len(_chan.sent) == 1,
+          r.message)
+    view = _chan.sent[0]["view"]
+    check("...carrying the real tournament panel",
+          isinstance(view, T.TournamentPanel), type(view).__name__)
+    check("...with a working Join button",
+          any(isinstance(c, T.JoinButton) for c in view.children),
+          [type(c).__name__ for c in view.children])
+    check("...and the admin's note above it",
+          "Saturday night" in (_chan.sent[0]["content"] or ""))
+    check("...and the lobby is registered so admin actions can reach it",
+          tcog.admin_lobby(AGuild.id) is not None)
+
+    r = loop.run_until_complete(A.run("announce_tournament", actx()))
+    check("a second announcement is refused while one is open", not r.ok)
+
+    # Through the cog's public hook, never into its internals — that coupling
+    # is what broke seventeen admin actions when the old package was deleted.
+    # Anchored on CODE, not on the section banner: `acts` has comment lines
+    # stripped, so a `# 📊 Audit` header is not in it to slice on.
+    _blk = acts[acts.index('async def _announce_tournament('):
+                acts.index('CONCENTRATION_WARN =')]
+    check("it goes through the cog hook", "cog.admin_announce(" in _blk)
+    for bad_ref in (".lobbies", ".panels", "._active", "Lobby("):
+        check(f"...and never touches `{bad_ref}`", bad_ref not in _blk)
+finally:
+    _DB.get_announce_channel, _DB.set_announce_channel = _real_get_a, _real_set_a
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── 19. secrets never reach a message ────────────────────────────")
 # `;updatecheck` reports on a GitHub token. Printing it into a Discord channel
 # would be worse than the problem it diagnoses.
 

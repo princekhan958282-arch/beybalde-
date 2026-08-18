@@ -45,48 +45,17 @@ happen and to whom.
 from __future__ import annotations
 
 import logging
-from typing import Optional
-
 import discord
 from discord import app_commands
 from discord.ext import commands
 
+from ..ui import panel_kit as K
 from . import actions as A
 
 log = logging.getLogger("beyblade_bot.admin")
 
 PANEL_TIMEOUT = 300
 COLOUR = 0x5865F2
-
-
-def _guard(fn):
-    """Wrap a component callback so a failure cannot freeze the panel.
-
-    The v1.07 boss-battle hang was a callback with a `finally` and no `except`:
-    the state advanced, the message never did, and the fight sat there with
-    live buttons pointing at a state that no longer existed. Every callback in
-    this file is wrapped from the start rather than after the bug report.
-    """
-    async def wrapper(self, interaction: discord.Interaction):
-        try:
-            return await fn(self, interaction)
-        except Exception as exc:                         # noqa: BLE001
-            log.exception("[admin] panel %s failed", fn.__name__)
-            try:
-                from utils import errorlog
-                errorlog.record(f"admin-panel:{fn.__name__}", exc)
-            except Exception:                            # noqa: BLE001
-                pass
-            note = f"⚠️ `{type(exc).__name__}: {exc}`"
-            try:
-                if interaction.response.is_done():
-                    await interaction.followup.send(note, ephemeral=True)
-                else:
-                    await interaction.response.send_message(note, ephemeral=True)
-            except Exception:                            # noqa: BLE001
-                pass
-    wrapper.__name__ = fn.__name__
-    return wrapper
 
 
 async def _send(interaction: discord.Interaction, result: A.Result) -> None:
@@ -114,305 +83,73 @@ async def _send(interaction: discord.Interaction, result: A.Result) -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  Components
+#  The spec
 # ══════════════════════════════════════════════════════════════════════════════
-
-class CategorySelect(discord.ui.Select):
-    def __init__(self, panel: "AdminPanel"):
-        # Values are non-empty ASCII, never "". An empty select value is a
-        # Discord 400 — `components.…value: Must be between 1 and 100 in
-        # length` — and it took `;inv` down for 75% of blade holders in v96.
-        super().__init__(
-            placeholder="Pick a category…", min_values=1, max_values=1, row=0,
-            # Filtered to what this admin may actually run. A role-holder sees
-            # the tournament page and nothing else — see `owner_only` in
-            # actions.py for why that default is what it is.
-            options=[
-                discord.SelectOption(
-                    label=label, value=key, emoji=emoji,
-                    description=f"{len(A.actions_in(key, panel.invoker))} action(s)",
-                    default=(key == panel.category))
-                for key, label, emoji in A.categories_for(panel.invoker)
-            ] or [discord.SelectOption(label="Nothing available", value="none",
-                                       description="You can't run any action.")])
-        self.panel = panel
-
-    @_guard
-    async def callback(self, interaction: discord.Interaction):
-        self.panel.category = self.values[0]
-        # A new category means the old action, and everything typed for it, no
-        # longer applies. Carrying an amount over from the last action is how
-        # you give somebody 5,000 of the wrong thing.
-        self.panel.reset_selection()
-        await self.panel.refresh(interaction)
+#
+# The view itself lives in cogs/ui/panel_kit.py and is shared with /player,
+# /casino, /avatar and /story. What is admin-specific — who may see an action,
+# what running one does, and the update-announcement draft — is here.
 
 
-class ActionSelect(discord.ui.Select):
-    def __init__(self, panel: "AdminPanel"):
-        acts = A.actions_in(panel.category, panel.invoker)
-        options = [
-            discord.SelectOption(
-                label=a.label[:100], value=a.key[:100],
-                description=(("⚠️ " if a.confirm else "") + a.description)[:100],
-                default=(a.key == panel.action_key))
-            # Discord caps a select at 25 options. No category is near it, but
-            # the slice means adding a 26th action degrades the page instead of
-            # 400-ing the whole panel.
-            for a in acts[:25]
-        ]
-        super().__init__(placeholder="Pick an action…", min_values=1,
-                         max_values=1, row=1, options=options,
-                         disabled=not options)
-        self.panel = panel
+class AdminSpec(K.PanelSpec):
+    title = "🛠️  Admin"
+    colour = COLOUR
+    timeout = PANEL_TIMEOUT
+    placeholder = "Pick an action…"
 
-    @_guard
-    async def callback(self, interaction: discord.Interaction):
-        self.panel.action_key = self.values[0]
-        self.panel.pending_confirm = False
-        await self.panel.refresh(interaction)
+    def may_open(self, user) -> bool:
+        return A.is_admin(user)
 
+    def categories(self, user):
+        # Filtered to what this admin may actually run. A role-holder sees the
+        # tournament page and nothing else — see `owner_only` in actions.py for
+        # why that default is what it is.
+        return A.categories_for(user)
 
-class TargetSelect(discord.ui.UserSelect):
-    """The thing `console.py` could not do: a real player picker."""
+    def actions(self, category: str, user):
+        return [_as_panel_action(a) for a in A.actions_in(category, user)]
 
-    def __init__(self, panel: "AdminPanel"):
-        super().__init__(placeholder="Pick a player…", min_values=1,
-                         max_values=1, row=2)
-        self.panel = panel
+    def intro(self, panel) -> str:
+        n = sum(len(A.actions_in(k, panel.invoker)) for k in A.CATEGORY_ORDER)
+        return f"-# {n} action(s) available to you"
 
-    @_guard
-    async def callback(self, interaction: discord.Interaction):
-        user = self.values[0]
-        self.panel.target = user
-        self.panel.target_id = user.id
-        # Changing who it applies to invalidates a confirmation given for
-        # somebody else.
-        self.panel.pending_confirm = False
-        await self.panel.refresh(interaction)
-
-
-class InputModal(discord.ui.Modal):
-    """Asks only for the fields the chosen action declared."""
-
-    def __init__(self, panel: "AdminPanel", action: A.Action):
-        super().__init__(title=action.label[:45])
-        self.panel = panel
-        self.action = action
-        self.amount_field: Optional[discord.ui.TextInput] = None
-        self.text_field: Optional[discord.ui.TextInput] = None
-
-        if "amount" in action.needs:
-            self.amount_field = discord.ui.TextInput(
-                label="Amount", placeholder="a whole number",
-                default=(str(panel.amount) if panel.amount is not None else None),
-                max_length=20, required=True)
-            self.add_item(self.amount_field)
-        if "text" in action.needs:
-            self.text_field = discord.ui.TextInput(
-                label="Text", placeholder=action.description[:100],
-                default=panel.text or None,
-                style=discord.TextStyle.short, max_length=300, required=True)
-            self.add_item(self.text_field)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        if self.amount_field is not None:
-            raw = str(self.amount_field.value).strip().replace(",", "")
-            try:
-                self.panel.amount = int(float(raw))
-            except ValueError:
-                return await interaction.response.send_message(
-                    f"`{raw}` isn't a number.", ephemeral=True)
-        if self.text_field is not None:
-            self.panel.text = str(self.text_field.value).strip()
-        await self.panel.fire(interaction)
-
-
-class RunButton(discord.ui.Button):
-    def __init__(self, panel: "AdminPanel"):
-        action = panel.selected()
-        confirming = panel.pending_confirm and action is not None
-        super().__init__(
-            label=("Yes — do it" if confirming else "Run"),
-            emoji=("⚠️" if confirming else "▶️"),
-            style=(discord.ButtonStyle.danger if confirming
-                   else discord.ButtonStyle.success),
-            row=3, disabled=(action is None))
-        self.panel = panel
-
-    @_guard
-    async def callback(self, interaction: discord.Interaction):
-        panel = self.panel
-        action = panel.selected()
-        if action is None:
-            return await interaction.response.defer()
-
-        # A destructive action gets a second press, on a button that already
-        # names what it is about to do and to whom.
-        if action.confirm and not panel.pending_confirm:
-            panel.pending_confirm = True
-            return await panel.refresh(interaction)
-
-        # A modal must be the FIRST response to an interaction — it cannot be
-        # sent as a followup — so the "does this need typing?" question is
-        # answered before anything else touches the response.
-        if {"amount", "text"} & set(action.needs):
-            return await interaction.response.send_modal(InputModal(panel, action))
-        await panel.fire(interaction)
-
-
-class CancelButton(discord.ui.Button):
-    def __init__(self, panel: "AdminPanel"):
-        super().__init__(label="Close", emoji="✖️",
-                         style=discord.ButtonStyle.secondary, row=3)
-        self.panel = panel
-
-    @_guard
-    async def callback(self, interaction: discord.Interaction):
-        self.panel.stop()
-        for child in self.panel.children:
-            child.disabled = True
-        await interaction.response.edit_message(
-            content="Panel closed.", embed=None, view=self.panel)
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  The panel
-# ══════════════════════════════════════════════════════════════════════════════
-
-class AdminPanel(discord.ui.View):
-    def __init__(self, bot: commands.Bot, invoker, guild, channel):
-        super().__init__(timeout=PANEL_TIMEOUT)
-        self.bot = bot
-        self.invoker = invoker
-        self.guild = guild
-        self.channel = channel
-        # Open on the first page this admin can actually use, not on Economy
-        # — an owner-only page as the landing screen would show a role-holder
-        # an empty select and no way to tell why.
-        allowed = A.categories_for(invoker)
-        self.category = allowed[0][0] if allowed else A.CATEGORY_ORDER[0]
-        self.action_key: Optional[str] = None
-        self.target = None
-        self.target_id: Optional[int] = None
-        self.amount: Optional[int] = None
-        self.text: Optional[str] = None
-        self.pending_confirm = False
-        self.build()
-
-    # ── state ────────────────────────────────────────────────────────────────
-    def selected(self) -> Optional[A.Action]:
-        return A.REGISTRY.get(self.action_key or "")
-
-    def reset_selection(self) -> None:
-        self.action_key = None
-        self.amount = None
-        self.text = None
-        self.pending_confirm = False
-
-    def ctx(self) -> A.ActionCtx:
-        return A.ActionCtx(
-            bot=self.bot, guild=self.guild, invoker=self.invoker,
-            invoker_id=getattr(self.invoker, "id", 0),
-            target=self.target, target_id=self.target_id,
-            amount=self.amount, text=self.text, channel=self.channel)
-
-    # ── layout ───────────────────────────────────────────────────────────────
-    def build(self) -> None:
-        self.clear_items()
-        self.add_item(CategorySelect(self))
-        self.add_item(ActionSelect(self))
-        action = self.selected()
-        # Row 2 only exists for actions that take a player. Showing an inert
-        # user picker on every action is how an admin learns to ignore it.
-        if action is not None and "user" in action.needs:
-            self.add_item(TargetSelect(self))
-        self.add_item(RunButton(self))
-        self.add_item(CancelButton(self))
-
-    def embed(self) -> discord.Embed:
-        emoji, label = next(((e, l) for k, l, e in A.CATEGORIES
-                             if k == self.category), ("🔧", self.category))
-        n_allowed = sum(len(A.actions_in(k, self.invoker))
-                        for k in A.CATEGORY_ORDER)
-        action = self.selected()
-        e = discord.Embed(title="🛠️  Admin", colour=COLOUR)
-        e.add_field(name="Category", value=f"{emoji} **{label}**", inline=True)
-        e.add_field(name="Action",
-                    value=(f"**{action.label}**" if action else "*pick one*"),
-                    inline=True)
-        if action is not None:
-            e.description = action.description
-            wants = []
-            if "user" in action.needs:
-                who = (self.target.mention if self.target is not None
-                       else "*not picked*")
-                wants.append(f"👤 player — {who}")
-            if "amount" in action.needs:
-                wants.append("🔢 amount — "
-                             + (f"**{self.amount:,}**" if self.amount is not None
-                                else "*asked on Run*"))
-            if "text" in action.needs:
-                wants.append("✏️ text — "
-                             + (f"`{self.text}`" if self.text
-                                else "*asked on Run*"))
-            if wants:
-                e.add_field(name="Needs", value="\n".join(wants), inline=False)
-            if action.confirm:
-                e.add_field(name="⚠️ Destructive", value=action.confirm,
-                            inline=False)
-        if self.pending_confirm and action is not None:
-            who = self.target.mention if self.target is not None else "everyone"
-            e.colour = 0xED4245
-            e.add_field(
-                name="Confirm",
-                value=(f"**{action.label}** → {who}\n"
-                       f"{action.confirm}\nPress **Yes — do it** to go ahead."),
-                inline=False)
-        e.set_footer(text=f"{n_allowed} action(s) available to you · only you "
-                          f"can see this · closes after "
-                          f"{PANEL_TIMEOUT // 60} min")
-        return e
-
-    async def refresh(self, interaction: discord.Interaction) -> None:
-        self.build()
-        await interaction.response.edit_message(embed=self.embed(), view=self)
-
-    # ── running ──────────────────────────────────────────────────────────────
-    async def fire(self, interaction: discord.Interaction) -> None:
-        action = self.selected()
-        if action is None:
-            return
+    async def execute(self, action, panel, interaction) -> None:
         # Some handlers hit the network or the database on a thread; three
         # seconds is not a lot for a MySQL probe or a `fetch_guilds` sweep.
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=True, thinking=True)
-        result = await A.run(action.key, self.ctx())
-        self.pending_confirm = False
-        log.info("[admin] %s ran %s → %s", getattr(self.invoker, "id", "?"),
+        ctx = A.ActionCtx(
+            bot=panel.bot, guild=panel.guild, invoker=panel.invoker,
+            invoker_id=getattr(panel.invoker, "id", 0),
+            target=panel.target, target_id=panel.target_id,
+            amount=panel.amount, text=panel.text, channel=panel.channel)
+        result = await A.run(action.key, ctx)
+        log.info("[admin] %s ran %s → %s", getattr(panel.invoker, "id", "?"),
                  action.key, "ok" if result.ok else "refused")
         await _send(interaction, result)
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        """Only the admin who opened it may drive it.
 
-        The panel is ephemeral, so in practice nobody else can see it — but an
-        ephemeral message is a display property, not a permission, and a leaked
-        component id is not a reason to hand over the reset button.
-        """
-        if interaction.user.id != getattr(self.invoker, "id", None):
-            await interaction.response.send_message("Not your panel.",
-                                                    ephemeral=True)
-            return False
-        if not A.is_admin(interaction.user):
-            await interaction.response.send_message("Not authorized.",
-                                                    ephemeral=True)
-            return False
-        return True
+def _as_panel_action(a: A.Action) -> K.PanelAction:
+    """Registry action → panel action. One direction, no shared base class.
 
-    async def on_timeout(self) -> None:
-        for child in self.children:
-            child.disabled = True
-        self.stop()
+    The registry stays discord-light so `tools/sim_admin.py` can drive all 62
+    actions with no gateway; the kit is a view. Keeping the translation to one
+    small function is what lets both stay true.
+    """
+    return K.PanelAction(
+        key=a.key, label=a.label, description=a.description,
+        category=a.category, needs=a.needs, confirm=a.confirm,
+        long_text=(a.category == "announce"),
+        # `announce_update` opens on a draft naming the version this install is
+        # actually running, rather than asking an admin to remember it.
+        draft=(A.update_note if a.key == "announce_update" else None))
+
+
+class AdminPanel(K.PanelView):
+    """`/admin`. Everything below is the kit's; this only names the spec."""
+
+    def __init__(self, bot, invoker, guild, channel):
+        super().__init__(AdminSpec(), bot, invoker, guild, channel)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -456,7 +193,13 @@ class AdminCog(commands.Cog, name="Admin"):
 
     @commands.command(name="sync", hidden=True)
     async def sync(self, ctx: commands.Context, scope: str = "guild") -> None:
-        """`;sync` · `;sync clean` · `;sync global` · `;sync purge`"""
+        """`;sync` — register globally and clear this server's stale copies.
+
+        `;sync clean`  — remove only what the bot no longer has
+        `;sync global` — sync, then clear the copies in every server
+        `;sync purge`  — clear this server's copies without re-syncing
+        `;sync mirror` — instant here, at the cost of listing everything twice
+        """
         res = await A.do_sync(self.bot, ctx.guild, scope)
         await ctx.send(res.message or "Done.")
 

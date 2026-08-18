@@ -272,6 +272,7 @@ CATEGORIES: list[tuple[str, str, str]] = [
     ("players",    "Players",    "👤"),
     ("tournament", "Tournament", "🏆"),
     ("codes",      "Codes",      "🎟️"),
+    ("announce",   "Announce",   "📣"),
     ("audit",      "Audit",      "📊"),
     ("ranked",     "Ranked",     "🎖️"),
     ("system",     "System",     "🔧"),
@@ -945,6 +946,142 @@ async def _code_revoke(ctx: ActionCtx) -> Result:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  📣  Announce
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Nothing here fires on its own. The bot deploys by extracting a zip over a
+# live install and is in many servers; a feature that posts to all of them
+# automatically, on every restart, is one bad boot away from spamming every
+# server it is in. So an admin writes the message and presses the button.
+
+ANNOUNCE_COLOUR = 0x5865F2
+
+
+def _announce_target(ctx: ActionCtx):
+    """(channel, error). The configured announcement channel for this guild."""
+    from utils.database import get_announce_channel
+    gid = getattr(ctx.guild, "id", None)
+    if gid is None:
+        return None, "Run this in a server."
+    cid = get_announce_channel(gid)
+    if not cid:
+        return None, ("No announcement channel is set here yet — use "
+                      "**Set the announcement channel** first.")
+    ch = ctx.bot.get_channel(int(cid)) if ctx.bot else None
+    if ch is None:
+        return None, (f"The announcement channel (`{cid}`) is gone, or I can't "
+                      f"see it any more. Set it again.")
+    return ch, ""
+
+
+async def _post(channel, embed) -> Result:
+    """Send it, and turn the two failures an admin can actually fix into words."""
+    import discord
+    try:
+        msg = await channel.send(embed=embed)
+    except discord.Forbidden:
+        return Result.fail(f"❌ I can't post in {channel.mention} — I need "
+                           f"**Send Messages** and **Embed Links** there.")
+    except Exception as exc:                             # noqa: BLE001
+        return Result.fail(f"❌ Couldn't post: `{type(exc).__name__}: {exc}`")
+    return Result(message=f"📣 Announced in {channel.mention}. [Jump]({msg.jump_url})")
+
+
+@register("announce_channel", "Set the announcement channel",
+          "where announcements are posted", "announce", needs=("channel",))
+async def _announce_channel(ctx: ActionCtx) -> Result:
+    from utils.database import set_announce_channel
+    gid = getattr(ctx.guild, "id", None)
+    if gid is None:
+        return Result.fail("Run this in a server.")
+    ch = ctx.channel
+    if ch is None:
+        return Result.fail("Pick a channel.")
+    set_announce_channel(gid, ch.id)
+    return Result(message=f"✅ Announcements will be posted in {ch.mention}.")
+
+
+@register("announce_post", "Write an announcement", "posts it to that channel",
+          "announce", needs=("text",))
+async def _announce_post(ctx: ActionCtx) -> Result:
+    channel, err = _announce_target(ctx)
+    if err:
+        return Result.fail(f"❌ {err}")
+    body = (ctx.text or "").strip()
+    # First line is the title when one is offered, so a composer with a single
+    # text box can still produce a headed announcement.
+    title, _, rest = body.partition("\n")
+    e = _embed(f"📣 {title.strip()[:250]}", ANNOUNCE_COLOUR, rest.strip() or None)
+    if not rest.strip():
+        # A one-line announcement reads better as the body than as a bare
+        # heading with nothing under it.
+        e = _embed("📣 Announcement", ANNOUNCE_COLOUR, body[:4000])
+    e.set_footer(text=f"Beycord · {getattr(ctx.guild, 'name', '')}"[:2048])
+    return await _post(channel, e)
+
+
+@register("announce_update", "Announce an update", "prefilled with this build",
+          "announce", needs=("text",))
+async def _announce_update(ctx: ActionCtx) -> Result:
+    """A composer, not an automatic boot announcement.
+
+    `update_note()` supplies the version and the last commit message so the
+    admin edits a draft rather than typing a changelog from memory.
+    """
+    channel, err = _announce_target(ctx)
+    if err:
+        return Result.fail(f"❌ {err}")
+    from utils.buildinfo import VERSION
+    e = _embed(f"🧬 Beycord {VERSION}", 0x57F287, (ctx.text or "").strip()[:4000])
+    e.set_footer(text="Run ;help to see what's available.")
+    return await _post(channel, e)
+
+
+def update_note() -> str:
+    """The draft body for `announce_update` — version plus the last commit.
+
+    Read from the updater's own state file rather than restated here, so the
+    announcement cannot claim a version the install is not running.
+    """
+    from utils.buildinfo import VERSION
+    lines = [f"Beycord is now on **{VERSION}**."]
+    try:
+        from utils import updater
+        st = updater.status() or {}
+        msg = (st.get("message") or "").strip()
+        if msg:
+            lines.append("")
+            lines.append(msg[:500])
+    except Exception:                                    # noqa: BLE001
+        pass
+    return "\n".join(lines)
+
+
+@register("announce_tournament", "Announce a tournament",
+          "posts the panel, Join button and all", "announce")
+async def _announce_tournament(ctx: ActionCtx) -> Result:
+    """Posts the REAL tournament panel into the announcement channel.
+
+    Through `TournamentCog.admin_announce`, never into the cog's internals —
+    that coupling is what broke seventeen admin actions when the old
+    tournament package was deleted.
+    """
+    channel, err = _announce_target(ctx)
+    if err:
+        return Result.fail(f"❌ {err}")
+    cog = _tcog(ctx)
+    if cog is None:
+        return Result.fail("Tournament cog not loaded.")
+    note = (ctx.text or "").strip()
+    ok = await cog.admin_announce(channel, ctx.invoker, note)
+    if not ok:
+        return Result.fail("A tournament is already open in this server — "
+                           "cancel it first, or use **Force-start**.")
+    return Result(message=f"🏆 Tournament announced in {channel.mention} — "
+                          f"players join with the button.")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  📊  Audit
 # ══════════════════════════════════════════════════════════════════════════════
 #
@@ -1160,19 +1297,41 @@ async def do_sync(bot, guild, mode: str = "guild") -> Result:
     Two entry points on one function is safe; two modules each *owning* a
     command name is what produced `CommandAlreadyRegistered`.
 
-    Worth knowing: a plain guild sync writes a COPY of every command into that
-    server, and nothing removes entries from the copy later. Delete a command
-    and its guild copy stays behind, shadowing whatever replaces it. `clean` is
-    the fix, and it also runs on every boot.
+    What the default does, and why it changed in v1.14
+    --------------------------------------------------
+    It used to run `copy_global_to(guild)` then `sync(guild=...)`, writing a
+    guild-scoped COPY of every command. Discord's picker is the union of the
+    global list and the guild list, so from then on every command in this bot
+    was drawn twice — and the boot reconcile deliberately preserved those
+    copies, so nothing ever undid it. The one documented deploy step, "run
+    `;sync` afterwards", was creating the problem.
+
+    So the default now deletes this server's copies and registers globally.
+    Global registration can take up to an hour to appear the first time; that
+    is the honest cost, and it is paid once per new command rather than by
+    every player reading a doubled list every day.
+
+    `mirror` is the old behaviour, kept because instant registration is
+    genuinely useful the day you add a command. It says out loud what it does.
     """
     from utils.command_sync import prune_guild, purge_guild, reconcile
     mode = (mode or "guild").lower()
 
+    if mode.startswith("mirror"):
+        bot.tree.copy_global_to(guild=guild)
+        cmds = await bot.tree.sync(guild=guild)
+        return Result(message=f"🪞 Mirrored **{len(cmds)}** command(s) into this "
+                              f"server — they work instantly here.\n"
+                              f"⚠️ They now exist **globally and here**, so each "
+                              f"one shows **twice** in the picker until you run "
+                              f"`;sync` again.")
     if mode.startswith("purge"):
         n = await purge_guild(bot, guild)
         return Result(message=f"🧹 Cleared this server's command copies. "
                               f"The {n} global command(s) still apply.")
     if mode.startswith("clean"):
+        # Selective: spare the mirrors, take only what the bot no longer has.
+        # For a server deliberately running mirrors that has drifted.
         keep = {c.name for c in bot.tree.get_commands()}
         removed = await prune_guild(bot, guild, keep)
         return Result(message=(f"🧹 Removed **{len(removed)}** stale command(s): "
@@ -1182,14 +1341,28 @@ async def do_sync(bot, guild, mode: str = "guild") -> Result:
         report = await reconcile(bot, guilds=[guild] if guild else None)
         pruned = sum(len(v) for v in report["pruned"].values())
         return Result(message=f"🔁 Synced **{report['synced']}** command(s) globally"
-                              + (f", removed **{pruned}** stale here."
-                                 if pruned else "."))
-    bot.tree.copy_global_to(guild=guild)
-    cmds = await bot.tree.sync(guild=guild)
-    return Result(message=f"🔁 Synced **{len(cmds)}** slash command(s) here.")
+                              + (f", removed **{pruned}** duplicate/stale copy "
+                                 f"(copies) here." if pruned else "."))
+
+    # The default. Remove this server's copies first so nothing is left
+    # shadowing the globals, then register the real list.
+    dropped = 0
+    if guild is not None:
+        try:
+            dropped = len(await prune_guild(bot, guild))
+        except Exception as exc:                         # noqa: BLE001
+            log.warning("[admin] could not clear guild copies: %s", exc)
+    cmds = await bot.tree.sync()
+    note = (f"\n🧹 Removed **{dropped}** duplicate copy/copies this server was "
+            f"holding — commands were showing twice." if dropped else "")
+    return Result(message=f"🔁 Registered **{len(cmds)}** command(s) globally."
+                          f"{note}\n"
+                          f"-# A brand-new command can take up to an hour to "
+                          f"appear. `;sync mirror` makes it instant here, at the "
+                          f"cost of listing everything twice.")
 
 
-@register("sync", "Sync slash commands here", "instant, this server only",
+@register("sync", "Sync slash commands", "register globally, clear this server's copies",
           "system")
 async def _sync(ctx: ActionCtx) -> Result:
     return await do_sync(ctx.bot, ctx.guild, "guild")
@@ -1201,16 +1374,18 @@ async def _sync_clean(ctx: ActionCtx) -> Result:
     return await do_sync(ctx.bot, ctx.guild, "clean")
 
 
-@register("sync_global", "Sync globally", "everywhere — Discord can take an hour",
+@register("sync_global", "Sync globally and prune", "sync, then clear every server's copies",
           "system")
 async def _sync_global(ctx: ActionCtx) -> Result:
     return await do_sync(ctx.bot, ctx.guild, "global")
 
 
-@register("sync_purge", "Purge guild copies", "leave only the global commands",
-          "system", confirm="Every per-server command copy here is deleted.")
-async def _sync_purge(ctx: ActionCtx) -> Result:
-    return await do_sync(ctx.bot, ctx.guild, "purge")
+@register("sync_mirror", "Mirror commands here", "instant here — but lists everything twice",
+          "system",
+          confirm="Every command will then exist globally AND in this server, "
+                  "so each one shows up twice in the picker until you re-sync.")
+async def _sync_mirror(ctx: ActionCtx) -> Result:
+    return await do_sync(ctx.bot, ctx.guild, "mirror")
 
 
 async def do_reload(bot) -> Result:

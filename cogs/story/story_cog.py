@@ -730,50 +730,12 @@ async def stage_autocomplete(interaction: discord.Interaction,
     return out[:25]                                  # Discord shows 25 at most
 
 
-class StoryCommands(commands.Cog, name="Story (slash)"):
-    """Slash entry points. These delegate to the prefix commands rather than
-    duplicating their logic — a second copy is how the two paths drift."""
-
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
-
-    story = app_commands.Group(name="story",
-                               description="Story Mode — chapters & stages")
-
-    async def _run(self, interaction: discord.Interaction, command_name: str,
-                   *args) -> None:
-        cmd = self.bot.get_command(command_name)
-        if cmd is None:
-            return await interaction.response.send_message(
-                f"`{command_name}` isn't loaded right now.", ephemeral=True)
-        ctx = await commands.Context.from_interaction(interaction)
-        await ctx.invoke(cmd, *args)
-
-    @story.command(name="play", description="Fight a Story Mode stage")
-    @app_commands.describe(stage="Which stage, e.g. 1-2 — leave blank to pick one")
-    @app_commands.autocomplete(stage=stage_autocomplete)
-    async def s_play(self, interaction: discord.Interaction,
-                     stage: Optional[str] = None) -> None:
-        await self._run(interaction, "story", stage=stage)
-
-    @story.command(name="map", description="Every chapter and your progress")
-    async def s_map(self, interaction: discord.Interaction) -> None:
-        await self._run(interaction, "storymap")
-
-    @story.command(name="info",
-                   description="Opponent stats, rewards and lock state")
-    @app_commands.describe(stage="Which stage, e.g. 2-3")
-    @app_commands.autocomplete(stage=stage_autocomplete)
-    async def s_info(self, interaction: discord.Interaction, stage: str) -> None:
-        await self._run(interaction, "storyinfo", stage=stage)
-
-    @story.command(name="stats", description="Your Story Mode record")
-    @app_commands.describe(member="Whose record (defaults to you)")
-    async def s_stats(self, interaction: discord.Interaction,
-                      member: Optional[discord.Member] = None) -> None:
-        await self._run(interaction, "storystats", member)
+# The `/story` group lived here — four subcommands, four flat lines in the
+# picker. v1.14 replaced it with one `/story` command opening a panel; see
+# `cogs/ui/panels.py:StorySpec`, which invokes the prefix commands above.
+# It keeps BOTH ways in: "Play" runs `;story` with no stage, which opens the
+# game's own stage picker, and "Jump to a stage" asks for one.
 
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(StoryCog(bot))
-    await bot.add_cog(StoryCommands(bot))

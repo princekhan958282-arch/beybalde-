@@ -157,6 +157,7 @@ COGS = [
     "cogs.extras.achievements",
     "cogs.economy.chat_xp",   # chat EXP for trainer + equipped bey
     "cogs.tournament",       # one-command tournament (v1.12)
+    "cogs.ui.panels",        # /player /casino /avatar /story panels (v1.14)
 ]
 
 # ── Playwright Chromium auto-install ───────────────────────────────────────────
