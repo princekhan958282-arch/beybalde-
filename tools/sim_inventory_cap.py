@@ -251,11 +251,20 @@ cancel = shop[c0:shop.index("async def ", c0 + 20)]
 check("cancellisting has no capacity check, by design",
       "utils.inventory" not in cancel and "can_add" not in cancel)
 
-# -- tournament prize used to swallow failures silently --------------------
-tour = src("cogs/tournament/cog.py")
-check("the tournament prize checks the cap", "can_add" in tour)
-check("...and reports a refusal instead of swallowing it",
-      "inventory" in tour[tour.index("can_add"):][:900].lower())
+# -- tournament prize -------------------------------------------------------
+# The v1.12 rewrite pays COINS, not an item, so there is no inventory cap to
+# check any more — an item prize can be refused for a full bag after the player
+# has already won, which is a bad thing to discover at the trophy ceremony.
+# What still matters is that the payout is atomic: get_user/update_user is a
+# race whose lost write is exactly how redeem.grant erased blades.
+tour = src("cogs/tournament/tournament.py")
+# `"update_user" not in tour` was the first attempt and it failed on the
+# module's own DOCSTRING, which explains why update_user is not used. Match the
+# CALL — with its paren — so prose about a mistake cannot be read as the mistake.
+check("the tournament pays through mutate_user, not a get/update race",
+      "mutate_user(" in tour and "update_user(" not in tour)
+check("...and a failed payout cannot kill the trophy message",
+      "except Exception" in tour[tour.index("def _award"):][:900])
 
 # -- spawn claim reports the refusal --------------------------------------
 spawn = src("cogs/spawn/spawn.py")
