@@ -16,7 +16,6 @@ Commands:
     ;whatnext   →  re-open the next-steps menu any time
 """
 
-import random
 from typing import Optional
 
 import discord
@@ -62,6 +61,22 @@ GATE_EXEMPT = {
 
 class NotStarted(commands.CheckFailure):
     """Raised by the global gate when a player hasn't run ;start yet."""
+
+
+class BotBanned(commands.CheckFailure):
+    """Raised by the global gate for a player on the admin ban list."""
+
+    def __init__(self, reason: str = "") -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+class UnderMaintenance(commands.CheckFailure):
+    """Raised by the global gate while maintenance mode is on."""
+
+    def __init__(self, reason: str = "") -> None:
+        super().__init__(reason)
+        self.reason = reason
 
 
 def _starter_pool() -> list[dict]:
@@ -397,6 +412,15 @@ class OnboardingCog(commands.Cog):
         """Nudge brand-new users toward ;start instead of a bare error."""
         if isinstance(error, NotStarted):
             return await ctx.send(embed=_gate_embed(), delete_after=60)
+        # One line explaining why, rather than a command that appears to do
+        # nothing. A deploy that silently swallows every command looks exactly
+        # like a bot that has crashed.
+        if isinstance(error, UnderMaintenance):
+            return await ctx.send(embed=_maintenance_embed(error.reason),
+                                  delete_after=60)
+        if isinstance(error, BotBanned):
+            return await ctx.send(embed=_banned_embed(error.reason),
+                                  delete_after=60)
         if not isinstance(error, commands.CommandNotFound):
             return
         try:
@@ -405,7 +429,7 @@ class OnboardingCog(commands.Cog):
                 if _has_started(profile):
                     return
             await ctx.send(
-                f"👋 New here? Run **`;start`** to get your first Beyblade.",
+                "👋 New here? Run **`;start`** to get your first Beyblade.",
                 delete_after=20)
         except Exception:
             pass
@@ -427,6 +451,56 @@ def _gate_embed() -> discord.Embed:
         inline=False)
     e.set_footer(text="Already started and still seeing this? Tell an admin.")
     return e
+
+
+def _maintenance_embed(reason: str) -> discord.Embed:
+    return discord.Embed(
+        title="🚧 Beycord is down for maintenance",
+        description=(reason or "A new build is being deployed.")
+                    + "\n\nNothing is lost — try again in a few minutes.",
+        colour=0xE67E22)
+
+
+def _banned_embed(reason: str) -> discord.Embed:
+    return discord.Embed(
+        title="🔨 You're banned from this bot",
+        description=(f"Reason: **{reason}**" if reason else "No reason given.")
+                    + "\n\nTalk to an admin if you think this is a mistake.",
+        colour=0xED4245)
+
+
+def blocked_reason(user, bot=None):
+    """Is this user refused right now, and why? `None` means let them through.
+
+    Maintenance mode and the ban list are both answered HERE, in the check that
+    already runs in front of every command, rather than as a second global
+    check. Two independent checks would be two things that have to agree about
+    who may run what, and they would disagree the first time one of them was
+    edited.
+
+    Returns the exception to raise, so the caller decides how to surface it.
+    Never raises on its own — a failure inside this function must not take the
+    whole bot down.
+    """
+    try:
+        from cogs.admin import actions as A
+    except Exception:                                    # noqa: BLE001
+        return None                                      # fail open
+    try:
+        uid = getattr(user, "id", None)
+        # The owner is never locked out — the panel that turns maintenance mode
+        # OFF is itself a command, so gating it would be a one-way door.
+        if uid == A.MASTER_ID:
+            return None
+        rec = A.banned(uid)
+        if rec:
+            return BotBanned(rec.get("reason", ""))
+        m = A.maintenance()
+        if m["on"]:
+            return UnderMaintenance(m["reason"])
+    except Exception:                                    # noqa: BLE001
+        return None                                      # fail open
+    return None
 
 
 def command_names(command) -> set[str]:
@@ -455,6 +529,14 @@ def gate_check(bot: commands.Bot):
     strictly worse than briefly letting an unstarted player run a command.
     """
     async def predicate(ctx: commands.Context) -> bool:
+        # A ban and a maintenance lockout apply to EVERY command, the exempt
+        # ones included. `;start` is exempt from the starter gate because it is
+        # the door; it is not exempt from a ban, or the ban would only stop
+        # people who had already walked through.
+        blocked = blocked_reason(ctx.author, bot)
+        if blocked is not None:
+            raise blocked
+
         if is_exempt(ctx.command):
             return True
         try:
@@ -508,6 +590,16 @@ def install_tree_gate(bot: commands.Bot) -> None:
 
     async def check(interaction: discord.Interaction) -> bool:
         try:
+            blocked = blocked_reason(interaction.user, bot)
+            if isinstance(blocked, UnderMaintenance):
+                await interaction.response.send_message(
+                    embed=_maintenance_embed(blocked.reason), ephemeral=True)
+                return False
+            if isinstance(blocked, BotBanned):
+                await interaction.response.send_message(
+                    embed=_banned_embed(blocked.reason), ephemeral=True)
+                return False
+
             name = getattr(interaction.command, "qualified_name", "") or ""
             root = name.split(" ")[0] if name else ""
             if not name or root in GATE_EXEMPT or name in GATE_EXEMPT:

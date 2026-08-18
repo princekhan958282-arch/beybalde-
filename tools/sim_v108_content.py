@@ -455,9 +455,9 @@ _cards = _ae.get_all_avatars()
 
 
 def _match(q):
-    """The matcher from AdminCog.giveavatar, restated for testing.
+    """The matcher from the giveavatar action, restated for testing.
 
-    Kept in step with the command by the source check below rather than by
+    Kept in step with the real one by the source check below rather than by
     hope: if the two ever disagree the last check in this block fails.
     """
     ql = q.strip().strip('"').strip("'").lower()
@@ -468,14 +468,20 @@ def _match(q):
     return exact or [a for a in _cards if ql in a["name"].lower()]
 
 
-_adm = open(os.path.join(ROOT, "cogs", "admin", "admin.py"),
+# v1.13 moved this out of `;giveavatar` in cogs/admin/admin.py and into the
+# action registry. The claims below are unchanged — what grants the card, and
+# whether it can be reached by anyone but an admin.
+_adm = open(os.path.join(ROOT, "cogs", "admin", "actions.py"),
             encoding="utf-8").read()
-check("the command exists and is master-gated like ;givebey",
-      'name="giveavatar"' in _adm
-      and "@is_master()" in _adm.split('name="giveavatar"')[1][:200])
-check("...and hidden, like every other command in the admin cog",
-      "hidden=True" in _adm.split('name="giveavatar"')[1][:120])
-_body = _adm.split("async def giveavatar")[1].split("\n    # ──")[0]
+check("the action exists and is registered under Content",
+      '@register("giveavatar"' in _adm
+      and '"content"' in _adm.split('@register("giveavatar"')[1][:300])
+check("...and the whole admin surface is gated in one place",
+      "def is_admin(user)" in _adm
+      and "A.is_admin(interaction.user)" in open(
+          os.path.join(ROOT, "cogs", "admin", "panel.py"),
+          encoding="utf-8").read())
+_body = _adm.split("async def _giveavatar")[1].split("\n@register")[0]
 check("it grants through the shop's own database helper, not a hand-rolled "
       "profile write — a stale snapshot written back is what ate blades in "
       "redeem.grant", "add_avatar_to_inventory" in _body)

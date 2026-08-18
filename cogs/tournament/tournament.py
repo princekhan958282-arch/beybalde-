@@ -55,8 +55,9 @@ from .models import Match, MatchState, Mode
 
 log = logging.getLogger("beyblade_bot.tournament")
 
-# Kept identical to the retired cog so `cogs/admin/console.py:117`, which looks
-# the cog up by this literal string, keeps working.
+# Kept identical to the retired cog so the admin action registry, which looks
+# the cog up by this literal string (`cogs/admin/actions.py:_tcog`), keeps
+# working.
 COG_NAME   = "Tournaments"
 
 MASTER_ID  = 956773141265391676
@@ -761,7 +762,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         except Exception:                                # noqa: BLE001
             log.debug("[tournament] bracket post failed", exc_info=True)
 
-    # ── admin hooks, called by cogs/admin/console.py ──────────────────────────
+    # ── admin hooks, called by cogs/admin/actions.py ──────────────────────────
     def admin_lobby(self, guild_id: int) -> Optional[Lobby]:
         return self.lobbies.get(guild_id)
 
@@ -791,7 +792,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         """Bar a player, and pull them out of the open lobby if they are in it.
 
         Owns the whole "entrants and _active move together" invariant, which
-        the admin console was previously hand-rolling half of from outside. A
+        the admin surface was previously hand-rolling half of from outside. A
         third thing joining that invariant later would have silently stopped
         being maintained there.
         """

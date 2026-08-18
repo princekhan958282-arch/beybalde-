@@ -509,15 +509,21 @@ check("app.py no longer carries the commented-out landmine — the old file was 
       "cogs.extras.tournament" not in _app)
 check("...and loads the package exactly once",
       _app.count('"cogs.tournament"') == 1)
-_con = open(os.path.join(ROOT, "cogs", "admin", "console.py"),
+# v1.13 folded console.py into cogs/admin/actions.py. The claim is unchanged
+# and still worth guarding: the admin surface reaches the tournament through
+# the cog's public admin_* hooks, never into the package's internals — that
+# coupling is why deleting one package broke seventeen admin actions at once.
+_con = open(os.path.join(ROOT, "cogs", "admin", "actions.py"),
             encoding="utf-8").read()
-# Match the IMPORT, not the word: console.py carries a comment explaining the
+# Match the IMPORT, not the word: the file carries a comment explaining the
 # deep imports it used to make, and `"..tournament." not in _con` read that
 # explanation as the offence. Same trap as sim_inventory_cap hit an hour ago.
-check("the admin console no longer reaches into package internals",
-      "from ..tournament" not in _code(_con) and "svc" not in _code(_con),
-      [l for l in _code(_con).splitlines() if "svc" in l][:2])
-check("...and keeps the cog name the console looks up by string",
+check("the admin surface no longer reaches into package internals",
+      "from ..tournament" not in _code(_con)
+      and "from cogs.tournament.views" not in _code(_con)
+      and ".svc" not in _code(_con),
+      [l for l in _code(_con).splitlines() if ".svc" in l][:2])
+check("...and keeps the cog name the admin surface looks up by string",
       T.COG_NAME == "Tournaments" and '"Tournaments"' in _con)
 
 print("\n── 8b. the lifecycle defects the review found ──────────────────")

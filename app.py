@@ -16,7 +16,7 @@ Cog structure
     cogs/battle.py       — Button-based turn-by-turn battles
     cogs/shop.py         — Shop: buy/sell Beyblades and parts
     cogs/leaderboard.py  — Global leaderboard and rank cards
-    cogs/admin.py        — Hidden master control commands
+    cogs/admin/          — the /admin panel (v1.13)
     cogs/avatar/         — Avatar pack shop, inventory & battle bonuses
     cogs/casino/         — Full casino system (coins, all games)
 """
@@ -26,7 +26,6 @@ import asyncio
 import logging
 import subprocess
 import sys
-from pathlib import Path
 
 # Dependency check BEFORE anything imports discord. Python caches modules, so
 # upgrading discord.py after `import discord` would have no effect until the
@@ -95,6 +94,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger("beyblade_bot")
 
+# Keep the last 50 exceptions in memory where an admin can read them from
+# `/admin → 🔧 System → Recent errors`. There is no `logs/` directory on the
+# panel and nothing is written to disk, so until v1.13 every one of the 21
+# `log.exception` sites went straight to a console nobody was watching — which
+# is how a boss battle stayed frozen for weeks.
+try:
+    from utils import errorlog
+    errorlog.install()
+except Exception as _exc:                                # noqa: BLE001
+    logger.warning("error ring buffer not installed: %s", _exc)
+
 # ── Cogs to load ───────────────────────────────────────────────────────────────
 # Load subsystem packages (each has __init__.py with setup() entry point)
 COGS = [
@@ -105,7 +115,7 @@ COGS = [
     "cogs.ranked",     # Ranked ladder, leaderboards, verification
     "cogs.spawn",      # Wild spawns & claiming
     "cogs.ui",         # Help & logging
-    "cogs.admin",      # Admin commands
+    "cogs.admin",      # /admin panel + ;sync ;reload ;version
     "cogs.avatar",     # Avatar system (optional)
     # ── Casino ──────────────────────────────────────────────
     "cogs.casino.mines",
@@ -145,9 +155,7 @@ COGS = [
     "cogs.clans.clan_war",
     "cogs.extras.mastery",
     "cogs.extras.achievements",
-    "cogs.admin.audit",
     "cogs.economy.chat_xp",   # chat EXP for trainer + equipped bey
-    "cogs.admin.console",    # single /admin command for every admin action
     "cogs.tournament",       # one-command tournament (v1.12)
 ]
 
@@ -325,11 +333,21 @@ class BeybladeBot(commands.Bot):
                 f"Usage: `{COMMAND_PREFIX}help {ctx.command}`"
             )
         elif isinstance(error, commands.MemberNotFound):
-            await ctx.send(f"❌ Member not found. Make sure you @mention them.")
+            await ctx.send("❌ Member not found. Make sure you @mention them.")
         elif isinstance(error, commands.MissingPermissions):
             await ctx.send("❌ You don't have permission to use that command.")
         elif isinstance(error, commands.CommandNotFound):
             pass   # Silently ignore unknown commands
+        elif isinstance(error, commands.CheckFailure):
+            # A refused check is never an "unexpected error". Whoever owns the
+            # check owns the message: the onboarding cog explains the `;start`
+            # gate, a ban and maintenance mode, and the admin cog stays silent
+            # on purpose so its hidden commands look like they don't exist.
+            # Without this branch the else below fired too, so a banned player
+            # got their ban notice AND "⚠️ An unexpected error occurred", and a
+            # non-admin who guessed `;sync` was told the check for it failed —
+            # which is how a hidden command announces itself.
+            pass
         else:
             logger.error(f"Unhandled error in {ctx.command}: {error}", exc_info=error)
             await ctx.send(f"⚠️ An unexpected error occurred: `{error}`")

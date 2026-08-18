@@ -30,17 +30,8 @@ from discord.ext import commands
 from cogs.casino import casino_premium, casino_wallet
 from cogs.economy.profile import fuzzy_find_beyblade
 from utils.database import add_beyblade_to_inventory, mutate_user
-from utils.mobile_ui import MobileListView
 
-from .code_store import (
-    BACKUP_PATH,
-    REDEEM_PATH,
-    load,
-    make_code,
-    normalise,
-    redeem_lock,
-    save,
-)
+from .code_store import REDEEM_PATH, load, normalise, redeem_lock, save
 
 MASTER_ID = 956773141265391676
 
@@ -220,146 +211,13 @@ class RedeemCog(commands.Cog, name="Codes"):
             e.set_footer(text=note)
         await ctx.send(f"{ctx.author.mention}", embed=e)
 
-    # ── ;code (admin) ────────────────────────────────────────────────────────
-    @commands.group(name="codeadmin", aliases=["codes", "code"],
-                    invoke_without_command=True, hidden=True)
-    async def codeadmin(self, ctx: commands.Context):
-        if ctx.author.id != MASTER_ID:
-            return
-        await ctx.send(
-            "🎟️ **Code admin**\n"
-            "`;codes create <spec> [uses:N] [days:N] [note:...]`\n"
-            "`;codes list` · `;codes revoke <code>` · `;codes info <code>`\n\n"
-            "Spec examples: `coins:5000` · `casino:2000` · `blade:Dranzer` · "
-            "`premium:pro` · `coins:5000,casino:1000`")
-
-    @codeadmin.command(name="create", aliases=["new", "make"])
-    async def code_create(self, ctx: commands.Context, *, args: str = None):
-        if ctx.author.id != MASTER_ID:
-            return
-        if not args:
-            return await ctx.send("Usage: `;codes create coins:5000 uses:100 days:7`")
-
-        # Pull the note out FIRST and take the rest of the string with it —
-        # scanning left-to-right and breaking on note: meant "note:hi uses:50"
-        # silently dropped uses:50.
-        note = ""
-        body = args
-        if "note:" in args.lower():
-            idx  = args.lower().index("note:")
-            note = args[idx + 5:].strip()
-            body = args[:idx]
-
-        spec_parts, uses, days = [], 0, 0
-        for token in body.split():
-            low = token.lower()
-            if low.startswith("uses:"):
-                uses = int(token[5:]) if token[5:].isdigit() else 0
-            elif low.startswith("days:"):
-                days = int(token[5:]) if token[5:].isdigit() else 0
-            else:
-                spec_parts.append(token)
-
-        rewards, err = parse_rewards(",".join(spec_parts))
-        if err:
-            return await ctx.send(f"❌ {err}")
-
-        key = normalise(make_code("BEY"))
-        with redeem_lock:
-            data = _load()
-            while key in data["codes"]:
-                key = normalise(make_code("BEY"))
-            data["codes"][key] = {
-                "rewards":    rewards,
-                "max_uses":   uses,
-                "expires":    (time.time() + days * 86400) if days else 0,
-                "created_at": time.time(),
-                "created_by": ctx.author.id,
-                "claimed_by": {},
-                "note":       note,
-                "revoked":    False,
-                "display":    _pretty(key),
-            }
-            save(REDEEM_PATH, data)
-
-        e = discord.Embed(
-            title="🎟️  Code Created",
-            description=f"## `{_pretty(key)}`\n\n{describe(rewards)}",
-            color=0x2ecc71,
-        )
-        e.add_field(name="Uses",
-                    value=("unlimited" if not uses else f"{uses}"), inline=True)
-        e.add_field(name="Expires",
-                    value=("never" if not days else f"<t:{int(time.time() + days * 86400)}:R>"),
-                    inline=True)
-        if note:
-            e.add_field(name="Note", value=note, inline=False)
-        e.set_footer(text="Players claim it with ;redeem <code>")
-        await ctx.send(embed=e)
-
-    @codeadmin.command(name="list")
-    async def code_list(self, ctx: commands.Context):
-        if ctx.author.id != MASTER_ID:
-            return
-        data  = _load()
-        codes = sorted(data["codes"].items(),
-                       key=lambda kv: -kv[1].get("created_at", 0))
-        if not codes:
-            return await ctx.send("No codes exist yet.")
-
-        def render(item, idx):
-            key, c = item
-            used = len(c.get("claimed_by", {}))
-            cap  = c.get("max_uses", 0)
-            state = ("🚫 revoked" if c.get("revoked")
-                     else "⏰ expired" if c.get("expires") and time.time() > c["expires"]
-                     else "✅ live")
-            return (f"**{idx + 1}.** `{c.get('display', key)}` {state}\n"
-                    f"　{describe(c['rewards'])[:60]} · "
-                    f"{used}/{cap if cap else '∞'} used")
-
-        def option_of(item):
-            key, c = item
-            return (c.get("display", key),
-                    f"{len(c.get('claimed_by', {}))} claims", "🎟️")
-
-        async def detail(interaction, item):
-            key, c = item
-            e = discord.Embed(title=f"🎟️  {c.get('display', key)}",
-                              description=describe(c["rewards"]), color=0x9b59b6)
-            e.add_field(name="Claims",
-                        value=f"{len(c.get('claimed_by', {}))}/"
-                              f"{c.get('max_uses') or '∞'}", inline=True)
-            e.add_field(name="Expires",
-                        value=("never" if not c.get("expires")
-                               else f"<t:{int(c['expires'])}:R>"), inline=True)
-            if c.get("note"):
-                e.add_field(name="Note", value=c["note"], inline=False)
-            await interaction.response.send_message(embed=e, ephemeral=True)
-
-        view = MobileListView(
-            owner=ctx.author, title="🎟️  Redeem Codes", items=codes,
-            render=render, option_of=option_of, detail=detail,
-            detail_placeholder="🔍 Open a code…", colour=0x9b59b6,
-        )
-        view.message = await ctx.send(embed=view.embed(), view=view)
-
-    @codeadmin.command(name="revoke", aliases=["delete", "kill"])
-    async def code_revoke(self, ctx: commands.Context, code: str = None):
-        if ctx.author.id != MASTER_ID:
-            return
-        if not code:
-            return await ctx.send("Usage: `;codes revoke <code>`")
-        key = normalise(code)
-        with redeem_lock:
-            data  = _load()
-            found = key in data["codes"]
-            if found:
-                data["codes"][key]["revoked"] = True
-                save(REDEEM_PATH, data)
-        if not found:
-            return await ctx.send("❌ No such code.")
-        await ctx.send(f"🚫 Revoked `{_pretty(key)}` — it can't be claimed any more.")
+    # ── admin code management moved to /admin → 🎟️ Codes (v1.13) ─────────
+    #
+    # `;codeadmin create/list/revoke` lived here, each subcommand carrying
+    # its own hand-rolled `ctx.author.id != MASTER_ID` check. The logic did
+    # not move: `cogs/admin/actions.py` calls `parse_rewards`, `describe`,
+    # `_load` and `_pretty` from this module, so there is still exactly one
+    # implementation of what a redeem code is.
 
 
 def _pretty(key: str) -> str:
