@@ -15,6 +15,7 @@ Run:  python3 tools/sim_servers.py
 import asyncio
 import os
 import sys
+import types
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -99,8 +100,14 @@ def run(cached, rest, **kw):
     permission gate to test.
     """
     bot = FakeBot(cached, rest, **kw)
+    # Driven AS THE OWNER: `servers` is owner-only like almost every action in
+    # the registry, and the permission gate lives in `run()` rather than only
+    # in the view. This suite is about the API/cache reconciliation — the gate
+    # has its own tests in sim_admin.
+    owner = types.SimpleNamespace(id=ADMIN.MASTER_ID, roles=[])
     res = asyncio.get_event_loop().run_until_complete(
-        ADMIN.run("servers", ADMIN.ActionCtx(bot=bot)))
+        ADMIN.run("servers", ADMIN.ActionCtx(bot=bot, invoker=owner,
+                                             invoker_id=ADMIN.MASTER_ID)))
     sent = list(res.embeds) if res.embeds else (
         [res.embed] if res.embed is not None else [])
     if res.message:
