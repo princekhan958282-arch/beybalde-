@@ -10,6 +10,7 @@ CATEGORIES = {
     "story":       {"emoji": "📖",  "color": 0x3498DB, "label": "Story Mode"},
     "boss":        {"emoji": "👹",  "color": 0x8E44AD, "label": "Boss Battles"},
     "battle":      {"emoji": "⚔️",  "color": 0x7B68EE, "label": "Battle"},
+    "tournament":  {"emoji": "🏆",  "color": 0x5865F2, "label": "Tournaments"},
     "marketplace": {"emoji": "🛒",  "color": 0x9B59B6, "label": "Marketplace"},
     "shop":        {"emoji": "🎁",  "color": 0x2ECC71, "label": "Shop"},
     "leaderboard": {"emoji": "🏆",  "color": 0xF39C12, "label": "Leaderboard"},
@@ -285,6 +286,16 @@ COMMAND_DATA = {
         (";bossinfo <name>",            "📖 Info card for a boss-only blade"),
         (";copies",                     "🧬 Boss copies you've won — every one rolls its own kit"),
         (";copy <number|id>",           "Card for one of your copies"),
+    ],
+    "tournament": [
+        (";tournament",                 "🏆 Open a tournament — admins only"),
+        ("/tournament",                 "The same panel, as a slash command"),
+        ("(the Join button)",           "Anyone can join from the panel — no command needed"),
+        # Every entry becomes an embed FIELD, and a field with an empty name is
+        # a Discord 400 — `name` must be 1-256. An empty string here rendered
+        # as "``" and would have taken the whole ;help page down.
+        ("How it works",                "Everyone gets a random blade drafted at "
+                                        "the start; the champion takes the coin pot."),
     ],
     "mastery": [
         (";mastery",                    "🔰 Your blades — paged, tap one for detail"),

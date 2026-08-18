@@ -28,7 +28,6 @@ service methods the old subcommands used, so behaviour can't drift.
 from __future__ import annotations
 
 import logging
-import time
 from typing import Optional
 
 import discord
@@ -57,38 +56,20 @@ def is_admin(user) -> bool:
 # `required` is what makes generic parameters safe: it is checked before the
 # handler runs, so a missing id can never reach the service layer.
 ACTIONS: dict[str, tuple[str, str, tuple[str, ...]]] = {
-    # ── tournament lifecycle ──
-    "create":        ("🏆 Create tournament",
-                      "text = name, extra = mode, amount = max players",
-                      ("text",)),
-    "start":         ("▶️ Start tournament", "target = tournament id", ("target",)),
-    "end":           ("🏁 End tournament", "target = tournament id", ("target",)),
-    "cancel":        ("✖️ Cancel tournament", "target = tournament id", ("target",)),
-    "pause":         ("⏸️ Pause tournament", "target = tournament id", ("target",)),
-    "resume":        ("⏯️ Resume tournament", "target = tournament id", ("target",)),
-    # ── match control ──
+    # ── tournament ──
+    #
+    # Four, down from fifteen. The other eleven — create, end, pause, resume,
+    # reschedule, replace_player, unban_player, set_reward, broadcast,
+    # announce, announce_history — only meant anything for the scheduled
+    # bracket system deleted in v1.12. A self-serve lobby creates itself from
+    # `/tournament`, runs itself, and has no schedule to reschedule.
+    "start":         ("▶️ Force-start the tournament",
+                      "starts the open lobby now, short-handed", ()),
+    "cancel":        ("✖️ Cancel the tournament", "closes the open lobby", ()),
     "force_win":     ("⚖️ Force a match winner",
-                      "target = match id, user = winner", ("target", "user")),
-    "reschedule":    ("🕒 Reschedule a match",
-                      "target = match id, amount = hours from now",
-                      ("target", "amount")),
-    "replace_player": ("🔄 Swap a player",
-                       "target = tournament id, user = out, user2 = in",
-                       ("target", "user", "user2")),
-    # ── players ──
+                      "user = winner", ("user",)),
     "ban_player":    ("🚫 Ban from tournaments",
-                      "user, text = reason, amount = days (default 30)",
-                      ("user", "text")),
-    "unban_player":  ("✅ Lift a ban", "user", ("user",)),
-    # ── prizes & messaging ──
-    "set_reward":    ("🎁 Set the prize",
-                      "target = tournament id, extra = role|currency|item, "
-                      "text = value", ("target", "extra", "text")),
-    "broadcast":     ("📣 Message entrants",
-                      "target = tournament id, text = message",
-                      ("target", "text")),
-    "announce":      ("📢 Announcement composer", "opens the composer", ()),
-    "announce_history": ("📜 Announcement history", "last 30 days", ()),
+                      "user, text = reason", ("user", "text")),
     # ── casino ──
     "casino_give":   ("🪙 Give casino coins", "user, amount", ("user", "amount")),
     "casino_take":   ("💸 Take casino coins", "user, amount", ("user", "amount")),
@@ -102,10 +83,6 @@ PARAM_HELP = {
     "text":   "`text`",
     "extra":  "`extra`",
 }
-
-MODES = {"single", "double", "round_robin"}
-REWARD_TYPES = {"role", "currency", "item"}
-
 
 class AdminConsole(commands.Cog, name="Admin console"):
     def __init__(self, bot: commands.Bot) -> None:
@@ -191,174 +168,63 @@ class AdminConsole(commands.Cog, name="Admin console"):
             out.append(app_commands.Choice(name=name[:100], value=key))
         return out[:25]
 
-    # ── tournament lifecycle ─────────────────────────────────────────────────
-
-    async def _do_create(self, interaction, target, user, user2, amount, text,
-                         extra):
-        cog = self._tournament_cog()
-        mode = (extra or "single").lower()
-        if mode not in MODES:
-            return await self._reply(
-                interaction,
-                f"`extra` must be one of {', '.join(sorted(MODES))}.", True)
-        ok, msg, t = cog.svc.create(
-            interaction.guild_id or 0, interaction.channel_id or 0, text, mode,
-            amount or 16, time.time() + 3600, interaction.user.id)
-        if not ok:
-            return await self._reply(interaction, f"❌ {msg}", True)
-        from .. tournament.views import TournamentCard
-        from .. tournament import ui_v2
-        card = TournamentCard(cog, t.id)
-        await interaction.response.send_message(
-            **ui_v2.card_kwargs(t, len(t.entrants), card))
-
-    async def _state(self, interaction, tid, state, verb):
-        cog = self._tournament_cog()
-        from ..tournament.models import TournamentState
-        ok, msg = cog.svc.set_state(tid, state)
-        await self._reply(interaction, ("✅ " if ok else "❌ ") + msg)
+    # ── tournament ───────────────────────────────────────────────────────────
+    #
+    # These reach the cog through the three public `admin_*` methods on
+    # TournamentCog rather than into its internals. The old console imported
+    # `..tournament.views`, `..tournament.models`, `..tournament.brackets` and
+    # `..tournament.notifications` directly and read `cog.svc.store` — which is
+    # why deleting one package broke seventeen admin actions at once.
 
     async def _do_start(self, interaction, target, user, user2, amount, text,
-                        extra):
+                        extra) -> None:
         cog = self._tournament_cog()
-        await interaction.response.defer()
-        ok, msg, _ = cog.svc.start(target)
-        await interaction.followup.send(("✅ " if ok else "❌ ") + msg)
-
-    async def _do_end(self, interaction, target, user, user2, amount, text, extra):
-        cog = self._tournament_cog()
-        from ..tournament.models import TournamentState
-        from ..tournament import brackets
-        t = cog.svc.store.get_tournament(target)
-        if not t:
-            return await self._reply(interaction, "❌ No tournament with that id.",
-                                     True)
-        await interaction.response.defer()
-        matches = cog.svc.store.get_matches(t.id)
-        champ = brackets.champion(matches, t.mode)
-        if champ is None:
-            table = brackets.standings(matches)
-            champ = table[0][0] if table else None
-        ok, msg = cog.svc.set_state(t.id, TournamentState.COMPLETED)
-        await interaction.followup.send(("✅ " if ok else "❌ ") + msg)
-        if champ is not None:
-            await cog._award(t, champ)
-
-    async def _do_cancel(self, interaction, target, *_):
-        from ..tournament.models import TournamentState
-        await self._state(interaction, target, TournamentState.CANCELLED, "cancelled")
-
-    async def _do_pause(self, interaction, target, *_):
-        from ..tournament.models import TournamentState
-        await self._state(interaction, target, TournamentState.PAUSED, "paused")
-
-    async def _do_resume(self, interaction, target, *_):
-        from ..tournament.models import TournamentState
-        await self._state(interaction, target, TournamentState.RUNNING, "resumed")
-
-    # ── match control ────────────────────────────────────────────────────────
-
-    async def _do_force_win(self, interaction, target, user, user2, amount, text,
-                            extra):
-        cog = self._tournament_cog()
-        ok, msg, _m = cog.svc.force_win(target, user.id)
-        await self._reply(interaction, ("✅ " if ok else "❌ ") + msg)
-
-    async def _do_reschedule(self, interaction, target, user, user2, amount, text,
-                             extra):
-        cog = self._tournament_cog()
-        from ..tournament import notifications as notify, timeslots as ts
-        ok, msg, m = cog.svc.reschedule(target, time.time() + amount * 3600)
-        await self._reply(interaction, ("✅ " if ok else "❌ ") + msg)
-        if ok and m:
-            await notify.dm_all(self.bot, m.players,
-                                content=f"Your match `{m.id}` moved to "
-                                        f"{ts.discord_ts(m.scheduled_for)}.")
-
-    async def _do_replace_player(self, interaction, target, user, user2, amount,
-                                 text, extra):
-        cog = self._tournament_cog()
-        ok, msg = cog.svc.replace_player(target, user.id, user2.id)
-        await self._reply(interaction, ("✅ " if ok else "❌ ") + msg)
-
-    # ── players ──────────────────────────────────────────────────────────────
-
-    async def _do_ban_player(self, interaction, target, user, user2, amount, text,
-                             extra):
-        cog = self._tournament_cog()
-        ok, msg = cog.svc.ban_player(user.id, text, amount or 30)
-        await self._reply(interaction, ("✅ " if ok else "❌ ") + msg)
-
-    async def _do_unban_player(self, interaction, target, user, user2, amount,
-                               text, extra):
-        cog = self._tournament_cog()
-        ok, msg = cog.svc.unban_player(user.id)
-        await self._reply(interaction, ("✅ " if ok else "❌ ") + msg)
-
-    # ── prizes & messaging ───────────────────────────────────────────────────
-
-    async def _do_set_reward(self, interaction, target, user, user2, amount, text,
-                             extra):
-        cog = self._tournament_cog()
-        kind = (extra or "").lower()
-        if kind not in REWARD_TYPES:
-            return await self._reply(
-                interaction,
-                f"`extra` must be one of {', '.join(sorted(REWARD_TYPES))}.", True)
-        t = cog.svc.store.get_tournament(target)
-        if not t:
-            return await self._reply(interaction, "❌ No such tournament.", True)
-        t.reward_type, t.reward_value = kind, text
-        cog.svc.store.put_tournament(t)
-        await self._reply(interaction,
-                          f"✅ Prize for **{t.name}**: {kind} `{text}`.")
-
-    async def _do_broadcast(self, interaction, target, user, user2, amount, text,
-                            extra):
-        cog = self._tournament_cog()
-        from ..tournament import notifications as notify
-        t = cog.svc.store.get_tournament(target)
-        if not t:
-            return await self._reply(interaction, "❌ No such tournament.", True)
-        await interaction.response.defer(ephemeral=True)
-        results = await notify.dm_all(self.bot, t.entrants,
-                                      content=f"📣 **{t.name}** — {text}")
-        sent = sum(1 for v in results.values() if v)
-        await interaction.followup.send(
-            f"Sent to {sent}/{len(results)}. "
-            f"{len(results) - sent} have DMs closed.", ephemeral=True)
-
-    async def _do_announce(self, interaction, *_):
-        cog = self._tournament_cog()
-        from ..tournament.views import AnnouncementComposer
-        view = AnnouncementComposer(cog, interaction.guild_id or 0,
-                                    interaction.channel_id or 0)
-        await interaction.response.send_message(
-            embed=view.preview(), view=view, ephemeral=True)
-
-    async def _do_announce_history(self, interaction, *_):
-        cog = self._tournament_cog()
-        recent = cog.svc.store.recent_dm_announcements(time.time() - 30 * 86400)
-        if not recent:
+        lobby = cog.admin_lobby(interaction.guild_id) if cog else None
+        if not lobby or lobby.started:
             return await self._reply(interaction,
-                                     "No DM announcements in the last 30 days.",
-                                     True)
-        e = discord.Embed(title="📢 Recent announcements", colour=0x5865F2)
-        for ann in recent[:10]:
-            counts = cog.svc.store.rsvp_counts(ann["id"])
-            body = ann["body"].replace("\n", " ")
-            if len(body) > 80:
-                body = body[:79] + "…"
-            e.add_field(
-                name=f"<t:{int(ann['created_at'])}:R> · {counts['total']} sent",
-                value=(f"{body}\n✅ {counts['yes']} · ❌ {counts['no']} · "
-                       f"⏳ {counts['pending']}"),
-                inline=False)
-        if len(recent) > 10:
-            e.set_footer(text=f"showing 10 of {len(recent)}")
-        await interaction.response.send_message(embed=e, ephemeral=True)
+                                     "No open tournament here.", ephemeral=True)
+        from cogs.tournament.tournament import MIN_PLAYERS
+        if not cog.admin_start(interaction.guild_id):
+            return await self._reply(
+                interaction, f"Needs at least {MIN_PLAYERS} entrants.",
+                ephemeral=True)
+        await self._reply(interaction, "▶️ Starting the tournament.")
 
-    # ── casino ───────────────────────────────────────────────────────────────
+    async def _do_cancel(self, interaction, target, user, user2, amount, text,
+                         extra) -> None:
+        cog = self._tournament_cog()
+        ok = await cog.admin_cancel(interaction.guild_id) if cog else False
+        await self._reply(interaction,
+                          "✖️ Tournament cancelled — everyone released."
+                          if ok else "No open tournament here.",
+                          ephemeral=not ok)
+
+    async def _do_force_win(self, interaction, target, user, user2, amount,
+                            text, extra) -> None:
+        cog = self._tournament_cog()
+        lobby = cog.admin_lobby(interaction.guild_id) if cog else None
+        if not lobby or not lobby.matches:
+            return await self._reply(interaction,
+                                     "No live bracket here.", ephemeral=True)
+        if not cog.admin_force_win(interaction.guild_id, user.id):
+            return await self._reply(
+                interaction, f"{user.mention} has no unfinished match.",
+                ephemeral=True)
+        await self._reply(interaction, f"⚖️ {user.mention} advances.")
+
+    async def _do_ban_player(self, interaction, target, user, user2, amount,
+                             text, extra) -> None:
+        cog = self._tournament_cog()
+        if cog is None:
+            return await self._reply(interaction, "Tournament cog not loaded.",
+                                     ephemeral=True)
+        # Through the cog, which owns the "entrants and _active move together"
+        # invariant. Hand-rolling half of it out here was the third place that
+        # had to stay in sync, and the one that would silently stop being
+        # maintained the moment a fourth thing joined the invariant.
+        cog.admin_ban(interaction.guild_id, user.id)
+        await self._reply(interaction,
+                          f"🚫 {user.mention} banned from tournaments — {text}")
 
     async def _do_casino_give(self, interaction, target, user, user2, amount,
                               text, extra):

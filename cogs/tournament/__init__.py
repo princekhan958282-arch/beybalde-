@@ -1,25 +1,20 @@
-"""cogs/tournament — the scheduled tournament system.
+"""
+cogs.tournament — one command, one panel, one bracket.
 
-Layered on purpose:
+    tournament.py   the command, the public panel, the bracket runner
+    brackets.py     pure bracket maths (seed, generate, advance, byes)
+    models.py       the dataclasses brackets speaks in
 
-    models      pure types + the match state machine
-    timeslots   availability, UTC conversion, overlap
-    brackets    single / double elimination, round robin
-    store       SQLite persistence
-    service     all the rules; no discord import anywhere below this line
-    cog         the Discord surface only
+`brackets` and `models` are discord-free, which is what lets a whole
+tournament be played out in a test loop to prove it terminates with exactly
+one champion. They survived the v1.12 rewrite unchanged for that reason — the
+bracket maths was never the part that was wrong.
 
-`service` and everything under it can be driven headlessly, which is how the
-bracket and scheduling logic get tested without a gateway connection.
-
-The import of .cog is deferred into setup() for the same reason cogs/battle
-defers its own: importing the package must not drag in discord at import time.
+`setup` is deferred into the submodule so importing this package does not drag
+in `discord`, and the headless suites can import `brackets` on its own.
 """
 
 
 async def setup(bot):
-    from .cog import setup as _setup
+    from .tournament import setup as _setup
     await _setup(bot)
-
-
-__all__ = ["setup"]

@@ -128,9 +128,6 @@ COGS = [
     "cogs.casino.mines_multi",
     # ── Extras: Tournament / Raid / Quests / Trading ─────────
     "cogs.extras.quests",
-    # Replaced by the cogs.tournament package below — the old cog registered
-    # its own /tournament group, so loading both would collide.
-    # "cogs.extras.tournament",
     "cogs.extras.raid",
     "cogs.extras.trade",
     "cogs.ui.inventory_ui",
@@ -151,7 +148,7 @@ COGS = [
     "cogs.admin.audit",
     "cogs.economy.chat_xp",   # chat EXP for trainer + equipped bey
     "cogs.admin.console",    # single /admin command for every admin action
-    "cogs.tournament",       # scheduled tournament system
+    "cogs.tournament",       # one-command tournament (v1.12)
 ]
 
 # ── Playwright Chromium auto-install ───────────────────────────────────────────
