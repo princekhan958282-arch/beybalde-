@@ -557,6 +557,32 @@ def set_spawn_channel(guild_id: int, channel_id: Optional[int]) -> None:
         save_config(cfg)
 
 
+def get_announce_channel(guild_id: int) -> Optional[int]:
+    """The channel announcements go to for a guild, or None if unset."""
+    with _config_lock:
+        cfg = load_config()
+    return cfg.get(str(guild_id), {}).get("announce_channel_id")
+
+
+def set_announce_channel(guild_id: int, channel_id: Optional[int]) -> None:
+    """Save (or clear) the announcement channel for a guild.
+
+    Same shape as `set_spawn_channel` above and stored in the same per-guild
+    dict, so a server's settings stay in one place rather than accumulating a
+    file per feature.
+    """
+    with _config_lock:
+        cfg = load_config()
+        key = str(guild_id)
+        if key not in cfg:
+            cfg[key] = {}
+        if channel_id is None:
+            cfg[key].pop("announce_channel_id", None)
+        else:
+            cfg[key]["announce_channel_id"] = channel_id
+        save_config(cfg)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  Spawn state helpers
 #  spawn_state.json schema:

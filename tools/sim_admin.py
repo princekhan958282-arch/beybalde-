@@ -119,11 +119,32 @@ check("every action has a coroutine handler",
 # The reverse direction: a handler that is not reachable from the registry is
 # dead code that looks live. `console.py` had a `# ── admin ──` header over
 # nothing for exactly this reason.
+# Matched by SIGNATURE, not by the leading underscore. Every handler takes
+# exactly one argument called `ctx`; helpers in the same module (`_post`,
+# `_announce_target`) take other things, and flagging those as dead code
+# would train me to ignore this check — which is the one that catches the
+# `console.py` bug for real.
+import inspect                                          # noqa: E402
+
 handlers = {id(a.handler) for a in A.REGISTRY.values()}
+
+
+def _is_handler_shaped(fn) -> bool:
+    if not asyncio.iscoroutinefunction(fn):
+        return False
+    try:
+        params = list(inspect.signature(fn).parameters)
+    except (TypeError, ValueError):
+        return False
+    return params == ["ctx"]
+
+
 orphans = [n for n, fn in vars(A).items()
-           if n.startswith("_") and asyncio.iscoroutinefunction(fn)
-           and id(fn) not in handlers]
+           if _is_handler_shaped(fn) and id(fn) not in handlers]
 check("no orphaned handler functions", not orphans, orphans)
+check("...and the check can still see the handlers it is guarding",
+      sum(1 for fn in vars(A).values() if _is_handler_shaped(fn))
+      >= len(A.REGISTRY), len(A.REGISTRY))
 
 check("every action's category is a real one",
       all(a.category in A.CATEGORY_ORDER for a in A.REGISTRY.values()))
@@ -870,7 +891,162 @@ check("...with a reason, not a silent no-op",
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n── 18. secrets never reach a message ────────────────────────────")
+print("\n── 18. announcements ────────────────────────────────────────────")
+# Nothing here fires on its own: the bot is in many servers and deploys by
+# extracting a zip over a live install, so a feature that posts automatically
+# is one bad boot away from spamming every server it is in.
+
+import utils.database as _DB                            # noqa: E402
+
+
+class FakeChannel:
+    def __init__(self, cid=555, fail=None):
+        self.id = cid
+        self.mention = f"<#{cid}>"
+        self.guild = None
+        self.sent = []
+        self._fail = fail
+
+    async def send(self, content=None, *, embed=None, view=None):
+        if self._fail:
+            raise self._fail
+        self.sent.append({"content": content, "embed": embed, "view": view})
+        return types.SimpleNamespace(jump_url="https://x/1")
+
+
+class AGuild:
+    id = 4321
+    name = "Test"
+
+
+_chan = FakeChannel()
+_store: dict = {}
+
+
+def _fake_get(gid):
+    return _store.get(str(gid))
+
+
+def _fake_set(gid, cid):
+    if cid is None:
+        _store.pop(str(gid), None)
+    else:
+        _store[str(gid)] = cid
+
+
+_real_get_a, _real_set_a = _DB.get_announce_channel, _DB.set_announce_channel
+_DB.get_announce_channel, _DB.set_announce_channel = _fake_get, _fake_set
+
+
+class AnnounceBot(FakeBot):
+    def __init__(self, tcog=None):
+        super().__init__()
+        self._tcog = tcog
+
+    def get_channel(self, cid):
+        return _chan if cid == _chan.id else None
+
+    def get_cog(self, name):
+        return self._tcog if name == "Tournaments" else None
+
+
+abot = AnnounceBot()
+
+
+def actx(**kw):
+    kw.setdefault("bot", abot)
+    kw.setdefault("guild", AGuild())
+    kw.setdefault("invoker", OWNER)
+    kw.setdefault("invoker_id", A.MASTER_ID)
+    return A.ActionCtx(**kw)
+
+
+try:
+    # Posting before a channel is set must say what to do, not fail obscurely.
+    r = loop.run_until_complete(A.run("announce_post", actx(text="hello")))
+    check("posting with no channel set is refused", not r.ok)
+    check("...and names the action that fixes it",
+          "announcement channel" in r.message.lower(), r.message)
+
+    r = loop.run_until_complete(A.run("announce_channel", actx(channel=_chan)))
+    check("setting the channel works", r.ok and _fake_get(AGuild.id) == _chan.id)
+
+    r = loop.run_until_complete(A.run(
+        "announce_post", actx(text="Server event\nDouble coins all weekend.")))
+    check("an announcement posts to that channel", r.ok and len(_chan.sent) == 1)
+    e = _chan.sent[0]["embed"]
+    check("...the first line becomes the title", "Server event" in (e.title or ""))
+    check("...and the rest the body", "Double coins" in (e.description or ""))
+    check("...with a jump link back to it", "http" in r.message, r.message)
+
+    _chan.sent.clear()
+    r = loop.run_until_complete(A.run("announce_post", actx(text="One liner")))
+    check("a one-line announcement is a body, not a bare heading",
+          "One liner" in (_chan.sent[0]["embed"].description or ""))
+
+    # The draft cannot claim a version the install is not running.
+    from utils.buildinfo import VERSION
+    check("the update draft names the running build", VERSION in A.update_note())
+    _chan.sent.clear()
+    r = loop.run_until_complete(A.run("announce_update", actx(text="Fixed stuff")))
+    check("an update announcement posts", r.ok and len(_chan.sent) == 1)
+    check("...titled with the version",
+          VERSION in (_chan.sent[0]["embed"].title or ""))
+
+    # A missing permission is the one failure an admin can actually fix.
+    bad = FakeChannel(cid=_chan.id, fail=discord.Forbidden.__new__(discord.Forbidden))
+    abot.get_channel = lambda cid: bad
+    r = loop.run_until_complete(A.run("announce_post", actx(text="x")))
+    check("a Forbidden is turned into the permission to grant",
+          not r.ok and "Send Messages" in r.message, r.message)
+    abot.get_channel = lambda cid: _chan if cid == _chan.id else None
+
+    # ── the Join button ──────────────────────────────────────────────────────
+    # The whole point of a tournament announcement: it must carry the REAL
+    # panel, not a copy of it that nobody can join.
+    from cogs.tournament import tournament as T
+
+    tcog = T.TournamentCog.__new__(T.TournamentCog)
+    tcog.bot = abot
+    tcog.lobbies, tcog._active, tcog.banned = {}, set(), set()
+    tcog._tasks, tcog.panels = set(), {}
+    abot._tcog = tcog
+    _chan.sent.clear()
+    _chan.guild = AGuild()
+
+    r = loop.run_until_complete(A.run(
+        "announce_tournament", actx(text="Saturday night — get in here")))
+    check("a tournament announcement posts", r.ok and len(_chan.sent) == 1,
+          r.message)
+    view = _chan.sent[0]["view"]
+    check("...carrying the real tournament panel",
+          isinstance(view, T.TournamentPanel), type(view).__name__)
+    check("...with a working Join button",
+          any(isinstance(c, T.JoinButton) for c in view.children),
+          [type(c).__name__ for c in view.children])
+    check("...and the admin's note above it",
+          "Saturday night" in (_chan.sent[0]["content"] or ""))
+    check("...and the lobby is registered so admin actions can reach it",
+          tcog.admin_lobby(AGuild.id) is not None)
+
+    r = loop.run_until_complete(A.run("announce_tournament", actx()))
+    check("a second announcement is refused while one is open", not r.ok)
+
+    # Through the cog's public hook, never into its internals — that coupling
+    # is what broke seventeen admin actions when the old package was deleted.
+    # Anchored on CODE, not on the section banner: `acts` has comment lines
+    # stripped, so a `# 📊 Audit` header is not in it to slice on.
+    _blk = acts[acts.index('async def _announce_tournament('):
+                acts.index('CONCENTRATION_WARN =')]
+    check("it goes through the cog hook", "cog.admin_announce(" in _blk)
+    for bad_ref in (".lobbies", ".panels", "._active", "Lobby("):
+        check(f"...and never touches `{bad_ref}`", bad_ref not in _blk)
+finally:
+    _DB.get_announce_channel, _DB.set_announce_channel = _real_get_a, _real_set_a
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── 19. secrets never reach a message ────────────────────────────")
 # `;updatecheck` reports on a GitHub token. Printing it into a Discord channel
 # would be worse than the problem it diagnoses.
 

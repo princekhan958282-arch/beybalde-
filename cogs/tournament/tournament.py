@@ -763,6 +763,36 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             log.debug("[tournament] bracket post failed", exc_info=True)
 
     # ── admin hooks, called by cogs/admin/actions.py ──────────────────────────
+    async def admin_announce(self, channel, author, note: str = "") -> bool:
+        """Open a tournament and post the panel into `channel`.
+
+        This is how an announcement gets a working Join button: it posts the
+        REAL `TournamentPanel`, not a copy of it. `open_panel` was already
+        written against an injected sender rather than a Context, so pointing
+        it at another channel needs nothing from the lobby, the panel or the
+        bracket runner — only a different `send`.
+
+        Returns False when a tournament is already open here or `author` isn't
+        an admin; `open_panel` says which through the sender.
+        """
+        posted: list = []
+
+        async def send(content=None, *, embed=None, view=None, ephemeral=False):
+            # A refusal (ephemeral=True) has nowhere to go in a channel that is
+            # not where the command was typed, so it is swallowed here and
+            # reported through the return value instead of being announced to
+            # everyone reading the announcement channel.
+            if ephemeral:
+                posted.append(None)
+                return None
+            msg = await channel.send(content=note or None, embed=embed, view=view)
+            posted.append(msg)
+            return msg
+
+        await self.open_panel(send, getattr(channel, "guild", None), author,
+                              channel)
+        return bool(posted) and posted[-1] is not None
+
     def admin_lobby(self, guild_id: int) -> Optional[Lobby]:
         return self.lobbies.get(guild_id)
 

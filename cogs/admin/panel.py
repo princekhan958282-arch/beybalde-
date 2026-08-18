@@ -191,6 +191,28 @@ class TargetSelect(discord.ui.UserSelect):
         await self.panel.refresh(interaction)
 
 
+class ChannelPicker(discord.ui.ChannelSelect):
+    """Row 2, same slot as the user picker.
+
+    No action needs both a player and a channel, so they share the row rather
+    than each claiming one — five rows is the hard cap and the panel already
+    spends three.
+    """
+
+    def __init__(self, panel: "AdminPanel"):
+        super().__init__(placeholder="Pick a channel…", min_values=1,
+                         max_values=1, row=2,
+                         channel_types=[discord.ChannelType.text,
+                                        discord.ChannelType.news])
+        self.panel = panel
+
+    @_guard
+    async def callback(self, interaction: discord.Interaction):
+        self.panel.channel = self.values[0]
+        self.panel.pending_confirm = False
+        await self.panel.refresh(interaction)
+
+
 class InputModal(discord.ui.Modal):
     """Asks only for the fields the chosen action declared."""
 
@@ -208,10 +230,25 @@ class InputModal(discord.ui.Modal):
                 max_length=20, required=True)
             self.add_item(self.amount_field)
         if "text" in action.needs:
+            # An announcement is a paragraph, not a reason string. `long` also
+            # gives the composer a box you can actually write in on a phone.
+            long = action.category == "announce"
+            # `announce_update` opens on a draft naming the version this
+            # install is actually running, rather than asking an admin to
+            # remember it. Anything already typed wins over the draft.
+            draft = panel.text
+            if draft is None and action.key == "announce_update":
+                try:
+                    draft = A.update_note()
+                except Exception:                        # noqa: BLE001
+                    draft = None
             self.text_field = discord.ui.TextInput(
-                label="Text", placeholder=action.description[:100],
-                default=panel.text or None,
-                style=discord.TextStyle.short, max_length=300, required=True)
+                label=("Message" if long else "Text"),
+                placeholder=action.description[:100],
+                default=draft or None,
+                style=(discord.TextStyle.paragraph if long
+                       else discord.TextStyle.short),
+                max_length=(1800 if long else 300), required=True)
             self.add_item(self.text_field)
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -294,6 +331,9 @@ class AdminPanel(discord.ui.View):
         self.action_key: Optional[str] = None
         self.target = None
         self.target_id: Optional[int] = None
+        # Where the command was run. A channel action overwrites this with the
+        # picker's choice, which is why `reset_selection` puts it back.
+        self.home_channel = channel
         self.amount: Optional[int] = None
         self.text: Optional[str] = None
         self.pending_confirm = False
@@ -307,6 +347,7 @@ class AdminPanel(discord.ui.View):
         self.action_key = None
         self.amount = None
         self.text = None
+        self.channel = self.home_channel
         self.pending_confirm = False
 
     def ctx(self) -> A.ActionCtx:
@@ -322,10 +363,13 @@ class AdminPanel(discord.ui.View):
         self.add_item(CategorySelect(self))
         self.add_item(ActionSelect(self))
         action = self.selected()
-        # Row 2 only exists for actions that take a player. Showing an inert
-        # user picker on every action is how an admin learns to ignore it.
+        # Row 2 only exists for actions that take a player or a channel.
+        # Showing an inert picker on every action is how an admin learns to
+        # ignore it.
         if action is not None and "user" in action.needs:
             self.add_item(TargetSelect(self))
+        elif action is not None and "channel" in action.needs:
+            self.add_item(ChannelPicker(self))
         self.add_item(RunButton(self))
         self.add_item(CancelButton(self))
 
@@ -347,6 +391,15 @@ class AdminPanel(discord.ui.View):
                 who = (self.target.mention if self.target is not None
                        else "*not picked*")
                 wants.append(f"👤 player — {who}")
+            if "channel" in action.needs:
+                # Defaults to where the panel was opened, so the effective
+                # target is always named rather than shown as "not picked" and
+                # then quietly turning out to be this channel anyway.
+                where = (self.channel.mention if self.channel is not None
+                         else "*none*")
+                here = " *(here — pick another below)*" \
+                    if self.channel is self.home_channel else ""
+                wants.append(f"📣 channel — {where}{here}")
             if "amount" in action.needs:
                 wants.append("🔢 amount — "
                              + (f"**{self.amount:,}**" if self.amount is not None
@@ -456,7 +509,13 @@ class AdminCog(commands.Cog, name="Admin"):
 
     @commands.command(name="sync", hidden=True)
     async def sync(self, ctx: commands.Context, scope: str = "guild") -> None:
-        """`;sync` · `;sync clean` · `;sync global` · `;sync purge`"""
+        """`;sync` — register globally and clear this server's stale copies.
+
+        `;sync clean`  — remove only what the bot no longer has
+        `;sync global` — sync, then clear the copies in every server
+        `;sync purge`  — clear this server's copies without re-syncing
+        `;sync mirror` — instant here, at the cost of listing everything twice
+        """
         res = await A.do_sync(self.bot, ctx.guild, scope)
         await ctx.send(res.message or "Done.")
 

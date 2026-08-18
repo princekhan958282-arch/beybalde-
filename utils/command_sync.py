@@ -9,23 +9,42 @@ way. `;sync` runs `copy_global_to(guild=...)` followed by `sync(guild=...)`,
 which writes a full guild-scoped copy of every command — and nothing ever
 removes entries from that copy.
 
-So once a command has been guild-synced, deleting it from the bot leaves the
-guild copy behind forever, and Discord shows the guild version in preference to
-the global one. That is where "commands the bot doesn't have any more" and
-"the same command twice" both come from. Replacing the old tournament cog with
-the new package is exactly this case: the retired `/tournament` group is still
-registered in any guild that was ever synced, shadowing the new one.
+So once a command has been guild-synced, two things follow and neither ever
+undoes itself:
+
+* deleting the command from the bot leaves the guild copy behind forever, and
+  Discord serves the stale guild version — "commands the bot doesn't have any
+  more";
+* keeping the command means it now exists twice, globally and in the guild, and
+  the picker draws both — "the same command twice".
+
+Both were live. The retired `/tournament` group stayed registered in every
+guild ever synced, and every surviving command was listed twice on top of that.
 
 What reconcile() does
 ---------------------
 * Syncs globally, which prunes stale global commands by itself.
-* Fetches each guild's own command list and deletes only the entries whose name
-  the bot no longer has. Valid mirrors are left alone, so anyone who guild-synced
-  for instant commands keeps them.
+* Deletes EVERY guild-scoped command, because after a successful global sync
+  each one is either stale (the bot dropped it) or a duplicate of a global that
+  already works. Both belong in the bin.
 * Warns about names registered more than once inside the bot.
 
 It never raises. A rate limit or a missing permission logs and moves on — the
 bot must still start.
+
+Why "delete every guild copy" and not "delete the stale ones"
+-------------------------------------------------------------
+That WAS the old behaviour, and it is why every command in this bot showed up
+twice. It kept "valid mirrors" — a guild copy of a command the bot still has —
+on the theory that someone who guild-synced for instant registration should
+keep it. But a valid mirror IS the duplicate: Discord's picker is the union of
+the global list and the guild list, so a command present in both is drawn
+twice, and the boot cleanup deliberately preserved exactly that.
+
+Guild mirrors buy one thing: registration is instant instead of taking up to an
+hour. That is worth something on the day you add a command and nothing at all
+on every other day, and it is not worth a permanently doubled command list. Set
+BEYCORD_GUILD_MIRROR=1 to keep the old behaviour and accept the duplicates.
 """
 
 from __future__ import annotations
@@ -40,6 +59,9 @@ import discord
 log = logging.getLogger("beyblade_bot.sync")
 
 _OPT_OUT = "BEYCORD_AUTO_PRUNE"
+# Opt IN to guild-scoped mirrors. Off by default: a mirror duplicates every
+# command in the picker, which is the bug this module exists to prevent.
+_MIRROR = "BEYCORD_GUILD_MIRROR"
 # Each guild costs a fetch and possibly a sync. Bots in many servers should not
 # spend their whole startup budget here, so cap it and let later boots continue.
 MAX_GUILDS_PER_BOOT = 25
@@ -78,11 +100,16 @@ def find_duplicates(bot) -> list[str]:
     return sorted(n for n, c in seen.items() if c > 1)
 
 
-async def prune_guild(bot, guild, keep: set[str]) -> list[str]:
-    """Delete guild-scoped commands whose names the bot no longer has.
+async def prune_guild(bot, guild, keep: Optional[set[str]] = None) -> list[str]:
+    """Delete this guild's own command copies. Returns the names removed.
 
-    Returns the names removed. Anything still in `keep` is left alone so a
-    deliberate guild sync keeps working.
+    `keep` is the set of names to SPARE. The default — None — spares nothing,
+    which is what reconcile wants: after a successful global sync every guild
+    copy is either stale or a duplicate.
+
+    Passing a set restores the old selective behaviour and is what `;sync clean`
+    uses, for a guild running deliberate mirrors where only the stale entries
+    should go.
     """
     removed: list[str] = []
     try:
@@ -93,7 +120,8 @@ async def prune_guild(bot, guild, keep: set[str]) -> list[str]:
         log.debug("[sync] fetch failed for %s: %s", getattr(guild, "id", "?"), e)
         return removed
 
-    stale = [c for c in existing if c.name not in keep]
+    stale = ([c for c in existing if c.name not in keep] if keep is not None
+             else list(existing))
     if not stale:
         return removed
 
@@ -107,12 +135,18 @@ async def prune_guild(bot, guild, keep: set[str]) -> list[str]:
     return removed
 
 
+def mirroring() -> bool:
+    """True when guild-scoped mirrors are opted in and duplicates are accepted."""
+    return os.getenv(_MIRROR, "").strip().lower() in ("1", "true", "yes", "on")
+
+
 async def reconcile(bot, guilds: Optional[Iterable] = None) -> dict:
-    """Sync globally, then remove commands Discord still has and the bot doesn't.
+    """Sync globally, then delete the guild copies that duplicate the result.
 
     Safe to call on every boot. Returns a small report for logging.
     """
-    report = {"synced": 0, "pruned": {}, "duplicates": [], "skipped": 0}
+    report = {"synced": 0, "pruned": {}, "duplicates": [], "skipped": 0,
+              "mirroring": mirroring()}
 
     dupes = find_duplicates(bot)
     if dupes:
@@ -138,6 +172,16 @@ async def reconcile(bot, guilds: Optional[Iterable] = None) -> dict:
         log.warning("[sync] no local commands found — skipping prune.")
         return report
 
+    if report["mirroring"]:
+        # Opted in: spare the mirrors, take only the stale entries. Say so, so
+        # that "why is everything listed twice" has an answer in the log rather
+        # than needing this module to be read.
+        log.info("[sync] %s=1 — keeping guild mirrors. Commands registered "
+                 "both globally and in a guild appear TWICE in the picker; "
+                 "unset it to have them removed.", _MIRROR)
+    else:
+        keep = None
+
     targets = list(guilds if guilds is not None else getattr(bot, "guilds", []))
     if len(targets) > MAX_GUILDS_PER_BOOT:
         report["skipped"] = len(targets) - MAX_GUILDS_PER_BOOT
@@ -147,15 +191,16 @@ async def reconcile(bot, guilds: Optional[Iterable] = None) -> dict:
         removed = await prune_guild(bot, guild, keep)
         if removed:
             report["pruned"][getattr(guild, "id", "?")] = removed
-            log.info("[sync] removed stale command(s) in %s: %s",
-                     getattr(guild, "name", guild),
+            log.info("[sync] removed %d guild command copy/copies in %s: %s",
+                     len(removed), getattr(guild, "name", guild),
                      ", ".join("/" + r for r in removed))
         await asyncio.sleep(GUILD_DELAY)
 
     total = sum(len(v) for v in report["pruned"].values())
     if total:
-        log.info("[sync] pruned %d stale command(s) across %d guild(s).",
-                 total, len(report["pruned"]))
+        log.info("[sync] pruned %d guild command copy/copies across %d "
+                 "guild(s) — each was a duplicate of, or stale against, the "
+                 "global list.", total, len(report["pruned"]))
     if report["skipped"]:
         log.info("[sync] %d guild(s) left for the next boot (per-boot cap).",
                  report["skipped"])

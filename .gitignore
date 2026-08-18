@@ -10,6 +10,12 @@ data/tournaments.db
 data/tournaments.db-wal
 data/tournaments.db-shm
 data/*.backup.*.json
+# Per-guild runtime settings (spawn channel, announcement channel). Written by
+# the bot on the host it runs on — committing one server's IDs would overwrite
+# every other install's on the next deploy.
+data/config.json
+data/spawn_state.json
+data/avatar_inventory.json
 
 # Auto-updater: which commit is installed, and the files it replaced.
 # Host-local state — must never travel in the repo or an update would
