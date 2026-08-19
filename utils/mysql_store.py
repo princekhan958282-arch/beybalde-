@@ -346,6 +346,23 @@ class MySQLStore:
                         (cutoff,))
             return cur.fetchone()["n"]
 
+    def active_users_since(self, cutoff: float, limit: int = 25) -> list[dict]:
+        """WHO was active since `cutoff`, most recent first.
+
+        Parity with UserStore matters more than usual here: `database.py`
+        calls whichever store is live, so a method on one and not the other
+        breaks the moment MYSQL_URL is set — and `buildinfo.store_parity()`
+        exists because that exact class of bug shipped once already.
+        """
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("""
+                SELECT user_id, coins, level, wins, losses, inv_count, last_seen
+                FROM users WHERE last_seen>=%s
+                ORDER BY last_seen DESC LIMIT %s
+            """, (cutoff, max(1, int(limit))))
+            return [dict(r) for r in cur.fetchall()]
+
     def checkpoint(self) -> None:
         """No-op — MySQL has no WAL to fold in. Here so callers don't branch."""
         return None

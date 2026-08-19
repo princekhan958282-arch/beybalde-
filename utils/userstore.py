@@ -320,6 +320,21 @@ class UserStore:
             "SELECT COUNT(*) AS n FROM users WHERE last_seen >= ?",
             (cutoff,)).fetchone()["n"]
 
+    def active_users_since(self, cutoff: float, limit: int = 25) -> list[dict]:
+        """WHO was active since `cutoff`, most recent first.
+
+        `active_since` answers how many, which is the whole answer for a
+        health check and half of it for "who played today". Same index
+        (`idx_users_last_seen`), so this is the same query with the rows kept.
+        """
+        self.ensure_ready()
+        rows = self._conn().execute("""
+            SELECT user_id, coins, level, wins, losses, inv_count, last_seen
+            FROM users WHERE last_seen >= ?
+            ORDER BY last_seen DESC LIMIT ?
+        """, (cutoff, max(1, int(limit))))
+        return [dict(r) for r in rows]
+
     def export_json(self, path: str) -> int:
         """Dump the whole store back to a JSON file (for backups / rollback)."""
         data = self.load_all()

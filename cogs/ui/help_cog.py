@@ -179,6 +179,8 @@ COMMAND_DATA = {
         (";buybey <id>",    "Purchase a Beyblade listed by another player"),
         (";sellbey <bey>",  "List your Beyblade for sale on the marketplace"),
         (";marketplace",    "Browse all active player listings"),
+        ("/trade",          "Offer a 1-for-1 blade swap, no typing"),
+        (';trade @user "Mine" "Theirs"', "Same swap from the prefix side"),
     ],
     "shop": [
         (";buy <part>",     "Purchase a Beyblade part from the shop"),
@@ -187,15 +189,16 @@ COMMAND_DATA = {
         (";inventory",      "View your full Beyblade parts inventory"),
     ],
     "leaderboard": [
+        ("/leaderboard",          "Every board from one menu, no typing"),
         (";leaderboard rank",     "Top bladers by rank score"),
         (";leaderboard winrate",  "Best ranked win rate (min 10 games)"),
         (";leaderboard wins",     "Most ranked wins"),
         (";leaderboard streak",   "Longest ranked win streak"),
         (";leaderboard catches",  "Most Beyblades caught"),
-        ("/player",               "All five boards from one menu, no typing"),
+        (";leaderboard level",    "Highest trainer level"),
+        (";leaderboard money",    "Richest bladers"),
         (";rank",                 "Your rank card and board placings"),
-        (";verify",               "Verify your account for ranked play"),
-        (";battle @user ranked",  "RANKED match — first to 3 pts, max 2/day vs the same player"),
+        (";battle @user ranked",  "RANKED match — first to 3 pts, one/day vs the same player"),
         (";card",                 "Display your blader profile card"),
     ],
     "boosters": [

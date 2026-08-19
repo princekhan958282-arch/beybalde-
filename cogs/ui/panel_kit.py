@@ -109,6 +109,12 @@ class PanelAction:
     needs: tuple[str, ...] = ()
     confirm: str = ""
     long_text: bool = False
+    # Names for the modal's text boxes. `/trade` asks for two blade names, and
+    # a modal labelled "Text" twice is a coin flip for the player — the panel
+    # cannot recover from the two being swapped, because both are valid blade
+    # names and the swap only shows up as "you don't own that".
+    text_label: str = ""
+    text2_label: str = ""
     draft: Optional[Callable[[], str]] = None
     handler: Optional[Callable] = None
     invoke: str = ""
@@ -282,6 +288,7 @@ class InputModal(discord.ui.Modal):
         self.action = action
         self.amount_field: Optional[discord.ui.TextInput] = None
         self.text_field: Optional[discord.ui.TextInput] = None
+        self.text2_field: Optional[discord.ui.TextInput] = None
 
         if "amount" in action.needs:
             self.amount_field = discord.ui.TextInput(
@@ -299,13 +306,20 @@ class InputModal(discord.ui.Modal):
                 except Exception:                        # noqa: BLE001
                     draft = None
             self.text_field = discord.ui.TextInput(
-                label=("Message" if action.long_text else "Text"),
+                label=(action.text_label or
+                       ("Message" if action.long_text else "Text")),
                 placeholder=(action.description or "")[:PLACEHOLDER_MAX] or None,
                 default=draft or None,
                 style=(discord.TextStyle.paragraph if action.long_text
                        else discord.TextStyle.short),
                 max_length=(1800 if action.long_text else 300), required=True)
             self.add_item(self.text_field)
+        if "text2" in action.needs:
+            self.text2_field = discord.ui.TextInput(
+                label=(action.text2_label or "Second value"),
+                default=(panel.text2 or None),
+                style=discord.TextStyle.short, max_length=300, required=True)
+            self.add_item(self.text2_field)
 
     async def on_submit(self, interaction: discord.Interaction):
         if self.amount_field is not None:
@@ -317,6 +331,8 @@ class InputModal(discord.ui.Modal):
                     f"`{raw}` isn't a number.", ephemeral=True)
         if self.text_field is not None:
             self.panel.text = str(self.text_field.value).strip()
+        if self.text2_field is not None:
+            self.panel.text2 = str(self.text2_field.value).strip()
         await self.panel.fire(interaction)
 
 
@@ -348,7 +364,7 @@ class RunButton(discord.ui.Button):
         # A modal must be the FIRST response to an interaction — it cannot be
         # sent as a followup — so "does this need typing?" is answered before
         # anything else touches the response.
-        if {"amount", "text"} & set(action.needs):
+        if {"amount", "text", "text2"} & set(action.needs):
             return await interaction.response.send_modal(InputModal(panel, action))
         await panel.fire(interaction)
 
@@ -393,6 +409,7 @@ class PanelView(discord.ui.View):
         self.target_id: Optional[int] = None
         self.amount: Optional[int] = None
         self.text: Optional[str] = None
+        self.text2: Optional[str] = None
         self.pending_confirm = False
         self.message = None
         self.build()
@@ -429,6 +446,7 @@ class PanelView(discord.ui.View):
         self.action_key = None
         self.amount = None
         self.text = None
+        self.text2 = None
         self.channel = self.home_channel
         self.pending_confirm = False
 
@@ -486,8 +504,11 @@ class PanelView(discord.ui.View):
                     f"**{self.amount:,}**" if self.amount is not None
                     else "*asked on Run*"))
             if "text" in action.needs:
-                wants.append("✏️ text — " + (
+                wants.append(f"✏️ {action.text_label or 'text'} — " + (
                     f"`{self.text}`" if self.text else "*asked on Run*"))
+            if "text2" in action.needs:
+                wants.append(f"✏️ {action.text2_label or 'second value'} — " + (
+                    f"`{self.text2}`" if self.text2 else "*asked on Run*"))
             if wants:
                 e.add_field(name="Needs", value="\n".join(wants), inline=False)
             if action.confirm:
@@ -569,7 +590,7 @@ class PrefixSpec(PanelSpec):
             return await _reply(interaction,
                                 f"`{action.invoke}` isn't loaded right now.")
         supplied = {"user": panel.target, "amount": panel.amount,
-                    "text": panel.text}
+                    "text": panel.text, "text2": panel.text2}
         kwargs = dict(action.kwargs)
         for param, source in action.binds.items():
             value = supplied.get(source)

@@ -244,15 +244,13 @@ class BattleCog(commands.Cog, name="Battle"):
         # Checked here, before the challenge is even posted, so a player who
         # cannot play ranked finds out immediately instead of after their
         # opponent has accepted.
+        #
+        # The verification check that stood here went with the gate in v1.18.
+        # What is left is the daily cap, which is a rule about the ladder
+        # rather than about who is allowed on it.
         ranked = str(mode).lower().startswith("rank")
         if ranked:
             from utils import ranked as RK
-            for member in (ctx.author, opponent):
-                why = RK.eligibility_error(get_user(member.id))
-                if why:
-                    who = ("You are" if member.id == ctx.author.id
-                           else f"{member.display_name} is")
-                    return await ctx.send(f"❌ {who} not verified for ranked.\n{why}")
             # Per-opponent daily cap, checked from BOTH sides: the tally is
             # written to both profiles, so either being full blocks the match.
             # Checking only the caller's would let them keep starting matches

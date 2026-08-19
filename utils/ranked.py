@@ -22,14 +22,12 @@ one of those surfaces. Ranked play writes to its own keys.
 
 ── Verification ─────────────────────────────────────────────────────────────
 
-Verification is OFF until the owner turns it on, and only the owner can turn it
-on or point it at a server. While it is on, ranked play and leaderboard
-placement require a verified account — a player verifies by being a member of
-the configured Discord server.
-
-The reason to gate the ladder rather than the whole bot: an unverified player
-loses nothing they already had. They keep catching, battling, story mode and
-every other system, and only the competitive surface asks them to verify.
+Ranked play is open to everyone. There was a verification gate — join a
+configured server, run `;verify`, or be excluded from the ladder and the
+boards — and it was removed in v1.18: it defaulted to off, no install ever
+turned it on, and it cost a command, a profile key, a filter inside
+`build_board`, three admin actions and half the settings screen to keep
+switched off.
 """
 
 from __future__ import annotations
@@ -45,6 +43,9 @@ K_RANK_SCORE = "rank_score"          # pre-existing; ranked play now owns it
 K_BEST_STREAK = "best_streak"
 K_WIN_STREAK = "win_streak"
 K_CAUGHT = "beys_caught"
+# Written by the retired `;verify` and still present on live profiles. Nothing
+# reads it as of v1.18; the name is kept so the key is documented rather than
+# turning up later as an unexplained field in 3,400 rows.
 K_VERIFIED = "ranked_verified"
 
 # Every key a leaderboard reset is allowed to clear. Kept as an explicit list so
@@ -56,6 +57,9 @@ RESETTABLE = {
     "wins":     (K_RANKED_WINS, K_RANKED_LOSSES),
     "streak":   (K_BEST_STREAK, K_WIN_STREAK),
     "catches":  (K_CAUGHT,),
+    # `level` and `money` are boards but not resettable: their keys are the
+    # player's progression and wallet, and "reset a leaderboard" must never be
+    # a route to wiping either for every profile in the store.
 }
 
 # A win rate needs a floor or the board is topped forever by whoever went 1-0
@@ -99,7 +103,7 @@ MATCH_TARGET = 3
 # day. Without a cap, the cheapest way to climb is to find one willing partner
 # and farm them, which is the same hole that keeping casual battles off the
 # ladder was meant to close.
-PAIR_DAILY_LIMIT = 2
+PAIR_DAILY_LIMIT = 1
 K_PAIRS = "ranked_pairs"
 
 
@@ -115,26 +119,25 @@ def finish_label(kind: str) -> str:
 
 
 # ── Config (stored in data/config.json under "ranked") ────────────────────────
+#
+# Verification is gone as of v1.18, and with it the control-server lock.
+#
+# The gate defaulted to off and no install ever turned it on, but it cost a
+# command, a profile key, a filter inside `build_board`, three admin actions
+# and a slice of the settings screen. The control lock existed to protect
+# those settings; with only the leaderboard reset left — already owner-only
+# through the admin registry's `owner_only` — a second lock in front of one
+# action was more concept than protection.
+#
+# `_DEFAULT_CONFIG` is kept, empty, rather than deleted: `get_config` and
+# `save_config` are the shape the rest of the module and the admin panel talk
+# to, and a settings store that exists but holds nothing is a smaller change
+# than removing the concept and putting it back the next time ranked needs a
+# setting.
 
 CONFIG_KEY = "ranked"
-DEFAULT_INVITE = "https://discord.gg/bMtyey32Ur"
 
-_DEFAULT_CONFIG = {
-    "verify_enabled": False,
-    "verify_guild_id": None,
-    "verify_invite": DEFAULT_INVITE,
-    # The ONE server the ranked system may be configured from. Owner-only is
-    # not enough on its own: the bot is in many servers, and a config command
-    # that works in all of them can be run — or fished for — anywhere, and a
-    # single mistyped command in the wrong channel changes the ladder for
-    # every player. Locking it to one guild means the settings have exactly
-    # one door.
-    #
-    # None means "not locked yet", which is the bootstrap: the very first
-    # setup has to be possible somewhere. It stops being None the moment the
-    # verification server is set, so the window is one command long.
-    "control_guild_id": None,
-}
+_DEFAULT_CONFIG: dict = {}
 
 
 def get_config(config: Optional[dict] = None) -> dict:
@@ -163,66 +166,6 @@ def save_config(changes: dict) -> dict:
     cfg[CONFIG_KEY] = current
     _save(cfg)
     return current
-
-
-def control_guild_id(config: Optional[dict] = None) -> Optional[int]:
-    """The server ranked settings may be changed from, or None while unlocked."""
-    raw = get_config(config).get("control_guild_id")
-    try:
-        return int(raw) if raw else None
-    except (TypeError, ValueError):
-        return None
-
-
-def is_control_guild(guild_id, config: Optional[dict] = None) -> bool:
-    """May ranked settings be changed from here?
-
-    True everywhere while no control server is set — otherwise the first
-    `;rankadmin` would be refused in every server including the right one, and
-    the system could never be configured at all.
-
-    A DM has no guild, so once locked it is refused like any other wrong place.
-    """
-    locked = control_guild_id(config)
-    if locked is None:
-        return True
-    try:
-        return guild_id is not None and int(guild_id) == locked
-    except (TypeError, ValueError):
-        return False
-
-
-def control_error(guild_id, config: Optional[dict] = None) -> str:
-    """Why settings cannot be changed from here, or '' when they can."""
-    if is_control_guild(guild_id, config):
-        return ""
-    locked = control_guild_id(config)
-    where = "a direct message" if guild_id is None else "this server"
-    return (f"Ranked settings can only be changed from the control server "
-            f"(`{locked}`), not from {where}.")
-
-
-def verify_required(config: Optional[dict] = None) -> bool:
-    c = get_config(config)
-    # Enabled but pointed at nothing would lock everyone out of ranked with no
-    # way to satisfy the check, so an unset guild means the gate is not armed.
-    return bool(c.get("verify_enabled")) and bool(c.get("verify_guild_id"))
-
-
-def is_verified(profile: dict, config: Optional[dict] = None) -> bool:
-    """Can this player touch the ladder right now?"""
-    if not verify_required(config):
-        return True
-    return bool((profile or {}).get(K_VERIFIED))
-
-
-def eligibility_error(profile: dict, config: Optional[dict] = None) -> str:
-    """Player-facing reason they cannot play ranked, or '' when they can."""
-    if is_verified(profile, config):
-        return ""
-    invite = get_config(config).get("verify_invite") or DEFAULT_INVITE
-    return ("Ranked play is verified-only. Join the server and run `/verify`:\n"
-            f"{invite}")
 
 
 # ── Stats ────────────────────────────────────────────────────────────────────
@@ -281,6 +224,14 @@ def rank_score(profile: dict) -> int:
 # the eligibility rule. Adding a category is one entry here rather than four
 # edits that can disagree with each other.
 
+def trainer_level(profile: dict) -> int:
+    return _int(profile, "level")
+
+
+def coins(profile: dict) -> int:
+    return _int(profile, "coins")
+
+
 CATEGORIES: dict[str, dict] = {
     "rank": {
         "label": "Rank Score",
@@ -328,6 +279,28 @@ CATEGORIES: dict[str, dict] = {
         "eligible": lambda p: beys_caught(p) > 0,
         "empty": "Nobody has caught a Beyblade yet.",
     },
+    # Level and money are not ranked stats — they come from playing at all,
+    # not from playing ranked. They are boards anyway because "who is furthest
+    # along" and "who is richest" are the two questions players actually ask,
+    # and neither had an answer anywhere in the bot.
+    "level": {
+        "label": "Trainer Level",
+        "emoji": "📈",
+        "describe": "Highest trainer level",
+        "value": trainer_level,
+        "format": lambda p: f"Level {trainer_level(p):,}",
+        "eligible": lambda p: trainer_level(p) > 1,
+        "empty": "Nobody has levelled up yet.",
+    },
+    "money": {
+        "label": "Beycoins",
+        "emoji": "🪙",
+        "describe": "Richest bladers",
+        "value": coins,
+        "format": lambda p: f"{coins(p):,} coins",
+        "eligible": lambda p: coins(p) > 0,
+        "empty": "Nobody has any Beycoins yet.",
+    },
 }
 
 DEFAULT_CATEGORY = "rank"
@@ -338,17 +311,14 @@ def build_board(users: list[dict], category: str = DEFAULT_CATEGORY,
                 config: Optional[dict] = None) -> list[tuple[dict, float]]:
     """Sorted [(profile, value)] for one category, eligibility already applied.
 
-    Verification is enforced here rather than at display time, so an unverified
-    player cannot occupy a slot that a verified one should hold — a board that
-    hides rows after ranking them has gaps in its numbering.
+    The verification filter that used to sit here went with the gate in v1.18.
+    Eligibility is now purely about the stat: you are on the wins board once
+    you have won something.
     """
     spec = CATEGORIES.get(category) or CATEGORIES[DEFAULT_CATEGORY]
-    gate = verify_required(config)
     rows: list[tuple[dict, float]] = []
     for p in users or []:
         if not isinstance(p, dict):
-            continue
-        if gate and not p.get(K_VERIFIED):
             continue
         if not spec["eligible"](p):
             continue
@@ -429,9 +399,13 @@ def pair_limit_error(profile: dict, opponent_id, opponent_name: str = "them",
     """Player-facing reason this pairing is used up, or '' when it is not."""
     if pair_remaining(profile, opponent_id, now) > 0:
         return ""
-    return (f"You've already played {PAIR_DAILY_LIMIT} ranked matches against "
-            f"{opponent_name} today. Find a different opponent — the limit "
-            f"resets at midnight UTC.")
+    # Pluralised off the constant rather than hard-coded, so the sentence
+    # stays correct if the cap ever moves again — at 1 it must read "1 ranked
+    # match", not "1 ranked matches".
+    plural = "" if PAIR_DAILY_LIMIT == 1 else "es"
+    return (f"You've already played {PAIR_DAILY_LIMIT} ranked match{plural} "
+            f"against {opponent_name} today. Find a different opponent — the "
+            f"limit resets at midnight UTC.")
 
 
 def record_pair_match(profile: dict, opponent_id,
