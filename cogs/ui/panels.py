@@ -31,11 +31,15 @@ no error anywhere.
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
+from utils import ranked as RK
+
+from . import invoke as INVOKE
 from . import panel_kit as K
 
 log = logging.getLogger("beyblade_bot.panels")
@@ -82,6 +86,18 @@ class PlayerSpec(K.PrefixSpec):
 #  🏆  /leaderboard
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Discord's own dropdown, built from the same table the board sorts on, so a
+# new board reaches the slash choices, the panel and `;leaderboard` together or
+# not at all. Seven entries against a cap of 25 — but the slice is there
+# because exceeding it is a registration-time error, not a runtime one, and
+# would take the whole cog down at boot rather than showing a short list.
+_BOARD_CHOICES = [
+    app_commands.Choice(name=f"{spec.get('emoji') or '🏅'} {spec['label']}",
+                        value=key)
+    for key, spec in list(RK.CATEGORIES.items())[:25]
+]
+
+
 class LeaderboardSpec(K.PrefixSpec):
     """One action per board, read from the same table the board sorts on.
 
@@ -94,6 +110,8 @@ class LeaderboardSpec(K.PrefixSpec):
     title = "🏆  Leaderboards"
     colour = 0xF1C40F
     placeholder = "Which board?"
+    # A board only you can see is not a board.
+    public = True
 
     def actions(self, category: str, user) -> list[K.PanelAction]:
         try:
@@ -125,6 +143,11 @@ class TradeSpec(K.PrefixSpec):
     colour = 0x2ECC71
     placeholder = "Offer a swap"
     footer = "1-for-1. The other player has 60 seconds to accept."
+    # Not a preference — a requirement. Only the trade TARGET may press Accept
+    # (`cogs/extras/trade.py:77-82`), so an offer only the sender can see can
+    # never be accepted; it sits there for 60 seconds and reports "declined or
+    # timed out".
+    public = True
 
     ACTIONS = (
         A("offer", "Offer a trade", "swap one of your blades for one of theirs",
@@ -148,7 +171,21 @@ async def _open_casino_lobby(panel, interaction) -> None:
     here would be a second casino menu to keep in step with the first.
     """
     from cogs.casino.casino_menu import CasinoLobbyView
-    view = CasinoLobbyView(panel.bot, interaction.user, bet=0)
+
+    # `CasinoLobbyView(cog, player, ctx, bet=0)` — three positional arguments,
+    # and this passed two. `ctx` has no default, so the call raised TypeError
+    # every time and `guard` turned it into "⚠️ TypeError: ...". Worse, the bot
+    # was landing in the `cog` slot, so even a defaulted `ctx` would have died
+    # on `self.cog.bot` at the first Play.
+    #
+    # `ctx` is not optional in spirit either: `casino_menu._launch` answers
+    # "Run `;blackjack` to start this one" for every ctx-driven game when it is
+    # None, so the lobby could launch almost nothing.
+    cog = panel.bot.get_cog("CasinoMenuCog")
+    ctx = await INVOKE.build_context(interaction, None, bot=panel.bot,
+                                     author=panel.invoker,
+                                     channel=panel.home_channel)
+    view = CasinoLobbyView(cog, interaction.user, ctx, bet=0)
     embed = await view.build_embed()
     if interaction.response.is_done():
         msg = await interaction.followup.send(embed=embed, view=view,
@@ -255,6 +292,21 @@ class PanelCommands(commands.Cog, name="Panels"):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
+    async def _run(self, interaction: discord.Interaction, command: str,
+                   **kwargs) -> None:
+        """Run a prefix command straight from a slash command, publicly.
+
+        The same helper the panels use — `/rank` and a chosen `/leaderboard`
+        answer one question each, so making the player open a menu and press
+        Run to reach it would be two clicks for nothing.
+        """
+        cmd = self.bot.get_command(command)
+        if cmd is None:
+            return await INVOKE.reply(interaction,
+                                      f"`{command}` isn't loaded right now.")
+        await INVOKE.run_prefix_command(interaction, cmd, bot=self.bot,
+                                        visibility=INVOKE.PUBLIC, **kwargs)
+
     async def _open(self, interaction: discord.Interaction, key: str) -> None:
         view = K.PanelView(SPECS[key](), self.bot, interaction.user,
                            interaction.guild, interaction.channel)
@@ -287,8 +339,28 @@ class PanelCommands(commands.Cog, name="Panels"):
 
     @app_commands.command(name="leaderboard",
                           description="Every leaderboard — rank, level, money and more")
-    async def leaderboard(self, interaction: discord.Interaction) -> None:
-        await self._open(interaction, "leaderboard")
+    @app_commands.describe(board="Which board. Leave it blank to pick from a menu.")
+    @app_commands.choices(board=_BOARD_CHOICES)
+    async def leaderboard(self, interaction: discord.Interaction,
+                          board: Optional[app_commands.Choice[str]] = None
+                          ) -> None:
+        """Two ways in, one command.
+
+        With a board chosen, Discord's own dropdown has already asked the only
+        question, so there is nothing to open — the board is posted straight
+        away. With nothing chosen, the panel does the asking.
+        """
+        if board is None:
+            return await self._open(interaction, "leaderboard")
+        await self._run(interaction, "leaderboard", category=board.value)
+
+    @app_commands.command(name="rank",
+                          description="Your ranked card — tier, score and board placings")
+    @app_commands.describe(user="Whose card to show. Defaults to yours.")
+    async def rank(self, interaction: discord.Interaction,
+                   user: Optional[discord.Member] = None) -> None:
+        kwargs = {"member": user} if user is not None else {}
+        await self._run(interaction, "rank", **kwargs)
 
     @app_commands.command(name="trade",
                           description="Offer another player a 1-for-1 blade swap")

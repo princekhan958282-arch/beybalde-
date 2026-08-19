@@ -833,8 +833,19 @@ class SpinModeView(discord.ui.View):
                 pass
             self.stop()
 
-            ctx = await commands.Context.from_interaction(interaction)
-            ctx.author = self.owner
+            # `Context.from_interaction` was here and always raised: this is a
+            # button, and it refuses anything that is not an application
+            # command. The `ctx.author = self.owner` line below it was the
+            # right instinct for the wrong reason — a component interaction's
+            # message is the panel, authored by the bot — and the helper now
+            # does that properly for every caller.
+            from cogs.ui import invoke as INVOKE
+            ctx = await INVOKE.build_context(
+                interaction, None, bot=self.cog.bot, author=self.owner,
+                outlet=INVOKE.Outlet(interaction,
+                                     channel=INVOKE.resolve_channel(interaction),
+                                     visibility=INVOKE.PRIVATE,
+                                     author=self.owner))
             try:
                 await self.cog._send_bey_card(ctx, self.blade)
             except Exception:                            # noqa: BLE001

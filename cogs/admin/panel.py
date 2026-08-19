@@ -122,7 +122,8 @@ class AdminSpec(K.PanelSpec):
             bot=panel.bot, guild=panel.guild, invoker=panel.invoker,
             invoker_id=getattr(panel.invoker, "id", 0),
             target=panel.target, target_id=panel.target_id,
-            amount=panel.amount, text=panel.text, channel=panel.channel)
+            amount=panel.amount, text=panel.text, channel=panel.channel,
+            guild_choice=panel.guild_choice)
         result = await A.run(action.key, ctx)
         log.info("[admin] %s ran %s → %s", getattr(panel.invoker, "id", "?"),
                  action.key, "ok" if result.ok else "refused")
