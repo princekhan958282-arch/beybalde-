@@ -491,10 +491,21 @@ check("it is not in the booster pool",
       NAME not in {b["name"] for b in SHOP._load_booster_pool()})
 check("...nor the hidden-drop pool",
       NAME not in {b["name"] for b in SHOP._hidden_drop_pool()})
-check("it is the FIRST blade in the game to use owner_ids — the mechanism "
-      "existed and had never been exercised",
-      [n for n, b in BLADES.items() if b.get("owner_ids")] == [NAME],
-      [n for n, b in BLADES.items() if b.get("owner_ids")])
+# This used to assert Janus was the ONLY blade using owner_ids — true when it
+# was written, and a claim with a shelf life: Heaven's Ring became the second
+# in v1.16 and broke it. The durable claim is that Janus is bound to ONE id and
+# that every owner-bound blade in the file is genuinely locked, so that is what
+# is checked now.
+bound = {n: b["owner_ids"] for n, b in BLADES.items() if b.get("owner_ids")}
+check("it is owner-bound to exactly one id", len(BLADES[NAME]["owner_ids"]) == 1,
+      BLADES[NAME].get("owner_ids"))
+check(f"every owner-bound blade ({', '.join(sorted(bound))}) is unobtainable "
+      f"in general",
+      all(not obtainable(BLADES[n]) for n in bound),
+      [n for n in bound if obtainable(BLADES[n])])
+check("...and reachable by its own owner",
+      all(obtainable(BLADES[n], ids[0]) for n, ids in bound.items()),
+      [n for n, ids in bound.items() if not obtainable(BLADES[n], ids[0])])
 
 print("\n── 11c. the two-form system now serves more than one blade ─────")
 # Janus was the first blade whose form changes its kit. Cho-Z Achilles is the

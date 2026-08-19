@@ -3427,7 +3427,9 @@
         "cannot_be_debuffed": true
       }
     ],
-    "spin_direction": "Right"
+    "spin_direction": "Right",
+    "limited": true,
+    "available_until": "2026-01-01T00:00:00Z"
   },
   "Galaxy Pegasus": {
     "id": "BB042",
@@ -8811,5 +8813,116 @@
         ]
       }
     ]
+  },
+  "Heaven's Ring": {
+    "id": "BB104",
+    "name": "Heaven's Ring",
+    "rarity": "Ultimate",
+    "type": "Defense",
+    "spin_direction": "Right",
+    "burst_height": "Low",
+    "booster_exclusive": false,
+    "limited": true,
+    "owner_ids": [
+      103025059165
+    ],
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1539357270574370956/Untitled_design.png?ex=6a8605ad&is=6a84b42d&hm=af9fec438e249f6dcb75d19d4dc9b4365fd2d7695ca168cb15e3c58b747fe901&",
+    "description": "A halo given form. Heaven's Ring answers every blow with divine absorption, turning the force of an attack back on the one who threw it.",
+    "stats": {
+      "attack": 88,
+      "defense": 171,
+      "stamina": 112,
+      "special": 130,
+      "hp": 145
+    },
+    "ability": {
+      "name": "Divine",
+      "trigger": "on_impact",
+      "description": "Absorption. Damage resistance 7% stacking up to 5 times, and critical damage resistance 2% stacking up to 5 times.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "stacking_resist",
+              "name": "divine",
+              "per_stack": 7,
+              "max": 5,
+              "crit_per_stack": 2
+            }
+          ]
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Divine",
+        "trigger": "on_impact",
+        "description": "Absorption. Damage resistance 7% stacking up to 5 times, and critical damage resistance 2% stacking up to 5 times.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "stacking_resist",
+                "name": "divine",
+                "per_stack": 7,
+                "max": 5,
+                "crit_per_stack": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Angelic Counter",
+        "trigger": "passive",
+        "description": "30% chance to reflect 55% of the damage dealt back to its attacker.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "chance": 0.3,
+            "do": [
+              {
+                "op": "reflect_pct",
+                "value": 55
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Holy Bague",
+        "trigger": "on_special",
+        "description": "Gains a shield worth 10% of current HP, and a 1.5x damage boost for 4 turns.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "shield_pct",
+                "value": 10
+              },
+              {
+                "op": "dmg_amp",
+                "value": 0.5,
+                "turns": 4
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "special_move": {
+      "name": "Holy Bague",
+      "description": "Heaven's Ring gains a shield worth 10% of its current HP and a 1.5x damage boost for 4 turns, then strikes twice.",
+      "hits": 2,
+      "damage_per_hit": 77,
+      "total_damage": 154,
+      "flavour_texts": [
+        "😇 **Holy Bague** — the ring flares, and the halo closes!",
+        "✨ **Hit 2** — divine light breaks over the opponent!"
+      ]
+    }
   }
 }

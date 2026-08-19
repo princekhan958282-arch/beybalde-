@@ -139,10 +139,32 @@ check("Azeroth Veyrath is NOT", "Azeroth Veyrath" not in pool, pool)
 # that claim depend on every future booster too, and it has since broken on the
 # X boosters, which were a deliberate addition and nothing to do with Vortex.
 check(f"the pool has not shrunk ({len(pool)} blades)", len(pool) >= 8, pool)
-check("Azeroth Veyrath still EXISTS — owners keep it, it just stops dropping",
+check("Azeroth Veyrath still EXISTS — owners keep it",
       "Azeroth Veyrath" in BLADES)
 check("...and is still fully playable",
       BLADES["Azeroth Veyrath"].get("stats", {}).get("attack") == 150)
+
+# This check used to read "it just stops dropping", and that was false for four
+# versions. Clearing `booster_exclusive` does not retire a blade — it moves it
+# from the booster-only pool into the ORDINARY weighted one, where Veyrath's
+# Ultimate rarity made it the single most common Ultimate in the game at
+# 1 in 284. Retiring it needs the availability gate, so that is what is
+# asserted now: the claim, not a proxy for it.
+import random as _r                                              # noqa: E402
+
+import cogs.spawn.spawn as _SPAWN                                # noqa: E402
+from utils.availability import obtainable as _obtainable         # noqa: E402
+
+check("its acquisition window is shut", not _obtainable(BLADES["Azeroth Veyrath"]))
+_r.seed(7)
+_hits = sum(1 for _ in range(50_000)
+            if (_SPAWN._pick_random_beyblade(BLADES) or {}).get("name")
+            == "Azeroth Veyrath")
+check("...so 50,000 wild spawns produce none of it", _hits == 0, _hits)
+check("...and it is out of the tournament draft too",
+      not any(b.get("name") == "Azeroth Veyrath"
+              for b in __import__("cogs.tournament.tournament", fromlist=["x"])
+              .draft_pool()))
 
 print("\n── 3. Aether Drain — the stack engine ───────────────────────────")
 e, s = engine()
