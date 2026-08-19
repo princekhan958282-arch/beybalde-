@@ -444,9 +444,24 @@ class AbilityEngine:
 
     def _run_ops(self, rule: dict, ab_name: str, key: str, okey: str,
                  move: str, dmg_dealt: int, dmg_taken: int,
-                 logs: list[str]) -> tuple[int, int]:
+                 logs: list[str], matchup: str = "") -> tuple[int, int]:
         for op in rule.get("do") or []:
             kind = op.get("op")
+            # Per-OP gate, as distinct from the rule-level `if`. One rule often
+            # needs half its ops gated and half not — "every hit builds a stack,
+            # and the third one knocks the enemy off balance" is one ability,
+            # not two — and splitting that across rules puts the gate on the
+            # wrong side of a counter that the same rule resets.
+            #
+            # `legacy_convert` has emitted `_if` on ops since it was written and
+            # this loop never read it, so the gate was decorative: the effect
+            # fired unconditionally. No blade in the roster relied on it, which
+            # is why nothing looked wrong — but the next one to use it would
+            # have shipped an ability that ignores its own condition.
+            gate = op.get("_if")
+            if gate and not all(self._check(c, key, okey, move, matchup)
+                                for c in gate):
+                continue
             val  = self._amped(key, op, op.get("value", 0))
 
             # ── outgoing damage ──────────────────────────────────────────────
@@ -1093,7 +1108,8 @@ class AbilityEngine:
             if self._rule_fires(rid, rule, when, key, okey, move, matchup):
                 ab_name = rule.get("_name", blade.get("name", "Ability"))
                 dmg_dealt, dmg_taken = self._run_ops(
-                    rule, ab_name, key, okey, move, dmg_dealt, dmg_taken, logs)
+                    rule, ab_name, key, okey, move, dmg_dealt, dmg_taken, logs,
+                    matchup)
                 # legacy chain passthrough
                 if rule.get("_chain"):
                     self.session.chain_handler.queue(key, rule["_chain"])

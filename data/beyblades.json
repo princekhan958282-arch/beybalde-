@@ -511,91 +511,143 @@
       "hp": 113
     },
     "ability": {
-      "name": "Guilty Verdict",
-      "trigger": "on_attack_win",
-      "description": "On a winning Attack, there is a 70% chance to land a critical judgement for +35 bonus damage, reducing the opponent's Defense by 15 for 2 turns. Every 3rd consecutive critical hit, Guilty Longinus enters CONDEMNED MODE — guaranteeing all crits for 2 turns and boosting Special damage by +30 permanently.",
-      "crit_chance": 0.7,
-      "crit_bonus": 35,
-      "crit_enemy_def_reduction": 15,
-      "crit_enemy_def_duration": 2,
-      "streak_threshold": 3,
-      "condemned_mode_crit_turns": 2,
-      "condemned_special_boost": 30,
-      "chain": [
+      "name": "Guilty Upper",
+      "trigger": "on_attack_hit",
+      "description": "Every landed hit winds Longinus up (+7 attack, up to 3). On the third, the Guilty Upper lands — 40 bonus damage and the opponent is knocked 25 stability off balance. Left-spin contact hits harder still: +20% damage against an opposite-spinning blade.",
+      "rules": [
         {
-          "condition": "always",
-          "effect": "ignore_def",
-          "duration": 2,
-          "once": false,
-          "_note": "Guilty Verdict: -15 enemy Defense for 2 turns on crit"
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "guilty_upper",
+              "stat": "attack",
+              "per_stack": 7,
+              "max": 3
+            }
+          ]
         },
         {
-          "condition": "stack_threshold",
-          "threshold": 3,
-          "effect": "guaranteed_crit",
-          "duration": 2,
-          "once": false,
-          "_note": "CONDEMNED MODE: guaranteed crits for 2 turns every 3rd crit streak"
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "value": 25,
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "guilty_upper",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "op": "counter_burst",
+              "name": "guilty_upper",
+              "at": 3,
+              "damage": 40,
+              "reset": true
+            }
+          ]
         },
         {
-          "condition": "stack_threshold",
-          "threshold": 3,
-          "effect": "special_boost",
-          "value": 30,
-          "duration": 999,
-          "once": true,
-          "_note": "CONDEMNED MODE: +30 Special damage permanently on first trigger"
+          "when": "on_attack_hit",
+          "if": [
+            {
+              "cond": "opposite_spin"
+            }
+          ],
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 20
+            }
+          ]
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "gain_stability",
+              "value": 20
+            }
+          ]
         }
       ]
     },
     "special_move": {
-      "name": "Guilty Sentence",
-      "description": "The final, irrevocable judgement — Guilty Longinus delivers a devastating three-hit verdict that pierces all defenses, each strike more damning than the last!",
-      "hits": 3,
-      "damage_per_hit": 45,
-      "total_damage": 135,
+      "name": "Guilty Smash",
+      "description": "Longinus rises and brings the full weight of its verdict down in one descending smash — and plants itself firmly as it lands.",
+      "hits": 1,
+      "damage_per_hit": 170,
+      "total_damage": 170,
       "flavour_texts": [
-        "⚖️ **Guilty Sentence** — The verdict has been declared!",
-        "🩸 **Strike 2** — No defense can overturn this judgement!",
-        "💀 **Strike 3** — GUILTY SENTENCE — EXECUTION CARRIED OUT!"
+        "⚖️ **GUILTY SMASH** — the judgement falls, and the stadium shakes!"
       ]
     },
     "abilities": [
       {
-        "name": "Guilty Verdict",
-        "trigger": "on_attack_win",
-        "description": "On a winning Attack, there is a 70% chance to land a critical judgement for +35 bonus damage, reducing the opponent's Defense by 15 for 2 turns. Every 3rd consecutive critical hit, Guilty Longinus enters CONDEMNED MODE — guaranteeing all crits for 2 turns and boosting Special damage by +30 permanently.",
-        "crit_chance": 0.7,
-        "crit_bonus": 35,
-        "crit_enemy_def_reduction": 15,
-        "crit_enemy_def_duration": 2,
-        "streak_threshold": 3,
-        "condemned_mode_crit_turns": 2,
-        "condemned_special_boost": 30,
-        "chain": [
+        "name": "Guilty Upper",
+        "trigger": "on_attack_hit",
+        "description": "Every landed hit winds Longinus up (+7 attack, up to 3). On the third, the Guilty Upper lands — 40 bonus damage and the opponent is knocked 25 stability off balance. Left-spin contact hits harder still: +20% damage against an opposite-spinning blade.",
+        "rules": [
           {
-            "condition": "always",
-            "effect": "ignore_def",
-            "duration": 2,
-            "once": false,
-            "_note": "Guilty Verdict: -15 enemy Defense for 2 turns on crit"
+            "when": "on_attack_hit",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "name": "guilty_upper",
+                "stat": "attack",
+                "per_stack": 7,
+                "max": 3
+              }
+            ]
           },
           {
-            "condition": "stack_threshold",
-            "threshold": 3,
-            "effect": "guaranteed_crit",
-            "duration": 2,
-            "once": false,
-            "_note": "CONDEMNED MODE: guaranteed crits for 2 turns every 3rd crit streak"
+            "when": "on_attack_hit",
+            "do": [
+              {
+                "op": "enemy_lose_stability",
+                "value": 25,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "guilty_upper",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "op": "counter_burst",
+                "name": "guilty_upper",
+                "at": 3,
+                "damage": 40,
+                "reset": true
+              }
+            ]
           },
           {
-            "condition": "stack_threshold",
-            "threshold": 3,
-            "effect": "special_boost",
-            "value": 30,
-            "duration": 999,
-            "once": true,
-            "_note": "CONDEMNED MODE: +30 Special damage permanently on first trigger"
+            "when": "on_attack_hit",
+            "if": [
+              {
+                "cond": "opposite_spin"
+              }
+            ],
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 20
+              }
+            ]
+          },
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "gain_stability",
+                "value": 20
+              }
+            ]
           }
         ]
       }
@@ -2505,9 +2557,9 @@
     "ability": {
       "name": "Soul Reaper",
       "trigger": "on_special",
-      "description": "Dread Hades tears open the underworld gate — drain 45 HP from the enemy (true damage, ignores defense), steal 20 of their stamina, and apply Cursed Ground: enemy takes 20 damage at the start of each of their next 3 turns.",
+      "description": "Dread Hades tears open the underworld gate — drain 45 HP from the enemy (true damage, ignores defense), steal 4 of their stamina, and apply Cursed Ground: enemy takes 20 damage at the start of each of their next 3 turns.",
       "hades_drain_true_dmg": 45,
-      "hades_stamina_steal": 20,
+      "hades_stamina_steal": 4,
       "hades_curse_dmg": 20,
       "hades_curse_turns": 3,
       "true_damage_turns": 1,
@@ -2527,9 +2579,9 @@
       {
         "name": "Soul Reaper",
         "trigger": "on_special",
-        "description": "Dread Hades tears open the underworld gate — drain 45 HP from the enemy (true damage, ignores defense), steal 20 of their stamina, and apply Cursed Ground: enemy takes 20 damage at the start of each of their next 3 turns.",
+        "description": "Dread Hades tears open the underworld gate — drain 45 HP from the enemy (true damage, ignores defense), steal 4 of their stamina, and apply Cursed Ground: enemy takes 20 damage at the start of each of their next 3 turns.",
         "hades_drain_true_dmg": 45,
-        "hades_stamina_steal": 20,
+        "hades_stamina_steal": 4,
         "hades_curse_dmg": 20,
         "hades_curse_turns": 3,
         "true_damage_turns": 1,
