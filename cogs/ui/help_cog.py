@@ -163,12 +163,12 @@ PRO_TIPS = {
 # ── Static command data (mirrors the React preview) ────────────────────────────
 COMMAND_DATA = {
     "story": [
-        (";story",             "📖 Pick a Story Mode stage and fight it"),
-        (";story <stage>",     "Jump straight in, e.g. `;story 1-2` or `;story kenta`"),
-        (";storymap",          "Every chapter, every stage, and how far you've got"),
-        (";storyinfo <stage>", "Opponent stats, rewards and whether it's unlocked"),
-        (";storystats",        "Your Story Mode record and next unlock"),
-        ("/story",             "The same thing from one menu — pick and press Run"),
+        (";story",             "🏫 Open the School League and pick a battle"),
+        (";story <n>",         "Jump straight in, e.g. `;story 3` or `;story 3 nightmare`"),
+        (";storymap",          "All eight battles, your progress and the difficulty toggle"),
+        (";storyinfo <n>",     "Opponent stats, reward and whether it's unlocked"),
+        (";storystats",        "Your School League record on both difficulties"),
+        ("/story",             "The same picker as a menu — chapter, battle, difficulty"),
     ],
     "battle": [
         (";battle @user",   "Challenge another blader to a 1v1 match"),

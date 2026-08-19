@@ -1,22 +1,26 @@
 """
-Story Mode — a solo chapter/stage campaign.
+Story Mode — the School League.
 
-    ;story              → pick a stage
-    ;story <stage>      → fight one directly, e.g. `;story 1-2`
-    ;storymap           → chapters and your progress
-    /story play|map|info|stats
+    ;story              → the chapter picker  (alias: ;league)
+    ;story <n>          → fight battle n on Normal
+    ;story <n> nightmare
+    ;storymap           → the eight battles, your progress, the difficulty
+    /story              → the same picker, from a slash command
 
-Built on the boss PvE resolver (cogs/battle/boss/boss_ai.py), not on the live
-PvP engine, for the reason boss_battle.py already documents: injecting a
-synthetic second player into BattleSession would mean maintaining a parallel
-path through every manager it is wired to.
+Runs on the REAL PvP engine (`cogs/battle/session.py`), not on the boss
+resolver it used to use. That is the whole point of the rebuild: stability,
+ring-outs, the full ability DSL, named Special moves, status effects and the
+real damage pipeline were all unreachable from Story before, so a blade's
+ability did nothing and its Special was a flat multiplier.
 
-Unlike the boss cog this is NOT gated behind a system lock — it deliberately
-lives outside BossCog so it does not inherit BossCog.cog_check.
+The opponent is an NPC driven by `story_ai.LeagueOpponent`, which borrows the
+boss engine's BRAIN — `OpponentModel` and the IQ ladder — while the fight
+itself is a `BattleSession`. `BattleSession` gained three optional parameters
+for this and behaves exactly as before for every other caller.
 
 The cog import is deferred into setup() so importing this package does not drag
-in discord — story_data, story_avatar and story_engine stay loadable headless,
-which is what tools/sim_story.py relies on.
+in discord — `story_data` stays loadable headless, which is what
+`tools/sim_story.py` relies on.
 """
 
 

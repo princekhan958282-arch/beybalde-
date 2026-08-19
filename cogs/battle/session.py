@@ -17,6 +17,7 @@ appropriate sub-module.
 from __future__ import annotations
 
 import asyncio
+import copy
 import math
 import random
 from typing import Optional, Any
@@ -41,7 +42,10 @@ from .defense_manager import DefenseManager
 from .status_manager import StatusManager      # FIX #1/#3: Added import
 from .chain_handler import ChainHandler        # FIX #1/#3: Added import
 
-from cogs.avatar import avatar_engine
+# `avatar_engine` is the SINGLETON, not the module — `cogs/avatar/__init__.py`
+# rebinds the name. `NULL_BONUSES` is a module-level constant and has to be
+# imported by name; reading it off the singleton is an AttributeError.
+from cogs.avatar import avatar_engine, NULL_BONUSES
 from utils import bey_levels as _BL
 
 
@@ -235,7 +239,36 @@ class BattleSession:
         blade1:  dict,
         blade2:  dict,
         ranked:  bool = False,
+        npc_controller=None,
+        payout:  bool = True,
+        spend_energy: Optional[bool] = None,
     ):
+        # ── PvE hooks (Story Mode) ────────────────────────────────────────────
+        # Three optional parameters, all defaulting to exactly what every
+        # existing caller already gets. They exist so Story Mode can run a real
+        # PvP battle against an NPC instead of maintaining a second combat
+        # engine — see `cogs/story/`.
+        #
+        # `npc_controller`  an object with `.key` and `async choose(session)`.
+        #                   Asked for a move whenever a round opens; the answer
+        #                   goes straight into `self.moves`, which is all
+        #                   `submit_move` does for a human too. Nothing else in
+        #                   this class needs a Discord user — only `.id` and
+        #                   `.display_name` are ever read.
+        # `payout`          False skips the whole `_end_battle` payout: coins,
+        #                   trainer XP, bey XP, the win/loss counters and the
+        #                   `beycord_battle_*` dispatch. Without it an NPC id
+        #                   would be handed a profile row and a win, and the
+        #                   human would collect PvP battle pay on top of the
+        #                   Story reward.
+        # `spend_energy`    Defaults to `ranked`, so no existing caller changes.
+        #                   Story passes True with ranked=False: avatar skill
+        #                   energy is really spent without the ranked ladder
+        #                   moving.
+        self.npc_controller = npc_controller
+        self.payout = bool(payout)
+        self.spend_energy = bool(ranked if spend_energy is None else spend_energy)
+
         self.bot     = bot
         self.channel = channel
         self.players = [p1, p2]
@@ -255,9 +288,13 @@ class BattleSession:
         #   4. + avatar HP boost (flat + %, applied just below)
         # Every % threshold / heal / damage number downstream stays valid
         # because only the pool size changes.
+        # Every profile read below is routed around the NPC. `get_user` on an
+        # unknown id CREATES AND PERSISTS a row (`database.py:327-330`), so a
+        # single unguarded read would put a junk player in the registry — and
+        # then in the population count, the funnel and the audit reports.
         self.hp = {
-            str(p1.id): max_hp_for_blade(blade1) + _level_hp_gain(p1.id, blade1),
-            str(p2.id): max_hp_for_blade(blade2) + _level_hp_gain(p2.id, blade2),
+            str(p1.id): max_hp_for_blade(blade1) + self._hp_gain(p1.id, blade1),
+            str(p2.id): max_hp_for_blade(blade2) + self._hp_gain(p2.id, blade2),
         }
         # Insurance alias: any code that reads session.max_hp (e.g. win_system)
         # resolves to a real number instead of raising AttributeError. Prefer
@@ -277,8 +314,8 @@ class BattleSession:
         # ── Avatar bonuses (loaded once at battle start) ──────────────────────
         # Stored on session so AbilityEngine and other managers can read them.
         self.avatar_bonuses: dict[str, Any] = {
-            str(p1.id): avatar_engine.get_battle_bonuses(p1.id),
-            str(p2.id): avatar_engine.get_battle_bonuses(p2.id),
+            str(p1.id): self._bonuses_for(p1.id),
+            str(p2.id): self._bonuses_for(p2.id),
         }
         # Apply avatar HP bonuses on top of the blade's own pool
         for _pid, _bonuses in self.avatar_bonuses.items():
@@ -292,8 +329,8 @@ class BattleSession:
         # apply to every round alongside ability buffs and the level multiplier.
         try:
             from cogs.economy.shop import get_part_stat_deltas
-            _p1_prof = get_user(p1.id)
-            _p2_prof = get_user(p2.id)
+            _p1_prof = self._profile_for(p1.id)
+            _p2_prof = self._profile_for(p2.id)
             self.part_deltas: dict[str, dict[str, int]] = {
                 str(p1.id): get_part_stat_deltas(_p1_prof.get("equipped_parts", [])),
                 str(p2.id): get_part_stat_deltas(_p2_prof.get("equipped_parts", [])),
@@ -309,7 +346,7 @@ class BattleSession:
         def _start_stats(pid: str, blade: dict) -> dict:
             base = dict(blade.get("stats", {}))
             try:
-                mult = get_stat_multiplier(int(pid), blade.get("name"))
+                mult = self._stat_mult_for(pid)
             except Exception:
                 mult = 1.0
             pd  = self.part_deltas.get(pid, {})
@@ -343,9 +380,14 @@ class BattleSession:
         # Not part of battle_stats/_effective_stats: those are recomputed every
         # round for the attack/defence/stamina exchange, and a Special's scale
         # has no per-round buff to track.
+        # An NPC takes the printed value straight off the blade it was handed.
+        # That blade is ALREADY levelled by the League before the session is
+        # built, so the number is right — and `_effective_special` would go to
+        # `effective_blade`, which reads a profile and would create one.
         self.special_stats: dict[str, int] = {
-            str(p1.id): _effective_special(p1.id, blade1),
-            str(p2.id): _effective_special(p2.id, blade2),
+            str(p): (int((b.get("stats") or {}).get("special", 0) or 0)
+                     if self._is_npc(p) else _effective_special(p, b))
+            for p, b in ((p1.id, blade1), (p2.id, blade2))
         }
 
         # Each player's BEY level, for abilities that awaken at a level
@@ -356,8 +398,12 @@ class BattleSession:
         for _p, _b in ((p1, blade1), (p2, blade2)):
             try:
                 from utils import bey_levels as _BL
-                from utils.database import get_user as _gu
-                _entry = ((_gu(_p.id).get("bey_progress") or {})
+                if self._is_npc(_p.id):
+                    # The League fields its opponents at a fixed level.
+                    self.bey_levels[str(_p.id)] = int(
+                        getattr(self.npc_controller, "level", 1) or 1)
+                    continue
+                _entry = ((self._profile_for(_p.id).get("bey_progress") or {})
                           .get(str(_b.get("name"))) or {})
                 self.bey_levels[str(_p.id)] = _BL.level_from_xp(_entry.get("xp", 0))
             except Exception:                            # noqa: BLE001
@@ -417,10 +463,8 @@ class BattleSession:
         # but many log paths use self.stamina[key] — expose it as a property alias.
 
         self.stat_mult: dict[str, float] = {
-            str(p1.id): get_stat_multiplier(
-                p1.id, self.blades.get(str(p1.id), {}).get("name")),
-            str(p2.id): get_stat_multiplier(
-                p2.id, self.blades.get(str(p2.id), {}).get("name")),
+            str(p1.id): self._stat_mult_for(p1.id),
+            str(p2.id): self._stat_mult_for(p2.id),
         }
 
         self.moves:      dict[str, Optional[str]] = {str(p1.id): None, str(p2.id): None}
@@ -457,14 +501,103 @@ class BattleSession:
         no avatar, no skills, or an unreadable profile gets an empty commit and
         fights exactly as they did before this system existed.
         """
+        # An NPC has no profile, no avatar and no energy pool. Committing for
+        # it would create a profile row for a player who does not exist.
+        if self._is_npc(player_id):
+            return {}
         try:
             from cogs.avatar import avatar_skills as AS
             avatar = avatar_engine.get_avatar(
                 avatar_engine.get_equipped_avatar_id(int(player_id)) or "")
+            # `spend_energy`, not `ranked`: Story spends from the pool without
+            # being a ranked match. Defaults to `ranked`, so PvP is unchanged.
             return AS.begin_battle_for(int(player_id), avatar,
-                                       ranked=self.ranked) or {}
+                                       ranked=self.spend_energy) or {}
         except Exception:                                # noqa: BLE001
             return {}
+
+    async def _prime_npc_move(self) -> None:
+        """Lock the NPC's move in for the round that is about to open.
+
+        This is the whole of the PvE integration. `submit_move` does exactly
+        two things for a human — write `self.moves[key]`, then resolve once
+        both entries are filled — so an NPC needs no interaction, no view and
+        no Discord user at all; it needs a dict entry.
+
+        Committed BEFORE the human picks, deliberately. The NPC must choose
+        blind, the same as the other side of a PvP round; asking it after the
+        human clicked would hand it the answer.
+
+        Never raises: an AI that fails must not strand a player in a battle
+        whose buttons no longer resolve. A missing move falls back to Stamina,
+        which is always affordable.
+        """
+        ctrl = getattr(self, "npc_controller", None)
+        if ctrl is None or self.finished:
+            return
+        key = str(ctrl.key)
+        if self.moves.get(key) is not None:
+            return
+        try:
+            move = await ctrl.choose(self)
+        except Exception:                                # noqa: BLE001
+            move = None
+        self.moves[key] = move or MOVE_STAMINA
+
+    def _is_npc(self, player_id) -> bool:
+        ctrl = getattr(self, "npc_controller", None)
+        return ctrl is not None and str(player_id) == str(getattr(ctrl, "key", ""))
+
+    # ── Profile reads, routed around the NPC ──────────────────────────────────
+    #
+    # `utils.database.get_user` on an id it has never seen builds a default
+    # profile and PERSISTS it. So every one of these, called once per battle,
+    # would otherwise register the NPC as a real player: it would appear in the
+    # population count, the new-player funnel, `;audit` and — once it had a
+    # level or a coin — on a leaderboard. Four small guards, in one place.
+
+    # The shape `_end_battle` and the managers expect of a profile. An NPC gets
+    # a throwaway built from this rather than an empty dict: `_end_battle`
+    # increments `losses`, reads `coins` and hands the thing to
+    # `rank_score_for`, so an empty dict is a KeyError on the very round the
+    # player WINS — swallowed by `_resolve_round_inner` and shown as "Battle
+    # Error", which is how it hid.
+    _NPC_PROFILE = {
+        "wins": 0, "losses": 0, "coins": 0, "xp": 0, "level": 0,
+        "rank_score": 0, "win_streak": 0, "best_streak": 0,
+        "equipped_parts": [], "parts": [], "inventory": [],
+        "bey_progress": {}, "quests": {}, "equipped_avatar": None,
+    }
+
+    def _profile_for(self, player_id) -> dict:
+        if self._is_npc(player_id):
+            stub = copy.deepcopy(self._NPC_PROFILE)
+            stub.update(getattr(self.npc_controller, "profile", None) or {})
+            return stub
+        return get_user(player_id)
+
+    def _hp_gain(self, player_id, blade: Optional[dict]) -> int:
+        """Levelled HP on top of the type-band-clamped printed stat."""
+        if self._is_npc(player_id):
+            # Supplied rather than derived: the opponent's level is the
+            # League's to decide, not a profile's to remember.
+            return int(getattr(self.npc_controller, "hp_gain", 0) or 0)
+        return _level_hp_gain(player_id, blade)
+
+    def _bonuses_for(self, player_id):
+        # An NPC has no avatar card, so it gets the same null snapshot a
+        # player with nothing equipped gets.
+        if self._is_npc(player_id):
+            return NULL_BONUSES
+        return avatar_engine.get_battle_bonuses(player_id)
+
+    def _stat_mult_for(self, player_id) -> float:
+        # Trainer level and blade mastery are player progression. An opponent
+        # fielded at a fixed level has neither.
+        if self._is_npc(player_id):
+            return 1.0
+        return get_stat_multiplier(
+            player_id, self.blades.get(str(player_id), {}).get("name"))
 
     def _release_skills(self) -> None:
         """Drop the per-battle lock for both players once the fight is over.
@@ -476,7 +609,9 @@ class BattleSession:
         try:
             from cogs.avatar import avatar_skills as AS
             for player in self.players:
-                AS.end_battle_for(int(player.id), ranked=self.ranked)
+                if self._is_npc(player.id):
+                    continue
+                AS.end_battle_for(int(player.id), ranked=self.spend_energy)
         except Exception:                                # noqa: BLE001
             pass
 
@@ -716,6 +851,7 @@ class BattleSession:
                 )
                 # Re-post the panel so they can pick moves
                 if not self.finished:
+                    await self._prime_npc_move()
                     new_view = _InChannelControlPanel(self)
                     self._current_view = new_view
                     self.panel_msg = await self.channel.send(
@@ -1034,6 +1170,7 @@ class BattleSession:
         if self._current_view:
             self._current_view.stop()
 
+        await self._prime_npc_move()
         new_view = _InChannelControlPanel(self)
         self._current_view = new_view
         card = await self._battle_card_file()
@@ -1194,7 +1331,11 @@ class BattleSession:
 
             from utils import ranked as RK
 
-            w_profile          = get_user(winner.id)
+            # `_profile_for`, not `get_user`: this read happens BEFORE the
+            # `payout` gate below — it feeds the result embed — so on a PvE
+            # round an unguarded read would register the NPC as a player even
+            # though nothing is ever written back for it.
+            w_profile          = self._profile_for(winner.id)
             # `wins` / `losses` stay lifetime-across-everything: the profile
             # card, achievements and ;audit all read them and none of those is
             # competitive. Only the ranked keys below drive the ladder.
@@ -1212,17 +1353,27 @@ class BattleSession:
             # profile dict already in hand, before update_user, so it lands in
             # the same write rather than racing a second read-modify-write.
             _bey_xp(w_profile, self.blades.get(str(winner.id)), won=True)
-            update_user(winner.id, w_profile)
-            wlvl, _, w_up = grant_xp(winner.id, XP_WIN)
+            # `payout=False` (Story Mode) stops here: the profile above was
+            # mutated in memory only, so the result embed still renders from it
+            # while nothing is written and no XP is granted. Story pays its own
+            # reward once for the whole match instead of once per round.
+            if self.payout:
+                update_user(winner.id, w_profile)
+                wlvl, _, w_up = grant_xp(winner.id, XP_WIN)
+            else:
+                wlvl, w_up = 0, False
 
-            l_profile            = get_user(loser.id)
+            l_profile            = self._profile_for(loser.id)
             l_profile["losses"] += 1
             l_profile["coins"]   = l_profile.get("coins", 0) + COINS_LOSS
             if self.ranked:
                 RK.apply_ranked_loss(l_profile)   # score down, streak broken
             _bey_xp(l_profile, self.blades.get(str(loser.id)), won=False)
-            update_user(loser.id, l_profile)
-            llvl, _, l_up = grant_xp(loser.id, XP_LOSS)
+            if self.payout:
+                update_user(loser.id, l_profile)
+                llvl, _, l_up = grant_xp(loser.id, XP_LOSS)
+            else:
+                llvl, l_up = 0, False
 
             w_blade  = self.blades[str(winner.id)]
             w_rarity = w_blade.get("rarity", "Common")
@@ -1269,6 +1420,8 @@ class BattleSession:
             )
         else:
             for pid in (p1.id, p2.id):
+                if not self.payout or self._is_npc(pid):
+                    continue
                 grant_xp(pid, XP_LOSS)
                 draw_profile = get_user(pid)
                 draw_profile["coins"] = draw_profile.get("coins", 0) + COINS_LOSS
@@ -1282,6 +1435,11 @@ class BattleSession:
         await self.channel.send(embed=embed)
 
         # ── Quest / external system events ────────────────────────────────────
+        # Silent when `payout=False`. These drive quests, mastery, achievements
+        # and clan wars; firing them for a PvE round would let all four be
+        # farmed against an NPC that cannot fight back on its own terms.
+        if not self.payout:
+            return
         try:
             self.bot.dispatch(
                 "beycord_battle_end",
@@ -1326,6 +1484,7 @@ class BattleSession:
             await self.channel.send(embed=setup_embed)
 
         # Post the initial status panel with move buttons
+        await self._prime_npc_move()
         first_view = _InChannelControlPanel(self)
         self._current_view = first_view
         card = await self._battle_card_file()

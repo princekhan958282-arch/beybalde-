@@ -252,22 +252,32 @@ class AvatarSpec(K.PrefixSpec):
 # ══════════════════════════════════════════════════════════════════════════════
 
 class StorySpec(K.PrefixSpec):
+    """The fallback panel for `/story`, and the one `;story` itself does not need.
+
+    `/story` opens the School League's own chapter picker directly (see
+    `PanelCommands.story` below) — a select for the chapter, a select for the
+    battle and a Normal/Nightmare toggle, which is the screen that was asked
+    for and which a generic select-and-Run panel cannot draw. This spec is what
+    `/story` falls back to if the Story cog is not loaded, and it still gets
+    you to every Story command.
+    """
+
     title = "📖  Story Mode"
     colour = 0xE67E22
     placeholder = "Play, or look something up?"
 
     ACTIONS = (
-        # Two play actions, not one with a required stage: `;story` on its own
-        # opens the game's own stage picker, which is the better route in and
-        # would be lost if the panel always demanded a stage up front.
-        A("play", "Play", "pick a stage and fight it", "▶️", invoke="story"),
-        A("jump", "Jump to a stage", "e.g. 1-2, or a name", "⏩",
-          invoke="story", needs=("text",), binds={"stage": "text"}),
-        A("map", "Chapter map", "every chapter and your progress", "🗺️",
+        # Two play actions, not one with a required battle number: `;story` on
+        # its own opens the chapter picker, which is the better route in and
+        # would be lost if the panel always demanded a battle up front.
+        A("play", "Play", "pick a battle and fight it", "▶️", invoke="story"),
+        A("jump", "Jump to a battle", "e.g. 3, or 3 nightmare", "⏩",
+          invoke="story", needs=("text",), binds={"args": "text"}),
+        A("map", "School League", "all eight battles and your progress", "🗺️",
           invoke="storymap"),
-        A("info", "Stage info", "opponent, rewards and lock state", "🔎",
-          invoke="storyinfo", needs=("text",), binds={"stage": "text"}),
-        A("stats", "Your record", "your Story Mode record", "📊",
+        A("info", "Battle info", "opponent, reward and lock state", "🔎",
+          invoke="storyinfo", needs=("text",), binds={"n": "text"}),
+        A("stats", "Your record", "your School League record", "📊",
           invoke="storystats", needs=("user",), binds={"member": "user"}),
     )
 
@@ -332,10 +342,19 @@ class PanelCommands(commands.Cog, name="Panels"):
     async def avatar(self, interaction: discord.Interaction) -> None:
         await self._open(interaction, "avatar")
 
-    @app_commands.command(name="story",
-                          description="Story Mode — chapters and stages")
+    @app_commands.command(
+        name="story",
+        description="Story Mode — the School League, Normal or Nightmare")
     async def story(self, interaction: discord.Interaction) -> None:
-        await self._open(interaction, "story")
+        # The one panel that is not a select-and-Run: the League picker is a
+        # chapter select, a battle select and a difficulty toggle, and it reads
+        # the player's progress to draw the ✅/▶️/🔒 state. `_open` is the
+        # fallback for a tree where the Story cog failed to load.
+        cog = self.bot.get_cog("Story Mode")
+        if cog is None:
+            return await self._open(interaction, "story")
+        view = cog.picker(interaction.user)
+        await interaction.response.send_message(embed=view.embed(), view=view)
 
     @app_commands.command(name="leaderboard",
                           description="Every leaderboard — rank, level, money and more")
