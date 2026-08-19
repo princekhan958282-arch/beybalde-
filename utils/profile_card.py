@@ -155,7 +155,8 @@ RANK_TIERS = [
     (4000, "Blader God",  (243, 156, 18)),
 ]
 
-MAX_LEVEL = 100
+from utils.trainer_levels import MAX_LEVEL, level_from_xp as _lvl_from_xp
+
 STAT_MAX  = 500        # matches bey_levels.STAT_CAP — levelled stats reach it
 
 # The frame is one consistent product, so the accent stays fixed rather than
@@ -197,10 +198,17 @@ def _tier_for(score: int):
 
 
 def _level_from_xp(xp: int) -> tuple[int, int, int]:
-    """(level, xp_into_level, xp_span_of_level) — mirrors database.level_from_xp
-    (level = floor(sqrt(xp/50))) without importing the DB layer."""
+    """(level, xp_into_level, xp_span_of_level).
+
+    This used to re-implement the curve — its own cap, its own arithmetic —
+    to avoid importing `utils.database`, which probes MySQL on import just to
+    draw a picture. That reason was sound and the duplicate was not: two
+    answers to "what level is this player", one of them printed on the card.
+    `utils/trainer_levels.py` is the shared curve, with no imports and no side
+    effects, so the card can use the real thing.
+    """
     xp = max(0, int(xp))
-    lvl = min(MAX_LEVEL, int((xp / 50) ** 0.5))
+    lvl = _lvl_from_xp(xp)
     if lvl >= MAX_LEVEL:
         return MAX_LEVEL, 0, 0
     cur_floor = 50 * lvl * lvl

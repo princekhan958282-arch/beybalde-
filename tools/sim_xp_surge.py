@@ -161,10 +161,18 @@ check("...and applies the Surge from the profile it already holds",
 
 print("\n── 4. trainer EXP, and the chat carve-out ───────────────────────")
 dsrc = open(os.path.join(ROOT, "utils", "database.py"), encoding="utf-8").read()
-check("grant_xp takes a boostable flag",
-      "def grant_xp(user_id: int, xp_amount: int,\n             boostable: bool = True)" in dsrc)
+# Asserted from the real signature rather than by matching the source text.
+# It used to match the exact two-line spelling of the `def`, so adding an
+# unrelated parameter broke a check about a different one — a test failing for
+# a reason that has nothing to do with what it is testing teaches you to
+# ignore it.
+import inspect                                          # noqa: E402
+from utils.database import grant_xp as _grant_xp        # noqa: E402
+
+_gp = inspect.signature(_grant_xp).parameters
+check("grant_xp takes a boostable flag", "boostable" in _gp, list(_gp))
 check("...defaulting to boosted, so a new caller is covered by default",
-      "boostable: bool = True" in dsrc)
+      _gp["boostable"].default is True)
 check("...and applies the Surge inside the lock, not around it",
       dsrc.index("with _users_lock:", dsrc.index("def grant_xp"))
       < dsrc.index("_surge(xp_amount, profile)"))

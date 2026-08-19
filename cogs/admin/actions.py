@@ -1178,12 +1178,19 @@ async def _audit_wallets(ctx: ActionCtx) -> Result:
 async def _audit_activity(ctx: ActionCtx) -> Result:
     """Who used the bot, filtered to one server or across all of them.
 
+    What counts as activity: running a command, claiming a wild blade,
+    battling. NOT chatting. Until v1.20 it did count chatting, and not
+    intentionally — chat XP pays out on every message, every payout wrote the
+    profile, and every profile write stamped `last_seen`. So a busy chat
+    channel read as a busy game. `chat_xp.py` now writes with `touch=False`
+    and both numbers below mean what they say.
+
     Two sources, because they answer different questions and neither is a
-    substitute for the other. `utils/activity.py` counts commands as they are
-    run, so it is exact about WHAT was used; the store's `last_seen` only knows
-    that somebody was around, but it survives restarts. Showing both means a
-    restart mid-day reports a small command tally beside an honest headcount,
-    instead of quietly reporting a dead day.
+    substitute for the other. `utils/activity.py` counts actions as they
+    happen, so it is exact about WHAT was done; the store's `last_seen` only
+    knows that somebody used the bot, but it survives restarts. Showing both
+    means a restart mid-day reports a small action tally beside an honest
+    headcount, instead of quietly reporting a dead day.
 
     Per server, two numbers per player: **today**, and **lifetime**. The
     lifetime tally survives midnight and restarts, so the top ten is about who
@@ -1256,14 +1263,14 @@ async def _audit_activity(ctx: ActionCtx) -> Result:
 
     if snap["commands"]:
         lines = [f"`{name}` — **{n:,}**" for name, n in snap["commands"]]
-        e.add_field(name="What they ran (bot-wide)",
+        e.add_field(name="What they did (bot-wide)",
                     value="\n".join(lines)[:1024], inline=False)
     else:
-        e.add_field(name="What they ran (bot-wide)",
+        e.add_field(name="What they did (bot-wide)",
                     value="Nothing yet since the last restart.", inline=False)
 
-    e.set_footer(text=f"{snap['day']} UTC · pick a server above to filter · "
-                      f"lifetime totals survive restarts, today's do not")
+    e.set_footer(text=f"{snap['day']} UTC · commands, claims and battles count "
+                      f"— chatting does not · pick a server above to filter")
     return Result(embed=e)
 
 

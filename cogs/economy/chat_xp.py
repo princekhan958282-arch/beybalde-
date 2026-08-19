@@ -68,7 +68,12 @@ class ChatXPCog(commands.Cog, name="Chat XP"):
         # and the comment above it), so a boosted chat loop would run trainer
         # level as fast as anything in the game. Bey XP below IS boosted, by
         # design — that is the deliberate split.
-        grant_xp(uid, random.randint(*TRAINER_XP), boostable=False)
+        # `touch=False`: chatting still levels you up, and still does NOT make
+        # you an "active player". `last_seen` is what every audit report counts,
+        # and this listener fires on every message in every server — with the
+        # default it was marking anyone who merely talked as somebody who uses
+        # the bot, so a busy chat channel read as a busy game.
+        grant_xp(uid, random.randint(*TRAINER_XP), boostable=False, touch=False)
 
         profile = get_user(uid)
         blade = profile.get("active_beyblade")
@@ -79,7 +84,7 @@ class ChatXPCog(commands.Cog, name="Chat XP"):
             return
 
         result = BL.award(profile, blade, random.randint(*BL.XP_CHAT))
-        update_user(uid, profile)
+        update_user(uid, profile, touch=False)          # same reason as above
 
         if result["milestone"]:
             await self._announce(message.channel, message.author, blade, result)

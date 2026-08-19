@@ -648,12 +648,31 @@ class SpawnCog(commands.Cog):
         except Exception:
             pass
 
-    async def _finish_claim(self, guild_id: int, channel, user, entry: dict) -> None:
+    async def _finish_claim(self, guild_id: int, channel, user, entry: dict,
+                            via: Optional[str] = "claim") -> None:
         """Award the blade, announce it, and offer the duplicate sale.
 
         The caller must already have won `_take_spawn`.
+
+        `via` names this as a player action for the activity tracker. It has to
+        be recorded HERE rather than left to the command listeners, because the
+        usual way to claim a spawn is the 🎯 button — and a button is a
+        component interaction, which fires neither `on_command_completion` nor
+        `on_app_command_completion`. Catching a wild blade is one of the things
+        "who played today" is most obviously about, and it was invisible.
+
+        `;claim` passes `via=None`: it is already counted once as a command,
+        and counting it again here would make typing the command look like
+        twice the activity of pressing the button.
         """
         spawned = entry["bey"]
+
+        if via:
+            try:
+                from utils import activity
+                activity.record(user.id, via, guild_id=guild_id)
+            except Exception as exc:                     # noqa: BLE001
+                log.debug(f"[spawn] activity not recorded: {exc}")
 
         self._lock_spawn_message(entry)
 
@@ -814,7 +833,9 @@ class SpawnCog(commands.Cog):
             # ── Success ───────────────────────────────────────────────────────────
             state["active"].remove(match)
 
-        await self._finish_claim(ctx.guild.id, ctx.channel, ctx.author, match)
+        # `via=None` — `;claim` is already counted as a command.
+        await self._finish_claim(ctx.guild.id, ctx.channel, ctx.author, match,
+                                 via=None)
 
     # ── ;setspawnchannel ──────────────────────────────────────────────────────
 
