@@ -682,10 +682,12 @@ MOVED = {
     # redeem.py
     "codeadmin create": "code_create", "codeadmin list": "code_list",
     "codeadmin revoke": "code_revoke",
-    # ranked_cog.py
-    "rankadmin status": "rank_settings", "rankadmin on/off": "rank_verify",
-    "rankadmin server": "rank_server", "rankadmin control": "rank_control",
-    "rankadmin invite": "rank_invite", "rankadmin reset": "rank_reset",
+    # ranked_cog.py — `rankadmin on/off`, `server`, `invite` and `control`
+    # are NOT here. They configured verification and the control-server lock,
+    # both removed in v1.18; a capability whose feature no longer exists has
+    # nowhere to land, and listing it would make this table demand a home for
+    # something deliberately deleted.
+    "rankadmin status": "rank_settings", "rankadmin reset": "rank_reset",
 }
 lost = sorted(old for old, new in MOVED.items() if new not in A.REGISTRY)
 check(f"all {len(MOVED)} old commands have a home in the registry", not lost, lost)
@@ -694,6 +696,11 @@ NEW = ("errors", "errors_clear", "maintenance_on", "maintenance_off",
        "inspect", "find", "ban", "unban", "banlist")
 check("the new tools are present", all(k in A.REGISTRY for k in NEW),
       [k for k in NEW if k not in A.REGISTRY])
+check("the four removed ranked settings really are gone, not renamed",
+      not any(k in A.REGISTRY for k in
+              ("rank_verify", "rank_server", "rank_control", "rank_invite")),
+      [k for k in ("rank_verify", "rank_server", "rank_control", "rank_invite")
+       if k in A.REGISTRY])
 check("the surface shrank: one slash command replaces 41",
       len([c for c in dir(P.AdminCog) if False]) == 0 and len(A.REGISTRY) >= len(MOVED))
 

@@ -8,7 +8,9 @@ Discord lists the subcommands of a group FLAT in the picker, so reaching nine
 features used to cost twenty-eight lines: `/player` 7, `/casino` 7, `/avatar`
 5, `/story` 4, plus `/leaderboard`, `/rank`, `/verify` and the three that were
 already single commands. v1.14 put all of them behind one view — the same view
-`/admin` uses — and the picker is six lines.
+`/admin` uses — and the picker went to six lines. v1.18 added `/leaderboard`
+and `/trade` on the same kit, so two more features cost two more lines rather
+than nine.
 
 The failures worth testing, all of which have happened here
 -----------------------------------------------------------
@@ -60,6 +62,7 @@ import discord                                          # noqa: E402
 from discord.ext import commands                        # noqa: E402
 
 import app as APP                                       # noqa: E402
+from utils import ranked as RK                          # noqa: E402
 from cogs.ui import panel_kit as K                      # noqa: E402
 from cogs.ui import panels as PN                        # noqa: E402
 
@@ -90,7 +93,7 @@ USER = types.SimpleNamespace(id=4242, roles=[], mention="<@4242>",
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n── 1. the picker is six lines, not twenty-eight ─────────────────")
+print("\n── 1. the picker is eight lines, not twenty-eight ───────────────")
 
 check("every extension loads", not FAILED, FAILED)
 
@@ -98,9 +101,10 @@ lines = 0
 for cmd in BOT.tree.get_commands():
     subs = list(getattr(cmd, "commands", []) or [])
     lines += len(subs) if subs else 1
-check("the slash picker is 6 lines", lines == 6, lines)
+check("the slash picker is 8 lines", lines == 8, lines)
 check("...one per feature", sorted(c.name for c in BOT.tree.get_commands())
-      == ["admin", "avatar", "casino", "player", "story", "tournament"],
+      == ["admin", "avatar", "casino", "leaderboard", "player", "story",
+          "tournament", "trade"],
       sorted(c.name for c in BOT.tree.get_commands()))
 check("no command is a group any more — groups are what render flat",
       not any(getattr(c, "commands", None) for c in BOT.tree.get_commands()),
@@ -109,10 +113,13 @@ check("no command is a group any more — groups are what render flat",
 # Measured on origin/main before this change and again after: 132 both times.
 # Pinned to the number rather than a floor, because the claim being made is
 # "nothing was lost", and a floor would pass while a command quietly vanished.
-PREFIX_BEFORE = 132
-check("the prefix surface is untouched — 132 commands, exactly as before",
+# v1.18 removed exactly one: `;verify`, with the gate it belonged to.
+PREFIX_BEFORE = 131
+check(f"the prefix surface is {PREFIX_BEFORE} commands",
       len(list(BOT.walk_commands())) == PREFIX_BEFORE,
       len(list(BOT.walk_commands())))
+check("`;verify` is gone, not merely unreachable",
+      BOT.get_command("verify") is None)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -149,7 +156,10 @@ for key, spec_cls in PN.SPECS.items():
     for a in spec.actions("", USER):
         ALL.append((key, a))
 
-check("the four panels declare actions at all", len(ALL) >= 25, len(ALL))
+check("the six panels declare actions at all", len(ALL) >= 25, len(ALL))
+empty = [k for k, c in PN.SPECS.items() if not c().actions("", USER)]
+check("...and no panel is empty — an empty select is a Discord 400",
+      not empty, empty)
 
 missing = [(p, a.key, a.invoke) for p, a in ALL
            if a.handler is None and BOT.get_command(a.invoke) is None]
@@ -178,7 +188,8 @@ check("every bound parameter exists on the command it is bound to",
       not bad_binds, bad_binds[:3])
 
 bad_src = [(p, a.key, s) for p, a in ALL
-           for s in a.binds.values() if s not in ("user", "amount", "text")]
+           for s in a.binds.values()
+           if s not in ("user", "amount", "text", "text2")]
 check("...and every bind reads a real panel input", not bad_src, bad_src)
 
 # An action that declares an input but binds it nowhere collects it and throws
@@ -188,7 +199,8 @@ for panel_key, a in ALL:
     if a.handler is not None:
         continue
     for need in a.needs:
-        if need in ("user", "amount", "text") and need not in a.binds.values():
+        if need in ("user", "amount", "text", "text2") \
+                and need not in a.binds.values():
             orphan_inputs.append((panel_key, a.key, need))
 check("every declared input is bound to a parameter, not collected and dropped",
       not orphan_inputs, orphan_inputs)
@@ -266,12 +278,14 @@ for key, spec_cls in PN.SPECS.items():
               len(m.children) <= K.MODAL_INPUTS_MAX, len(m.children))
         check(f"/{key} {a.key}: modal title fits 45 chars",
               len(m.title) <= K.MODAL_TITLE_MAX, m.title)
-        want = {n for n in a.needs if n in ("amount", "text")}
+        want = {n for n in a.needs if n in ("amount", "text", "text2")}
         got = set()
         if m.amount_field is not None:
             got.add("amount")
         if m.text_field is not None:
             got.add("text")
+        if m.text2_field is not None:
+            got.add("text2")
         check(f"/{key} {a.key}: asks for exactly {sorted(want)}", got == want, got)
 
 
@@ -442,8 +456,7 @@ MOVED = {
     "/player achievements": ("player", "achievements"),
     "/player mastery": ("player", "mastery"),
     "/rank": ("player", "rank"),
-    "/verify": ("player", "verify"),
-    "/leaderboard": ("player", "lb_rank"),
+    "/leaderboard": ("leaderboard", "lb_rank"),
     "/casino balance": ("casino", "balance"),
     "/casino daily": ("casino", "daily"),
     "/casino leaderboard": ("casino", "leaderboard"),
@@ -466,14 +479,23 @@ lost = [old for old, (panel, key) in MOVED.items() if key not in keys[panel]]
 check(f"all {len(MOVED)} old subcommands have a home", not lost, lost)
 
 check("every leaderboard is its own option, not a typed category",
-      len([k for k in keys["player"] if k.startswith("lb_")]) == 5,
+      len([k for k in keys["leaderboard"] if k.startswith("lb_")])
+      == len(RK.CATEGORIES),
+      sorted(k for k in keys["leaderboard"] if k.startswith("lb_")))
+check("...built from RK.CATEGORIES, so a new board appears without editing "
+      "this file", {f"lb_{k}" for k in RK.CATEGORIES} == keys["leaderboard"],
+      keys["leaderboard"])
+check("the boards left /player — a board is about everyone",
+      not any(k.startswith("lb_") for k in keys["player"]),
       sorted(k for k in keys["player"] if k.startswith("lb_")))
+check("level and money are boards now",
+      {"lb_level", "lb_money"} <= keys["leaderboard"])
 check("story keeps BOTH ways in — the picker and a direct jump",
       {"play", "jump"} <= keys["story"])
 
 # The prefix commands every panel leans on must still be registered.
 for name in ("profile", "inventory", "bal", "quests", "questclaim",
-             "achievements", "mastery", "leaderboard", "rank", "verify",
+             "achievements", "mastery", "leaderboard", "rank", "trade",
              "casinobal", "casinodaily", "casinoleaderboard", "casinoexchange",
              "avatarupgrade", "avatarreset", "avatarcost", "avatarskill",
              "energyrefill", "story", "storymap", "storyinfo", "storystats"):
@@ -499,6 +521,67 @@ for rel, gone in (("cogs/economy/profile.py", "class PlayerCommands"),
     check(f"{rel.split('/')[-1]}: `{gone}` is gone", gone not in code(rel))
 
 check("app.py loads the panels cog", '"cogs.ui.panels"' in code("app.py"))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── 9. /trade collects three things and hands over all three ─────")
+# `;trade @user "Mine" "Theirs"` is three positional arguments, two of them
+# quoted blade names, which is why people got it wrong. The panel asks for the
+# same three — and the two names are interchangeable strings, so a swapped
+# bind would not raise anywhere: it would just tell the player they do not own
+# their own blade.
+
+_tspec = PN.TradeSpec()
+_offer = _tspec.ACTIONS[0]
+_p = panel_for("trade")
+_m = K.InputModal(_p, _offer)
+check("the modal asks for both blade names",
+      _m.text_field is not None and _m.text2_field is not None)
+check("...with labels that say which is which, not 'Text' twice",
+      _m.text_field.label == "Your blade"
+      and _m.text2_field.label == "Their blade",
+      (_m.text_field.label, _m.text2_field.label))
+
+commands.Context.from_interaction = staticmethod(_fake_from_interaction)
+try:
+    _p = panel_for("trade")
+    _p.target = types.SimpleNamespace(id=77, display_name="Rival")
+    _p.text, _p.text2 = "Mine", "Theirs"
+    loop.run_until_complete(_tspec.execute(_offer, _p, FakeInteraction()))
+    check("the player picker lands in `target`",
+          getattr(_captured.get("target"), "id", None) == 77, _captured)
+    check("the first box is YOUR blade", _captured.get("my_blade") == "Mine",
+          _captured)
+    check("...and the second is theirs, not the other way round",
+          _captured.get("their_blade") == "Theirs", _captured)
+    check("all three reach the command", len(_captured) == 3, _captured)
+finally:
+    commands.Context.from_interaction = _real_from_interaction
+
+# text2 must be cleared with the rest, or the next action inherits it.
+_p = panel_for("trade")
+_p.text, _p.text2 = "a", "b"
+_p.reset_selection()
+check("a new selection clears both text boxes",
+      _p.text is None and _p.text2 is None, (_p.text, _p.text2))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── 10. verification is gone from the surfaces, not just the rules ")
+
+for rel in ("cogs/ranked/ranked_cog.py", "cogs/ui/panels.py",
+            "cogs/admin/actions.py", "cogs/battle/battle.py"):
+    src = code(rel)
+    check(f"{rel.split('/')[-1]}: no call into the removed gate",
+          not any(n in src for n in ("verify_required", "is_verified",
+                                     "eligibility_error", "control_guild_id",
+                                     "control_error", "K_VERIFIED")),
+          [n for n in ("verify_required", "is_verified", "eligibility_error",
+                       "control_guild_id", "control_error", "K_VERIFIED")
+           if n in src])
+
+check("the help index no longer offers `;verify`",
+      ";verify" not in code("cogs/ui/help_cog.py"))
 
 loop.run_until_complete(BOT.close())
 

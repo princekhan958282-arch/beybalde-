@@ -34,10 +34,18 @@ def check(label, cond, detail=""):
 from utils import ranked as RK                        # noqa: E402
 from utils.ranks import WIN_SCORE, LOSS_SCORE         # noqa: E402
 
-OFF = {"verify_enabled": False, "verify_guild_id": None}
-ON = {RK.CONFIG_KEY: {"verify_enabled": True, "verify_guild_id": 123,
-                      "verify_invite": RK.DEFAULT_INVITE}}
-CFG_OFF = {RK.CONFIG_KEY: OFF}
+# The boards that ranked play alone can put you on. `level` and `money` are
+# boards too, but they measure playing at all — the default `player()` fixture
+# is level 5 with 1,000 coins, so it belongs on both and says nothing about
+# whether a CASUAL battle leaked into the ladder, which is what these checks
+# are for.
+RANKED_BOARDS = ("rank", "winrate", "wins", "streak", "catches")
+
+# Ranked has no settings of its own left to configure — verification and the
+# control-server lock both went in v1.18 — so an empty config is the only
+# config there is. `build_board` still takes one, because the signature is
+# public and half the callers pass it.
+CFG_OFF = {RK.CONFIG_KEY: {}}
 
 
 def player(uid, **kw):
@@ -60,9 +68,9 @@ check("win rate stays 0 with no ranked games", RK.win_rate(p) == 0.0)
 check("best streak untouched", RK.best_streak(p) == 0)
 check("lifetime `wins` still counts it — profile card and achievements read it",
       p["wins"] == before["wins"] + 1)
-check("a casual player is on NO leaderboard",
-      all(not RK.build_board([p], k) for k in RK.CATEGORIES if k != "catches"),
-      [k for k in RK.CATEGORIES if RK.build_board([p], k)])
+check("a casual player is on NO ranked leaderboard",
+      all(not RK.build_board([p], k) for k in RANKED_BOARDS if k != "catches"),
+      [k for k in RANKED_BOARDS if RK.build_board([p], k)])
 
 print("\n── 2. a ranked battle moves them ────────────────────────────────")
 w, l = player(2), player(3)
@@ -107,9 +115,10 @@ check("a 1-0 record cannot top the win-rate board",
 check(f"...because {RK.MIN_RANKED_GAMES} games are required",
       RK.MIN_RANKED_GAMES >= 10)
 
-print("\n── 4. the five categories ───────────────────────────────────────")
-check("exactly the five asked for",
-      set(RK.CATEGORIES) == {"rank", "winrate", "wins", "streak", "catches"},
+print("\n── 4. the seven categories ──────────────────────────────────────")
+check("the five ranked boards, plus level and money",
+      set(RK.CATEGORIES) == {"rank", "winrate", "wins", "streak", "catches",
+                             "level", "money"},
       set(RK.CATEGORIES))
 for key, spec in RK.CATEGORIES.items():
     for field in ("label", "emoji", "describe", "value", "format",
@@ -133,18 +142,37 @@ check("catches board tops on catches", tops["catches"] == "101", tops)
 check("winrate board tops on rate, not volume", tops["winrate"] == "102", tops)
 check("the four boards genuinely differ", len(set(tops.values())) >= 3, tops)
 
+# Level and money are not ranked stats — they come from playing at all — so
+# they are the two boards a player can be on without ever queuing for ranked.
+rich = player(150, coins=999_999, level=2)
+poor = player(151, coins=1, level=80)
+check("the money board sorts on coins",
+      [p["user_id"] for p, _ in RK.build_board([poor, rich], "money",
+                                               config=CFG_OFF)] == ["150", "151"])
+check("the level board sorts on level",
+      [p["user_id"] for p, _ in RK.build_board([poor, rich], "level",
+                                               config=CFG_OFF)] == ["151", "150"])
+check("a player with no coins is off the money board",
+      not RK.build_board([player(152, coins=0)], "money", config=CFG_OFF))
+check("...and level 1 is off the level board",
+      not RK.build_board([player(153, level=1)], "level", config=CFG_OFF))
+check("neither board is resettable — 'reset a leaderboard' must not be a "
+      "route to wiping every wallet in the store",
+      "level" not in RK.RESETTABLE and "money" not in RK.RESETTABLE,
+      sorted(RK.RESETTABLE))
+
 print("\n── 5. eligibility and ordering ──────────────────────────────────")
 # A brand-new account: no ranked games AND no beys. The default `player()`
 # helper has two in its inventory, which correctly places it on the catches
 # board — a caught bey is a caught bey whether or not you have ever battled.
 fresh = player(200, inventory=[])
-on = [k for k in RK.CATEGORIES
+on = [k for k in RANKED_BOARDS
       if any(p["user_id"] == "200"
              for p, _ in RK.build_board(pool + [fresh], k, config=CFG_OFF))]
-check("a brand-new account appears on no board at all", not on, on)
+check("a brand-new account appears on no ranked board at all", not on, on)
 
 caught_only = player(201, inventory=["A", "B", "C"])
-on = [k for k in RK.CATEGORIES
+on = [k for k in RANKED_BOARDS
       if any(p["user_id"] == "201"
              for p, _ in RK.build_board(pool + [caught_only], k, config=CFG_OFF))]
 check("a player who has only CAUGHT beys is on the catches board and no other",
@@ -170,95 +198,60 @@ order = [p["user_id"] for p, _ in
 check("ties break deterministically on rank score", order == ["301", "300"],
       order)
 
-print("\n── 6. the verification gate ─────────────────────────────────────")
-check("verification is OFF by default", not RK.verify_required(CFG_OFF))
-check("everyone is 'verified' while it is off",
-      RK.is_verified(player(400), CFG_OFF))
-check("enabled but with NO server is not armed — it cannot lock everyone out",
-      not RK.verify_required({RK.CONFIG_KEY: {"verify_enabled": True,
-                                              "verify_guild_id": None}}))
-check("enabled WITH a server is armed", RK.verify_required(ON))
+print("\n── 6. verification is gone, root and branch ────────────────────")
+# It defaulted to off, no install ever turned it on, and it cost a command, a
+# profile key, a filter inside `build_board`, three admin actions and a slice
+# of `rank_settings`. The control-server lock went with it: with the four
+# verify actions gone it guarded one owner-only action, which `owner_only`
+# was already doing.
+#
+# Checked by NAME rather than by behaviour, because the failure being guarded
+# against is a caller that survived the removal — `AttributeError` in front of
+# a player, at the moment they try to play ranked.
 
-unv, ver = player(401), player(402, ranked_verified=True, rank_score=10,
-                               ranked_wins=1)
-check("an unverified player is blocked while armed",
-      not RK.is_verified(unv, ON))
-check("...with a reason naming the invite",
-      RK.DEFAULT_INVITE in RK.eligibility_error(unv, ON))
-check("a verified player passes", RK.is_verified(ver, ON))
-check("no error text for someone who can play",
-      RK.eligibility_error(ver, ON) == "")
+GONE = ("verify_required", "is_verified", "eligibility_error", "DEFAULT_INVITE",
+        "control_guild_id", "is_control_guild", "control_error")
+for name in GONE:
+    check(f"`RK.{name}` is gone", not hasattr(RK, name))
 
-unv2 = player(403, rank_score=9999, ranked_wins=99)
-board = RK.build_board([unv2, ver], "rank", config=ON)
-check("an unverified player is filtered OUT of the board while armed",
-      [p["user_id"] for p, _ in board] == ["402"],
+check("the ranked config has no keys left to set",
+      RK.get_config({RK.CONFIG_KEY: {}}) == {},
+      RK.get_config({RK.CONFIG_KEY: {}}))
+
+# The one thing deliberately NOT removed: the key on 3,400 live profiles.
+check("the profile key is still named, so nothing re-uses it by accident",
+      RK.K_VERIFIED == "ranked_verified")
+
+unv = player(403, rank_score=9999, ranked_wins=99)
+ver = player(402, ranked_verified=True, rank_score=10, ranked_wins=1)
+board = RK.build_board([unv, ver], "rank", config=CFG_OFF)
+check("the board no longer filters on it — the top score is top",
+      [p["user_id"] for p, _ in board] == ["403", "402"],
       [p["user_id"] for p, _ in board])
-board_off = RK.build_board([unv2, ver], "rank", config=CFG_OFF)
-check("...and back in once verification is off",
-      len(board_off) == 2, len(board_off))
-check("the default invite is the configured server",
-      RK.DEFAULT_INVITE == "https://discord.gg/bMtyey32Ur")
+check("...and everyone eligible is on it", len(board) == 2, len(board))
 
-print("\n── 6b. settings can only be changed from ONE server ─────────────")
-HOME, OTHER = 111, 222
-UNLOCKED = {RK.CONFIG_KEY: dict(OFF, control_guild_id=None)}
-LOCKED = {RK.CONFIG_KEY: dict(OFF, control_guild_id=HOME)}
-
-check("nothing is locked by default",
-      RK.control_guild_id(UNLOCKED) is None)
-check("while unlocked, any server may configure — otherwise first setup is "
-      "impossible", RK.is_control_guild(OTHER, UNLOCKED)
-      and RK.is_control_guild(None, UNLOCKED))
-check("no error text while unlocked",
-      RK.control_error(OTHER, UNLOCKED) == "")
-
-check("once locked, the control server may configure",
-      RK.is_control_guild(HOME, LOCKED))
-check("...and every other server may NOT",
-      not RK.is_control_guild(OTHER, LOCKED))
-check("...and a DM may not either",
-      not RK.is_control_guild(None, LOCKED))
-check("the refusal names the control server",
-      str(HOME) in RK.control_error(OTHER, LOCKED),
-      RK.control_error(OTHER, LOCKED))
-check("the refusal distinguishes a DM from a wrong server",
-      "direct message" in RK.control_error(None, LOCKED)
-      and "this server" in RK.control_error(OTHER, LOCKED))
-check("a string guild id still matches", RK.is_control_guild(str(HOME), LOCKED))
-check("junk guild ids are refused, not crashed on",
-      not RK.is_control_guild("not-an-id", LOCKED))
-check("a junk control_guild_id reads as unlocked rather than locking everyone out",
-      RK.control_guild_id({RK.CONFIG_KEY: dict(OFF, control_guild_id="oops")})
-      is None)
-check("control lock is independent of verification being on",
-      RK.is_control_guild(HOME, {RK.CONFIG_KEY: {
-          "verify_enabled": True, "verify_guild_id": 999,
-          "control_guild_id": HOME}}))
-
-# v1.13 moved these settings out of `;rankadmin` and into the admin action
-# registry under 🎖️ Ranked. Both locks had to move with them: owner-only
-# answers "who", the control server answers "where", and losing the second one
-# would have let a role-holder in any server the bot is in flip the ranked
-# verification gate for everybody.
 csrc = open(os.path.join(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))), "cogs", "admin", "actions.py"),
     encoding="utf-8").read()
-check("the settings are owner-only", "def may_run(" in csrc
+check("the ranked settings are still owner-only — that is the gate that was "
+      "doing the work", "def may_run(" in csrc
       and "owner_only: bool = True" in csrc)
-check("...and gated on the control server too", "def _rank_locked(" in csrc)
-check("every ranked WRITE goes through that gate",
-      csrc.count("why = _rank_locked(ctx)") == 5,
-      csrc.count("why = _rank_locked(ctx)"))
-check("`Ranked settings` is exempt so the owner can always find the control "
-      "server", "_rank_locked" not in
-      csrc[csrc.index("async def _rank_settings("):
-           csrc.index("async def _rank_verify(")])
-check("an unreachable lock is ignored rather than bricking the settings",
-      "get_guild(locked) is None" in csrc)
-check("there is a way back out", '"unlock", "none", "off"' in csrc)
-check("setting the verify server also closes the bootstrap window",
-      'changes["control_guild_id"] = gid' in csrc)
+check("the control lock is gone with it", "def _rank_locked(" not in csrc)
+
+import cogs.admin.actions as ADMIN                      # noqa: E402
+for key in ("rank_verify", "rank_server", "rank_invite", "rank_control"):
+    check(f"the `{key}` admin action is gone", key not in ADMIN.REGISTRY)
+check("the leaderboard reset stayed", "rank_reset" in ADMIN.REGISTRY)
+check("...and is still owner-only and still asks twice",
+      ADMIN.REGISTRY["rank_reset"].owner_only
+      and bool(ADMIN.REGISTRY["rank_reset"].confirm))
+
+rsrc = open(os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "cogs", "ranked", "ranked_cog.py"),
+    encoding="utf-8").read()
+check("`;verify` is gone from the ranked cog",
+      'name="verify"' not in rsrc)
+
 
 print("\n── 7. catches ──────────────────────────────────────────────────")
 c = player(500)
@@ -358,28 +351,34 @@ check("...and the trailing rounds are never played", ended < 5, ended)
 pts, ended = play([(None, ""), ("a", "burst"), (None, ""), ("a", "survival")])
 check("draws score nobody and do not end the match", pts["a"] == 3, pts)
 
-print("\n── 8c. two matches per opponent per day ─────────────────────────")
-check("the cap is 2", RK.PAIR_DAILY_LIMIT == 2)
+print("\n── 8c. ONE match per opponent per day ───────────────────────────")
+# Was 2. Without a cap the cheapest way to climb is to find one willing partner
+# and farm them; at 1 a pairing is spent the moment it is used.
+check("the cap is 1", RK.PAIR_DAILY_LIMIT == 1, RK.PAIR_DAILY_LIMIT)
 pr = player(700)
 check("a fresh pairing has the full allowance",
-      RK.pair_remaining(pr, 800) == 2 and RK.pair_limit_error(pr, 800) == "")
+      RK.pair_remaining(pr, 800) == 1 and RK.pair_limit_error(pr, 800) == "")
 RK.record_pair_match(pr, 800)
-check("one played leaves one", RK.pair_remaining(pr, 800) == 1)
-check("...and is still allowed", RK.pair_limit_error(pr, 800) == "")
-RK.record_pair_match(pr, 800)
-check("two played leaves none", RK.pair_remaining(pr, 800) == 0)
+check("one played spends it", RK.pair_remaining(pr, 800) == 0)
 check("...and is refused", RK.pair_limit_error(pr, 800) != "")
+# The message is built from the constant, so it has to stay grammatical at 1.
+check("the refusal reads '1 ranked match', not 'matches'",
+      "1 ranked match " in RK.pair_limit_error(pr, 800),
+      RK.pair_limit_error(pr, 800))
 check("the refusal says when it resets",
       "midnight" in RK.pair_limit_error(pr, 800).lower())
 check("the refusal names the opponent",
       "Rival" in RK.pair_limit_error(pr, 800, "Rival"))
 check("a DIFFERENT opponent is unaffected — the cap is per pairing",
-      RK.pair_remaining(pr, 801) == 2)
+      RK.pair_remaining(pr, 801) == RK.PAIR_DAILY_LIMIT,
+      RK.pair_remaining(pr, 801))
 
 stale = player(701)
 stale[RK.K_PAIRS] = {"800": {"day": "1999-01-01", "count": 99}}
 check("yesterday's tally does not count today",
-      RK.pair_count(stale, 800) == 0 and RK.pair_remaining(stale, 800) == 2)
+      RK.pair_count(stale, 800) == 0
+      and RK.pair_remaining(stale, 800) == RK.PAIR_DAILY_LIMIT,
+      (RK.pair_count(stale, 800), RK.pair_remaining(stale, 800)))
 RK.record_pair_match(stale, 802)
 check("recording prunes other opponents' expired entries",
       "800" not in stale[RK.K_PAIRS], stale[RK.K_PAIRS])
@@ -454,7 +453,10 @@ check("the streak is guarded by the ranked flag",
 import cogs.battle.battle as BATTLE                     # noqa: E402
 bsrc = inspect.getsource(BATTLE)
 check(";battle accepts a mode", "mode: str" in bsrc)
-check("...and gates ranked on eligibility", "eligibility_error" in bsrc)
+check("...and no longer asks whether a player is verified",
+      "eligibility_error" not in bsrc)
+check("...but still enforces the daily pair limit from both sides",
+      bsrc.count("RK.pair_limit_error(") == 1 and "for a, b in ((ctx.author" in bsrc)
 check("...and a ranked match builds ranked sessions",
       "ranked=True" in bsrc and "_run_ranked_match" in bsrc)
 

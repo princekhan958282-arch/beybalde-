@@ -11,7 +11,8 @@ reaching nine features cost twenty-eight lines:
 Most of those lines are in front of a reader who is not looking for them, and
 `/admin` had already solved exactly this — one command, a select, a Run button.
 So the same view (`cogs/ui/panel_kit.py`) now backs all of them, and the picker
-is six lines: /admin /avatar /casino /player /story /tournament.
+is eight lines: /admin /avatar /casino /leaderboard /player /story /tournament
+/trade.
 
 Why every action just runs a prefix command
 -------------------------------------------
@@ -46,37 +47,16 @@ A = K.PanelAction
 #  👤  /player
 # ══════════════════════════════════════════════════════════════════════════════
 #
-# Also absorbs /leaderboard, /rank and /verify: three top-level commands whose
-# subject is the player, sitting on their own lines for no reason other than
-# having been written in a different cog.
-
-def _board_actions() -> list[K.PanelAction]:
-    """One action per leaderboard, read from the same table the board sorts on.
-
-    A single `leaderboard` action would have to ask which board through a
-    modal — typing the name of a thing that could have been a dropdown entry.
-    Restating the five names here instead of importing them is how they drift.
-    """
-    try:
-        from utils import ranked as RK
-    except Exception:                                    # noqa: BLE001
-        return []
-    out = []
-    for key, spec in RK.CATEGORIES.items():
-        out.append(A(key=f"lb_{key}",
-                     label=f"Leaderboard — {spec['label']}",
-                     description=f"Top players by {spec['label'].lower()}",
-                     emoji=spec.get("emoji") or "🏅",
-                     invoke="leaderboard", kwargs={"category": key}))
-    return out
-
+# Also absorbs /rank. The boards moved out to /leaderboard in v1.18: a board is
+# about everyone, /player is about one player, and the five board rows were
+# most of what this select showed.
 
 class PlayerSpec(K.PrefixSpec):
     title = "👤  Player"
     colour = 0x5865F2
     placeholder = "What would you like to see?"
 
-    BASE = (
+    ACTIONS = (
         A("profile", "Profile", "your full profile card", "🪪",
           invoke="profile", needs=("user",), binds={"member": "user"}),
         A("inventory", "Inventory", "every blade you own", "🎒",
@@ -92,12 +72,68 @@ class PlayerSpec(K.PrefixSpec):
           invoke="mastery", needs=("text",), binds={"blade": "text"}),
         A("rank", "Ranked card", "tier, score and board positions", "🎖️",
           invoke="rank", needs=("user",), binds={"member": "user"}),
-        A("verify", "Verify for ranked", "clear yourself for ranked play", "✅",
-          invoke="verify"),
     )
 
-    def actions(self, category: str, user):
-        return list(self.BASE) + _board_actions()
+    # `;verify` was here until v1.18. Verification is gone — ranked is open to
+    # everyone — so the action would have run a command that no longer exists.
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  🏆  /leaderboard
+# ══════════════════════════════════════════════════════════════════════════════
+
+class LeaderboardSpec(K.PrefixSpec):
+    """One action per board, read from the same table the board sorts on.
+
+    Built rather than typed out: `RK.CATEGORIES` is what `;leaderboard` itself
+    validates against and sorts by, so a new board appears here the moment it
+    exists there. Restating the names in this file is how the two drift, and a
+    single `leaderboard` action would instead ask which board through a modal
+    — typing the name of a thing that could have been a dropdown entry.
+    """
+    title = "🏆  Leaderboards"
+    colour = 0xF1C40F
+    placeholder = "Which board?"
+
+    def actions(self, category: str, user) -> list[K.PanelAction]:
+        try:
+            from utils import ranked as RK
+        except Exception:                                # noqa: BLE001
+            return []
+        return [A(key=f"lb_{key}",
+                  label=spec["label"],
+                  description=spec.get("describe", "")[:100],
+                  emoji=spec.get("emoji") or "🏅",
+                  invoke="leaderboard", kwargs={"category": key})
+                for key, spec in RK.CATEGORIES.items()]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  🤝  /trade
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TradeSpec(K.PrefixSpec):
+    """A second way to reach `;trade`, not a second trade implementation.
+
+    `;trade` owns the whole flow — the ownership checks, the owner-bound
+    refusal, the 60-second Accept and the re-verified atomic swap. What it
+    does not own is its own syntax: three positional arguments, two of them
+    quoted blade names, is the reason people got it wrong. The panel asks for
+    the same three things with a player picker and two labelled boxes.
+    """
+    title = "🤝  Trade"
+    colour = 0x2ECC71
+    placeholder = "Offer a swap"
+    footer = "1-for-1. The other player has 60 seconds to accept."
+
+    ACTIONS = (
+        A("offer", "Offer a trade", "swap one of your blades for one of theirs",
+          "🤝", invoke="trade",
+          needs=("user", "text", "text2"),
+          binds={"target": "user", "my_blade": "text",
+                 "their_blade": "text2"},
+          text_label="Your blade", text2_label="Their blade"),
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -208,6 +244,8 @@ SPECS = {
     "casino": CasinoSpec,
     "avatar": AvatarSpec,
     "story": StorySpec,
+    "leaderboard": LeaderboardSpec,
+    "trade": TradeSpec,
 }
 
 
@@ -246,6 +284,16 @@ class PanelCommands(commands.Cog, name="Panels"):
                           description="Story Mode — chapters and stages")
     async def story(self, interaction: discord.Interaction) -> None:
         await self._open(interaction, "story")
+
+    @app_commands.command(name="leaderboard",
+                          description="Every leaderboard — rank, level, money and more")
+    async def leaderboard(self, interaction: discord.Interaction) -> None:
+        await self._open(interaction, "leaderboard")
+
+    @app_commands.command(name="trade",
+                          description="Offer another player a 1-for-1 blade swap")
+    async def trade(self, interaction: discord.Interaction) -> None:
+        await self._open(interaction, "trade")
 
 
 async def setup(bot: commands.Bot) -> None:

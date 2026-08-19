@@ -51,6 +51,7 @@ import threading
 import time
 import types
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Optional
 
 from utils.database import (
@@ -1163,6 +1164,80 @@ async def _audit_wallets(ctx: ActionCtx) -> Result:
     return Result(embed=e)
 
 
+@register("audit_activity", "Who played today", "who was active, and what they ran",
+          "audit")
+async def _audit_activity(ctx: ActionCtx) -> Result:
+    """Three views of one day: who, how much each, and what they used.
+
+    Two sources, because they answer different questions and neither is a
+    substitute for the other. `utils/activity.py` counts commands since the
+    process started, so it is exact about WHAT was used and blind to anything
+    before the last restart. The store's `last_seen` survives restarts but only
+    knows that somebody was around. Showing both means a restart mid-day
+    reports a small command tally next to an honest headcount, instead of
+    quietly reporting a dead day.
+    """
+    from utils import activity
+    from utils.database import USER_STORE
+
+    snap = activity.snapshot()
+    midnight = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0).timestamp()
+    seen_today = USER_STORE.active_since(midnight)
+
+    e = _embed("📅  Today", 0x3498DB)
+    e.add_field(name="Active",
+                value=(f"Ran a command: **{snap['active_users']:,}**\n"
+                       f"Seen today: **{seen_today:,}**"), inline=True)
+    e.add_field(name="Commands",
+                value=(f"Run: **{snap['total_commands']:,}**\n"
+                       f"Distinct: **{snap['distinct_commands']:,}**"), inline=True)
+
+    if snap["top_users"]:
+        lines = [f"**{i}.** <@{uid}> — {n:,} command{'' if n == 1 else 's'}"
+                 for i, (uid, n) in enumerate(snap["top_users"], 1)]
+        e.add_field(name="Busiest players", value="\n".join(lines)[:1024],
+                    inline=False)
+
+    if snap["commands"]:
+        lines = [f"`{name}` — **{n:,}**" for name, n in snap["commands"]]
+        e.add_field(name="What they ran", value="\n".join(lines)[:1024],
+                    inline=False)
+    else:
+        e.add_field(name="What they ran",
+                    value="Nothing yet since the last restart.", inline=False)
+
+    e.set_footer(text=f"{snap['day']} UTC · command counts reset when the bot "
+                      f"restarts; 'seen today' does not")
+    return Result(embed=e)
+
+
+@register("audit_who", "Active players", "the last players the store saw",
+          "audit", needs=("amount",))
+async def _audit_who(ctx: ActionCtx) -> Result:
+    """The tail of `last_seen`, with what each of them ran today beside it."""
+    from utils import activity
+    from utils.database import USER_STORE
+    limit = max(1, min(int(ctx.amount or 20), 50))
+    midnight = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0).timestamp()
+    rows = USER_STORE.active_users_since(midnight, limit)
+    if not rows:
+        return Result(message="Nobody has touched the bot today.")
+    lines = []
+    for r in rows:
+        ran = activity.user_commands(r["user_id"])
+        top = ", ".join(f"`{k}`×{v}" for k, v in
+                        sorted(ran.items(), key=lambda kv: -kv[1])[:3])
+        lines.append(f"<@{r['user_id']}> — L{r['level']} · 🪙 {r['coins']:,} · "
+                     f"{_ts(r['last_seen'])}" + (f"\n   ↳ {top}" if top else ""))
+    e = _embed(f"👥  Active today — last {len(rows)}", 0x3498DB,
+               "\n".join(lines)[:4000])
+    e.set_footer(text="Ordered by last seen. Commands shown are since the last "
+                      "restart.")
+    return Result(embed=e)
+
+
 @register("audit_funnel", "New player funnel", "where players drop off",
           "audit")
 async def _audit_funnel(ctx: ActionCtx) -> Result:
@@ -1774,160 +1849,35 @@ async def _maintenance_off(ctx: ActionCtx) -> Result:
     return Result(message="✅ Maintenance mode **OFF** — the bot is open again.")
 
 
-def _rank_locked(ctx: ActionCtx) -> Optional[str]:
-    """Why this admin may not change ranked settings from here, or None.
-
-    Two locks, not one. Owner-only answers "who"; the control server answers
-    "where" — the bot is in many servers, and a settings command that works in
-    all of them has that many doors. `Ranked settings` only reads, so it is
-    exempt: the owner has to be able to find out WHICH server is the control
-    server.
-
-    A lock pointing at a server the bot cannot see is unenforceable and would
-    brick the settings permanently — the owner could not even move the lock,
-    because that action is behind this same gate. So an unreachable lock is
-    treated as no lock.
-    """
-    from utils import ranked as RK
-    gid = getattr(ctx.guild, "id", None)
-    why = RK.control_error(gid)
-    if not why:
-        return None
-    locked = RK.control_guild_id()
-    if locked is not None and ctx.bot is not None \
-            and ctx.bot.get_guild(locked) is None:
-        log.warning("[admin] ranked control lock points at unreachable guild "
-                    "%s — ignoring it", locked)
-        return None
-    return why
+# `_rank_locked` and the control-server lock went with verification in v1.18.
+# The lock answered "where" — settings could only be changed from one guild —
+# and it guarded four verify actions plus the leaderboard reset. With the four
+# gone it guarded a single owner-only action, which `owner_only=True` was
+# already doing: that is the gate that was actually doing the work.
 
 
-@register("rank_settings", "Ranked settings", "verification gate and control server",
+@register("rank_settings", "Ranked settings", "ladder rules and resettable boards",
           "ranked")
 async def _rank_settings(ctx: ActionCtx) -> Result:
     from utils import ranked as RK
-    cfg = RK.get_config()
-    gid = cfg.get("verify_guild_id")
-    g = ctx.bot.get_guild(int(gid)) if (gid and ctx.bot) else None
     e = _embed("🎖️ Ranked settings", 0x5865F2)
-    e.add_field(name="Verification",
-                value="**ON**" if cfg["verify_enabled"] else "**OFF**", inline=True)
-    e.add_field(name="Armed",
-                value="Yes" if RK.verify_required() else "No — needs a server",
+    e.add_field(name="Entry", value="Open to everyone", inline=True)
+    plural = "" if RK.PAIR_DAILY_LIMIT == 1 else "es"
+    e.add_field(name="Daily pair limit",
+                value=f"**{RK.PAIR_DAILY_LIMIT}** match{plural} per opponent "
+                      f"per day", inline=True)
+    ranked_players = sum(1 for u in (load_users() or {}).values()
+                         if isinstance(u, dict) and RK.ranked_games(u) > 0)
+    e.add_field(name="Players with ranked games", value=f"{ranked_players:,}",
                 inline=True)
-    e.add_field(name="Server",
-                value=(f"{g.name} (`{gid}`)" if g else
-                       (f"`{gid}` — bot is not in it" if gid else "not set")),
+    e.add_field(name="Boards",
+                value=", ".join(f"{c['emoji']} {c['label']}"
+                                for c in RK.CATEGORIES.values()), inline=False)
+    e.add_field(name="Resettable",
+                value=", ".join(f"`{k}`" for k in RK.RESETTABLE) + ", `all`",
                 inline=False)
-    e.add_field(name="Invite", value=cfg.get("verify_invite") or "—", inline=False)
-    verified = sum(1 for u in (load_users() or {}).values()
-                   if isinstance(u, dict) and u.get(RK.K_VERIFIED))
-    e.add_field(name="Verified players", value=f"{verified:,}", inline=True)
-    cid = RK.control_guild_id()
-    cg = ctx.bot.get_guild(cid) if (cid and ctx.bot) else None
-    if cid is None:
-        ctrl = "**Any server** — not locked yet."
-    elif cg is None:
-        ctrl = f"`{cid}` — ⚠️ I'm not in it, so the lock is being ignored."
-    else:
-        ctrl = f"🔒 **{cg.name}** (`{cid}`) only"
-    e.add_field(name="Settings changeable from", value=ctrl, inline=False)
+    e.set_footer(text="Verification was removed in v1.18 — ranked is open to all.")
     return Result(embed=e)
-
-
-@register("rank_verify", "Ranked verification", "type on / off to switch the gate",
-          "ranked", needs=("text",))
-async def _rank_verify(ctx: ActionCtx) -> Result:
-    why = _rank_locked(ctx)
-    if why:
-        return Result.fail(f"❌ {why}")
-    from utils import ranked as RK
-    want = (ctx.text or "").strip().lower()
-    if want in ("on", "enable", "true", "yes"):
-        RK.save_config({"verify_enabled": True})
-        return Result(message="✅ Verification **ON**." if RK.verify_required() else
-                              "⚠️ Flag set, but no server is configured yet — the "
-                              "gate is NOT armed. Use **Ranked server**.")
-    if want in ("off", "disable", "false", "no"):
-        RK.save_config({"verify_enabled": False})
-        return Result(message="✅ Verification **OFF** — ranked is open to all.")
-    return Result.fail("Type `on` or `off`.")
-
-
-@register("rank_server", "Ranked verify server", "the guild players must join",
-          "ranked", needs=("text",))
-async def _rank_server(ctx: ActionCtx) -> Result:
-    why = _rank_locked(ctx)
-    if why:
-        return Result.fail(f"❌ {why}")
-    from utils import ranked as RK
-    raw = (ctx.text or "").strip()
-    if not raw.isdigit():
-        return Result.fail("Give a numeric guild id.")
-    target = int(raw)
-    g = ctx.bot.get_guild(target) if ctx.bot else None
-    changes = {"verify_guild_id": target}
-    # Setting the verification server also CLOSES the bootstrap window: from
-    # here on, settings only change from the server this was run in. Done
-    # automatically so there is no state where verification is configured but
-    # the settings are still open to every server the bot is in.
-    locked = ""
-    gid = getattr(ctx.guild, "id", None)
-    if RK.control_guild_id() is None and gid is not None:
-        changes["control_guild_id"] = gid
-        locked = (f"\n🔒 Settings are now locked to **this** server (`{gid}`). "
-                  f"Use **Ranked control server** to move them.")
-    RK.save_config(changes)
-    return Result(message=(f"✅ Verification server set to **{g.name}** (`{target}`)."
-                           if g else
-                           f"⚠️ Set to `{target}`, but I'm not in that server — I "
-                           f"can't check membership until I'm added, so `/verify` "
-                           f"will refuse rather than fail players.") + locked)
-
-
-@register("rank_control", "Ranked control server", "where settings can be changed",
-          "ranked", needs=("text",))
-async def _rank_control(ctx: ActionCtx) -> Result:
-    """Two locks, not one.
-
-    Owner-only answers "who"; the control server answers "where". The bot is
-    in many servers and a settings command that works in all of them has that
-    many doors. Type `unlock` to open it up again.
-    """
-    why = _rank_locked(ctx)
-    if why:
-        return Result.fail(f"❌ {why}")
-    from utils import ranked as RK
-    raw = (ctx.text or "").strip().lower()
-    if raw in ("unlock", "none", "off"):
-        RK.save_config({"control_guild_id": None})
-        return Result(message="🔓 Settings unlocked — changeable from any server "
-                              "again (still owner-only).")
-    if not raw.isdigit():
-        cur = RK.control_guild_id()
-        return Result.fail(f"Settings are locked to `{cur}`. Give a guild id, or "
-                           f"`unlock`." if cur else
-                           "Not locked to any server yet. Give a guild id.")
-    target = int(raw)
-    g = ctx.bot.get_guild(target) if ctx.bot else None
-    RK.save_config({"control_guild_id": target})
-    return Result(message=f"🔒 Ranked settings can now only be changed from "
-                          f"**{g.name if g else target}** (`{target}`)."
-                          + ("" if g else "\n⚠️ I'm not in that server — you will "
-                                          "not be able to change settings until "
-                                          "I am."))
-
-
-@register("rank_invite", "Ranked verify invite", "the link shown to unverified players",
-          "ranked", needs=("text",))
-async def _rank_invite(ctx: ActionCtx) -> Result:
-    why = _rank_locked(ctx)
-    if why:
-        return Result.fail(f"❌ {why}")
-    from utils import ranked as RK
-    url = (ctx.text or "").strip()
-    RK.save_config({"verify_invite": url})
-    return Result(message=f"✅ Invite set to {url}")
 
 
 @register("rank_reset", "Reset a leaderboard", "zeroes one board for every player",
@@ -1935,9 +1885,6 @@ async def _rank_invite(ctx: ActionCtx) -> Result:
           confirm="This zeroes that board for EVERY player and cannot be undone. "
                   "Coins, inventory and levels are not touched.")
 async def _rank_reset(ctx: ActionCtx) -> Result:
-    why = _rank_locked(ctx)
-    if why:
-        return Result.fail(f"❌ {why}")
     from utils import ranked as RK
     board = (ctx.text or "").strip().lower()
     if board not in RK.RESETTABLE and board != "all":

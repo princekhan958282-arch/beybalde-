@@ -216,6 +216,14 @@ class BeybladeBot(commands.Bot):
         # Ensure Chromium is available for HTML profile card rendering
         await asyncio.get_event_loop().run_in_executor(None, _ensure_chromium)
 
+        # Today's command tally, if the process restarted part-way through a
+        # day. A file from any other day is ignored by `load` itself.
+        try:
+            from utils import activity as _activity
+            await asyncio.to_thread(_activity.load)
+        except Exception as exc:                         # noqa: BLE001
+            logger.debug(f"activity tracker not restored: {exc}")
+
         for cog_path in COGS:
             try:
                 await self.load_extension(cog_path)
@@ -313,6 +321,37 @@ class BeybladeBot(commands.Bot):
                 f"lists (removed while offline): {sorted(stale)}")
         else:
             logger.info(f"   Guild cache verified against the API: {len(rest)} server(s)")
+
+    # ── Activity tracking ─────────────────────────────────────────────────────
+    #
+    # Two listeners, because a player reaches the same feature two ways: the
+    # prefix command, and the `/` panel that invokes it. `ctx.invoke` from a
+    # panel does NOT dispatch `command_completion`, so counting both is not
+    # double counting — it is the slash surface being counted once, under the
+    # name the player actually typed.
+    #
+    # Completion, not invocation: a command that failed its checks (unstarted,
+    # banned, on cooldown) did not get used, and counting it would report a
+    # busy day made of refusals.
+
+    async def _record_activity(self, user_id, name: str) -> None:
+        try:
+            from utils import activity
+            activity.record(user_id, name)
+            if activity.due_for_flush():
+                await asyncio.to_thread(activity.flush)
+        except Exception as exc:                         # noqa: BLE001
+            logger.debug(f"activity not recorded: {exc}")
+
+    async def on_command_completion(self, ctx: commands.Context) -> None:
+        await self._record_activity(
+            ctx.author.id, getattr(ctx.command, "qualified_name", "") or "")
+
+    async def on_app_command_completion(self, interaction: discord.Interaction,
+                                        command) -> None:
+        name = getattr(command, "qualified_name", None) or getattr(
+            command, "name", "")
+        await self._record_activity(interaction.user.id, f"/{name}" if name else "")
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
         logger.info(f"➕ Joined {guild.name} ({guild.id}) — "

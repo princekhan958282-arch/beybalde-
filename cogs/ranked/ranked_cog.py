@@ -1,13 +1,11 @@
 """
 ranked_cog.py — the ranked ladder's Discord surface.
 
-    /leaderboard category:<rank|winrate|wins|streak|catches>
-    /rank [user]
-    /verify
+    ;leaderboard <category>
+    ;rank [user]
 
-Prefix equivalents (`;leaderboard`, `;rank`, `;verify`) exist for every one of
-them, and the slash commands delegate to those rather than duplicating their
-logic — a second copy is how the two paths drift.
+The slash surfaces delegate to those prefix commands rather than duplicating
+their logic — a second copy is how the two paths drift.
 
 The owner-only settings (`;rankadmin` and the `/rankadmin` group) left in
 v1.13: they are actions in `cogs/admin/actions.py` under 🎖️ Ranked, calling
@@ -27,7 +25,7 @@ from typing import Optional
 import discord
 from discord.ext import commands
 
-from utils.database import get_user, update_user, load_users
+from utils.database import get_user, load_users
 from utils import ranked as RK
 from utils.ranks import RANK_TIERS, tier_for_score
 
@@ -75,7 +73,9 @@ class RankedCog(commands.Cog, name="Ranked"):
                       brief="Ranked leaderboards 🏆")
     async def leaderboard(self, ctx: commands.Context,
                           category: str = RK.DEFAULT_CATEGORY) -> None:
-        """Ranked leaderboards. Categories: rank, winrate, wins, streak, catches."""
+        """The boards. Categories come from `RK.CATEGORIES`, which is also
+        what `/leaderboard` builds its select from — one table, so a new board
+        appears in both places or in neither."""
         key = str(category or "").lower().strip()
         if key not in RK.CATEGORIES:
             opts = ", ".join(f"`{k}`" for k in RK.CATEGORIES)
@@ -105,10 +105,7 @@ class RankedCog(commands.Cog, name="Ranked"):
         elif not mine:
             e.add_field(name="Your position", value="Unranked", inline=True)
 
-        foot = [spec["describe"]]
-        if RK.verify_required():
-            foot.append("verified players only")
-        foot.append("ranked battles only")
+        foot = [spec["describe"], "ranked battles only"]
         e.set_footer(text=" · ".join(foot))
         await ctx.send(embed=e)
 
@@ -140,11 +137,6 @@ class RankedCog(commands.Cog, name="Ranked"):
                     inline=True)
         e.add_field(name="🌀 Beys Caught", value=f"**{RK.beys_caught(prof):,}**",
                     inline=True)
-        e.add_field(name="✅ Verified",
-                    value=("Yes" if prof.get(RK.K_VERIFIED) else
-                           ("No" if RK.verify_required() else "Not required")),
-                    inline=True)
-
         placings = []
         for key, spec in RK.CATEGORIES.items():
             pos = RK.position_of(users, target.id, key)
@@ -165,50 +157,14 @@ class RankedCog(commands.Cog, name="Ranked"):
         e.set_footer(text="Casual battles do not affect any number on this card.")
         await ctx.send(embed=e)
 
-    # ── ;verify ──────────────────────────────────────────────────────────────
-    @commands.command(name="verify", brief="Verify for ranked play ✅")
-    async def verify(self, ctx: commands.Context) -> None:
-        """Verify by being a member of the configured server."""
-        cfg = RK.get_config()
-        if not RK.verify_required():
-            return await ctx.send(
-                "✅ Verification isn't required right now — ranked is open to "
-                "everyone.")
-
-        guild_id = int(cfg["verify_guild_id"])
-        guild = self.bot.get_guild(guild_id)
-        invite = cfg.get("verify_invite") or RK.DEFAULT_INVITE
-
-        if guild is None:
-            # The bot is not in the verification server, so membership cannot
-            # be checked. Say so plainly rather than telling the player they
-            # failed — this is a misconfiguration, not their fault.
-            return await ctx.send(
-                "⚠️ I can't reach the verification server, so I can't check "
-                "your membership. Ask an admin to add me to it.")
-
-        member = guild.get_member(ctx.author.id)
-        if member is None:
-            try:
-                member = await guild.fetch_member(ctx.author.id)
-            except Exception:                            # noqa: BLE001
-                member = None
-
-        if member is None:
-            return await ctx.send(embed=discord.Embed(
-                title="❌ Not verified yet",
-                description=(f"Join **{guild.name}** and run `/verify` again:\n"
-                             f"{invite}"),
-                colour=0xED4245))
-
-        prof = get_user(ctx.author.id)
-        already = bool(prof.get(RK.K_VERIFIED))
-        prof[RK.K_VERIFIED] = True
-        update_user(ctx.author.id, prof)
-        await ctx.send(embed=discord.Embed(
-            title="✅ Verified" + ("" if not already else " (already)"),
-            description=f"You're cleared for ranked play in **{guild.name}**.",
-            colour=0x2ECC71))
+    # ── ;verify removed in v1.18 ────────────────────────────────────────────
+    #
+    # Verification asked a player to join a configured server before ranked
+    # would count them. It defaulted to off, no install ever turned it on, and
+    # it cost a command, a profile key and a filter inside `build_board`.
+    # Ranked is open to everyone; `utils/ranked.py` no longer has a gate to
+    # ask about. Live profiles keep their `ranked_verified` field — nothing
+    # reads it.
 
     # ── ranked settings moved to /admin → 🎖️ Ranked (v1.13) ─────────────────
     #
@@ -224,10 +180,11 @@ class RankedCog(commands.Cog, name="Ranked"):
 
 
 # `/leaderboard`, `/rank` and `/verify` lived here as three separate top-level
-# slash commands. Their subject is the player, so v1.14 folded them into the
-# `/player` panel — see `cogs/ui/panels.py:PlayerSpec`, which invokes the
-# prefix commands above. The five leaderboards became five select options
-# built from `RK.CATEGORIES`, the same table the board itself sorts on, rather
-# than a category string typed into a parameter.
+# slash commands. v1.14 folded them into the `/player` panel; v1.18 moved the
+# boards back out into their own `/leaderboard` panel — see
+# `cogs/ui/panels.py:LeaderboardSpec` — because a board is about everyone and
+# `/player` is about one player. Both panels invoke the prefix commands above.
+# The board options are built from `RK.CATEGORIES`, the same table the board
+# itself sorts on, rather than a category string typed into a parameter.
 
 
