@@ -125,6 +125,11 @@ class AbilityEngine:
         self.heal_per_drain: dict[str, int]         = {}   # key -> HP healed per stamina drained
         self.crit_chance_bonus: dict[str, float]    = {}   # key -> engine-side crit prob
         self.crit_damage_mult:  dict[str, float]    = {}   # key -> crit multiplier (default 1.5)
+        # Did the hit currently being resolved crit? Set by `apply`, read by the
+        # defender's `stacking_resist`. Initialised here as well so a harness
+        # that calls `_fire` directly, without going through `apply`, reads
+        # False instead of raising.
+        self.last_hit_was_crit: bool = False
         self.extra_special_hits: dict[str, int]     = {}   # key -> bonus hits on MOVE_SPECIAL
         self.debuff_immune: dict[str, bool]         = {}   # key -> ignores enemy debuffs
 
@@ -522,6 +527,35 @@ class AbilityEngine:
                 cut = math.ceil(dmg_dealt * float(val) / 100)
                 dmg_dealt = max(0, dmg_dealt - cut)
                 logs.append(f"🛡️ **{ab_name}** — damage reduced by {int(val)}%!")
+            elif kind == "stacking_resist":
+                # Resistance that BUILDS as the blade is hit: "7% per stack, up
+                # to 5". `reduce_damage_pct` is a fixed number and
+                # `stacking_buff` grants a flat stat, so neither could express
+                # this — a stacking resistance had no representation at all.
+                #
+                # The stack is taken BEFORE the reduction is applied, so the
+                # very first impact already resists. An ability that reads
+                # "gain resistance on impact" and then does nothing to the
+                # impact that granted it is the kind of thing nobody notices
+                # for four versions.
+                cname = op.get("name", f"{ab_name}_resist")
+                mx    = int(op.get("max", 5))
+                cur   = min(mx, self.counters.get((key, cname), 0) + 1)
+                self.counters[(key, cname)] = cur
+                pct   = cur * float(op.get("per_stack", val or 0))
+                # A critical is resisted twice: once by the ordinary stack
+                # percentage, then again by `crit_per_stack` — which is why the
+                # crit flag has to survive as far as the defender's ops.
+                if self.last_hit_was_crit and op.get("crit_per_stack"):
+                    pct += cur * float(op["crit_per_stack"])
+                pct = max(0.0, min(90.0, pct))       # never immunity by stacking
+                if pct > 0 and dmg_dealt > 0:
+                    cut = math.ceil(dmg_dealt * pct / 100)
+                    dmg_dealt = max(0, dmg_dealt - cut)
+                    logs.append(f"🛡️ **{ab_name}** — stack {cur}/{mx}, "
+                                f"{pct:g}% absorbed ({cut} damage)!")
+                else:
+                    logs.append(f"🛡️ **{ab_name}** — stack {cur}/{mx}.")
             elif kind == "reduce_damage_flat":
                 dmg_dealt = max(0, dmg_dealt - int(val))
                 logs.append(f"🛡️ **{ab_name}** — damage reduced by {int(val)}!")
@@ -541,6 +575,21 @@ class AbilityEngine:
             elif kind == "shield":
                 self.st.add_shield(key, int(val))
                 logs.append(f"🛡️ **{ab_name}** — gained a {int(val)} HP shield!")
+            elif kind == "shield_pct":
+                # A shield worth a PERCENTAGE rather than a flat number. `shield`
+                # takes an int, so a blade asking for "10% of current HP" had to
+                # hard-code a number that is right at exactly one HP total — and
+                # HP here runs from ~112 at level 1 into four figures at 100.
+                base = (self.session.hp.get(key, 0)
+                        if op.get("of", "current_hp") == "current_hp"
+                        else (self.session.max_hp_per_player.get(key)
+                              or self.session.max_hp or 0))
+                amount = math.ceil(max(0, base) * float(val) / 100)
+                if amount > 0:
+                    self.st.add_shield(key, amount)
+                    logs.append(f"🛡️ **{ab_name}** — gained a {amount} HP shield "
+                                f"({int(float(val))}% of "
+                                f"{'current' if op.get('of', 'current_hp') == 'current_hp' else 'max'} HP)!")
 
             # ── sustain ──────────────────────────────────────────────────────
             elif kind == "heal":
@@ -1081,6 +1130,13 @@ class AbilityEngine:
         """Route one move through the full generic trigger pipeline."""
         logs: list[str] = []
 
+        # Cleared per hit. The defender's ops run AFTER the mover's crit has
+        # already been multiplied into `dmg_dealt`, so "resist critical damage"
+        # has no way to know a crit happened unless the crit says so. Reset
+        # here rather than in __init__ so a crit on one hit cannot leak into
+        # the next.
+        self.last_hit_was_crit = False
+
         # Steps 1–4: buffs tick, ATK buffs & amp, invuln, shields (unchanged)
         dmg_dealt, dmg_taken, f_logs, mover_silenced = self.damage_filter.run(
             mover_key, other_key, mover_blade, other_blade,
@@ -1151,6 +1207,7 @@ class AbilityEngine:
                     and random.random() < min(0.95, p):
                 mult = self.crit_damage_mult.get(mover_key, 1.5)
                 dmg_dealt = math.ceil(dmg_dealt * mult)
+                self.last_hit_was_crit = True
                 logs.append(f"🎯 **CRITICAL!** — damage ×{mult:g}!")
 
         # Defender reactive triggers (blocked only by evasion, not mover silence)

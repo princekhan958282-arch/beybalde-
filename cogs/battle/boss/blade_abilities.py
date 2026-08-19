@@ -282,6 +282,21 @@ class BladeKit:
         # would have silently under-reported what those blades do.
         "bonus_damage":         "flat_damage",
         "reduce_damage_flat":   "flat_reduction",
+        # A resistance that builds per impact. Translated at its FULL stacked
+        # value (per_stack x max) rather than its opening value: a boss fight
+        # runs long enough for a 5-stack cap to be reached almost immediately,
+        # so reporting 7% here when the blade actually reaches 35% would
+        # under-state the kit by a factor of five. `_rules` reads the two keys.
+        "stacking_resist":      "reduction",
+        # A percentage shield has no boss-side equivalent — the boss model has
+        # no shield pool — so it maps to the same place a flat `shield` does.
+        "shield_pct":           "shield",
+        # A TIMED damage amp. Distinct from `bonus_damage_pct`, which is a
+        # one-shot on the hit that fires it: `dmg_amp` is the only op that
+        # actually tracks an expiry, so anything written as "x1.5 for N turns"
+        # uses it — and it was missing from this table, which left the whole
+        # ability dormant in a boss fight.
+        "dmg_amp":              "amp",
     }
 
     # Caps for the two flat channels. Flat damage does not scale with the
@@ -304,6 +319,20 @@ class BladeKit:
                 # `value` is the house default; `amount` and `per_stack` are
                 # what buff and stacking_buff carry instead.
                 val = _num(op, "value", "amount", "per_stack", default=0.0)
+                # A stacking resistance is worth per_stack x max once it has
+                # built, and a boss fight is long enough that it always does.
+                # Its crit half is left out: the boss model has no crit
+                # resistance to translate it into, and inflating the ordinary
+                # reduction with it would over-report the kit.
+                if str(op.get("op")) == "stacking_resist":
+                    val *= max(1, int(op.get("max", 1) or 1))
+                # `dmg_amp` carries a FRACTION (0.5 = +50%) where every other
+                # op on this table carries a percentage. Normalising here rather
+                # than in the "amp" branch keeps the unit conversion next to the
+                # op that is unusual, instead of burying a special case inside
+                # shared arithmetic.
+                elif str(op.get("op")) == "dmg_amp" and val <= 1:
+                    val *= 100.0
                 if kind == "amp":
                     self.dmg_amp = min(MAX_DMG_AMP, self.dmg_amp + val / 100.0)
                 elif kind == "reduction":
