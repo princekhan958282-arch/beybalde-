@@ -8976,5 +8976,140 @@
         "✨ **Hit 2** — divine light breaks over the opponent!"
       ]
     }
+  },
+  "Omni Odax": {
+    "id": "BB105",
+    "name": "Omni Odax",
+    "rarity": "Rare",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1539685778701942864/file_00000000520082118b419ba031502e76.png?ex=6a87379f&is=6a85e61f&hm=f6e30595ea524af6eae33fb515fb663ce84944156ad473f994d9f93588303b93&",
+    "description": "It does not swing on instinct — it swings on the beat. Omni Odax reads the tempo of a fight and locks onto it, every landed strike setting the next one a fraction earlier. Fall into its rhythm and the drop comes before you have finished counting.",
+    "burst_height": "Mid",
+    "type": "Attack",
+    "spin_direction": "Right",
+    "stats": {
+      "attack": 108,
+      "defense": 60,
+      "stamina": 78,
+      "special": 98,
+      "hp": 98
+    },
+    "abilities": [
+      {
+        "name": "Sound of Battle",
+        "trigger": "on_attack_win",
+        "description": "Omni Odax keeps time with the fight. Every Attack win sets a **Beat**: **+7 Attack** that stays for the rest of the battle, up to **4**, and one beat banked for the drop.\n**Blast Beat** spends every banked beat at once — **+15 damage each**, so a Special fired on a full bar lands **60** above its printed damage. The bank empties; the Attack the beats bought does not.",
+        "rules": [
+          {
+            "when": "on_attack_win",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack": 7,
+                "max": 4,
+                "name": "odax_tempo"
+              },
+              {
+                "op": "add_counter",
+                "name": "blast_beat",
+                "amount": 1,
+                "max": 4
+              }
+            ]
+          },
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "consume_counter",
+                "name": "blast_beat",
+                "damage_per_stack": 15
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "special_move": {
+      "name": "Blast Beat",
+      "description": "Omni Odax's signature move. It synchronises with the rhythm of the battle itself and answers on the downbeat — three strikes on the count, and every beat banked so far lands with them.",
+      "hits": 3,
+      "damage_per_hit": 40,
+      "total_damage": 120,
+      "flavour_texts": [
+        "🥁 **Blast Beat** — Omni Odax finds the tempo of the fight!",
+        "🎵 **Beat 2** — the strikes fall on the count!",
+        "💥 **BLAST BEAT** — the drop lands, and every banked beat with it!"
+      ]
+    }
+  },
+  "Hyper Horusood": {
+    "id": "BB106",
+    "name": "Hyper Horusood",
+    "rarity": "Rare",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1539685786562207784/Holy_Horusood_Upper_Claw_Beyblade.webp?ex=6a8737a1&is=6a85e621&hm=3ad297ceb2a382a49cab1ec35094b2eb67a42fac3493e9886d59b376a157d995&",
+    "description": "A falcon that never stoops. Hyper Horusood claims the centre and turns it into its own weather — opponents that enter the zone find their spin going somewhere it was not sent. It does not out-hit anything. It out-lasts everything.",
+    "burst_height": "Low",
+    "type": "Stamina",
+    "spin_direction": "Right",
+    "stats": {
+      "attack": 62,
+      "defense": 78,
+      "stamina": 104,
+      "special": 76,
+      "hp": 116
+    },
+    "abilities": [
+      {
+        "name": "Hyper Zone",
+        "trigger": "on_take_damage",
+        "description": "The zone is always on. Anything that hits Hyper Horusood lands **8% softer** and leaves **0.4 stamina** behind in the field — the attacker simply loses it.\n**Horusood Field** deals no damage at all, by design: five passes through the zone, each stripping **1 stamina** and **3 stability** from the opponent. Five stamina and fifteen stability, and not one point of HP.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "reduce_damage_pct",
+                "value": 8
+              },
+              {
+                "op": "drain_stamina",
+                "value": 0.4,
+                "steal": false
+              }
+            ]
+          },
+          {
+            "when": "on_hit",
+            "do": [
+              {
+                "op": "drain_stamina",
+                "value": 1,
+                "steal": false
+              },
+              {
+                "op": "enemy_lose_stability",
+                "value": 3
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "special_move": {
+      "name": "Horusood Field",
+      "non_damage": true,
+      "hits": 5,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "description": "Horusood opens the field and lets the opponent run through it five times. No damage, none intended — every pass takes 1 stamina and 3 stability instead, and the opponent leaves the zone still at full HP and no longer able to stand in it.",
+      "flavour_texts": [
+        "🌪️ **Horusood Field** — the zone opens, and the floor stops helping!",
+        "🪶 **Pass 2** — spin goes somewhere it was not sent!",
+        "🌀 **Pass 3** — the opponent's footing keeps sliding!",
+        "💨 **Pass 4** — stamina bleeds into the field!",
+        "🦅 **HORUSOOD FIELD** — five passes, no damage, nothing left standing!"
+      ]
+    }
   }
 }
