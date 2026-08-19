@@ -7,19 +7,24 @@ All Cogs import from here so file-path logic lives in exactly one place.
 Level System
 ------------
   XP is earned by battling:  WIN = 100 XP,  LOSS = 40 XP.
-  Level formula: level = floor(sqrt(xp / 50))  capped at MAX_LEVEL = 100.
+  Level formula: level = floor(sqrt(xp / 50))  capped at MAX_LEVEL (9,999).
   XP to next level: (next_level)^2 * 50
+  The curve itself lives in utils/trainer_levels.py and is re-exported here.
 """
 
 import copy
 import json
 import logging
-import math
 import os
 import threading
 import time
 from typing import Optional
 
+# Re-exported so `from utils.database import MAX_LEVEL` keeps working.
+from .trainer_levels import MAX_LEVEL          # noqa: F401
+from .trainer_levels import level_from_xp      # noqa: F401
+from .trainer_levels import xp_for_level       # noqa: F401
+from .trainer_levels import xp_to_next_level   # noqa: F401
 from .userstore import UserStore
 
 log = logging.getLogger("beyblade_bot")
@@ -95,10 +100,17 @@ _spawn_lock  = threading.Lock()
 _avatar_lock = threading.Lock()
 
 # ── Level system constants ────────────────────────────────────────────────────
-MAX_LEVEL          = 100
+# The curve itself lives in `utils/trainer_levels.py` — a module with no
+# imports and no side effects, so `utils/profile_card.py` can share it without
+# dragging a MySQL probe into a renderer. Re-exported here so every existing
+# `from utils.database import MAX_LEVEL` keeps working.
 XP_WIN             = 100
 XP_LOSS            = 40
-STAT_BONUS_PER_10  = 0.02   # +2% to all stats per 10 trainer levels (max +20% at Lv100)
+STAT_BONUS_PER_10  = 0.02   # +2% to all stats per 10 trainer levels
+# The ceiling that keeps a 9,999 level cap from being a balance change. It is
+# exactly what level 100 already awarded, so nothing about combat moved when
+# the cap went up — see `get_stat_multiplier`.
+STAT_BONUS_MAX     = 0.20
 
 
 # ── Durable JSON persistence helpers ──────────────────────────────────────────
@@ -179,31 +191,9 @@ def _read_json(path: str, factory=dict):
         return factory()
 
 
-def xp_for_level(level: int) -> int:
-    """Total XP required to reach `level` (from 0)."""
-    return level * level * 50
-
-
-def level_from_xp(xp: int) -> int:
-    """Current level given total accumulated XP (capped at MAX_LEVEL).
-
-    Clamps negative XP to 0 — math.sqrt of a negative raises ValueError, which
-    would break every profile/battle command for a corrupted profile.
-    """
-    return min(MAX_LEVEL, int(math.floor(math.sqrt(max(0, xp) / 50))))
-
-
-def xp_to_next_level(xp: int) -> tuple[int, int, int]:
-    """
-    Returns (current_level, xp_needed_for_next, xp_progress_in_current_level).
-    At MAX_LEVEL returns (100, 0, 0).
-    """
-    lvl = level_from_xp(xp)
-    if lvl >= MAX_LEVEL:
-        return MAX_LEVEL, 0, 0
-    current_floor = xp_for_level(lvl)
-    next_floor    = xp_for_level(lvl + 1)
-    return lvl, next_floor - current_floor, xp - current_floor
+# `xp_for_level`, `level_from_xp` and `xp_to_next_level` were defined here and
+# are now imported from `utils/trainer_levels.py` — see the note by the level
+# constants above. They are still importable from this module.
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -373,10 +363,18 @@ def get_user(user_id: int) -> dict:
         return copy.deepcopy(prof)
 
 
-def update_user(user_id: int, profile: dict) -> None:
-    """Write a single user's profile back to disk (single-row upsert)."""
+def update_user(user_id: int, profile: dict, touch: bool = True) -> None:
+    """Write a single user's profile back to disk (single-row upsert).
+
+    `touch=False` writes the profile WITHOUT stamping `last_seen`. That field
+    is what every "active players" report counts, so it has to mean "this
+    player used the bot" — not "the bot wrote to this row". Chat XP pays out on
+    every message, so with the default it was marking anyone who merely talked
+    as an active player, and the audit numbers counted a busy chat channel as a
+    busy game.
+    """
     with _users_lock:
-        USER_STORE.put_one(str(user_id), profile)
+        USER_STORE.put_one(str(user_id), profile, touch=touch)
 
 
 def mutate_user(user_id: int, fn):
@@ -417,7 +415,8 @@ def user_exists(user_id: int) -> bool:
 
 
 def grant_xp(user_id: int, xp_amount: int,
-             boostable: bool = True) -> tuple[int, int, bool]:
+             boostable: bool = True,
+             touch: bool = True) -> tuple[int, int, bool]:
     """
     Add xp_amount XP to a user and recalculate their level.
     Returns (new_level, total_xp, leveled_up: bool).
@@ -431,6 +430,10 @@ def grant_xp(user_id: int, xp_amount: int,
     cooldown, so a boosted chat loop would run trainer level as fast as bey
     level, and trainer level gates far more. Admin grants should pass it too —
     an explicit `;givexp 500` means 500.
+
+    `touch=False` grants the XP without marking the player as having used the
+    bot — see `update_user`. Chat XP passes it, so talking still levels you up
+    and still does not make you an "active player" in the audit reports.
     """
     with _users_lock:
         uid       = str(user_id)
@@ -446,7 +449,7 @@ def grant_xp(user_id: int, xp_amount: int,
 
         profile["xp"]    = new_xp
         profile["level"] = new_level
-        USER_STORE.put_one(uid, profile)
+        USER_STORE.put_one(uid, profile, touch=touch)
 
     return new_level, new_xp, (new_level > old_level)
 
@@ -454,7 +457,14 @@ def grant_xp(user_id: int, xp_amount: int,
 def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) -> float:
     """
     Returns a damage/stat multiplier based on trainer level.
-    Every 10 levels adds +2% (e.g. Lv50 → ×1.10, Lv100 → ×1.20).
+    Every 10 levels adds +2%, up to +20% (e.g. Lv50 → ×1.10, Lv100 → ×1.20).
+
+    The +20% ceiling is the whole reason raising the level cap to 9,999 is
+    safe. This was `(level // 10) * 0.02` with nothing stopping it: at level
+    9,999 that is +1998%, a ×21 stat multiplier, and one levelled player would
+    end every battle in the game on the first hit. The cap is set to exactly
+    what level 100 already gave, so a higher ceiling changes progression and
+    changes nothing about combat.
 
     When `blade_name` is given, that blade's mastery bonus is added on top
     (+0.5% per mastery level, +5% at Mastery 10). Callers that don't pass a
@@ -463,7 +473,7 @@ def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) -> float
     """
     profile = get_user(user_id)
     level   = profile.get("level", 1)
-    bonus   = (level // 10) * STAT_BONUS_PER_10
+    bonus   = min(STAT_BONUS_MAX, (level // 10) * STAT_BONUS_PER_10)
 
     if blade_name:
         try:

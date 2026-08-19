@@ -1,6 +1,18 @@
 """
 activity.py — who used the bot today, and what they ran.
 
+What counts as activity
+-----------------------
+Playing: running a command, claiming a wild blade, battling. **Not chatting.**
+
+That distinction had to be made twice, because it leaked in two directions.
+Chat XP pays out on every message and every payout wrote the profile, and a
+profile write stamps `last_seen` — so anyone who merely talked was counted as
+somebody who uses the bot (`chat_xp.py` now writes with `touch=False`). And
+claiming a wild blade is a *button*, which fires neither completion event, so
+the single most obvious thing a player does was invisible until `_finish_claim`
+started recording it directly.
+
 Nothing in this bot recorded what commands people actually use. `last_seen` in
 the SQLite store answers "was this player around", which is one third of the
 question; "what are they doing" and "which features are dead" had no answer at

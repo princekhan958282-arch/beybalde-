@@ -324,6 +324,86 @@ check("`now` and `guild_id` are keyword-only — `now` used to be the third "
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+print("\n── 5e. activity means PLAYING, not talking ──────────────────────")
+# The reported bug: the audit said people were active when all they had done
+# was chat. `chat_xp.py` pays 50-90 XP on every message, every payout wrote the
+# profile, and `put_one` stamps `last_seen` on every write — which is the field
+# every "active players" number counts. Nobody intended chatting to register
+# as playing; it came in through the write path.
+
+import inspect                                          # noqa: E402
+import cogs.economy.chat_xp as CHAT                      # noqa: E402
+from utils import database as DB                         # noqa: E402
+
+chat_src = inspect.getsource(CHAT)
+check("chat XP grants XP without marking the player as having used the bot",
+      "touch=False" in chat_src, chat_src.count("touch=False"))
+check("...on both writes — the trainer grant AND the bey grant",
+      chat_src.count("touch=False") >= 2, chat_src.count("touch=False"))
+check("the write path can express that at all",
+      "touch" in inspect.signature(DB.update_user).parameters
+      and "touch" in inspect.signature(DB.grant_xp).parameters)
+_touch = inspect.signature(DB.update_user).parameters.get("touch")
+check("...and still stamps by default, so a real command marks you active",
+      _touch is not None and _touch.default is True, _touch)
+
+# Claiming a wild blade is a BUTTON. A button is a component interaction and
+# fires neither `on_command_completion` nor `on_app_command_completion`, so
+# catching a blade — one of the things "who played today" is most obviously
+# about — was invisible to the tracker entirely.
+import cogs.spawn.spawn as SPAWN                         # noqa: E402
+
+spawn_src = inspect.getsource(SPAWN)
+check("claiming a blade records activity, because the button that does it "
+      "fires no command-completion event",
+      "activity.record(user.id, via" in spawn_src)
+check("...and `;claim` passes via=None, so typing the command is not counted "
+      "twice for the same catch", "via=None" in spawn_src)
+check("the claim path takes the flag",
+      "via" in inspect.signature(SPAWN.SpawnCog._finish_claim).parameters,
+      list(inspect.signature(SPAWN.SpawnCog._finish_claim).parameters))
+
+
+print("\n── 5f. the trainer level cap ────────────────────────────────────")
+
+from utils import trainer_levels as TL                   # noqa: E402
+from utils import profile_card as PC                     # noqa: E402
+
+check("the cap is 9,999", TL.MAX_LEVEL == 9999, TL.MAX_LEVEL)
+check("the curve is unchanged, so nobody re-levels — 164,820 XP is still "
+      "level 57, exactly as it is in the live registry",
+      TL.level_from_xp(164820) == 57, TL.level_from_xp(164820))
+check("level 100 still costs 500,000 XP", TL.xp_for_level(100) == 500_000)
+check("the cap really binds", TL.level_from_xp(10 ** 15) == 9999)
+check("negative XP does not raise", TL.level_from_xp(-5) == 0)
+
+check("the database re-exports the same cap, not a second copy",
+      DB.MAX_LEVEL is TL.MAX_LEVEL)
+check("the profile card reads the same curve — it used to carry its own cap "
+      "and its own arithmetic, which is two answers to 'what level is this "
+      "player' with one of them printed on the card",
+      PC.MAX_LEVEL == TL.MAX_LEVEL and PC._level_from_xp(164820)[0] == 57,
+      (PC.MAX_LEVEL, PC._level_from_xp(164820)))
+check("...at every boundary, not just one",
+      all(PC._level_from_xp(x)[0] == TL.level_from_xp(x)
+          for x in (0, 49, 50, 199, 200, 499_999, 500_000, 10 ** 9)))
+
+# The consequence a cap raise would otherwise have had.
+DB.get_user = lambda uid: {"level": uid}
+check("the trainer stat bonus is capped at the +20% level 100 already gave",
+      abs(DB.get_stat_multiplier(100) - 1.20) < 1e-9,
+      DB.get_stat_multiplier(100))
+check("...so level 9,999 is NOT a x21 multiplier — unbounded, "
+      "`(level // 10) * 0.02` at the new cap is +1998%, and one player would "
+      "end every battle in the game on the first hit",
+      abs(DB.get_stat_multiplier(9999) - 1.20) < 1e-9,
+      DB.get_stat_multiplier(9999))
+check("...and the levels below 100 are untouched",
+      abs(DB.get_stat_multiplier(50) - 1.10) < 1e-9,
+      DB.get_stat_multiplier(50))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 print("\n── 6. it is wired to something that fires ───────────────────────")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
