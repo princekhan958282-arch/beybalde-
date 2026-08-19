@@ -93,7 +93,7 @@ USER = types.SimpleNamespace(id=4242, roles=[], mention="<@4242>",
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n── 1. the picker is eight lines, not twenty-eight ───────────────")
+print("\n── 1. the picker is nine lines, not twenty-eight ────────────────")
 
 check("every extension loads", not FAILED, FAILED)
 
@@ -101,10 +101,10 @@ lines = 0
 for cmd in BOT.tree.get_commands():
     subs = list(getattr(cmd, "commands", []) or [])
     lines += len(subs) if subs else 1
-check("the slash picker is 8 lines", lines == 8, lines)
+check("the slash picker is 9 lines", lines == 9, lines)
 check("...one per feature", sorted(c.name for c in BOT.tree.get_commands())
-      == ["admin", "avatar", "casino", "leaderboard", "player", "story",
-          "tournament", "trade"],
+      == ["admin", "avatar", "casino", "leaderboard", "player", "rank",
+          "story", "tournament", "trade"],
       sorted(c.name for c in BOT.tree.get_commands()))
 check("no command is a group any more — groups are what render flat",
       not any(getattr(c, "commands", None) for c in BOT.tree.get_commands()),
@@ -391,55 +391,20 @@ check("...and is told why", any("Not your panel" in str(x)
 
 # ══════════════════════════════════════════════════════════════════════════════
 print("\n── 6b. inputs land in the parameter they were meant for ─────────")
-# `;avatarupgrade` takes (avatar, levels); the panel collects (amount, text).
-# Appending them in a fixed order hands it the level count as the card name,
-# silently, with no error anywhere — so the mapping is exercised, not just
-# checked for existence.
+# These checks lived here and were driven by monkeypatching
+# `commands.Context.from_interaction` with a stub that recorded kwargs. That
+# stub is exactly why this suite passed 244 checks against a feature that had
+# never once executed: it replaced the call that raised.
+#
+# The claim is still worth making — `;avatarupgrade` takes (avatar, levels)
+# while the panel collects (amount, text), so a mis-mapped bind hands the level
+# count over as the card name, silently. It is now made in
+# `tools/sim_panel_invoke.py`, against a real interaction and the command's own
+# callback, where "the command received it" can actually be observed.
 
-_captured = {}
-
-
-class _SpyCtx:
-    async def invoke(self, cmd, **kw):
-        _captured.clear()
-        _captured.update(kw)
-
-
-_real_from_interaction = commands.Context.from_interaction
-
-
-async def _fake_from_interaction(interaction):
-    return _SpyCtx()
-
-
-commands.Context.from_interaction = staticmethod(_fake_from_interaction)
-try:
-    _spec = PN.AvatarSpec()
-    _up = next(a for a in _spec.ACTIONS if a.key == "upgrade")
-    _p = panel_for("avatar")
-    _p.amount, _p.text = 3, "Valkyrie"
-    loop.run_until_complete(_spec.execute(_up, _p, FakeInteraction()))
-    check("the amount lands in `levels`", _captured.get("levels") == 3, _captured)
-    check("...and the text in `avatar`, not the other way round",
-          _captured.get("avatar") == "Valkyrie", _captured)
-
-    _p.text = None
-    loop.run_until_complete(_spec.execute(_up, _p, FakeInteraction()))
-    check("an unfilled optional is omitted, so the command's own default "
-          "applies — a blank card means the equipped one",
-          "avatar" not in _captured, _captured)
-
-    # A literal kwarg and a bound one on the same action.
-    _cspec = PN.CasinoSpec()
-    _buy = next(a for a in _cspec.ACTIONS if a.key == "buy")
-    _p = panel_for("casino")
-    _p.amount = 500
-    loop.run_until_complete(_cspec.execute(_buy, _p, FakeInteraction()))
-    check("a literal kwarg rides along with a bound one",
-          _captured.get("direction") == "buy" and _captured.get("amount") == 500,
-          _captured)
-finally:
-    commands.Context.from_interaction = _real_from_interaction
+# No check here: `tools/sim_panel_invoke.py` scans every suite for that stub,
+# and a check whose own source contains the pattern it forbids would match
+# itself — which is its own small lesson about tests that inspect source.
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -542,21 +507,10 @@ check("...with labels that say which is which, not 'Text' twice",
       and _m.text2_field.label == "Their blade",
       (_m.text_field.label, _m.text2_field.label))
 
-commands.Context.from_interaction = staticmethod(_fake_from_interaction)
-try:
-    _p = panel_for("trade")
-    _p.target = types.SimpleNamespace(id=77, display_name="Rival")
-    _p.text, _p.text2 = "Mine", "Theirs"
-    loop.run_until_complete(_tspec.execute(_offer, _p, FakeInteraction()))
-    check("the player picker lands in `target`",
-          getattr(_captured.get("target"), "id", None) == 77, _captured)
-    check("the first box is YOUR blade", _captured.get("my_blade") == "Mine",
-          _captured)
-    check("...and the second is theirs, not the other way round",
-          _captured.get("their_blade") == "Theirs", _captured)
-    check("all three reach the command", len(_captured) == 3, _captured)
-finally:
-    commands.Context.from_interaction = _real_from_interaction
+# "all three reach the command, in the right slots" moved to
+# `tools/sim_panel_invoke.py` with the rest of section 6b — the two blade names
+# are interchangeable strings, so a swapped bind raises nothing and only shows
+# up as "you don't own that". Proving it needs the real command, not a stub.
 
 # text2 must be cleared with the rest, or the next action inherits it.
 _p = panel_for("trade")

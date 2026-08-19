@@ -19,6 +19,7 @@ only turns them into embeds.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -42,6 +43,18 @@ def _all_users() -> list[dict]:
     except Exception as exc:                             # noqa: BLE001
         log.warning("leaderboard could not read users: %s", exc)
         return []
+
+
+async def _all_users_async() -> list[dict]:
+    """The registry, read on a worker thread.
+
+    `load_users()` deserialises every profile — 3,400 JSON blobs, each with a
+    full inventory. Doing that on the event loop freezes every other player in
+    every server for the duration, which is the same shape that froze the bot
+    in `;giveallcoins`. The boards are the one place that genuinely needs all
+    the rows, so the read stays and moves off the loop instead.
+    """
+    return await asyncio.to_thread(_all_users)
 
 
 def _display_name(bot: commands.Bot, guild: Optional[discord.Guild],
@@ -82,7 +95,11 @@ class RankedCog(commands.Cog, name="Ranked"):
             return await ctx.send(f"❌ Unknown category `{category}`. Pick one of: {opts}")
 
         spec = RK.CATEGORIES[key]
-        rows = RK.build_board(_all_users(), key, limit=ENTRIES_PER_PAGE)
+        # Read once. This used to call `_all_users()` again below for "Your
+        # position", deserialising all 3,400 profiles a second time to answer
+        # a question the first read already had the data for.
+        users = await _all_users_async()
+        rows = RK.build_board(users, key, limit=ENTRIES_PER_PAGE)
 
         e = discord.Embed(
             title=f"{spec['emoji']} {spec['label']} — Top {ENTRIES_PER_PAGE}",
@@ -99,7 +116,7 @@ class RankedCog(commands.Cog, name="Ranked"):
             e.description = "\n".join(lines)
 
         # Where the caller sits, even when they are off the bottom of the page.
-        mine = RK.position_of(_all_users(), ctx.author.id, key)
+        mine = RK.position_of(users, ctx.author.id, key)
         if mine and mine > ENTRIES_PER_PAGE:
             e.add_field(name="Your position", value=f"#{mine}", inline=True)
         elif not mine:
@@ -117,7 +134,13 @@ class RankedCog(commands.Cog, name="Ranked"):
         """Ranked card: tier, score, ranked record and board positions."""
         target = member or ctx.author
         prof = get_user(target.id)
-        users = _all_users()
+
+        # The read and all seven board placings on one worker thread. Each
+        # placing sorts the whole registry, and the read parses every profile
+        # in it — together that is the most expensive thing a player can ask
+        # for, and it used to happen on the event loop.
+        placings = await asyncio.to_thread(
+            lambda: RK.placings(_all_users(), target.id))
 
         score = RK.rank_score(prof)
         tier = tier_for_score(score)
@@ -137,13 +160,12 @@ class RankedCog(commands.Cog, name="Ranked"):
                     inline=True)
         e.add_field(name="🌀 Beys Caught", value=f"**{RK.beys_caught(prof):,}**",
                     inline=True)
-        placings = []
-        for key, spec in RK.CATEGORIES.items():
-            pos = RK.position_of(users, target.id, key)
-            if pos:
-                placings.append(f"{spec['emoji']} {spec['label']}: **#{pos}**")
         if placings:
-            e.add_field(name="Leaderboard placings", value="\n".join(placings),
+            e.add_field(name="Leaderboard placings",
+                        value="\n".join(
+                            f"{RK.CATEGORIES[k]['emoji']} "
+                            f"{RK.CATEGORIES[k]['label']}: **#{pos}**"
+                            for k, pos in placings.items()),
                         inline=False)
 
         if nxt:

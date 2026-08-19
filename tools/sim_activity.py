@@ -48,6 +48,16 @@ def check(label, cond, detail=""):
 
 from utils import activity as ACT                       # noqa: E402
 
+
+def _raises_typeerror(fn) -> bool:
+    try:
+        fn()
+    except TypeError:
+        return True
+    except Exception:                                    # noqa: BLE001
+        return False
+    return False
+
 # Two fixed instants, one either side of a UTC midnight, so nothing here
 # depends on when the suite is run.
 DAY1 = datetime(2026, 3, 14, 22, 30, tzinfo=timezone.utc).timestamp()
@@ -60,9 +70,9 @@ print("\n── 1. it counts, per player and per command ───────�
 
 ACT.reset(DAY1)
 for _ in range(3):
-    ACT.record(111, "battle", DAY1)
-ACT.record(111, "daily", DAY1)
-ACT.record(222, "battle", DAY1)
+    ACT.record(111, "battle", now=DAY1)
+ACT.record(111, "daily", now=DAY1)
+ACT.record(222, "battle", now=DAY1)
 
 check("the day is the UTC date", ACT.today(DAY1) == "2026-03-14", ACT.today(DAY1))
 check("two players were active", ACT.active_users(DAY1) == 2,
@@ -87,8 +97,8 @@ check("a snapshot answers all three questions at once",
 # The two surfaces are counted apart on purpose: `/player` invoking `;profile`
 # does NOT dispatch command_completion, so `/player` is one run, not two.
 ACT.reset(DAY1)
-ACT.record(111, "profile", DAY1)
-ACT.record(111, "/player", DAY1)
+ACT.record(111, "profile", now=DAY1)
+ACT.record(111, "/player", now=DAY1)
 check("the slash surface counts under its own name",
       ACT.user_commands(111, DAY1) == {"profile": 1, "/player": 1},
       ACT.user_commands(111, DAY1))
@@ -98,25 +108,25 @@ check("the slash surface counts under its own name",
 print("\n── 2. names are normalised, junk is refused ─────────────────────")
 
 ACT.reset(DAY1)
-ACT.record(111, "  BATTLE  ", DAY1)
-ACT.record(111, "battle", DAY1)
+ACT.record(111, "  BATTLE  ", now=DAY1)
+ACT.record(111, "battle", now=DAY1)
 check("case and whitespace are one command, not three",
       ACT.user_commands(111, DAY1) == {"battle": 2},
       ACT.user_commands(111, DAY1))
 
-ACT.record(111, "", DAY1)
-ACT.record(111, "   ", DAY1)
-ACT.record(111, None, DAY1)
+ACT.record(111, "", now=DAY1)
+ACT.record(111, "   ", now=DAY1)
+ACT.record(111, None, now=DAY1)
 check("an empty command name is not counted", ACT.total_commands(DAY1) == 2,
       ACT.total_commands(DAY1))
 
-ACT.record(111, "x" * 500, DAY1)
+ACT.record(111, "x" * 500, now=DAY1)
 check("a long name is clamped rather than stored whole",
       max(len(k) for k, _ in ACT.command_tally(50, DAY1)) == 64,
       sorted(len(k) for k, _ in ACT.command_tally(50, DAY1)))
 
 before = ACT.total_commands(DAY1)
-ACT.record("not-an-id", "battle", DAY1)
+ACT.record("not-an-id", "battle", now=DAY1)
 check("a bad user id cannot raise in front of every command in the bot",
       ACT.total_commands(DAY1) >= before)
 
@@ -125,12 +135,12 @@ check("a bad user id cannot raise in front of every command in the bot",
 print("\n── 3. it rolls over at UTC midnight ─────────────────────────────")
 
 ACT.reset(DAY1)
-ACT.record(111, "battle", DAY1)
-ACT.record(111, "battle", DAY1_LATE)
+ACT.record(111, "battle", now=DAY1)
+ACT.record(111, "battle", now=DAY1_LATE)
 check("two minutes to midnight is still today",
       ACT.total_commands(DAY1_LATE) == 2, ACT.total_commands(DAY1_LATE))
 
-ACT.record(222, "daily", DAY2)
+ACT.record(222, "daily", now=DAY2)
 check("one minute past is a new day", ACT.today(DAY2) == "2026-03-15")
 check("...and yesterday's tally is gone, not added to",
       ACT.total_commands(DAY2) == 1, ACT.total_commands(DAY2))
@@ -146,7 +156,7 @@ print("\n── 4. it cannot grow without bound ──────────�
 
 ACT.reset(DAY1)
 for i in range(ACT.MAX_USERS + 250):
-    ACT.record(1000 + i, "battle", DAY1)
+    ACT.record(1000 + i, "battle", now=DAY1)
 check(f"at most {ACT.MAX_USERS} players are tracked by name",
       ACT.active_users(DAY1) <= ACT.MAX_USERS, ACT.active_users(DAY1))
 check("...but every run past the cap still counts towards the total",
@@ -157,7 +167,7 @@ check("the overflow bucket is not reported as a player",
 
 ACT.reset(DAY1)
 for i in range(ACT.MAX_COMMANDS + 100):
-    ACT.record(111, f"cmd{i}", DAY1)
+    ACT.record(111, f"cmd{i}", now=DAY1)
 check(f"at most {ACT.MAX_COMMANDS} distinct commands are named",
       len(ACT._totals) <= ACT.MAX_COMMANDS + 1, len(ACT._totals))
 check("...and the rest are pooled, not dropped",
@@ -177,8 +187,8 @@ print("\n── 5. a restart keeps today and refuses yesterday ─────�
 tmp = os.path.join(tempfile.mkdtemp(), "activity.json")
 
 ACT.reset(DAY1)
-ACT.record(111, "battle", DAY1)
-ACT.record(222, "daily", DAY1)
+ACT.record(111, "battle", now=DAY1)
+ACT.record(222, "daily", now=DAY1)
 check("a flush writes a file", ACT.flush(tmp, DAY1) and os.path.exists(tmp))
 
 ACT.reset(DAY1)
@@ -200,18 +210,117 @@ with open(tmp, "w", encoding="utf-8") as f:
     f.write("{not json at all")
 check("a corrupt file does not take the bot down", ACT.load(tmp, DAY1) is False)
 check("...and leaves a usable tracker behind", ACT.total_commands(DAY1) == 0)
-ACT.record(111, "battle", DAY1)
+ACT.record(111, "battle", now=DAY1)
 check("...that still counts", ACT.total_commands(DAY1) == 1)
 
 check("a missing file is not an error", ACT.load(tmp + ".nope", DAY1) is False)
 
 ACT.reset(DAY1)
 check("nothing to write means nothing is due", ACT.due_for_flush(DAY1) is False)
-ACT.record(111, "battle", DAY1)
+ACT.record(111, "battle", now=DAY1)
 check("a write is due once there is something to write and the interval has "
       "passed", ACT.due_for_flush(DAY1 + ACT.FLUSH_SECONDS + 1) is True)
 check("...but not one second after the last one",
       ACT.due_for_flush(DAY1) is False)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── 5b. per server, today and lifetime ───────────────────────────")
+# "Top 10 players who use the bot, for each server" could not be answered at
+# all before v1.19: `record()` took a user and a command and threw the guild
+# away, even though both listeners in app.py had it in hand.
+
+ACT.reset_all(DAY1)
+for _ in range(5):
+    ACT.record(111, "battle", guild_id=100, now=DAY1)
+for _ in range(2):
+    ACT.record(222, "daily", guild_id=100, now=DAY1)
+ACT.record(333, "bal", guild_id=200, now=DAY1)
+ACT.record(444, "bal", now=DAY1)                      # a DM — no server
+
+check("both servers are known", ACT.guilds_seen(DAY1) == [100, 200],
+      ACT.guilds_seen(DAY1))
+check("...busiest first", ACT.guilds_seen(DAY1)[0] == 100)
+check("a server's totals count only its own runs",
+      ACT.guild_totals(100, DAY1) == (7, 7), ACT.guild_totals(100, DAY1))
+check("...and the other server is unaffected",
+      ACT.guild_totals(200, DAY1) == (1, 1), ACT.guild_totals(200, DAY1))
+check("the top ten is per server, busiest first",
+      [uid for uid, _d, _l in ACT.top_in_guild(100, 10, DAY1)] == [111, 222],
+      ACT.top_in_guild(100, 10, DAY1))
+check("...carrying today AND lifetime for each player",
+      ACT.top_in_guild(100, 10, DAY1)[0] == (111, 5, 5),
+      ACT.top_in_guild(100, 10, DAY1)[0])
+check("a DM has no server to attribute to, so it appears in no breakdown — "
+      "which is the truth rather than a guess",
+      444 not in [u for g in ACT.guilds_seen(DAY1)
+                  for u, _d, _l in ACT.top_in_guild(g, 10 ** 6, DAY1)])
+check("...but it still counts bot-wide", ACT.total_commands(DAY1) == 9,
+      ACT.total_commands(DAY1))
+
+
+print("\n── 5c. lifetime outlives the day, and the restart ───────────────")
+# The one place the "a file from another day is discarded" rule must NOT
+# apply. Getting this backwards would silently reset every server's running
+# total on the first restart after midnight — and look completely normal.
+
+ACT.reset_all(DAY1)
+for _ in range(4):
+    ACT.record(111, "battle", guild_id=100, now=DAY1)
+check("day one: four today, four ever", ACT.guild_totals(100, DAY1) == (4, 4))
+
+ACT.record(111, "battle", guild_id=100, now=DAY2)
+check("across midnight, today resets but the lifetime keeps counting",
+      ACT.guild_totals(100, DAY2) == (1, 5), ACT.guild_totals(100, DAY2))
+
+tmp2 = os.path.join(tempfile.mkdtemp(), "activity.json")
+ACT.reset_all(DAY1)
+for _ in range(4):
+    ACT.record(111, "battle", guild_id=100, now=DAY1)
+ACT.flush(tmp2, DAY1)
+
+ACT.reset_all(DAY2)
+check("a file from yesterday still does not restore today",
+      ACT.load(tmp2, DAY2) is False)
+check("...but the lifetime tally comes back, because it is not a daily number",
+      ACT.guild_totals(100, DAY2) == (0, 4), ACT.guild_totals(100, DAY2))
+
+ACT.reset_all(DAY1)
+ACT.flush(tmp2, DAY1) if False else None
+ACT.reset_all(DAY1)
+for _ in range(4):
+    ACT.record(111, "battle", guild_id=100, now=DAY1)
+ACT.flush(tmp2, DAY1)
+ACT.reset_all(DAY1)
+check("a same-day restart restores both", ACT.load(tmp2, DAY1) is True
+      and ACT.guild_totals(100, DAY1) == (4, 4),
+      ACT.guild_totals(100, DAY1))
+
+
+print("\n── 5d. the per-server tally is bounded too ──────────────────────")
+
+ACT.reset_all(DAY1)
+for i in range(ACT.MAX_GUILDS + 50):
+    ACT.record(111, "battle", guild_id=1000 + i, now=DAY1)
+check(f"at most {ACT.MAX_GUILDS} servers are tracked by name",
+      len(ACT.guilds_seen(DAY1)) <= ACT.MAX_GUILDS, len(ACT.guilds_seen(DAY1)))
+check("...and the overflow bucket is not reported as a server",
+      all(g for g in ACT.guilds_seen(DAY1)))
+
+ACT.reset_all(DAY1)
+for i in range(ACT.MAX_USERS_PER_GUILD + 60):
+    ACT.record(2000 + i, "battle", guild_id=100, now=DAY1)
+check(f"at most {ACT.MAX_USERS_PER_GUILD} players per server are named",
+      len(ACT.top_in_guild(100, 10 ** 6, DAY1)) <= ACT.MAX_USERS_PER_GUILD,
+      len(ACT.top_in_guild(100, 10 ** 6, DAY1)))
+check("...but every run past the cap still counts in the server's total",
+      ACT.guild_totals(100, DAY1)[1] == ACT.MAX_USERS_PER_GUILD + 60,
+      ACT.guild_totals(100, DAY1))
+
+check("`now` and `guild_id` are keyword-only — `now` used to be the third "
+      "positional, and a guild id silently landing there would be a wrong "
+      "number rather than an error",
+      _raises_typeerror(lambda: ACT.record(1, "x", 12345)))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -238,6 +347,16 @@ check("today's tally survives a restart within the day",
 
 import cogs.admin.actions as ADMIN                      # noqa: E402
 
+check("the report takes a server filter", 
+      "server" in ADMIN.REGISTRY["audit_activity"].needs,
+      ADMIN.REGISTRY["audit_activity"].needs)
+check("...which is optional — 'all servers' is a real answer, so the action "
+      "never refuses to run for want of a selection",
+      not ADMIN.missing_params(
+          ADMIN.REGISTRY["audit_activity"],
+          ADMIN.ActionCtx(bot=None, invoker_id=1)))
+check("the listeners pass the guild they already have",
+      "guild_id=guild_id" in app_src and "interaction.guild_id" in app_src)
 check("the admin panel can show it",
       "audit_activity" in ADMIN.REGISTRY and "audit_who" in ADMIN.REGISTRY,
       sorted(k for k in ADMIN.REGISTRY if "activ" in k or k == "audit_who"))

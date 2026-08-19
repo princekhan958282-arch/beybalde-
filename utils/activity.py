@@ -50,12 +50,28 @@ MAX_USERS = 5000
 MAX_COMMANDS = 400
 # Distinct commands recorded per user before the rest of theirs are pooled.
 MAX_COMMANDS_PER_USER = 60
+# Servers tracked by name, and players tracked by name within each.
+MAX_GUILDS = 200
+MAX_USERS_PER_GUILD = 2000
 
 OVERFLOW_KEY = "…other"
+# Where counts land once a cap is hit. Zero is not a valid Discord id, so it
+# can never collide with a real user or guild — and the totals stay honest
+# even when the names stop being individual.
+OVERFLOW_ID = 0
 
 _day: str = ""
 _counts: dict[int, dict[str, int]] = {}
 _totals: dict[str, int] = {}
+# guild_id -> {user_id: commands run TODAY in that server}
+_guild_day: dict[int, dict[int, int]] = {}
+# guild_id -> {user_id: commands run EVER in that server}
+#
+# Deliberately outside the daily reset. "Who uses this bot" is not a question
+# about today, and a tracker that forgot every midnight would answer it with
+# noise. It is the same dict, in the same file, on the same flush — the cost of
+# keeping it is one more key.
+_guild_life: dict[int, dict[int, int]] = {}
 _dirty: bool = False
 _last_flush: float = 0.0
 
@@ -66,12 +82,25 @@ def today(now: Optional[float] = None) -> str:
 
 
 def reset(now: Optional[float] = None) -> None:
-    """Drop everything and start a fresh day. Used at rollover and by tests."""
-    global _day, _counts, _totals, _dirty
+    """Drop TODAY and start a fresh day. Used at rollover and by tests.
+
+    The lifetime per-server tally deliberately survives. Clearing it here would
+    make "commands ever" mean "commands since the last midnight the bot happened
+    to be running through", which is a worse number than not having one.
+    """
+    global _day, _counts, _totals, _guild_day, _dirty
     _day = today(now)
     _counts = {}
     _totals = {}
+    _guild_day = {}
     _dirty = False
+
+
+def reset_all(now: Optional[float] = None) -> None:
+    """Everything, lifetime included. Tests only."""
+    global _guild_life
+    reset(now)
+    _guild_life = {}
 
 
 def _rollover(now: Optional[float] = None) -> None:
@@ -79,13 +108,31 @@ def _rollover(now: Optional[float] = None) -> None:
         reset(now)
 
 
-def record(user_id, command: str, now: Optional[float] = None) -> None:
-    """Count one command run by one player. Never raises.
+def _bump(bucket: dict, key, cap: int) -> None:
+    """Add one to `bucket[key]`, pooling into OVERFLOW_ID past `cap`."""
+    if key not in bucket and len(bucket) >= cap:
+        key = OVERFLOW_ID
+    bucket[key] = bucket.get(key, 0) + 1
 
-    Called from an event listener in front of every command in the bot, which
-    is the worst possible place for an exception: it would turn a bookkeeping
-    bug into a broken bot. So the whole body is guarded and a failure costs one
-    missing tally.
+
+def record(user_id, command: str, *, guild_id=None,
+           now: Optional[float] = None) -> None:
+    """Count one command run by one player, optionally in one server.
+
+    `guild_id` and `now` are keyword-only deliberately. `now` used to be the
+    third positional argument; adding `guild_id` in front of it would have made
+    every existing `record(uid, cmd, some_time)` silently record a guild id of
+    1.7 billion and no timestamp. Forcing the keyword turns that into a
+    TypeError at the call site instead of a wrong number in a panel.
+
+    Never raises. This runs from an event listener in front of every command in
+    the bot, which is the worst possible place for an exception: it would turn
+    a bookkeeping bug into a broken bot. The whole body is guarded and a failure
+    costs one missing tally.
+
+    `guild_id` is None in DMs, where there is no server to attribute the run to.
+    Those still count towards the bot-wide numbers and simply do not appear in
+    any per-server breakdown — which is the truth, rather than a guess.
     """
     global _dirty
     try:
@@ -94,6 +141,16 @@ def record(user_id, command: str, now: Optional[float] = None) -> None:
         name = str(command or "").strip().lower()[:64]
         if not name:
             return
+
+        if guild_id is not None:
+            gid = int(guild_id)
+            for store, cap in ((_guild_day, MAX_GUILDS),
+                               (_guild_life, MAX_GUILDS)):
+                if gid not in store and len(store) >= cap:
+                    bucket = store.setdefault(OVERFLOW_ID, {})
+                else:
+                    bucket = store.setdefault(gid, {})
+                _bump(bucket, uid, MAX_USERS_PER_GUILD)
 
         if name in _totals or len(_totals) < MAX_COMMANDS:
             _totals[name] = _totals.get(name, 0) + 1
@@ -150,6 +207,40 @@ def command_tally(limit: int = 15,
     return rows[:max(1, int(limit))]
 
 
+def guilds_seen(now: Optional[float] = None) -> list[int]:
+    """Every server with a lifetime tally, busiest first. Never the overflow."""
+    _rollover(now)
+    rows = [(gid, sum(per.values()))
+            for gid, per in _guild_life.items() if gid]
+    rows.sort(key=lambda r: (r[1], r[0]), reverse=True)
+    return [gid for gid, _n in rows]
+
+
+def guild_totals(guild_id, now: Optional[float] = None) -> tuple[int, int]:
+    """`(commands today, commands ever)` for one server."""
+    _rollover(now)
+    gid = int(guild_id)
+    return (sum(_guild_day.get(gid, {}).values()),
+            sum(_guild_life.get(gid, {}).values()))
+
+
+def top_in_guild(guild_id, limit: int = 10,
+                 now: Optional[float] = None) -> list[tuple[int, int, int]]:
+    """`[(user_id, today, lifetime)]` for one server, busiest first.
+
+    Ranked on the lifetime total, because "who uses the bot here" is not a
+    question about the last few hours — a player who ran fifty commands
+    yesterday and none since is still one of this server's regulars.
+    """
+    _rollover(now)
+    gid = int(guild_id)
+    life = _guild_life.get(gid, {})
+    day = _guild_day.get(gid, {})
+    rows = [(uid, day.get(uid, 0), n) for uid, n in life.items() if uid]
+    rows.sort(key=lambda r: (r[2], r[1], r[0]), reverse=True)
+    return rows[:max(1, int(limit))]
+
+
 def snapshot(now: Optional[float] = None) -> dict:
     _rollover(now)
     return {
@@ -182,6 +273,10 @@ def flush(path: str = ACTIVITY_PATH, now: Optional[float] = None) -> bool:
         "day": _day,
         "counts": {str(uid): per for uid, per in _counts.items()},
         "totals": dict(_totals),
+        "guild_day": {str(g): {str(u): n for u, n in per.items()}
+                      for g, per in _guild_day.items()},
+        "guild_life": {str(g): {str(u): n for u, n in per.items()}
+                       for g, per in _guild_life.items()},
         "written_at": time.time() if now is None else float(now),
     }
     try:
@@ -200,13 +295,40 @@ def flush(path: str = ACTIVITY_PATH, now: Optional[float] = None) -> bool:
     return True
 
 
-def load(path: str = ACTIVITY_PATH, now: Optional[float] = None) -> bool:
-    """Restore today's tally after a restart. Returns True if anything loaded.
+def _nested_ints(raw) -> dict[int, dict[int, int]]:
+    out: dict[int, dict[int, int]] = {}
+    for outer, per in (raw or {}).items():
+        if not isinstance(per, dict):
+            continue
+        try:
+            key = int(outer)
+        except (TypeError, ValueError):
+            continue
+        inner: dict[int, int] = {}
+        for k, v in per.items():
+            try:
+                inner[int(k)] = int(v)
+            except (TypeError, ValueError):
+                continue
+        out[key] = inner
+    return out
 
-    A file from a previous day is ignored rather than merged: the panel says
-    "today", and a restart at 00:05 must not answer with yesterday.
+
+def load(path: str = ACTIVITY_PATH, now: Optional[float] = None) -> bool:
+    """Restore after a restart. Returns True if TODAY's tally loaded.
+
+    Two different rules in one function, on purpose:
+
+    * the daily numbers are only restored from a file written the same UTC day
+      — the panel says "today", and a restart at 00:05 must not answer with
+      yesterday;
+    * the **lifetime** per-server tally is restored whatever day the file is
+      from, because that is what makes it a lifetime tally rather than a very
+      long day. This is the one place the "wrong day, throw it away" rule must
+      not apply, and getting it backwards would silently reset every server's
+      running total on the first restart after midnight.
     """
-    global _day, _counts, _totals, _dirty
+    global _day, _counts, _totals, _guild_day, _guild_life, _dirty
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -218,7 +340,14 @@ def load(path: str = ACTIVITY_PATH, now: Optional[float] = None) -> bool:
         reset(now)
         return False
 
-    if not isinstance(data, dict) or data.get("day") != today(now):
+    if not isinstance(data, dict):
+        reset(now)
+        return False
+
+    # Lifetime first, and unconditionally — see the docstring.
+    _guild_life = _nested_ints(data.get("guild_life"))
+
+    if data.get("day") != today(now):
         reset(now)
         return False
 
@@ -236,8 +365,9 @@ def load(path: str = ACTIVITY_PATH, now: Optional[float] = None) -> bool:
     _counts = counts
     _totals = {str(k): int(v) for k, v in (data.get("totals") or {}).items()
                if isinstance(v, (int, float))}
+    _guild_day = _nested_ints(data.get("guild_day"))
     _dirty = False
     return True
 
 
-reset()
+reset_all()

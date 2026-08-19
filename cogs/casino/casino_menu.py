@@ -18,7 +18,6 @@ import logging
 from typing import Optional
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 from . import casino_premium, casino_wallet
@@ -500,23 +499,16 @@ class CasinoMenuCog(commands.Cog):
         view = CasinoLobbyView(self, ctx.author, ctx, max(0, bet))
         view.message = await ctx.send(embed=await view.build_embed(), view=view)
 
-    # Retired as a top-level slash command — it now lives at `/casino menu`,
-    # which is the whole point of the regrouping: one `/casino` entry instead
-    # of `/casino` plus `/casinomenu` plus `/crash` sitting beside it.
-    # The `;casinomenu` prefix command below is untouched.
-    async def casino_menu_slash(self, interaction: discord.Interaction):
-        ctx = None
-        try:
-            ctx = await commands.Context.from_interaction(interaction)
-        except Exception as exc:
-            log.debug(f"[casino_menu] from_interaction failed: {exc}")
-
-        view = CasinoLobbyView(self, interaction.user, ctx, 0)
-        await interaction.response.send_message(embed=await view.build_embed(), view=view)
-        try:
-            view.message = await interaction.original_response()
-        except Exception:
-            pass
+    # `casino_menu_slash` lived here — retired as a top-level slash command
+    # when `/casino` became a panel, and unreferenced ever since. It has been
+    # deleted rather than left to rot, because the `Context.from_interaction`
+    # call inside it was the third copy of a call that cannot work from a
+    # component (see `cogs/ui/invoke.py`), and dead code is exactly where a
+    # known-broken pattern gets copied from.
+    #
+    # `/casino` → "Play a game" opens the same lobby through
+    # `cogs/ui/panels.py:_open_casino_lobby`, which now passes a real cog and
+    # a real Context.
 
 
 async def setup(bot: commands.Bot):

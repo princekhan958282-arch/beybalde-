@@ -205,6 +205,9 @@ class ActionCtx:
     amount: Optional[int] = None
     text: Optional[str] = None
     channel: Any = None
+    # Which server a report is filtered to. None means all of them — the
+    # default, and the reason `server` never appears in `missing_params`.
+    guild_choice: Optional[int] = None
 
     def target_name(self) -> str:
         return (getattr(self.target, "display_name", None)
@@ -286,6 +289,9 @@ PARAM_HELP = {
     "amount":  "a number",
     "text":    "some text",
     "channel": "a channel",
+    # A FILTER, not a required input: "all servers" is always a valid answer,
+    # so `missing_params` never blocks on it. See `GuildPicker` in the kit.
+    "server":  "a server (optional — defaults to all)",
 }
 
 REGISTRY: dict[str, Action] = {}
@@ -323,7 +329,10 @@ def categories_for(user=None) -> list[tuple[str, str, str]]:
 def missing_params(action: Action, ctx: ActionCtx) -> list[str]:
     """Which declared requirements this invocation hasn't supplied."""
     got = {"user": ctx.target_id, "amount": ctx.amount,
-           "text": (ctx.text or "").strip() or None, "channel": ctx.channel}
+           "text": (ctx.text or "").strip() or None, "channel": ctx.channel,
+           # Always satisfied: no selection means "all servers", which is a
+           # real answer rather than a missing one.
+           "server": True}
     return [p for p in action.needs if got.get(p) in (None, "")]
 
 
@@ -1165,17 +1174,21 @@ async def _audit_wallets(ctx: ActionCtx) -> Result:
 
 
 @register("audit_activity", "Who played today", "who was active, and what they ran",
-          "audit")
+          "audit", needs=("server",))
 async def _audit_activity(ctx: ActionCtx) -> Result:
-    """Three views of one day: who, how much each, and what they used.
+    """Who used the bot, filtered to one server or across all of them.
 
     Two sources, because they answer different questions and neither is a
-    substitute for the other. `utils/activity.py` counts commands since the
-    process started, so it is exact about WHAT was used and blind to anything
-    before the last restart. The store's `last_seen` survives restarts but only
-    knows that somebody was around. Showing both means a restart mid-day
-    reports a small command tally next to an honest headcount, instead of
-    quietly reporting a dead day.
+    substitute for the other. `utils/activity.py` counts commands as they are
+    run, so it is exact about WHAT was used; the store's `last_seen` only knows
+    that somebody was around, but it survives restarts. Showing both means a
+    restart mid-day reports a small command tally beside an honest headcount,
+    instead of quietly reporting a dead day.
+
+    Per server, two numbers per player: **today**, and **lifetime**. The
+    lifetime tally survives midnight and restarts, so the top ten is about who
+    actually uses the bot here rather than who happened to be online in the
+    last few hours.
     """
     from utils import activity
     from utils.database import USER_STORE
@@ -1185,30 +1198,72 @@ async def _audit_activity(ctx: ActionCtx) -> Result:
         hour=0, minute=0, second=0, microsecond=0).timestamp()
     seen_today = USER_STORE.active_since(midnight)
 
-    e = _embed("📅  Today", 0x3498DB)
-    e.add_field(name="Active",
-                value=(f"Ran a command: **{snap['active_users']:,}**\n"
-                       f"Seen today: **{seen_today:,}**"), inline=True)
-    e.add_field(name="Commands",
-                value=(f"Run: **{snap['total_commands']:,}**\n"
-                       f"Distinct: **{snap['distinct_commands']:,}**"), inline=True)
+    gid = ctx.guild_choice
+    guild = ctx.bot.get_guild(gid) if (gid and ctx.bot) else None
+    where = guild.name if guild is not None else (str(gid) if gid else None)
 
-    if snap["top_users"]:
-        lines = [f"**{i}.** <@{uid}> — {n:,} command{'' if n == 1 else 's'}"
-                 for i, (uid, n) in enumerate(snap["top_users"], 1)]
-        e.add_field(name="Busiest players", value="\n".join(lines)[:1024],
-                    inline=False)
+    e = _embed(f"📅  Today — {where}" if where else "📅  Today", 0x3498DB)
+
+    if gid:
+        day_n, life_n = activity.guild_totals(gid)
+        e.add_field(name="This server",
+                    value=(f"Commands today: **{day_n:,}**\n"
+                           f"Commands ever: **{life_n:,}**"), inline=True)
+        e.add_field(name="Bot-wide",
+                    value=(f"Ran a command: **{snap['active_users']:,}**\n"
+                           f"Seen today: **{seen_today:,}**"), inline=True)
+
+        top = activity.top_in_guild(gid, 10)
+        if top:
+            lines = [f"**{i}.** <@{uid}> — **{life:,}** total"
+                     + (f" · {day:,} today" if day else "")
+                     for i, (uid, day, life) in enumerate(top, 1)]
+            e.add_field(name="Top 10 here", value="\n".join(lines)[:1024],
+                        inline=False)
+        else:
+            e.add_field(name="Top 10 here",
+                        value="Nobody has run a command here yet.",
+                        inline=False)
+    else:
+        e.add_field(name="Active",
+                    value=(f"Ran a command: **{snap['active_users']:,}**\n"
+                           f"Seen today: **{seen_today:,}**"), inline=True)
+        e.add_field(name="Commands",
+                    value=(f"Run: **{snap['total_commands']:,}**\n"
+                           f"Distinct: **{snap['distinct_commands']:,}**"),
+                    inline=True)
+
+        if snap["top_users"]:
+            lines = [f"**{i}.** <@{uid}> — {n:,} command{'' if n == 1 else 's'}"
+                     for i, (uid, n) in enumerate(snap["top_users"], 1)]
+            e.add_field(name="Busiest players", value="\n".join(lines)[:1024],
+                        inline=False)
+
+        # "for each server", at a glance. Ten is enough to see the shape
+        # without turning the report into a directory.
+        rows = []
+        for g in activity.guilds_seen()[:10]:
+            day_n, life_n = activity.guild_totals(g)
+            got = ctx.bot.get_guild(g) if ctx.bot else None
+            name = got.name if got is not None else f"`{g}`"
+            people = len(activity.top_in_guild(g, 10 ** 6))
+            rows.append(f"**{name}** — {people:,} player"
+                        f"{'' if people == 1 else 's'} · {life_n:,} commands"
+                        + (f" · {day_n:,} today" if day_n else ""))
+        if rows:
+            e.add_field(name="By server", value="\n".join(rows)[:1024],
+                        inline=False)
 
     if snap["commands"]:
         lines = [f"`{name}` — **{n:,}**" for name, n in snap["commands"]]
-        e.add_field(name="What they ran", value="\n".join(lines)[:1024],
-                    inline=False)
+        e.add_field(name="What they ran (bot-wide)",
+                    value="\n".join(lines)[:1024], inline=False)
     else:
-        e.add_field(name="What they ran",
+        e.add_field(name="What they ran (bot-wide)",
                     value="Nothing yet since the last restart.", inline=False)
 
-    e.set_footer(text=f"{snap['day']} UTC · command counts reset when the bot "
-                      f"restarts; 'seen today' does not")
+    e.set_footer(text=f"{snap['day']} UTC · pick a server above to filter · "
+                      f"lifetime totals survive restarts, today's do not")
     return Result(embed=e)
 
 

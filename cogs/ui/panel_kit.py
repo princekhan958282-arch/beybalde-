@@ -52,7 +52,8 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional, Sequence
 
 import discord
-from discord.ext import commands
+
+from . import invoke as INVOKE
 
 log = logging.getLogger("beyblade_bot.panel")
 
@@ -134,7 +135,13 @@ class PanelSpec:
     title: str = "Panel"
     colour: int = DEFAULT_COLOUR
     timeout: int = DEFAULT_TIMEOUT
+    # The MENU is always private — it is a chooser, not a result, and a menu
+    # in the channel is litter. `public` is about the OUTPUT, which is a
+    # separate question: a leaderboard nobody else can see is pointless, and a
+    # trade offer only the sender can see is unacceptable, because only the
+    # TARGET may press Accept.
     ephemeral: bool = True
+    public: bool = False
     footer: str = ""
     placeholder: str = "Pick one…"
 
@@ -279,6 +286,54 @@ class ChannelPicker(discord.ui.ChannelSelect):
         await self.panel.refresh(interaction)
 
 
+class GuildPicker(discord.ui.Select):
+    """Which server a report is about. Shares the picker row.
+
+    Discord has no guild-select component — there is `UserSelect`,
+    `RoleSelect`, `ChannelSelect` and nothing for servers — so this is a plain
+    Select built from the servers the bot is actually in.
+
+    "All servers" is always first and always the default, which is what makes
+    this a filter rather than a required input: the action runs with no
+    selection and answers the bot-wide question, exactly as it did before.
+
+    A select holds 25 options. Past that the list shows the busiest 24 by
+    recorded activity, because a truncated list ordered by nothing useful is
+    how a filter becomes a lottery.
+    """
+
+    ALL = "all"
+
+    def __init__(self, panel: "PanelView"):
+        guilds = list(getattr(panel.bot, "guilds", None) or [])
+        try:
+            from utils import activity
+            order = {gid: i for i, gid in enumerate(activity.guilds_seen())}
+        except Exception:                                # noqa: BLE001
+            order = {}
+        guilds.sort(key=lambda g: (order.get(g.id, 10 ** 6),
+                                   -(g.member_count or 0)))
+        guilds = guilds[:MAX_OPTIONS - 1]
+
+        opts = [option("All servers", self.ALL, "everywhere the bot is", "🌍",
+                       default=(panel.guild_choice in (None, self.ALL)))]
+        for g in guilds:
+            opts.append(option(
+                (g.name or str(g.id))[:LABEL_MAX], str(g.id),
+                f"{g.member_count or 0:,} members", "🏠",
+                default=(str(panel.guild_choice) == str(g.id))))
+        super().__init__(placeholder="Which server?", min_values=1,
+                         max_values=1, options=opts, row=panel.picker_row)
+        self.panel = panel
+
+    @guard
+    async def callback(self, interaction: discord.Interaction):
+        value = self.values[0]
+        self.panel.guild_choice = None if value == self.ALL else int(value)
+        self.panel.pending_confirm = False
+        await self.panel.refresh(interaction)
+
+
 class InputModal(discord.ui.Modal):
     """Asks only for the fields the chosen action declared."""
 
@@ -321,6 +376,10 @@ class InputModal(discord.ui.Modal):
                 style=discord.TextStyle.short, max_length=300, required=True)
             self.add_item(self.text2_field)
 
+    # Guarded like every other callback. It was NOT, and that is why `/trade`
+    # failed in complete silence for three versions: the Run button's failure
+    # at least printed something, while a modal that raises just closes.
+    @guard
     async def on_submit(self, interaction: discord.Interaction):
         if self.amount_field is not None:
             raw = str(self.amount_field.value).strip().replace(",", "")
@@ -410,6 +469,8 @@ class PanelView(discord.ui.View):
         self.amount: Optional[int] = None
         self.text: Optional[str] = None
         self.text2: Optional[str] = None
+        # None means "all servers" — the filter's default, not a missing value.
+        self.guild_choice: Optional[int] = None
         self.pending_confirm = False
         self.message = None
         self.build()
@@ -447,6 +508,7 @@ class PanelView(discord.ui.View):
         self.amount = None
         self.text = None
         self.text2 = None
+        self.guild_choice = None
         self.channel = self.home_channel
         self.pending_confirm = False
 
@@ -460,7 +522,9 @@ class PanelView(discord.ui.View):
         # The picker row only exists for actions that take a player or a
         # channel. Showing an inert picker on every action is how a user
         # learns to ignore it.
-        if action is not None and "user" in action.needs:
+        if action is not None and "server" in action.needs:
+            self.add_item(GuildPicker(self))
+        elif action is not None and "user" in action.needs:
             self.add_item(TargetSelect(self))
         elif action is not None and "channel" in action.needs:
             self.add_item(ChannelPicker(self))
@@ -493,6 +557,14 @@ class PanelView(discord.ui.View):
                 wants.append("👤 player — " + (
                     self.target.mention if self.target is not None
                     else "*not picked*"))
+            if "server" in action.needs:
+                g = None
+                if self.guild_choice is not None:
+                    g = self.bot.get_guild(self.guild_choice)
+                wants.append("🌍 server — " + (
+                    f"**{g.name}**" if g is not None else
+                    (f"`{self.guild_choice}`" if self.guild_choice
+                     else "*all servers*")))
             if "channel" in action.needs:
                 where = (self.channel.mention if self.channel is not None
                          else "*none*")
@@ -601,17 +673,20 @@ class PrefixSpec(PanelSpec):
             if value not in (None, ""):
                 kwargs[param] = value
 
-        ctx = await commands.Context.from_interaction(interaction)
-        # `ctx.invoke` deliberately does NOT run checks — including the global
-        # `;start` gate. The tree-level gate in onboarding.py has already run
-        # by the time an interaction reaches a component, so the door is still
-        # guarded; this note is here so nobody concludes otherwise from the
-        # call and adds a second gate.
-        await ctx.invoke(cmd, **kwargs)
+        # `Context.from_interaction` used to be here and could never work: it
+        # raises for any interaction that is not an application command, which
+        # is every button, every select and every modal submit. See
+        # `cogs/ui/invoke.py` for the whole story.
+        #
+        # `run_prefix_command` also re-runs the command's checks. `ctx.invoke`
+        # skips them, and the tree gate in onboarding.py only fires for
+        # application commands — so without this a panel opened before a ban
+        # stays live and usable afterwards.
+        await INVOKE.run_prefix_command(
+            interaction, cmd, bot=panel.bot,
+            visibility=(INVOKE.PUBLIC if self.public else INVOKE.PRIVATE),
+            author=panel.invoker, channel=panel.home_channel, **kwargs)
 
 
 async def _reply(interaction: discord.Interaction, message: str) -> None:
-    if interaction.response.is_done():
-        await interaction.followup.send(message, ephemeral=True)
-    else:
-        await interaction.response.send_message(message, ephemeral=True)
+    await INVOKE.reply(interaction, message)

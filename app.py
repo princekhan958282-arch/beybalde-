@@ -334,10 +334,10 @@ class BeybladeBot(commands.Bot):
     # banned, on cooldown) did not get used, and counting it would report a
     # busy day made of refusals.
 
-    async def _record_activity(self, user_id, name: str) -> None:
+    async def _record_activity(self, user_id, name: str, guild_id=None) -> None:
         try:
             from utils import activity
-            activity.record(user_id, name)
+            activity.record(user_id, name, guild_id=guild_id)
             if activity.due_for_flush():
                 await asyncio.to_thread(activity.flush)
         except Exception as exc:                         # noqa: BLE001
@@ -345,13 +345,16 @@ class BeybladeBot(commands.Bot):
 
     async def on_command_completion(self, ctx: commands.Context) -> None:
         await self._record_activity(
-            ctx.author.id, getattr(ctx.command, "qualified_name", "") or "")
+            ctx.author.id, getattr(ctx.command, "qualified_name", "") or "",
+            getattr(ctx.guild, "id", None))
 
     async def on_app_command_completion(self, interaction: discord.Interaction,
                                         command) -> None:
         name = getattr(command, "qualified_name", None) or getattr(
             command, "name", "")
-        await self._record_activity(interaction.user.id, f"/{name}" if name else "")
+        await self._record_activity(interaction.user.id,
+                                    f"/{name}" if name else "",
+                                    interaction.guild_id)
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
         logger.info(f"➕ Joined {guild.name} ({guild.id}) — "

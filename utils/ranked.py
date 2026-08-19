@@ -340,6 +340,23 @@ def position_of(users: list[dict], user_id, category: str = DEFAULT_CATEGORY,
     return None
 
 
+def placings(users: list[dict], user_id,
+             config: Optional[dict] = None) -> dict[str, int]:
+    """Every board this player is placed on, as `{category: position}`.
+
+    Boards they are not on are left out rather than mapped to None, so the
+    caller renders what it is given. Lives here rather than in the cog because
+    it is a rule about the ladder, and because the cog would otherwise sort the
+    whole registry seven times inline with no way to test the result.
+    """
+    out: dict[str, int] = {}
+    for key in CATEGORIES:
+        pos = position_of(users, user_id, key, config=config)
+        if pos:
+            out[key] = pos
+    return out
+
+
 # ── Recording a ranked result ────────────────────────────────────────────────
 
 def apply_ranked_win(profile: dict) -> int:
