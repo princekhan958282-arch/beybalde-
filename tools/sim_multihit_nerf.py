@@ -287,25 +287,36 @@ check("the heaviest cut lands on the loadout that carried both flags",
       (1 - after["both flags"] / before["both flags"])
       > (1 - after["no avatar"] / before["no avatar"]))
 
-print("\n── 6. Story Mode was nerfed with it ────────────────────────────")
-import cogs.story.story_avatar as SA                                # noqa: E402
-check("Story's power_double multiplier matches PvP exactly",
-      SA.MULTI_HIT_DOUBLE_MULT == MULTI_HIT_DAMAGE_MULT,
-      (SA.MULTI_HIT_DOUBLE_MULT, MULTI_HIT_DAMAGE_MULT))
-check("Story's extra-hits multiplier came down from 1.5",
-      SA.MULTI_HIT_EXTRA_MULT < 1.5, SA.MULTI_HIT_EXTRA_MULT)
-check("...but is still a bonus, not a penalty",
-      SA.MULTI_HIT_EXTRA_MULT > 1.0, SA.MULTI_HIT_EXTRA_MULT)
+print("\n── 6. Story Mode cannot drift from this any more ───────────────")
+# There used to be three checks here against `cogs/story/story_avatar.py`,
+# which carried its OWN copy of the multi-hit multipliers for Story Mode's
+# separate combat resolver. As of v1.22 Story runs on `BattleSession` — the
+# same engine PvP runs on — so those constants have no second home to drift
+# from. The module is gone; that it stays gone is the check.
+check("story_avatar.py no longer exists to hold a second copy",
+      not os.path.exists(os.path.join(ROOT, "cogs", "story",
+                                      "story_avatar.py")))
+check("...nor does the second combat resolver it fed",
+      not os.path.exists(os.path.join(ROOT, "cogs", "story",
+                                      "story_engine.py")))
+story_src = "".join(
+    open(os.path.join(ROOT, "cogs", "story", f), encoding="utf-8").read()
+    for f in sorted(os.listdir(os.path.join(ROOT, "cogs", "story")))
+    if f.endswith(".py"))
+check("no file under cogs/story defines a multi-hit multiplier of its own",
+      "MULTI_HIT_DOUBLE_MULT" not in story_src
+      and "MULTI_HIT_EXTRA_MULT" not in story_src)
+check("Story reaches the nerf by using the real session",
+      "BattleSession" in story_src)
 
 print("\n── 7. the battle log stopped lying ─────────────────────────────")
 avc_src = open(os.path.join(ROOT, "cogs", "battle", "avatar_combat.py"),
                encoding="utf-8").read()
-sa_src = open(os.path.join(ROOT, "cogs", "story", "story_avatar.py"),
-              encoding="utf-8").read()
 check("no log line still claims the hit count is DOUBLED",
       "hit count DOUBLED" not in avc_src)
 check("no log line still claims every hit is doubled",
-      "every hit doubled" not in avc_src and "every hit doubled" not in sa_src)
+      "every hit doubled" not in avc_src
+      and "every hit doubled" not in story_src)
 
 card = open(os.path.join(ROOT, "cogs", "avatar", "avatar_data.json"),
             encoding="utf-8").read()

@@ -1,409 +1,238 @@
 """
-story_data.py — the Story Mode campaign.
+story_data.py — the School League. Data only; imports no discord.
 
-Pure data plus a few lookup helpers. Deliberately imports nothing from discord
-so the engine and the headless simulator (tools/sim_story.py) can load it
-without a bot.
+What changed, and why the old table is gone
+-------------------------------------------
+Story Mode used to be twelve stages across three chapters, each naming a human
+PERSONA ("Kenta", "Alley King Doji") whose stats were derived from a four-row
+archetype table. There was no blade on the other side of the fight at all — so
+there was nothing for the ability engine to run, and nothing for a named
+Special to belong to.
 
-A stage is the Story Mode equivalent of an entry in boss_battle.BOSSES, minus
-the gimmick machinery: story opponents carry no BossState, which every code
-path in boss_ai already handles (`state=None` is the default).
+The School League fields **real blades from the roster, at level 100**, in a
+real `BattleSession`. That is the whole point: Omni Odax's Blast Beat banks
+beats against you, Hyper Horusood's field strips your stability, King Kerbeus
+actually blocks. None of that was reachable before.
 
-Levels
-------
-Both sides of a story fight are levelled.
+Difficulty is AI, not stat inflation
+------------------------------------
+Both runs field the same blades at the same level. What changes is the rung on
+`boss_ai.DIFFICULTY`, which is a real ladder of four levers — search depth,
+opponent modelling, blunder rate and how much of your history it reads:
 
-The PLAYER's level system already existed and already applies — the equipped
-bey's level goes through bey_levels.stats_at inside loadout.effective_blade,
-and trainer level plus blade mastery go through database.get_stat_multiplier.
-Story Mode just never showed it.
+    Normal    -> elite      IQ 3   blunder 0.12   read 0.60
+    Nightmare -> nightmare  IQ 5   blunder 0.00   read 1.00
 
-The OPPONENT's is here. A stage declares a `level` and an archetype (`type`),
-and its stats are derived: ARCHETYPE_BASE scaled by the level curve below.
-That means difficulty is one number per stage rather than four, and the four
-numbers can never drift out of line with the archetype they are supposed to
-represent.
+A Nightmare opponent never throws a move away and remembers everything you
+have done. It does not get a single extra point of Attack.
 
-Two growth rates, on purpose:
+Rewards
+-------
+One-time per battle per difficulty. A cleared battle stays replayable — for
+practice, for a blade's EXP, to test a build — and pays nothing the second
+time. The totals are exact:
 
-  STAT_GROWTH  attack / defence / stamina. This is where a stage's difficulty
-               comes from, and it is gentle — see the note on the constant.
-  HP_GROWTH    flatter still. HP sets how LONG a fight is, not how hard, and a
-               campaign whose last fight takes four times as many turns as its
-               first is just slower, not harder. Keeping HP nearly level means
-               every stage lands in the same 20-36 turn window.
+    Normal     600 .. 2,550   = 12,000
+    Nightmare  x2.5 of Normal = 30,000
 
-Balance notes
--------------
-The player's pool is BASE_PLAYER_HP (2000 — see story_engine) scaled by trainer
-level and mastery, and opponent HP is quoted against that, not against the
-900-1300 a boss uses; a boss also has an ability kit and scripted specials, and
-a story opponent has neither.
-
-`difficulty` keys into boss_ai.DIFFICULTY and sets the AI's search depth,
-whether it models your habits, and how often it blunders. It is a far coarser
-dial than it looks: measured on one fixed statline, the same opponent went from
-a 92% player win rate at `rookie` to 37% at `veteran` to near-zero at `elite`.
-
-That is why it changes ONCE, in chapter 1, and never again. A tier step is
-worth more than the entire level curve, so a step anywhere the fight is already
-close inverts the campaign — the stage after the step needs WEAKER stats than
-the stage before it to stay winnable, and the stat block stops being an honest
-description of the opponent. Landing the one step at 1-4, where the player wins
-comfortably either way, is the only place it costs nothing. `elite`, `legend`
-and `nightmare` are deliberately unused: they are the headroom a harder mode
-would run on, not spare difficulty to sprinkle through this one.
-
-The numbers below were tuned with tools/sim_story.py; re-run it after editing.
+Nightmare is gated behind clearing all eight on Normal, so those 30,000 are an
+endgame payout rather than a shortcut past the League.
 """
 
 from __future__ import annotations
 
-import re
 from typing import Optional
 
-STAGE_ID_RE = re.compile(r"^\d+-\d+$")
+# ── Difficulty ────────────────────────────────────────────────────────────────
+# Keys into `cogs/battle/boss/boss_ai.py:DIFFICULTY`. Named here rather than
+# inlined so the two modes have one definition each and the League cannot drift
+# from the ladder it is built on.
+NORMAL = "normal"
+NIGHTMARE = "nightmare"
 
-# ── Level curve ──────────────────────────────────────────────────────────────
+DIFFICULTIES = (NORMAL, NIGHTMARE)
 
-# Derived, not guessed. A fight ends when the OPPONENT dies, so the opponent
-# only gets HP_opponent / damage_player turns in which to land its own damage.
-# The player is therefore threatened only when
-#     HP_opponent x damage_opponent  >=  HP_player x damage_player
-# and against the baseline player (2000 HP, ~45 damage a turn) that right-hand
-# side is ~90,000. This is why raising an opponent's attack alone barely helps:
-# a hard-hitting opponent with a shallow bar simply dies before its damage can
-# accumulate. Opponent HP is the term that buys it the turns.
-#
-# STAT_GROWTH is deliberately gentle. At +3%/level the campaign's usable range
-# was about twelve levels wide — measured win rate fell 92% -> 33% -> 2% between
-# levels 32, 40 and 48 — so most of the level span was either free or
-# unwinnable. A softer curve spreads the same difficulty over the whole 5-48
-# range, which is what makes the level number mean something at every stage
-# rather than only in the narrow band where it happens to bite.
-STAT_GROWTH = 0.0175    # +1.75% per level over 1, on attack / defence / stamina
-HP_GROWTH   = 0.006     # +0.6% per level over 1, on HP
-MAX_LEVEL   = 100       # matches utils.bey_levels.MAX_LEVEL
-
-
-def stat_multiplier(level: int) -> float:
-    """Attack / defence / stamina scaling for a levelled fighter."""
-    return 1.0 + STAT_GROWTH * (max(1, min(MAX_LEVEL, int(level))) - 1)
-
-
-def hp_multiplier(level: int) -> float:
-    """HP scaling — deliberately much flatter than stat_multiplier."""
-    return 1.0 + HP_GROWTH * (max(1, min(MAX_LEVEL, int(level))) - 1)
-
-
-# Opponent stats at level 1, by archetype. `type` also feeds
-# boss_ai.type_damage_mult, which gives an Attack-type opponent a 1.40x damage
-# multiplier — that is why the attack archetype's ATTACK base is the LOWEST of
-# the four. Its damage advantage is already paid for elsewhere, and stacking a
-# high attack stat on top made attack stages spike far above their neighbours.
-ARCHETYPE_BASE: dict[str, dict[str, int]] = {
-    "attack":  {"hp": 980, "attack": 70, "defense": 45, "stamina": 51},
-    "defense": {"hp": 1080, "attack": 79, "defense": 60, "stamina": 56},
-    "stamina": {"hp": 1020, "attack": 82, "defense": 54, "stamina": 69},
-    "balance": {"hp": 1000, "attack": 89, "defense": 51, "stamina": 58},
+# `elite` is IQ 3, which is the level asked for. `nightmare` is IQ 5.
+AI_RUNG = {
+    NORMAL:    "elite",
+    NIGHTMARE: "nightmare",
 }
 
-_STAT_KEYS = ("attack", "defense", "stamina")
+DIFFICULTY_LABEL = {
+    NORMAL:    ("🏫", "Normal"),
+    NIGHTMARE: ("💀", "Nightmare"),
+}
+
+# Every League blade is fielded at this level, on both difficulties.
+OPPONENT_LEVEL = 100
+
+# Points needed to take a battle. Story's own constant, deliberately NOT
+# `ranked.MATCH_TARGET`: the two happen to agree at 3 today, and a future
+# change to the ranked ladder must not silently retune Story. How each point is
+# AWARDED is still ranked's rule — see `story_match.py`.
+VICTORY_TARGET = 3
+
+# A stalemate has to end somewhere. At 2 points a round this is comfortably
+# more rounds than a decided battle needs.
+MAX_ROUNDS = 9
+
+# Nightmare pays this multiple of the Normal reward for the same battle.
+# 12,000 x 2.5 = 30,000 exactly.
+NIGHTMARE_REWARD_MULT = 2.5
 
 
-def opponent_stats(stage: dict) -> dict[str, int]:
-    """The stage opponent's actual stats at its level.
+# ── The league ────────────────────────────────────────────────────────────────
+# `blade` must name an entry in data/beyblades.json — asserted by the suite,
+# because a typo here is an opponent that cannot be built and a battle that
+# cannot start.
+SCHOOL_LEAGUE: list[dict] = [
+    {"n": 1, "blade": "Rising Ragnaruk",     "coins": 600,
+     "blurb": "First bell. A steady spin that simply refuses to stop."},
+    {"n": 2, "blade": "King Kerbeus",        "coins": 850,
+     "blurb": "Three heads, one wall. Nothing gets through cheaply."},
+    {"n": 3, "blade": "Hollow Deathscyther", "coins": 1100,
+     "blurb": "The scythe finds the gap your guard leaves open."},
+    {"n": 4, "blade": "Hyper Horusood",      "coins": 1350,
+     "blurb": "It never stoops. It just takes the floor out from under you."},
+    {"n": 5, "blade": "Wild Wyvern",         "coins": 1600,
+     "blurb": "Armour with a temper. Hit it hard enough and it hits back harder."},
+    {"n": 6, "blade": "Omni Odax",           "coins": 1850,
+     "blurb": "It fights on the beat. Let it find the tempo and the drop lands."},
+    {"n": 7, "blade": "Victory Valkyrie",    "coins": 2100,
+     "blurb": "The school's ace. Fast, direct, and out of patience."},
+    {"n": 8, "blade": "Storm Spriggan",      "coins": 2550,
+     "blurb": "Final bell. Balanced, unhurried, and better than you."},
+]
 
-    `stat_tweak` is an optional per-stage multiplier dict for the rare case
-    where an archetype needs a nudge to fit its slot in the curve — a chapter
-    boss that should hit above its level, say. Absent on most stages.
-    """
-    base = ARCHETYPE_BASE.get(stage.get("type", "balance"),
-                              ARCHETYPE_BASE["balance"])
-    level = int(stage.get("level", 1))
-    tweak = stage.get("stat_tweak") or {}
-    out = {"hp": int(round(base["hp"] * hp_multiplier(level)
-                           * float(tweak.get("hp", 1.0))))}
-    m = stat_multiplier(level)
-    for key in _STAT_KEYS:
-        out[key] = int(round(base[key] * m * float(tweak.get(key, 1.0))))
+# ── Chapters ──────────────────────────────────────────────────────────────────
+SCHOOL = "school"
+XENDER = "xender"
+
+CHAPTERS: list[dict] = [
+    {"key": SCHOOL, "emoji": "🏫", "name": "Beyblade Burst School",
+     "available": True,
+     "blurb": "Eight opponents, one league. Beat each to open the next."},
+    {"key": XENDER, "emoji": "🔒", "name": "Xender Dojo — Coming Soon",
+     "available": False,
+     "blurb": "Not open yet."},
+]
+
+
+# ── Profile key ───────────────────────────────────────────────────────────────
+# New key. The old `story_cleared` / `story_stats` are deliberately left on
+# file untouched: deleting a field from thousands of live profiles to tidy up
+# is a migration with no upside, and the old campaign could be revived.
+K_LEAGUE = "school_league"
+
+
+def _progress(profile: dict) -> dict:
+    raw = (profile or {}).get(K_LEAGUE)
+    if not isinstance(raw, dict):
+        return {}
+    return raw
+
+
+def cleared(profile: dict, difficulty: str) -> set[int]:
+    """Battle numbers this player has already won on `difficulty`."""
+    raw = _progress(profile).get(difficulty)
+    out: set[int] = set()
+    for v in (raw or []):
+        try:
+            out.add(int(v))
+        except (TypeError, ValueError):
+            continue
     return out
 
 
-# ── Rewards ──────────────────────────────────────────────────────────────────
-#
-# Coin payouts are one TENTH of what shipped, because what shipped was minting
-# money faster than every other source in the game combined. Measured against
-# the live store at the time of the change — 3,361 players, 41,356,761 coins in
-# existence, median balance 0 and p99 110,999:
-#
-#   a full first-clear run paid   573,000   more than 99.97% of players had
-#                                           ever accumulated, in one sitting
-#   a single 3-4 replay paid       75,000   more than 94% of players held, and
-#                                           worth 500 PvP wins at 150 each
-#   ten replay laps would mint  2,865,000   7% of every coin in the game, from
-#                                           one player, in one evening
-#
-# At a tenth, a full run pays 57,300 — about one day of `;daily` (2,000-10,000
-# every 4 hours) — and the hardest stage pays 7,500 a clear. That makes Story
-# a strong reward for progression instead of the primary income of the economy.
-#
-# EXP is deliberately UNCHANGED. The report was about money, and bey EXP is the
-# main route to the level curve, which now drives PvP stats directly — cutting
-# it would have quietly slowed all progression to fix an unrelated problem.
-#
-# STILL OPEN, and not fixed here: story stages have no cooldown and no daily
-# cap. `StoryCog._can_fight` checks only "already fighting" and "stage
-# unlocked", so replays are unlimited and a lap of the whole campaign still
-# mints 28,650 with nothing to stop it repeating. The values are now small
-# enough that this is a slow drip rather than a firehose, but the hole is the
-# mechanism — any reward number is infinitely farmable through it.
-#
-# ── The campaign ─────────────────────────────────────────────────────────────
-# Difficulty names must exist in boss_ai.DIFFICULTY:
-#   rookie -> veteran -> elite -> legend -> nightmare
-
-CHAPTERS: dict[int, dict] = {
-    1: {
-        "name":  "Rookie Alley",
-        "emoji": "🌀",
-        "blurb": "Backstreet bladers and borrowed launchers. Everyone starts here.",
-        "stages": [
-            {
-                "id": "1-1", "name": "Kenta", "emoji": "🟢", "level": 5,
-                "difficulty": "rookie", "type": "balance",
-                "colour": 0x2ECC71,
-                "persona": "twitchy, over-eager, telegraphs everything",
-                "blurb": "Attacks on instinct. Punish the heals.",
-                "reward": {"coins": 200, "xp": 60, "bey_xp": (120, 200)},
-                "boss": False,
-            },
-            {
-                "id": "1-2", "name": "Mira", "emoji": "🔵", "level": 10,
-                "difficulty": "rookie", "type": "defense",
-                "colour": 0x3498DB,
-                "persona": "patient, blocks first and asks questions later",
-                "blurb": "Blocks a lot — and a block ripostes. Bait it out.",
-                "reward": {"coins": 300, "xp": 80, "bey_xp": (140, 230)},
-                "boss": False,
-            },
-            {
-                "id": "1-3", "name": "Rook", "emoji": "🟠", "level": 15,
-                "difficulty": "rookie", "type": "attack",
-                "colour": 0xE67E22,
-                "persona": "all offence, no patience",
-                "blurb": "Hits hard and often. Attack blades hurt more — mind the clash.",
-                "reward": {"coins": 450, "xp": 100, "bey_xp": (160, 260)},
-                "boss": False,
-            },
-            {
-                "id": "1-4", "name": "Alley King Doji", "emoji": "👑", "level": 19,
-                "difficulty": "veteran", "type": "balance",
-                "colour": 0x9B59B6,
-                "persona": "smug, reads your habits, never wastes a turn",
-                "blurb": "He watches what you repeat. Stop repeating it.",
-                "reward": {"coins": 1_000, "xp": 220, "bey_xp": (300, 450)},
-                "boss": True,
-            },
-        ],
-    },
-    2: {
-        "name":  "The Circuit",
-        "emoji": "🏟️",
-        "blurb": "Ranked play. The bladers here have actually trained.",
-        "stages": [
-            {
-                "id": "2-1", "name": "Sena", "emoji": "🌊", "level": 22,
-                "difficulty": "veteran", "type": "stamina",
-                "colour": 0x1ABC9C,
-                "persona": "unhurried, wins by outlasting",
-                "blurb": "Heals to stay alive. Its heal budget is finite — spend it for them.",
-                "reward": {"coins": 1_200, "xp": 240, "bey_xp": (320, 470)},
-                "boss": False,
-            },
-            {
-                "id": "2-2", "name": "Garrick", "emoji": "🛡️", "level": 26,
-                "difficulty": "veteran", "type": "defense",
-                "colour": 0x34495E,
-                "persona": "a wall with a grudge",
-                "blurb": "High guard. Specials pierce half of it — save your gauge.",
-                "reward": {"coins": 1_500, "xp": 270, "bey_xp": (340, 500)},
-                "boss": False,
-            },
-            {
-                "id": "2-3", "name": "Vex", "emoji": "⚡", "level": 30,
-                "difficulty": "veteran", "type": "attack",
-                "colour": 0xF1C40F,
-                "persona": "fast, ruthless, searches two moves ahead",
-                "blurb": "Rarely blunders. Trades will not go your way.",
-                "reward": {"coins": 1_800, "xp": 300, "bey_xp": (360, 520)},
-                "boss": False,
-            },
-            {
-                "id": "2-4", "name": "Circuit Champion Ryn", "emoji": "🏆", "level": 34,
-                "difficulty": "veteran", "type": "balance",
-                "colour": 0xE74C3C,
-                "persona": "the complete blader — no weakness to aim at",
-                "blurb": "No gap in the kit. Win the gauge race or lose the fight.",
-                "reward": {"coins": 3_000, "xp": 450, "bey_xp": (500, 700)},
-                "boss": True,
-            },
-        ],
-    },
-    3: {
-        "name":  "Crown Tournament",
-        "emoji": "👑",
-        "blurb": "The last four. Bring everything you own.",
-        "stages": [
-            {
-                "id": "3-1", "name": "Ashen Ko", "emoji": "🔥", "level": 38,
-                "difficulty": "veteran", "type": "attack",
-                "colour": 0xD35400,
-                "persona": "burns the fight down before it can be planned",
-                "blurb": "Opens fast. Survive the first ten turns and it evens out.",
-                "reward": {"coins": 3_400, "xp": 480, "bey_xp": (520, 720)},
-                "boss": False,
-            },
-            {
-                "id": "3-2", "name": "Sister Ilva", "emoji": "🕯️", "level": 42,
-                "difficulty": "veteran", "type": "stamina",
-                "colour": 0x8E44AD,
-                "persona": "calm, exact, refuses to be rushed",
-                "blurb": "Blocks and heals in the right order. Force the tempo.",
-                "reward": {"coins": 3_800, "xp": 520, "bey_xp": (540, 750)},
-                "boss": False,
-            },
-            {
-                "id": "3-3", "name": "Warden Kael", "emoji": "⛓️", "level": 45,
-                "difficulty": "veteran", "type": "defense",
-                "colour": 0x2C3E50,
-                "persona": "almost never wrong",
-                "blurb": "Blunders 4% of the time. That is your whole opening.",
-                "reward": {"coins": 4_500, "xp": 600, "bey_xp": (600, 820)},
-                "boss": False,
-            },
-            {
-                "id": "3-4", "name": "Crown Sovereign Astra", "emoji": "🌟", "level": 46,
-                "difficulty": "veteran", "type": "balance",
-                "colour": 0xFFD700,
-                "persona": "the reason the crown exists",
-                "blurb": "The end of the road. An avatar is not optional here.",
-                "reward": {"coins": 7_500, "xp": 900, "bey_xp": (800, 1100)},
-                "boss": True,
-            },
-        ],
-    },
-}
+def record_clear(profile: dict, difficulty: str, n: int) -> bool:
+    """Mark battle `n` cleared. True if this was the FIRST clear."""
+    prog = dict(_progress(profile))
+    done = sorted(cleared(profile, difficulty) | {int(n)})
+    first = int(n) not in cleared(profile, difficulty)
+    prog[difficulty] = done
+    profile[K_LEAGUE] = prog
+    return first
 
 
-# ── Lookups ──────────────────────────────────────────────────────────────────
-# Built once at import. Order matters: `_ORDER` defines the unlock chain, so a
-# stage's prerequisite is simply the entry before it.
+def battle(n) -> Optional[dict]:
+    """The League entry numbered `n`, or None.
 
-def _build() -> tuple[dict[str, dict], list[str]]:
-    by_id: dict[str, dict] = {}
-    order: list[str] = []
-    for cnum in sorted(CHAPTERS):
-        chapter = CHAPTERS[cnum]
-        for i, st in enumerate(chapter["stages"], start=1):
-            st = dict(st)
-            st["chapter"] = cnum
-            st["index"] = i
-            st["chapter_name"] = chapter["name"]
-            # Resolved once so every consumer — the engine, the info card, the
-            # simulator — reads the same numbers.
-            st["stats"] = opponent_stats(st)
-            by_id[st["id"]] = st
-            order.append(st["id"])
-    return by_id, order
-
-
-_BY_ID, _ORDER = _build()
-
-
-def all_stages() -> list[dict]:
-    """Every stage, in campaign order."""
-    return [_BY_ID[sid] for sid in _ORDER]
-
-
-def stage(stage_id: str) -> Optional[dict]:
-    """Look a stage up by id (`1-2`) — never raises."""
-    return _BY_ID.get(str(stage_id or "").strip().lower())
-
-
-def resolve(query: str) -> Optional[dict]:
-    """Find a stage by id, exact name, or unambiguous partial name.
-
-    Mirrors avatar_shop._resolve_avatar_query so `;story 2-1`, `;story sena`
-    and `;story circuit champion` all work. Ambiguous partials return None so
-    the caller can offer the matches.
+    Anything that is not a battle number — a name, a stage code left over from
+    the old campaign, None — is a miss rather than a ValueError. Every caller
+    already handles None, and one of them is a user-typed argument.
     """
-    q = str(query or "").strip().lower()
-    if not q:
-        return None
-    if q in _BY_ID:
-        return _BY_ID[q]
-    for st in all_stages():
-        if st["name"].lower() == q:
-            return st
-    hits = [st for st in all_stages() if q in st["name"].lower()]
-    return hits[0] if len(hits) == 1 else None
-
-
-def matches(query: str) -> list[dict]:
-    """Every partial-name match — for disambiguating a failed resolve()."""
-    q = str(query or "").strip().lower()
-    if not q:
-        return []
-    return [st for st in all_stages() if q in st["name"].lower()]
-
-
-def prereq_of(stage_id: str) -> Optional[str]:
-    """The stage that must be cleared first, or None for the opener."""
     try:
-        i = _ORDER.index(str(stage_id).strip().lower())
-    except ValueError:
+        want = int(n)
+    except (TypeError, ValueError):
         return None
-    return _ORDER[i - 1] if i > 0 else None
-
-
-def next_stage(stage_id: str) -> Optional[str]:
-    """The stage unlocked by clearing this one, or None at the end."""
-    try:
-        i = _ORDER.index(str(stage_id).strip().lower())
-    except ValueError:
-        return None
-    return _ORDER[i + 1] if i + 1 < len(_ORDER) else None
-
-
-def chapter_of(stage_id: str) -> Optional[dict]:
-    st = stage(stage_id)
-    return CHAPTERS.get(st["chapter"]) if st else None
-
-
-def chapter_stages(chapter_num: int) -> list[dict]:
-    ch = CHAPTERS.get(int(chapter_num))
-    if not ch:
-        return []
-    return [_BY_ID[s["id"]] for s in ch["stages"]]
-
-
-def is_unlocked(stage_id: str, cleared: set[str] | list[str] | None) -> bool:
-    """A stage is open when its predecessor has been cleared."""
-    need = prereq_of(stage_id)
-    if need is None:
-        return True
-    return need in set(cleared or ())
-
-
-def first_uncleared(cleared: set[str] | list[str] | None) -> Optional[str]:
-    """The stage the player should play next — the campaign's 'continue'."""
-    done = set(cleared or ())
-    for sid in _ORDER:
-        if sid not in done:
-            return sid
+    for b in SCHOOL_LEAGUE:
+        if b["n"] == want:
+            return b
     return None
 
 
-def total_stages() -> int:
-    return len(_ORDER)
+def total_battles() -> int:
+    return len(SCHOOL_LEAGUE)
+
+
+def reward_for(n: int, difficulty: str) -> int:
+    """Coins for a FIRST clear of battle `n` on `difficulty`."""
+    b = battle(n)
+    if b is None:
+        return 0
+    base = int(b["coins"])
+    if difficulty == NIGHTMARE:
+        return int(round(base * NIGHTMARE_REWARD_MULT))
+    return base
+
+
+def total_reward(difficulty: str) -> int:
+    return sum(reward_for(b["n"], difficulty) for b in SCHOOL_LEAGUE)
+
+
+def normal_complete(profile: dict) -> bool:
+    return len(cleared(profile, NORMAL)) >= total_battles()
+
+
+def is_unlocked(profile: dict, n: int, difficulty: str) -> bool:
+    """Battle `n` is open on `difficulty` when its predecessor is cleared.
+
+    Nightmare has one extra gate in front of the whole run: the entire League
+    on Normal. It is the endgame lap, not a shortcut to the bigger payout.
+    """
+    entry = battle(n)
+    if entry is None:
+        return False
+    n = int(entry["n"])
+    if difficulty == NIGHTMARE and not normal_complete(profile):
+        return False
+    if n <= 1:
+        return True
+    return (n - 1) in cleared(profile, difficulty)
+
+
+def lock_reason(profile: dict, n: int, difficulty: str) -> str:
+    """Why this battle is shut, or "" when it is open."""
+    if is_unlocked(profile, n, difficulty):
+        return ""
+    if battle(n) is None:
+        return f"There is no battle {n}."
+    if difficulty == NIGHTMARE and not normal_complete(profile):
+        done = len(cleared(profile, NORMAL))
+        return (f"💀 Nightmare opens when the whole League is clear on Normal "
+                f"— **{done}/{total_battles()}** done.")
+    n = int(n)
+    prev = battle(n - 1)
+    if prev is None:
+        return f"🔒 Battle **{n}** is locked."
+    return (f"🔒 Battle **{n}** is locked. Beat battle **{n - 1} · "
+            f"{prev['blade']}** first.")
+
+
+def next_battle(profile: dict, difficulty: str) -> Optional[int]:
+    """The lowest battle not yet cleared on this difficulty."""
+    done = cleared(profile, difficulty)
+    for b in SCHOOL_LEAGUE:
+        if b["n"] not in done:
+            return b["n"]
+    return None

@@ -1,740 +1,427 @@
 """
-story_cog.py — Story Mode's Discord surface.
+story_cog.py — the School League's Discord surface.
 
-Prefix commands own all the logic; the slash group delegates to them with
-Context.from_interaction + ctx.invoke. That is the house pattern (see
-PlayerCommands in cogs/economy/profile.py) and it exists so validation,
-cooldowns and rendering cannot drift between the two entry points.
+    ;story                  the chapter picker  (alias: ;league)
+    ;story <n> [difficulty] fight one battle
+    ;storymap               the eight battles and your progress
+    /story                  the same picker, from a slash command
 
-Deliberately NOT a subclass of, or registered inside, BossCog: that cog has a
-cog_check enforcing BOSS_SYSTEM_LOCKED, and Story Mode must stay open.
+The battle itself is `story_match.LeagueMatch`, which runs real
+`BattleSession` rounds. This file owns the picker, the gate and the payout —
+and nothing about combat, which is the point.
 """
 
 from __future__ import annotations
 
 import logging
-import random
 from typing import Optional
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
-from utils import bey_levels as _BL
-from utils.database import get_user, update_user, grant_xp
-from utils.mobile_ui import bar as progress_bar
+from utils import bey_levels as BL
+from utils.database import get_user, grant_xp, update_user
 
-from cogs.battle.boss import boss_ai as ai
-
-from . import story_data
-from .story_engine import MOVE_LABELS, StoryFight
+from . import story_data as SD
+from .story_match import LeagueMatch
 
 log = logging.getLogger("beyblade_bot.story")
 
-TURN_SECONDS = 60
-VIEW_TIMEOUT = TURN_SECONDS * 6
-
-# The reward card outlives the fight view on purpose: a player reads the
-# payout, gets distracted, and comes back wanting the next stage. Five minutes
-# is long enough to be useful and short enough that a stale Next button isn't
-# sitting in a channel an hour later.
-REWARD_TIMEOUT = 300
-
-# Story wins feed nothing but Story Mode. `beycord_battle_end` and
-# `beycord_battle_blades` drive quests, mastery, achievements and clan wars,
-# and firing them here would quietly let a player farm all four against an NPC.
-# Flip to True if story wins should count toward those too.
+# Story wins feed Story alone. `beycord_battle_end` and `beycord_battle_blades`
+# drive quests, mastery, achievements and clan wars, and a PvE round that fired
+# them would let all four be farmed against an opponent that never gets tired.
+# `BattleSession(payout=False)` is what keeps them silent — this note is here so
+# nobody concludes the events were merely forgotten.
 DISPATCH_BATTLE_EVENTS = False
 
-MOVE_STYLES = {
-    ai.MOVE_ATTACK:  discord.ButtonStyle.danger,
-    ai.MOVE_DEFENSE: discord.ButtonStyle.primary,
-    ai.MOVE_STAMINA: discord.ButtonStyle.success,
-    ai.MOVE_CHARGE:  discord.ButtonStyle.secondary,
-    ai.MOVE_SPECIAL: discord.ButtonStyle.success,
-}
-
-RESULT_TEXT = {
-    "win":  "🏆 **Stage cleared!**",
-    "loss": "💀 **Defeated.** Try again — nothing is lost.",
-    "draw": "🤝 **Double knockout.** No reward this time.",
-}
+# Trainer EXP for taking a battle. Small and flat: the League's reward is the
+# coins, and the EXP Surge multiplies whatever goes through `grant_xp`.
+LEAGUE_XP = {SD.NORMAL: 120, SD.NIGHTMARE: 300}
+LEAGUE_BEY_XP = {SD.NORMAL: 220, SD.NIGHTMARE: 550}
 
 
-# ── Progress helpers ─────────────────────────────────────────────────────────
-# Story progress is stored ad-hoc on the profile, the same way boss clears are
-# (`bosses_cleared`). The profile is a free-form JSON blob, so no schema change
-# is needed and nothing has to be added to HOT_FIELDS.
+def _opponent_blade(name: str) -> Optional[tuple[dict, int]]:
+    """The League's copy of a blade, at `SD.OPPONENT_LEVEL`.
 
-def cleared_of(profile: dict) -> list[str]:
-    return list(profile.get("story_cleared") or [])
-
-
-def stats_of(profile: dict) -> dict:
-    s = profile.get("story_stats") or {}
-    return {"wins": int(s.get("wins", 0)), "losses": int(s.get("losses", 0))}
-
-
-def _bey_level_of(profile: dict) -> int:
-    """The equipped bey's level, for comparing against a stage's level.
-
-    Reads the same bey_progress row bey_levels uses, so the number shown here
-    is the one that actually reached the fighter through effective_blade. An
-    equipped boss copy has no progress row and does not level — it reads as 1.
+    Returns `(blade, hp_gain)`. The HP gain is handed to the session separately
+    because `max_hp_for_blade` clamps the printed HP stat back into the blade's
+    type band — right for a printed stat, and it would otherwise throw away
+    every point of the levelling this function just did.
     """
-    try:
-        name = profile.get("active_beyblade")
-        if not name or profile.get("active_copy"):
-            return 1
-        entry = (profile.get("bey_progress") or {}).get(str(name))
-        if not entry:
-            return 1
-        return int(_BL.level_from_xp(int(entry.get("xp", 0))))
-    except Exception:                                    # noqa: BLE001
-        return 1
+    from utils.database import get_beyblade
+    base = get_beyblade(name)
+    if not base:
+        return None
+    blade = dict(base)
+    printed = dict(base.get("stats") or {})
+    blade["stats"] = BL.stats_at(base, SD.OPPONENT_LEVEL, {})
+    gain = int(blade["stats"].get("hp", 0)) - int(printed.get("hp", 0))
+    return blade, max(0, gain)
 
 
-def _bar(cur: float, mx: float, width: int = 10) -> str:
-    filled = max(0, min(width, int(round((cur / mx) * width)))) if mx else 0
-    return "█" * filled + "░" * (width - filled)
+def _state_icon(profile: dict, n: int, difficulty: str) -> str:
+    if n in SD.cleared(profile, difficulty):
+        return "✅"
+    return "▶️" if SD.is_unlocked(profile, n, difficulty) else "🔒"
 
 
-def _stage_line(st: dict, cleared: set[str]) -> str:
-    if st["id"] in cleared:
-        mark = "✅"
-    elif story_data.is_unlocked(st["id"], cleared):
-        mark = "▶️"
-    else:
-        mark = "🔒"
-    boss = " 👑" if st.get("boss") else ""
-    return (f"{mark} **{st['id']}** {st['emoji']} {st['name']}"
-            f"  `Lv {st['level']}`{boss}\n"
-            f"　*{st['blurb']}*")
+class ChapterSelect(discord.ui.Select):
+    """🏫 Beyblade Burst School · 🔒 Xender Dojo — Coming Soon."""
 
-
-# ── The fight view ───────────────────────────────────────────────────────────
-
-class StoryFightView(discord.ui.View):
-    """One button per move, redrawn each turn so unaffordable moves grey out."""
-
-    def __init__(self, cog: "StoryCog", fight: StoryFight,
-                 player: discord.Member) -> None:
-        super().__init__(timeout=VIEW_TIMEOUT)
+    def __init__(self, cog: "StoryCog", user: discord.Member) -> None:
+        opts = []
+        for ch in SD.CHAPTERS:
+            opts.append(discord.SelectOption(
+                label=ch["name"][:100],
+                value=ch["key"],
+                description=ch["blurb"][:100] or None,
+                emoji=ch["emoji"]))
+        super().__init__(placeholder="Where are you fighting?", options=opts)
         self.cog = cog
-        self.fight = fight
-        self.player = player
-        self.message: Optional[discord.Message] = None
-        self.busy = False
-        self._build()
-
-    def _build(self) -> None:
-        self.clear_items()
-        f = self.fight
-        for i, move in enumerate(ai.ALL_MOVES):
-            emoji, label = MOVE_LABELS[move]
-            btn = discord.ui.Button(
-                label=label, emoji=emoji, style=MOVE_STYLES[move],
-                row=0 if i < 3 else 1,
-                disabled=f.finished or not f.foe.can(move),
-            )
-            btn.callback = self._make_cb(move)
-            self.add_item(btn)
-
-    def _make_cb(self, move: str):
-        async def cb(interaction: discord.Interaction) -> None:
-            f = self.fight
-            if interaction.user.id != self.player.id:
-                return await interaction.response.send_message(
-                    "This isn't your fight — run `;story` to start your own.",
-                    ephemeral=True)
-            if f.finished or self.busy:
-                return await interaction.response.defer()
-            if not f.foe.can(move):
-                return await interaction.response.send_message(
-                    "Not enough stamina for that.", ephemeral=True)
-
-            self.busy = True
-            try:
-                f.step(move)
-                self._build()
-                await interaction.response.edit_message(embed=self.embed(),
-                                                        view=self)
-                if f.finished:
-                    self.stop()
-                    await self.cog.finish(f, self.player, interaction.channel)
-            except Exception:                        # noqa: BLE001
-                # Never strand the player in _active on a crash — they would be
-                # "already in a fight" forever.
-                log.exception("story turn failed")
-                f.finished = True
-                self.cog.release(self.player.id)
-                self.stop()
-                try:
-                    await interaction.followup.send(
-                        "⚠️ Something went wrong resolving that turn — "
-                        "the fight was ended. Nothing was lost.", ephemeral=True)
-                except Exception:                    # noqa: BLE001
-                    pass
-            finally:
-                self.busy = False
-        return cb
-
-    def embed(self) -> discord.Embed:
-        f = self.fight
-        st = f.stage
-        e = discord.Embed(
-            title=f"{st['emoji']}  {st['name']}",
-            description=f"*{st['chapter_name']} · Stage {st['id']}*",
-            color=st["colour"],
-        )
-        e.add_field(
-            name=f"{st['emoji']} {st['name']}  `Lv {f.npc_level}`",
-            value=(f"`{_bar(f.npc.hp, f.npc.max_hp)}` {f.npc.hp:.0f}\n"
-                   f"🌀 {int(f.npc.gauge)}/{ai.SPECIAL_GAUGE_MAX} · "
-                   f"💨 {f.npc.sp:.1f}"),
-            inline=True,
-        )
-        e.add_field(
-            name=f"🌀 {f.foe.name}  `Lv {f.bey_level}`",
-            value=(f"`{_bar(f.foe.hp, f.foe.max_hp)}` {f.foe.hp:.0f}\n"
-                   f"🌀 {int(f.foe.gauge)}/{ai.SPECIAL_GAUGE_MAX} · "
-                   f"💨 {f.foe.sp:.1f}"),
-            inline=True,
-        )
-        if f.log:
-            e.add_field(name="Last exchanges", value="\n".join(f.log),
-                        inline=False)
-        # The whole point of the avatar wiring is that you can SEE it work.
-        if f.avatar_logs:
-            e.add_field(name="🎭 Avatar", value="\n".join(f.avatar_logs),
-                        inline=False)
-        if f.finished:
-            e.add_field(name="Result", value=RESULT_TEXT[f.result], inline=False)
-
-        foot = (f"Turn {f.turn} · difficulty: {f.difficulty} · "
-                f"Trainer Lv {f.trainer_level}")
-        if f.level_gap > 0:
-            foot += f" · ⚠️ {f.level_gap} levels under"
-        if not f.avatar_active:
-            foot += " · no avatar equipped (;avatarpacks)"
-        e.set_footer(text=foot)
-        return e
-
-    async def on_timeout(self) -> None:
-        # Release the player, or an idle fight would leave them permanently
-        # "already in a fight" — the same trap BossView.on_timeout guards.
-        self.fight.finished = True
-        self.cog.release(self.player.id)
-        for c in self.children:
-            c.disabled = True
-        if self.message:
-            try:
-                e = self.embed()
-                e.set_footer(text="⏰ Timed out — the fight was abandoned.")
-                await self.message.edit(embed=e, view=self)
-            except Exception:                        # noqa: BLE001
-                pass
-
-
-# ── Post-fight card ──────────────────────────────────────────────────────────
-
-class StoryRewardView(discord.ui.View):
-    """The buttons on the card you get when a stage ends.
-
-    Before this, clearing a stage printed the literal text `— ;story 3-2` and
-    losing one printed **nothing at all** — the fight embed's Result field was
-    the only sign it had happened. Both are one button.
-
-    `next_id` and `retry_id` are each optional: the last stage in the campaign
-    has no next, and a win has nothing to retry. When both are None the caller
-    should not attach the view at all.
-    """
-
-    def __init__(self, cog: "StoryCog", player: discord.Member,
-                 next_id: Optional[str] = None,
-                 retry_id: Optional[str] = None) -> None:
-        super().__init__(timeout=REWARD_TIMEOUT)
-        self.cog = cog
-        self.player = player
-        self.message: Optional[discord.Message] = None
-        self.busy = False
-
-        if next_id:
-            nst = story_data.stage(next_id) or {}
-            self._add(f"Next · {next_id} {nst.get('name', '')}".strip(),
-                      "▶️", discord.ButtonStyle.success, next_id)
-        if retry_id:
-            rst = story_data.stage(retry_id) or {}
-            self._add(f"Retry · {retry_id} {rst.get('name', '')}".strip(),
-                      "🔄", discord.ButtonStyle.primary, retry_id)
-
-    def _add(self, label: str, emoji: str, style, stage_id: str) -> None:
-        btn = discord.ui.Button(label=label[:80], emoji=emoji, style=style)
-        btn.callback = self._make_cb(stage_id)
-        self.add_item(btn)
-
-    def _make_cb(self, stage_id: str):
-        async def cb(interaction: discord.Interaction) -> None:
-            # Owner check per callback, matching StoryFightView and
-            # StageSelect rather than the interaction_check form used in
-            # cogs/battle/ui.py — one convention per file.
-            if interaction.user.id != self.player.id:
-                return await interaction.response.send_message(
-                    "This isn't your run — `;story` to start your own.",
-                    ephemeral=True)
-            if self.busy:
-                return await interaction.response.defer()
-            self.busy = True
-
-            for c in self.children:
-                c.disabled = True
-            # Edit this card FIRST. message.edit is its own HTTP call and does
-            # not consume the interaction response — which launch() still
-            # needs, because it replies with response.send_message. Deferring
-            # here instead would make that call fail.
-            if self.message:
-                try:
-                    await self.message.edit(view=self)
-                except Exception:                    # noqa: BLE001
-                    pass
-            self.stop()
-            await self.cog.launch(interaction, self.player, stage_id)
-        return cb
-
-    async def on_timeout(self) -> None:
-        for c in self.children:
-            c.disabled = True
-        if self.message:
-            try:
-                await self.message.edit(view=self)
-            except Exception:                        # noqa: BLE001
-                pass
-
-
-# ── Stage picker ─────────────────────────────────────────────────────────────
-
-class StageSelect(discord.ui.Select):
-    def __init__(self, cleared: set[str]) -> None:
-        options = []
-        for st in story_data.all_stages():
-            unlocked = story_data.is_unlocked(st["id"], cleared)
-            done = st["id"] in cleared
-            if not unlocked:
-                continue
-            options.append(discord.SelectOption(
-                label=f"{st['id']} · {st['name']}"[:100],
-                description=(("Cleared — replay for reduced rewards"
-                              if done else st["blurb"]))[:100],
-                value=st["id"],
-                emoji="✅" if done else st["emoji"],
-            ))
-        # Discord allows at most 25 options; the campaign is 12, but slicing
-        # keeps this correct if chapters are added later.
-        super().__init__(placeholder="Pick a stage…", options=options[:25])
+        self.user = user
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        view: "StoryPickView" = self.view          # type: ignore[assignment]
-        if interaction.user.id != view.player.id:
+        if interaction.user.id != self.user.id:
             return await interaction.response.send_message(
-                "This isn't your menu.", ephemeral=True)
-        await view.cog.launch(interaction, view.player, self.values[0])
-        view.stop()
+                "That isn't your menu — run `;story` yourself.", ephemeral=True)
+        key = self.values[0]
+        chapter = next((c for c in SD.CHAPTERS if c["key"] == key), None)
+        if chapter is None or not chapter.get("available"):
+            return await interaction.response.send_message(
+                "🔒 The Xender Dojo isn't open yet.", ephemeral=True)
+        view = LeagueView(self.cog, self.user)
+        await interaction.response.edit_message(
+            embed=view.embed(), view=view)
 
 
-class StoryPickView(discord.ui.View):
-    def __init__(self, cog: "StoryCog", player: discord.Member,
-                 cleared: set[str]) -> None:
-        super().__init__(timeout=120)
+class DifficultyButton(discord.ui.Button):
+    def __init__(self, view: "LeagueView", difficulty: str) -> None:
+        emoji, label = SD.DIFFICULTY_LABEL[difficulty]
+        current = view.difficulty == difficulty
+        super().__init__(
+            label=label, emoji=emoji, row=1,
+            style=(discord.ButtonStyle.success if current
+                   else discord.ButtonStyle.secondary),
+            disabled=current)
+        self.parent = view
+        self.difficulty = difficulty
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.parent.user.id:
+            return await interaction.response.send_message(
+                "That isn't your menu.", ephemeral=True)
+        self.parent.difficulty = self.difficulty
+        self.parent.build()
+        await interaction.response.edit_message(
+            embed=self.parent.embed(), view=self.parent)
+
+
+class BattleSelect(discord.ui.Select):
+    def __init__(self, view: "LeagueView", profile: dict) -> None:
+        opts = []
+        for b in SD.SCHOOL_LEAGUE:
+            n = b["n"]
+            icon = _state_icon(profile, n, view.difficulty)
+            reward = SD.reward_for(n, view.difficulty)
+            done = n in SD.cleared(profile, view.difficulty)
+            desc = ("Cleared — replay pays nothing" if done
+                    else f"🪙 {reward:,}")
+            opts.append(discord.SelectOption(
+                label=f"{icon} {n}. {b['blade']}"[:100],
+                value=str(n),
+                description=desc[:100]))
+        super().__init__(placeholder="Which battle?", options=opts[:25], row=0)
+        self.parent = view
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.parent.user.id:
+            return await interaction.response.send_message(
+                "That isn't your menu.", ephemeral=True)
+        n = int(self.values[0])
+        await self.parent.cog.launch(interaction, self.parent.user, n,
+                                     self.parent.difficulty)
+
+
+class LeagueView(discord.ui.View):
+    def __init__(self, cog: "StoryCog", user: discord.Member,
+                 difficulty: str = SD.NORMAL) -> None:
+        super().__init__(timeout=300)
         self.cog = cog
-        self.player = player
-        self.message: Optional[discord.Message] = None
-        self.add_item(StageSelect(cleared))
+        self.user = user
+        self.difficulty = difficulty
+        self.build()
 
-    async def on_timeout(self) -> None:
-        for c in self.children:
-            c.disabled = True
-        if self.message:
-            try:
-                await self.message.edit(view=self)
-            except Exception:                        # noqa: BLE001
-                pass
+    def build(self) -> None:
+        self.clear_items()
+        profile = get_user(self.user.id)
+        self.add_item(BattleSelect(self, profile))
+        for d in SD.DIFFICULTIES:
+            self.add_item(DifficultyButton(self, d))
+
+    def embed(self) -> discord.Embed:
+        profile = get_user(self.user.id)
+        emoji, label = SD.DIFFICULTY_LABEL[self.difficulty]
+        done = len(SD.cleared(profile, self.difficulty))
+        e = discord.Embed(
+            title="🏫  School League",
+            description=(f"{emoji} **{label}** — {done}/{SD.total_battles()} "
+                         f"cleared\n"
+                         f"Every battle is first to **{SD.VICTORY_TARGET}** "
+                         f"Victory Points."),
+            colour=(0xED4245 if self.difficulty == SD.NIGHTMARE else 0x3498DB))
+        lines = []
+        for b in SD.SCHOOL_LEAGUE:
+            n = b["n"]
+            icon = _state_icon(profile, n, self.difficulty)
+            reward = SD.reward_for(n, self.difficulty)
+            lines.append(f"{icon} **{n}.** {b['blade']} — 🪙 {reward:,}")
+        e.add_field(name="Battles", value="\n".join(lines), inline=False)
+        if self.difficulty == SD.NIGHTMARE and not SD.normal_complete(profile):
+            e.add_field(
+                name="🔒 Locked",
+                value=SD.lock_reason(profile, 1, SD.NIGHTMARE), inline=False)
+        else:
+            rung = SD.AI_RUNG[self.difficulty]
+            from cogs.battle.boss import boss_ai as ai
+            iq = ai.DIFFICULTY[rung]["iq"]
+            e.set_footer(text=f"Every opponent is level {SD.OPPONENT_LEVEL} · "
+                              f"Boss IQ {iq} ({ai.IQ_LABELS.get(iq, '?')})")
+        return e
 
 
-# ── The cog ──────────────────────────────────────────────────────────────────
-
-class StoryCog(commands.Cog, name="Story"):
-    """Solo chapter/stage campaign."""
+class StoryCog(commands.Cog, name="Story Mode"):
+    """The School League."""
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self._active: set[int] = set()
 
     def release(self, user_id: int) -> None:
-        self._active.discard(user_id)
+        self._active.discard(int(user_id))
 
-    # ── Gating ───────────────────────────────────────────────────────────────
+    def picker(self, user) -> "ChapterPickView":
+        """The chapter picker, for `/story` as well as `;story`.
 
-    def _can_fight(self, user_id: int, stage_id: str) -> tuple[bool, str]:
-        """Mirrors BossCog._can_fight: (ok, reason-if-not)."""
-        if user_id in self._active:
-            return False, "You're already in a Story Mode fight."
+        `cogs/ui/panels.py` calls this rather than importing the view, so the
+        slash command degrades to the generic panel if this cog is unloaded
+        instead of failing to import.
+        """
+        return ChapterPickView(self, user)
+
+    # ── gate ─────────────────────────────────────────────────────────────────
+    def _can_fight(self, user_id: int, n: int, difficulty: str) -> tuple[bool, str]:
+        if int(user_id) in self._active:
+            return False, "You're already in a School League battle."
         profile = get_user(user_id)
-        cleared = set(cleared_of(profile))
-        if not story_data.is_unlocked(stage_id, cleared):
-            need = story_data.prereq_of(stage_id)
-            st = story_data.stage(need) or {}
-            return False, (f"🔒 **{stage_id}** is locked.\n"
-                           f"Clear **{need} · {st.get('name', '?')}** first — "
-                           f"`;story {need}`.")
+        if not SD.is_unlocked(profile, n, difficulty):
+            return False, SD.lock_reason(profile, n, difficulty)
+        if not profile.get("active_beyblade"):
+            return False, ("You need a Beyblade equipped — `;equip <name>`.")
         return True, ""
 
-    # ── Launching ────────────────────────────────────────────────────────────
-
+    # ── entry points ─────────────────────────────────────────────────────────
     async def launch(self, interaction: discord.Interaction,
-                     player: discord.Member, stage_id: str) -> None:
-        ok, why = self._can_fight(player.id, stage_id)
+                     player: discord.Member, n: int, difficulty: str) -> None:
+        ok, why = self._can_fight(player.id, n, difficulty)
         if not ok:
             return await interaction.response.send_message(why, ephemeral=True)
+        await interaction.response.defer()
+        await self._fight(interaction.channel, player, n, difficulty)
+
+    async def _fight(self, channel, player, n: int, difficulty: str) -> None:
+        entry = SD.battle(n)
+        if entry is None:
+            return
+        built = _opponent_blade(entry["blade"])
+        if built is None:
+            await channel.send(f"⚠️ **{entry['blade']}** isn't in the roster.")
+            return
+        opponent_blade, hp_gain = built
+
+        from cogs.battle.boss import boss_copy as bcopy
+        from utils.loadout import bey_level_and_stats
+        profile = get_user(player.id)
+        blade_raw, copy = bcopy.equipped_blade(player.id)
+        if not blade_raw:
+            await channel.send("❌ You need a Beyblade equipped.")
+            return
         try:
-            fight = StoryFight(player.id, player.display_name, stage_id)
-        except Exception:                            # noqa: BLE001
-            log.exception("could not build story fight %s", stage_id)
-            return await interaction.response.send_message(
-                "⚠️ Couldn't start that stage. Do you have a Beyblade equipped? "
-                "Try `;inventory`.", ephemeral=True)
+            blade, _lvl = bey_level_and_stats(player.id, profile, dict(blade_raw))
+        except Exception:                                # noqa: BLE001
+            blade = dict(blade_raw)
 
-        self._active.add(player.id)
-        view = StoryFightView(self, fight, player)
-        await interaction.response.send_message(embed=view.embed(), view=view)
-        view.message = await interaction.original_response()
+        self._active.add(int(player.id))
+        try:
+            emoji, label = SD.DIFFICULTY_LABEL[difficulty]
+            await channel.send(embed=discord.Embed(
+                title=f"🏫 Battle {n} — {entry['blade']}",
+                description=(f"{entry['blurb']}\n\n"
+                             f"{emoji} **{label}** · Level "
+                             f"{SD.OPPONENT_LEVEL}\n"
+                             f"First to **{SD.VICTORY_TARGET}** Victory "
+                             f"Points takes the battle."),
+                colour=(0xED4245 if difficulty == SD.NIGHTMARE else 0x3498DB)))
 
-    async def _start(self, ctx: commands.Context, stage_id: str) -> None:
-        ok, why = self._can_fight(ctx.author.id, stage_id)
+            match = LeagueMatch(self.bot, channel, player, blade, n, difficulty)
+            won = await match.run(opponent_blade, hp_gain=hp_gain)
+            await self._finish(channel, player, match, won, difficulty, copy)
+        except Exception:                                # noqa: BLE001
+            log.exception("[story] battle %s failed", n)
+            try:
+                await channel.send("⚠️ That battle ended unexpectedly. "
+                                   "Nothing was charged.")
+            except Exception:                            # noqa: BLE001
+                pass
+        finally:
+            self.release(player.id)
+
+    # ── payout ───────────────────────────────────────────────────────────────
+    async def _finish(self, channel, player, match: LeagueMatch, won: bool,
+                      difficulty: str, copy) -> None:
+        coins = 0
+        first = False
+        if won:
+            profile = get_user(player.id)
+            first = SD.record_clear(profile, difficulty, match.battle_no)
+            if first:
+                coins = SD.reward_for(match.battle_no, difficulty)
+                profile["coins"] = int(profile.get("coins", 0)) + coins
+            # Blade EXP is written into the profile already in hand and
+            # persisted below; `grant_xp` re-reads the profile, so it has to
+            # come after the write or the two clobber each other.
+            if not copy:
+                try:
+                    BL.award(profile, match.blade.get("name"),
+                             LEAGUE_BEY_XP.get(difficulty, 0))
+                except Exception:                        # noqa: BLE001
+                    pass
+            update_user(player.id, profile)
+            try:
+                grant_xp(player.id, LEAGUE_XP.get(difficulty, 0))
+            except Exception:                            # noqa: BLE001
+                pass
+
+        try:
+            await channel.send(embed=match.result_embed(coins, first))
+        except Exception:                                # noqa: BLE001
+            log.exception("[story] could not post the League result card")
+
+    # ── commands ─────────────────────────────────────────────────────────────
+    @commands.command(name="story", aliases=["league", "campaign"],
+                      brief="School League 🏫")
+    async def story(self, ctx: commands.Context, *, args: str = "") -> None:
+        """`;story` for the picker, `;story 3` or `;story 3 nightmare`."""
+        parts = (args or "").split()
+        difficulty = SD.NORMAL
+        if parts and parts[-1].lower() in (SD.NIGHTMARE, "nm", "hard"):
+            difficulty = SD.NIGHTMARE
+            parts = parts[:-1]
+
+        if not parts:
+            view = ChapterPickView(self, ctx.author)
+            return await ctx.send(embed=view.embed(), view=view)
+
+        try:
+            n = int(parts[0])
+        except ValueError:
+            return await ctx.send(
+                f"Pick a battle number, 1–{SD.total_battles()} — "
+                f"`;story 3` or `;story 3 nightmare`.")
+
+        ok, why = self._can_fight(ctx.author.id, n, difficulty)
         if not ok:
             return await ctx.send(why)
-        try:
-            fight = StoryFight(ctx.author.id, ctx.author.display_name, stage_id)
-        except Exception:                            # noqa: BLE001
-            log.exception("could not build story fight %s", stage_id)
-            return await ctx.send(
-                "⚠️ Couldn't start that stage. Do you have a Beyblade equipped? "
-                "Try `;inventory`.")
+        await self._fight(ctx.channel, ctx.author, n, difficulty)
 
-        self._active.add(ctx.author.id)
-        view = StoryFightView(self, fight, ctx.author)
-        view.message = await ctx.send(embed=view.embed(), view=view)
-
-    # ── Rewards ──────────────────────────────────────────────────────────────
-
-    async def finish(self, fight: StoryFight, player: discord.Member,
-                     channel) -> None:
-        """Pay out a finished fight. Only a win pays."""
-        self.release(player.id)
-        st = fight.stage
-        profile = get_user(player.id)
-        stats = stats_of(profile)
-
-        if fight.result != "win":
-            stats["losses"] += 1
-            profile["story_stats"] = stats
-            update_user(player.id, profile)
-            # A loss used to send NOTHING — the fight embed's Result field was
-            # the only sign the run had ended, and the player was left with no
-            # way back in but retyping the stage id.
-            e = discord.Embed(
-                title=f"💀 {st['id']} — {st['name']} still stands",
-                colour=0x8d8d8d,
-                description=("No rewards for a loss. The stage is unchanged "
-                             "and it costs nothing to go again."),
-            )
-            e.add_field(name="📊 Record",
-                        value=f"{stats['wins']}W · {stats['losses']}L",
-                        inline=True)
-            if fight.level_gap > 0:
-                e.add_field(name="⚠️ Level gap",
-                            value=f"{fight.level_gap} levels under this stage",
-                            inline=True)
-            if not fight.avatar_active:
-                e.set_footer(text="No avatar equipped — ;avatarpacks, then "
-                                  ";equipavatar")
-            view = StoryRewardView(self, player, retry_id=st["id"])
-            try:
-                view.message = await channel.send(embed=e, view=view)
-            except Exception:                        # noqa: BLE001
-                log.exception("could not post story defeat card")
-            return
-
-        reward = st["reward"]
-        cleared = cleared_of(profile)
-        first = st["id"] not in cleared
-        mult = 2 if first else 1
-
-        coins = int(reward["coins"]) * mult
-        xp = int(reward["xp"]) * mult
-        bey_xp = random.randint(*reward["bey_xp"])
-
-        profile["coins"] = int(profile.get("coins", 0)) + coins
-        if first:
-            cleared.append(st["id"])
-            profile["story_cleared"] = cleared
-        stats["wins"] += 1
-        profile["story_stats"] = stats
-        levelled = self._grant_bey_xp(profile, fight.blade, bey_xp)
-        # Must be persisted BEFORE grant_xp, which re-reads the profile from
-        # the store — the same ordering trap boss_battle.finish documents.
-        update_user(player.id, profile)
-        new_level, _total, levelled_up = grant_xp(player.id, xp)
-
-        nxt = story_data.next_stage(st["id"])
-        e = discord.Embed(
-            title=f"🏆 {st['id']} cleared — {st['name']} defeated!",
-            color=st["colour"],
-            description=("**First clear — double rewards!**" if first
-                         else "Replay — standard rewards."),
-        )
-        e.add_field(name="💰 Beycoins", value=f"+{coins:,}", inline=True)
-        e.add_field(name="⭐ Trainer EXP", value=f"+{xp:,}", inline=True)
-        if levelled:
-            e.add_field(name=f"🌀 {levelled['blade']}",
-                        value=(f"+{levelled['gained']:,} EXP"
-                               + (f" — **Lv {levelled['level']}!**"
-                                  if levelled["leveled"] else "")),
-                        inline=True)
-        if levelled_up:
-            e.add_field(name="🎉 Level up!", value=f"You are now **Lv {new_level}**",
-                        inline=False)
-        if nxt:
-            nst = story_data.stage(nxt)
-            e.add_field(name="▶️ Next", value=f"**{nxt}** {nst['emoji']} {nst['name']}"
-                                              f" — or press the button", inline=False)
-        else:
-            e.add_field(name="👑 Campaign complete",
-                        value="You have cleared every stage. Replays still pay.",
-                        inline=False)
-        if not fight.avatar_active:
-            e.set_footer(text="No avatar equipped — ;avatarpacks, then ;equipavatar")
-
-        if DISPATCH_BATTLE_EVENTS:
-            self.bot.dispatch("beycord_battle_end", player.id, [player.id],
-                              getattr(channel, "guild", None)
-                              and channel.guild.id)
-        # `story_cleared` was appended and persisted above, BEFORE nxt was
-        # resolved — so the next stage is already unlocked by the time this
-        # button exists and pressing it passes _can_fight. On the last stage
-        # there is nothing to go to, so no view is attached and the "Campaign
-        # complete" field stands on its own.
-        view = StoryRewardView(self, player, next_id=nxt) if nxt else None
-        try:
-            sent = await channel.send(embed=e, view=view)
-            if view is not None:
-                view.message = sent
-        except Exception:                            # noqa: BLE001
-            log.exception("could not post story reward")
-
-    @staticmethod
-    def _grant_bey_xp(profile: dict, blade: dict, amount: int) -> Optional[dict]:
-        """Blade EXP for the bey that fought. Mirrors session._bey_xp: skipped
-        for an equipped boss copy (a copy is a fixed roll and doesn't level),
-        and never raises — a bad blade dict must not cost someone a reward."""
-        try:
-            if not blade or profile.get("active_copy"):
-                return None
-            name = blade.get("name")
-            if not name:
-                return None
-            return _BL.award(profile, name, amount)
-        except Exception:                            # noqa: BLE001
-            return None
-
-    # ── Prefix commands ──────────────────────────────────────────────────────
-
-    @commands.command(name="story", aliases=["campaign"])
-    async def story(self, ctx: commands.Context, *, stage: str = None) -> None:
-        """📖 Play Story Mode. `;story` to pick, `;story 1-2` to jump in."""
-        profile = get_user(ctx.author.id)
-        cleared = set(cleared_of(profile))
-
-        if not stage:
-            view = StoryPickView(self, ctx.author, cleared)
-            nxt = story_data.first_uncleared(cleared)
-            e = discord.Embed(
-                title="📖 Story Mode",
-                description=(f"Up next: **{nxt}** — "
-                             f"{story_data.stage(nxt)['name']}"
-                             if nxt else
-                             "You've cleared the whole campaign. Replays still pay."),
-                color=0x3498DB,
-            )
-            e.set_footer(text="`;storymap` for the full chapter list")
-            view.message = await ctx.send(embed=e, view=view)
-            return
-
-        st = story_data.resolve(stage)
-        if st is None:
-            hits = story_data.matches(stage)
-            if len(hits) > 1:
-                names = ", ".join(f"**{h['id']} {h['name']}**" for h in hits[:5])
-                return await ctx.send(
-                    f"❌ Multiple matches for `{stage}`: {names}. Be more specific.")
-            return await ctx.send(
-                f"❌ No stage matching `{stage}`. Try `;storymap`.")
-        await self._start(ctx, st["id"])
-
-    @commands.command(name="storymap", aliases=["chapters", "storylist"])
+    @commands.command(name="storymap", aliases=["leaguemap", "storylist"],
+                      brief="Your School League progress 🗺️")
     async def storymap(self, ctx: commands.Context) -> None:
-        """📖 Every chapter and how far you've got."""
+        view = LeagueView(self, ctx.author)
+        await ctx.send(embed=view.embed(), view=view)
+
+    @commands.command(name="storyinfo", aliases=["battleinfo"],
+                      brief="One League battle up close 🔎")
+    async def storyinfo(self, ctx: commands.Context, n: str = "1",
+                        difficulty: str = SD.NORMAL) -> None:
+        # `n` is a string, not an int: the panel binds a free-text box to it,
+        # and a typo there should read as "no such battle" rather than a
+        # converter error with no output at all.
+        difficulty = (SD.NIGHTMARE if str(difficulty).lower().startswith("n")
+                      else SD.NORMAL)
+        entry = SD.battle(n)
+        if entry is None:
+            return await ctx.send(
+                f"There are {SD.total_battles()} battles in the League — "
+                f"`;storyinfo 3` or `;storyinfo 3 nightmare`.")
+        n = int(entry["n"])
+        built = _opponent_blade(entry["blade"])
         profile = get_user(ctx.author.id)
-        cleared = set(cleared_of(profile))
-
-        e = discord.Embed(title="📖 Story Mode — Chapters", color=0x3498DB)
-        for cnum in sorted(story_data.CHAPTERS):
-            ch = story_data.CHAPTERS[cnum]
-            stages = story_data.chapter_stages(cnum)
-            done = sum(1 for s in stages if s["id"] in cleared)
-            e.add_field(
-                name=f"{ch['emoji']} Chapter {cnum} — {ch['name']}  "
-                     f"{progress_bar(done, len(stages))} {done}/{len(stages)}",
-                value="\n".join(_stage_line(s, cleared) for s in stages),
-                inline=False,
-            )
-        total = story_data.total_stages()
-        e.set_footer(text=f"{len(cleared & {s['id'] for s in story_data.all_stages()})}"
-                          f"/{total} stages cleared  •  ;story <stage> to fight")
-        await ctx.send(embed=e)
-
-    @commands.command(name="storyinfo", aliases=["stageinfo"])
-    async def storyinfo(self, ctx: commands.Context, *, stage: str) -> None:
-        """📖 Stats, rewards and lock state for one stage."""
-        st = story_data.resolve(stage)
-        if st is None:
-            return await ctx.send(f"❌ No stage matching `{stage}`. Try `;storymap`.")
-
-        profile = get_user(ctx.author.id)
-        cleared = set(cleared_of(profile))
-        unlocked = story_data.is_unlocked(st["id"], cleared)
-        done = st["id"] in cleared
-
+        emoji, label = SD.DIFFICULTY_LABEL[difficulty]
         e = discord.Embed(
-            title=f"{st['emoji']}  {st['id']} — {st['name']}",
-            description=f"*{st['blurb']}*",
-            color=st["colour"],
-        )
-        e.add_field(name="Chapter", value=f"{st['chapter']} · {st['chapter_name']}",
+            title=f"🏫 Battle {n} — {entry['blade']}",
+            description=entry["blurb"],
+            colour=(0xED4245 if difficulty == SD.NIGHTMARE else 0x3498DB))
+        if built:
+            s = built[0]["stats"]
+            e.add_field(name=f"Level {SD.OPPONENT_LEVEL}",
+                        value=(f"ATK {s.get('attack', 0)} · "
+                               f"DEF {s.get('defense', 0)} · "
+                               f"STA {s.get('stamina', 0)} · "
+                               f"HP {s.get('hp', 0)}"), inline=False)
+        from cogs.battle.boss import boss_ai as ai
+        iq = ai.DIFFICULTY[SD.AI_RUNG[difficulty]]["iq"]
+        e.add_field(name="Mode",
+                    value=f"{emoji} {label} · Boss IQ {iq} "
+                          f"({ai.IQ_LABELS.get(iq, '?')})", inline=True)
+        e.add_field(name="Reward",
+                    value=f"🪙 {SD.reward_for(n, difficulty):,} (first clear)",
                     inline=True)
-        e.add_field(name="Difficulty", value=st["difficulty"].title(), inline=True)
-        e.add_field(name="Type", value=st["type"].title(), inline=True)
-
-        stats = st["stats"]
-        bey_level = _bey_level_of(profile)
-        e.add_field(
-            name=f"Opponent — Level {st['level']}",
-            value=(f"❤️ {stats['hp']:,} HP\n"
-                   f"⚔️ {stats['attack']} ATK · 🛡️ {stats['defense']} DEF · "
-                   f"🌀 {stats['stamina']} STA"),
-            inline=False,
-        )
-        gap = st["level"] - bey_level
-        e.add_field(
-            name="Your blade",
-            value=(f"Lv {bey_level}"
-                   + (f" — ⚠️ **{gap} levels under**, expect a hard fight"
-                      if gap > 0 else " — level advantage 👍")),
-            inline=False,
-        )
-        r = st["reward"]
-        e.add_field(
-            name="Rewards",
-            value=(f"💰 {r['coins']:,} coins · ⭐ {r['xp']:,} EXP · "
-                   f"🌀 {r['bey_xp'][0]}–{r['bey_xp'][1]} blade EXP\n"
-                   f"*First clear pays double.*"),
-            inline=False,
-        )
-        if done:
-            e.add_field(name="Status", value="✅ Cleared", inline=False)
-        elif unlocked:
-            e.add_field(name="Status", value=f"▶️ Open — `;story {st['id']}`",
-                        inline=False)
-        else:
-            need = story_data.prereq_of(st["id"])
-            e.add_field(name="Status",
-                        value=f"🔒 Locked — clear **{need}** first", inline=False)
+        e.add_field(name="Status",
+                    value=(SD.lock_reason(profile, n, difficulty)
+                           or ("✅ Cleared" if n in SD.cleared(profile, difficulty)
+                               else "▶️ Open")), inline=False)
         await ctx.send(embed=e)
 
-    @commands.command(name="storystats", aliases=["storyprogress"])
+    @commands.command(name="storystats", aliases=["leaguestats"],
+                      brief="Your School League record 📊")
     async def storystats(self, ctx: commands.Context,
-                         member: discord.Member = None) -> None:
-        """📖 Story Mode record and progress."""
+                         member: Optional[discord.Member] = None) -> None:
         target = member or ctx.author
         profile = get_user(target.id)
-        cleared = set(cleared_of(profile))
-        stats = stats_of(profile)
-        total = story_data.total_stages()
-        done = len([s for s in story_data.all_stages() if s["id"] in cleared])
-        played = stats["wins"] + stats["losses"]
-
-        e = discord.Embed(title=f"📖 {target.display_name} — Story Mode",
-                          color=0x3498DB)
-        e.add_field(name="Progress",
-                    value=f"{progress_bar(done, total)} **{done}/{total}** stages",
-                    inline=False)
-        e.add_field(name="Record",
-                    value=(f"🏆 {stats['wins']} wins · 💀 {stats['losses']} losses"
-                           + (f" · {stats['wins'] / played:.0%} win rate"
-                              if played else "")),
-                    inline=False)
-        bey_level = _bey_level_of(profile)
-        e.add_field(
-            name="Levels",
-            value=(f"🌀 Blade **Lv {bey_level}**"
-                   f"　·　⭐ Trainer **Lv {int(profile.get('level', 0) or 0)}**"),
-            inline=False)
-        nxt = story_data.first_uncleared(cleared)
-        if nxt:
-            nst = story_data.stage(nxt)
-            gap = nst["level"] - bey_level
-            e.add_field(name="▶️ Up next",
-                        value=(f"**{nxt}** {nst['emoji']} {nst['name']} "
-                               f"`Lv {nst['level']}` — `;story {nxt}`"
-                               + (f"\n⚠️ You are **{gap} levels under** — "
-                                  f"battles and `;story` replays both level "
-                                  f"your blade." if gap > 0 else "")),
-                        inline=False)
-        else:
-            e.add_field(name="👑 Complete", value="Every stage cleared.",
-                        inline=False)
+        e = discord.Embed(title=f"🏫 {target.display_name} — School League",
+                          colour=0x3498DB)
+        for d in SD.DIFFICULTIES:
+            emoji, label = SD.DIFFICULTY_LABEL[d]
+            done = len(SD.cleared(profile, d))
+            nxt = SD.next_battle(profile, d)
+            entry = SD.battle(nxt) if nxt else None
+            up = (f"Up next: **{nxt} · {entry['blade']}**" if entry
+                  else "🏆 Complete")
+            if d == SD.NIGHTMARE and not SD.normal_complete(profile):
+                up = "🔒 Clear the League on Normal first"
+            e.add_field(
+                name=f"{emoji} {label}",
+                value=f"{done}/{SD.total_battles()} cleared\n{up}",
+                inline=True)
         await ctx.send(embed=e)
 
 
-# ── Slash surface ────────────────────────────────────────────────────────────
+class ChapterPickView(discord.ui.View):
+    def __init__(self, cog: StoryCog, user: discord.Member) -> None:
+        super().__init__(timeout=300)
+        self.cog = cog
+        self.user = user
+        self.add_item(ChapterSelect(cog, user))
 
-async def stage_autocomplete(interaction: discord.Interaction,
-                             current: str) -> list[app_commands.Choice[str]]:
-    """Stages, annotated with the caller's own progress."""
-    try:
-        cleared = set(cleared_of(get_user(interaction.user.id)))
-    except Exception:                                # noqa: BLE001
-        cleared = set()
-    cur = (current or "").lower()
-    out: list[app_commands.Choice[str]] = []
-    for st in story_data.all_stages():
-        if cur and cur not in st["id"] and cur not in st["name"].lower():
-            continue
-        if st["id"] in cleared:
-            mark = "✅"
-        elif story_data.is_unlocked(st["id"], cleared):
-            mark = "▶️"
-        else:
-            mark = "🔒"
-        out.append(app_commands.Choice(
-            name=f"{mark} {st['id']} · {st['name']}"[:100], value=st["id"]))
-    return out[:25]                                  # Discord shows 25 at most
-
-
-# The `/story` group lived here — four subcommands, four flat lines in the
-# picker. v1.14 replaced it with one `/story` command opening a panel; see
-# `cogs/ui/panels.py:StorySpec`, which invokes the prefix commands above.
-# It keeps BOTH ways in: "Play" runs `;story` with no stage, which opens the
-# game's own stage picker, and "Jump to a stage" asks for one.
+    def embed(self) -> discord.Embed:
+        e = discord.Embed(
+            title="📖  Story Mode",
+            description="Where are you fighting?",
+            colour=0xE67E22)
+        for ch in SD.CHAPTERS:
+            e.add_field(name=f"{ch['emoji']} {ch['name']}",
+                        value=ch["blurb"], inline=False)
+        return e
 
 
 async def setup(bot: commands.Bot) -> None:

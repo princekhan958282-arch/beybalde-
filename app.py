@@ -150,7 +150,7 @@ COGS = [
     "cogs.economy.wallet_card",
     "cogs.codes.redeem",
     "cogs.battle.boss.boss_battle",
-    "cogs.story",            # solo chapter/stage campaign
+    "cogs.story",            # the School League (PvE on the real PvP engine)
     "cogs.clans.clan",
     "cogs.clans.clan_war",
     "cogs.extras.mastery",
