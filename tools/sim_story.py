@@ -121,7 +121,7 @@ from cogs.battle import stamina_manager as SM                    # noqa: E402
 from cogs.battle.boss import boss_ai as ai                       # noqa: E402
 from cogs.battle.session import BattleSession                    # noqa: E402
 from cogs.core.constants import (                                # noqa: E402
-    MOVE_ATTACK, MOVE_DEFENSE, MOVE_SPECIAL, MOVE_STAMINA,
+    MOVE_ATTACK, MOVE_CHARGE, MOVE_DEFENSE, MOVE_SPECIAL, MOVE_STAMINA,
 )
 from cogs.story import story_ai as SA                            # noqa: E402
 from cogs.story import story_data as SD                          # noqa: E402
@@ -748,6 +748,38 @@ async def suite(trials: int) -> None:
           and SA.guard_ringout(a1, inert, str(player.id), MOVE_ATTACK,
                                legal) == MOVE_ATTACK)
 
+    # Does the guard change what the opponent actually PLAYS? Asked of
+    # `choose` — the real entry point — from a forced position, over 20 seeds
+    # per rung, and NOT inferred from a win rate. A win-rate gap needs a sample
+    # in the hundreds to mean anything, so a suite that asserts on one fails
+    # builds at random; this is deterministic and it separates the two rungs
+    # completely.
+    picks = {}
+    for rung in ("elite", "nightmare"):
+        chosen, unsafe = [], 0
+        for seed in range(20):
+            gs, _gc, gnpc2, gctrl2 = build_session(
+                player, stam_blade, live_blade, live_gain, rung,
+                seed=seed, battle_no=6)
+            gk2 = str(gnpc2.id)
+            gs.stability_manager.stability[gk2] = 5      # one hit from out
+            mv = await gctrl2.choose(gs)
+            chosen.append(mv)
+            if SA.stability_after(gs, gk2, mv) <= 0:
+                unsafe += 1
+        picks[rung] = (chosen, unsafe)
+    check("on 5 stability the Nightmare opponent never plays itself off the "
+          "ring, over 20 seeds",
+          picks["nightmare"][1] == 0, picks["nightmare"][1])
+    check("...and the Normal one does, most of the time — so the guard is "
+          "what makes the difference, not the seed",
+          picks["elite"][1] >= 15, picks["elite"][1])
+    check("...and what Nightmare plays instead is still a legal move",
+          set(picks["nightmare"][0]) <= {MOVE_ATTACK, MOVE_DEFENSE,
+                                         MOVE_STAMINA, MOVE_CHARGE,
+                                         MOVE_SPECIAL},
+          set(picks["nightmare"][0]))
+
     # ── 11. the cog surface ──────────────────────────────────────────────────
     print("\n── 11. the commands and the picker ─────────────────────────────")
     import cogs.story.story_cog as SC
@@ -787,9 +819,21 @@ async def suite(trials: int) -> None:
     print("\n── 12. win rates, measured rather than assumed ─────────────────")
     normal, nightmare = await win_rate_table(trials)
     check("Normal is winnable overall", normal > 0.35, normal)
-    check("Nightmare is harder than Normal, through the AI alone",
-          nightmare < normal, (normal, nightmare))
-    check("...but not impossible", nightmare > 0.10, nightmare)
+    check("Nightmare is winnable too — harder is not the same as shut",
+          nightmare > 0.10, nightmare)
+    # Deliberately NOT asserting `nightmare < normal` here. At the default
+    # sample that comparison is a coin flip — it came out 81.2% vs 81.2% at
+    # --trials 2 — and an assertion that can go either way on noise is an
+    # assertion that fails builds at random. That Nightmare plays DIFFERENTLY
+    # is checked deterministically in section 10.
+    print(f"\n     Normal {100 * normal:.1f}%  ·  Nightmare "
+          f"{100 * nightmare:.1f}%  (n={trials * SD.total_battles()} each)")
+    print("     Needs --trials 20 to mean anything. Paired at 20, identical "
+          "seeds, n=160 per cell:")
+    print("       Normal IQ3 91.2%  ·  Nightmare IQ5 guard-off 85.6%  ·  "
+          "guard-on 83.8%")
+    print("     — the IQ rung carries 5.6 points of it; the ring-out guard "
+          "adds ~1.8, which is noise at that n.")
 
 
 async def win_rate_table(trials: int) -> tuple[float, float]:

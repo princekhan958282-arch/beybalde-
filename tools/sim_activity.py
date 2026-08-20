@@ -388,19 +388,116 @@ check("...at every boundary, not just one",
       all(PC._level_from_xp(x)[0] == TL.level_from_xp(x)
           for x in (0, 49, 50, 199, 200, 499_999, 500_000, 10 ** 9)))
 
-# The consequence a cap raise would otherwise have had.
+# The consequence a cap raise would otherwise have had — and the reason it can
+# no longer have it at all. Trainer level fed a flat stat multiplier until
+# v1.23 (+2% per 10 levels, capped at +20%); unbounded, `(level // 10) * 0.02`
+# at a 9,999 cap is +1998%, and one player would end every battle in the game
+# on the first hit. The cap is gone because the bonus is gone.
 DB.get_user = lambda uid: {"level": uid}
-check("the trainer stat bonus is capped at the +20% level 100 already gave",
-      abs(DB.get_stat_multiplier(100) - 1.20) < 1e-9,
-      DB.get_stat_multiplier(100))
-check("...so level 9,999 is NOT a x21 multiplier — unbounded, "
-      "`(level // 10) * 0.02` at the new cap is +1998%, and one player would "
-      "end every battle in the game on the first hit",
-      abs(DB.get_stat_multiplier(9999) - 1.20) < 1e-9,
-      DB.get_stat_multiplier(9999))
-check("...and the levels below 100 are untouched",
-      abs(DB.get_stat_multiplier(50) - 1.10) < 1e-9,
-      DB.get_stat_multiplier(50))
+check("trainer level no longer multiplies any stat, at any level",
+      all(DB.get_stat_multiplier(lv) == 1.0 for lv in (1, 10, 50, 100, 9999)),
+      [DB.get_stat_multiplier(lv) for lv in (1, 10, 50, 100, 9999)])
+check("...and the two constants that drove it are gone, not zeroed",
+      not hasattr(DB, "STAT_BONUS_PER_10") and not hasattr(DB, "STAT_BONUS_MAX"))
+check("the level cap is therefore free to be anything",
+      TL.MAX_LEVEL == 9999)
+
+# What a level is worth now.
+check("level 2 pays 200, level 3 pays 300 — the level number x 100",
+      [TL.level_reward(n) for n in (1, 2, 3, 10, 100)]
+      == [100, 200, 300, 1000, 10000],
+      [TL.level_reward(n) for n in (1, 2, 3, 10, 100)])
+check("level 0 pays nothing — a new profile starts there",
+      TL.level_reward(0) == 0 and TL.level_reward(-5) == 0)
+check("a multi-level jump pays each level it crossed, not a flat rate",
+      TL.level_up_payout(3, 6) == 400 + 500 + 600,
+      TL.level_up_payout(3, 6))
+check("...so a big XP drop is worth exactly what the slow climb was",
+      TL.level_up_payout(0, 20)
+      == sum(TL.level_up_payout(n, n + 1) for n in range(20)))
+check("no level movement pays nothing",
+      TL.level_up_payout(5, 5) == 0 and TL.level_up_payout(5, 3) == 0)
+check("the payout is one coin per XP — the reward curve is the XP curve's "
+      "derivative, so no level is a better deal than any other",
+      all(abs(TL.level_reward(n)
+              - (TL.xp_for_level(n) - TL.xp_for_level(n - 1))) <= 50
+          for n in (2, 10, 100, 5000)))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── 5g. the coins are actually paid ──────────────────────────────")
+#
+# A reward table nobody calls is worth nothing, and that is not hypothetical
+# here: the coins used to be paid by `cogs/ui/level_up.py`, listening for an
+# event dispatched only by `cogs.economy.profile.award_xp` — a function with no
+# callers anywhere in the bot. So the whole reward had never once fired. These
+# checks run the REAL `grant_xp` against an in-memory store and read the
+# balance back.
+
+_orig_get_user, _orig_store = DB.get_user, DB.USER_STORE
+
+
+class _MemStore:
+    def __init__(self):
+        self.data = {}
+
+    def get_one(self, uid):
+        v = self.data.get(str(uid))
+        return dict(v) if v is not None else None
+
+    def put_one(self, uid, prof, touch=True):
+        self.data[str(uid)] = dict(prof)
+
+    def has(self, uid):
+        return str(uid) in self.data
+
+
+DB.USER_STORE = _MemStore()
+DB.get_user = _orig_get_user
+UID = 700000000000000001
+DB.USER_STORE.put_one(UID, {"user_id": str(UID), "xp": 0, "level": 0,
+                            "coins": 0, "quests": {}})
+
+lvl, xp, up = DB.grant_xp(UID, TL.xp_for_level(1), boostable=False)
+check("one grant to level 1 pays 100",
+      (lvl, DB.USER_STORE.get_one(UID)["coins"]) == (1, 100),
+      (lvl, DB.USER_STORE.get_one(UID)["coins"]))
+check("...and reports the level-up", up is True)
+
+DB.grant_xp(UID, TL.xp_for_level(2) - TL.xp_for_level(1), boostable=False)
+check("the next level pays 200, not another 100",
+      DB.USER_STORE.get_one(UID)["coins"] == 300,
+      DB.USER_STORE.get_one(UID)["coins"])
+
+before = DB.USER_STORE.get_one(UID)["coins"]
+_l, _x, up2 = DB.grant_xp(UID, 1, boostable=False)
+check("XP that crosses no level pays nothing",
+      DB.USER_STORE.get_one(UID)["coins"] == before and up2 is False)
+
+DB.USER_STORE.put_one(UID, {"user_id": str(UID), "xp": 0, "level": 0,
+                            "coins": 0, "quests": {}})
+DB.grant_xp(UID, TL.xp_for_level(6), boostable=False)
+check("a single grant that jumps 0 to 6 pays all six levels",
+      DB.USER_STORE.get_one(UID)["coins"] == TL.level_up_payout(0, 6) == 2100,
+      DB.USER_STORE.get_one(UID)["coins"])
+
+# The stale-`level`-field trap: pay from the XP, never from the stored number.
+DB.USER_STORE.put_one(UID, {"user_id": str(UID), "xp": TL.xp_for_level(5),
+                            "level": 0, "coins": 0, "quests": {}})
+DB.grant_xp(UID, 0, boostable=False)
+check("a profile whose stored `level` disagrees with its XP is not re-paid "
+      "for levels it already has",
+      DB.USER_STORE.get_one(UID)["coins"] == 0,
+      DB.USER_STORE.get_one(UID)["coins"])
+
+check("level_up.py no longer writes coins of its own — two payers would "
+      "double every level",
+      "update_user" not in open(
+          os.path.join(os.path.dirname(os.path.dirname(
+              os.path.abspath(__file__))), "cogs", "ui", "level_up.py"),
+          encoding="utf-8").read())
+
+DB.get_user, DB.USER_STORE = _orig_get_user, _orig_store
 
 
 # ══════════════════════════════════════════════════════════════════════════════

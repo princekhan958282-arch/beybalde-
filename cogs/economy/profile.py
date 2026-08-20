@@ -30,7 +30,7 @@ from utils.database import (
     set_active_beyblade,
     xp_to_next_level,
     MAX_LEVEL,
-    get_stat_multiplier,
+    level_reward,
 )
 from utils.embeds import (
     rarity_colour,
@@ -283,8 +283,6 @@ def build_profile_embed(
 
     level, xp_need, xp_prog = xp_to_next_level(total_xp)
     badge       = level_badge(level)
-    mult        = get_stat_multiplier(target.id)
-    bonus_pct   = int((mult - 1.0) * 100)
 
     # ── Embed shell ────────────────────────────────────────────────────────
     embed = discord.Embed(
@@ -303,10 +301,13 @@ def build_profile_embed(
     else:
         xp_display = xp_bar(xp_prog, xp_need)
 
+    # Trainer level stopped touching combat in v1.23 — it pays coins now, so
+    # this line says what the NEXT level is worth rather than advertising a
+    # stat bonus that no longer exists.
     bonus_line = (
-        f"⚔️ `+{bonus_pct}%` to all stats in battle"
-        if bonus_pct > 0
-        else "*(Reach Level 10 for your first stat bonus!)*"
+        "🏆 *Nothing left to climb.*"
+        if level >= MAX_LEVEL
+        else f"🪙 Level **{level + 1}** pays **{level_reward(level + 1):,}** coins"
     )
 
     embed.add_field(

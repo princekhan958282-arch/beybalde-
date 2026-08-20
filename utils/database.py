@@ -22,7 +22,10 @@ from typing import Optional
 
 # Re-exported so `from utils.database import MAX_LEVEL` keeps working.
 from .trainer_levels import MAX_LEVEL          # noqa: F401
+from .trainer_levels import COINS_PER_LEVEL    # noqa: F401
 from .trainer_levels import level_from_xp      # noqa: F401
+from .trainer_levels import level_reward       # noqa: F401
+from .trainer_levels import level_up_payout    # noqa: F401
 from .trainer_levels import xp_for_level       # noqa: F401
 from .trainer_levels import xp_to_next_level   # noqa: F401
 from .userstore import UserStore
@@ -106,11 +109,13 @@ _avatar_lock = threading.Lock()
 # `from utils.database import MAX_LEVEL` keeps working.
 XP_WIN             = 100
 XP_LOSS            = 40
-STAT_BONUS_PER_10  = 0.02   # +2% to all stats per 10 trainer levels
-# The ceiling that keeps a 9,999 level cap from being a balance change. It is
-# exactly what level 100 already awarded, so nothing about combat moved when
-# the cap went up — see `get_stat_multiplier`.
-STAT_BONUS_MAX     = 0.20
+
+# `STAT_BONUS_PER_10` (+2% per 10 levels) and `STAT_BONUS_MAX` (+20%) were here
+# until v1.23. Trainer level no longer touches combat at all — it pays coins,
+# `COINS_PER_LEVEL x the level reached`, imported above from
+# `utils/trainer_levels.py`. Both names are deliberately NOT kept as zeroed
+# stubs: a constant that exists and does nothing is how a caller silently keeps
+# a feature alive after it was removed.
 
 
 # ── Durable JSON persistence helpers ──────────────────────────────────────────
@@ -434,11 +439,21 @@ def grant_xp(user_id: int, xp_amount: int,
     `touch=False` grants the XP without marking the player as having used the
     bot — see `update_user`. Chat XP passes it, so talking still levels you up
     and still does not make you an "active player" in the audit reports.
+
+    LEVEL-UP COINS ARE PAID HERE, in the same locked read-modify-write as the
+    XP itself. They used to be paid by `LevelUpCog`, listening for a `level_up`
+    event that `cogs/economy/profile.py:award_xp` dispatches — and `award_xp`
+    has no callers at all, so that event has never once fired and nobody has
+    ever been paid for a level. Every real XP grant in the game comes through
+    this function, which is the only place the reward cannot be missed.
     """
     with _users_lock:
         uid       = str(user_id)
         profile   = USER_STORE.get_one(uid) or _default_profile(uid)
-        old_level = profile.get("level", 0)
+        # From the stored XP, not the stored `level` field: the two can differ
+        # on a profile written before the level key existed, and reading the
+        # stale one would pay for levels the player already has.
+        old_level = level_from_xp(profile.get("xp", 0))
 
         if boostable:
             from utils.xp_boost import apply as _surge
@@ -446,6 +461,10 @@ def grant_xp(user_id: int, xp_amount: int,
 
         new_xp    = profile.get("xp", 0) + xp_amount
         new_level = level_from_xp(new_xp)
+
+        coins = level_up_payout(old_level, new_level)
+        if coins:
+            profile["coins"] = int(profile.get("coins", 0)) + coins
 
         profile["xp"]    = new_xp
         profile["level"] = new_level
@@ -456,32 +475,36 @@ def grant_xp(user_id: int, xp_amount: int,
 
 def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) -> float:
     """
-    Returns a damage/stat multiplier based on trainer level.
-    Every 10 levels adds +2%, up to +20% (e.g. Lv50 → ×1.10, Lv100 → ×1.20).
+    A damage/stat multiplier from BLADE MASTERY, and nothing else.
 
-    The +20% ceiling is the whole reason raising the level cap to 9,999 is
-    safe. This was `(level // 10) * 0.02` with nothing stopping it: at level
-    9,999 that is +1998%, a ×21 stat multiplier, and one levelled player would
-    end every battle in the game on the first hit. The cap is set to exactly
-    what level 100 already gave, so a higher ceiling changes progression and
-    changes nothing about combat.
+    Trainer level used to feed this: +2% to every stat per 10 levels, to a
+    +20% ceiling. Removed in v1.23. It was a scalar on attack, defence and
+    stamina at once, which is the one shape of bonus that cannot change a
+    decision — it never made a move better or worse, only made the same battle
+    resolve faster for whoever had been playing longer, and it did that to
+    every newer player they met. Trainer level pays coins now; see
+    `utils/trainer_levels.level_reward`.
 
-    When `blade_name` is given, that blade's mastery bonus is added on top
-    (+0.5% per mastery level, +5% at Mastery 10). Callers that don't pass a
-    blade get the old trainer-level-only behaviour, so this stays backwards
-    compatible with every existing call site.
+    This function is deliberately KEPT rather than deleted. Mastery is a real
+    per-blade bonus that still needs a home, six call sites already read it,
+    and `1.0` is the correct answer for a caller that passes no blade.
+
+    `blade_name` adds that blade's mastery bonus: +0.5% per mastery level,
+    +5% at Mastery 10. Callers that don't pass one get a flat 1.0.
     """
-    profile = get_user(user_id)
-    level   = profile.get("level", 1)
-    bonus   = min(STAT_BONUS_MAX, (level // 10) * STAT_BONUS_PER_10)
+    if not blade_name:
+        # Nothing to look up, so no profile read — this used to be the whole
+        # point of the call and is now the one case that costs nothing.
+        return 1.0
 
-    if blade_name:
-        try:
-            from cogs.extras.mastery import MASTERY_BONUS_PER_LEVEL, level_from_xp
-            entry = (profile.get("mastery") or {}).get(blade_name) or {}
-            bonus += level_from_xp(entry.get("xp", 0)) * MASTERY_BONUS_PER_LEVEL
-        except Exception:
-            pass
+    profile = get_user(user_id)
+    bonus   = 0.0
+    try:
+        from cogs.extras.mastery import MASTERY_BONUS_PER_LEVEL, level_from_xp
+        entry = (profile.get("mastery") or {}).get(blade_name) or {}
+        bonus += level_from_xp(entry.get("xp", 0)) * MASTERY_BONUS_PER_LEVEL
+    except Exception:
+        pass
 
     return 1.0 + bonus
 
