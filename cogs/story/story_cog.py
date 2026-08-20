@@ -13,6 +13,7 @@ and nothing about combat, which is the point.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -89,9 +90,15 @@ class ChapterSelect(discord.ui.Select):
         if chapter is None or not chapter.get("available"):
             return await interaction.response.send_message(
                 "🔒 The Xender Dojo isn't open yet.", ephemeral=True)
+        # ACK FIRST. Building the League view reads the player's profile, and
+        # on a remote store that read can outlast Discord's three-second
+        # interaction deadline — which is exactly what "BEYCBOT didn't respond
+        # in time" is. A component `defer()` is a type-6 deferred message
+        # update: it acknowledges without showing a spinner and leaves the
+        # message editable for as long as the work takes.
+        await interaction.response.defer()
         view = LeagueView(self.cog, self.user)
-        await interaction.response.edit_message(
-            embed=view.embed(), view=view)
+        await interaction.edit_original_response(embed=view.embed(), view=view)
 
 
 class DifficultyButton(discord.ui.Button):
@@ -103,17 +110,18 @@ class DifficultyButton(discord.ui.Button):
             style=(discord.ButtonStyle.success if current
                    else discord.ButtonStyle.secondary),
             disabled=current)
-        self.parent = view
+        self.panel = view
         self.difficulty = difficulty
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        if interaction.user.id != self.parent.user.id:
+        if interaction.user.id != self.panel.user.id:
             return await interaction.response.send_message(
                 "That isn't your menu.", ephemeral=True)
-        self.parent.difficulty = self.difficulty
-        self.parent.build()
-        await interaction.response.edit_message(
-            embed=self.parent.embed(), view=self.parent)
+        await interaction.response.defer()          # ack before the store read
+        self.panel.difficulty = self.difficulty
+        self.panel.refresh()
+        await interaction.edit_original_response(
+            embed=self.panel.embed(), view=self.panel)
 
 
 class BattleSelect(discord.ui.Select):
@@ -131,15 +139,15 @@ class BattleSelect(discord.ui.Select):
                 value=str(n),
                 description=desc[:100]))
         super().__init__(placeholder="Which battle?", options=opts[:25], row=0)
-        self.parent = view
+        self.panel = view
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        if interaction.user.id != self.parent.user.id:
+        if interaction.user.id != self.panel.user.id:
             return await interaction.response.send_message(
                 "That isn't your menu.", ephemeral=True)
         n = int(self.values[0])
-        await self.parent.cog.launch(interaction, self.parent.user, n,
-                                     self.parent.difficulty)
+        await self.panel.cog.launch(interaction, self.panel.user, n,
+                                     self.panel.difficulty)
 
 
 class LeagueView(discord.ui.View):
@@ -149,17 +157,25 @@ class LeagueView(discord.ui.View):
         self.cog = cog
         self.user = user
         self.difficulty = difficulty
+        # One profile read per render, held here. `build()` and `embed()` both
+        # need it, and fetching it twice doubled the store latency on the exact
+        # path that was blowing the interaction deadline.
+        self.profile: dict = get_user(user.id)
+        self.build()
+
+    def refresh(self) -> None:
+        """Re-read the profile and rebuild the components."""
+        self.profile = get_user(self.user.id)
         self.build()
 
     def build(self) -> None:
         self.clear_items()
-        profile = get_user(self.user.id)
-        self.add_item(BattleSelect(self, profile))
+        self.add_item(BattleSelect(self, self.profile))
         for d in SD.DIFFICULTIES:
             self.add_item(DifficultyButton(self, d))
 
     def embed(self) -> discord.Embed:
-        profile = get_user(self.user.id)
+        profile = self.profile
         emoji, label = SD.DIFFICULTY_LABEL[self.difficulty]
         done = len(SD.cleared(profile, self.difficulty))
         e = discord.Embed(
@@ -222,11 +238,18 @@ class StoryCog(commands.Cog, name="Story Mode"):
     # ── entry points ─────────────────────────────────────────────────────────
     async def launch(self, interaction: discord.Interaction,
                      player: discord.Member, n: int, difficulty: str) -> None:
+        # Ack first: `_can_fight` reads the profile, and the deadline is three
+        # seconds from the click, not from the first await.
+        await interaction.response.defer()
         ok, why = self._can_fight(player.id, n, difficulty)
         if not ok:
-            return await interaction.response.send_message(why, ephemeral=True)
-        await interaction.response.defer()
-        await self._fight(interaction.channel, player, n, difficulty)
+            return await interaction.followup.send(why, ephemeral=True)
+        # The battle is minutes long. Run it as its own task so this component
+        # callback returns immediately and the League panel stays responsive —
+        # a callback that blocks for the length of a fight is a panel that
+        # looks broken to anyone who touches it meanwhile.
+        asyncio.get_running_loop().create_task(
+            self._fight(interaction.channel, player, n, difficulty))
 
     async def _fight(self, channel, player, n: int, difficulty: str) -> None:
         entry = SD.battle(n)

@@ -815,8 +815,168 @@ async def suite(trials: int) -> None:
               not os.path.exists(os.path.join(ROOT, "cogs", "story",
                                               f"{dead}.py")))
 
-    # ── 12. win rates, measured ──────────────────────────────────────────────
-    print("\n── 12. win rates, measured rather than assumed ─────────────────")
+    # ── 12. every menu click acknowledges before it touches the store ───────
+    print("\n── 12. the panel acks before it does any I/O ───────────────────")
+    #
+    # Reported live: picking a chapter gave "BEYCBOT didn't respond in time".
+    # Discord kills an interaction three seconds after the CLICK, not after the
+    # first await, and every one of these callbacks read the player's profile
+    # before acknowledging. On a remote store that is the whole budget.
+    #
+    # So this records the ORDER of two things — acks and store reads — and
+    # asserts the ack comes first. A source-level "does it call defer" check
+    # would pass on code that defers in the wrong place.
+    seed_profile()
+
+    class Recorder:
+        """Interleaves ack events with store reads on one timeline."""
+
+        def __init__(self):
+            self.events: list[str] = []
+
+        def hook_store(self):
+            real = STORE.get_one
+            rec = self
+
+            def get_one(uid, _real=real):
+                rec.events.append("READ")
+                return _real(uid)
+
+            STORE.get_one = get_one
+            return real
+
+    class FakeResponse:
+        def __init__(self, rec):
+            self.rec = rec
+            self._done = False
+
+        def is_done(self):
+            return self._done
+
+        async def defer(self, *a, **kw):
+            self.rec.events.append("ACK:defer")
+            self._done = True
+
+        async def send_message(self, *a, **kw):
+            self.rec.events.append("ACK:send")
+            self._done = True
+
+        async def edit_message(self, *a, **kw):
+            self.rec.events.append("ACK:edit")
+            self._done = True
+
+    class FakeFollowup:
+        def __init__(self, rec):
+            self.rec = rec
+
+        async def send(self, *a, **kw):
+            self.rec.events.append("followup")
+
+    class FakeInteraction:
+        def __init__(self, rec, user):
+            self.rec = rec
+            self.user = user
+            self.response = FakeResponse(rec)
+            self.followup = FakeFollowup(rec)
+            self.channel = FakeChannel()
+
+        async def edit_original_response(self, *a, **kw):
+            self.rec.events.append("edit_original")
+
+    import cogs.story.story_cog as SCOG
+
+    async def timeline(make_and_click):
+        rec = Recorder()
+        real_get_one = rec.hook_store()
+        try:
+            await make_and_click(rec)
+        finally:
+            STORE.get_one = real_get_one
+        return rec.events
+
+    def first_ack_before_first_read(events) -> bool:
+        acks = [i for i, e in enumerate(events) if e.startswith("ACK")]
+        reads = [i for i, e in enumerate(events) if e == "READ"]
+        if not reads:
+            return True                      # no I/O at all is also fine
+        return bool(acks) and acks[0] < reads[0]
+
+    async def click_chapter(rec):
+        view = SCOG.ChapterPickView(cog_stub, player)
+        sel = view.children[0]
+        sel._values = [SD.SCHOOL]
+        await sel.callback(FakeInteraction(rec, player))
+
+    class _CogStub:
+        _active: set = set()
+
+        def release(self, uid):
+            pass
+
+    cog_stub = _CogStub()
+    ev = await timeline(click_chapter)
+    check("picking a chapter reads the profile at all — otherwise this "
+          "proves nothing", "READ" in ev, ev)
+    check("...and acknowledges BEFORE that read",
+          first_ack_before_first_read(ev), ev)
+
+    async def click_difficulty(rec):
+        view = SCOG.LeagueView(cog_stub, player)
+        rec.events.clear()                   # the constructor's read is not a click
+        btn = next(c for c in view.children
+                   if isinstance(c, SCOG.DifficultyButton)
+                   and c.difficulty == SD.NIGHTMARE)
+        await btn.callback(FakeInteraction(rec, player))
+
+    ev = await timeline(click_difficulty)
+    check("the difficulty toggle acknowledges before its read",
+          first_ack_before_first_read(ev), ev)
+
+    real_launch = SCOG.StoryCog.launch
+
+    async def click_battle(rec):
+        view = SCOG.LeagueView(cog_stub, player)
+        rec.events.clear()
+        sel = next(c for c in view.children
+                   if isinstance(c, SCOG.BattleSelect))
+        sel._values = ["1"]
+
+        async def fake_launch(self, interaction, member, n, difficulty):
+            # the real gate, without starting a battle
+            await interaction.response.defer()
+            SCOG.StoryCog._can_fight(self, member.id, n, difficulty)
+
+        view.cog = SCOG.StoryCog.__new__(SCOG.StoryCog)
+        view.cog._active = set()
+        view.cog.launch = fake_launch.__get__(view.cog)
+        await sel.callback(FakeInteraction(rec, player))
+
+    ev = await timeline(click_battle)
+    check("choosing a battle acknowledges before the unlock check reads",
+          first_ack_before_first_read(ev), ev)
+
+    launch_src = inspect.getsource(real_launch)
+    # `self._can_fight(`, not `_can_fight` — the comment above the defer names
+    # it too, and matching that would compare the wrong two positions.
+    check("the real `launch` defers before it calls the gate",
+          launch_src.index("response.defer")
+          < launch_src.index("self._can_fight("),
+          (launch_src.index("response.defer"),
+           launch_src.index("self._can_fight(")))
+    check("...and reports a refusal through followup, since the response is "
+          "already spent",
+          "followup.send" in inspect.getsource(real_launch))
+    check("a League battle runs as its own task, so a fight does not block "
+          "the panel for minutes",
+          "create_task" in inspect.getsource(real_launch))
+
+    lv_src = inspect.getsource(SCOG.LeagueView)
+    check("the League view reads the profile once per render, not twice",
+          lv_src.count("get_user(") == 2          # __init__ and refresh
+          and "profile = self.profile" in lv_src, lv_src.count("get_user("))
+
+    # ── 13. win rates, measured ──────────────────────────────────────────────
+    print("\n── 13. win rates, measured rather than assumed ─────────────────")
     normal, nightmare = await win_rate_table(trials)
     check("Normal is winnable overall", normal > 0.35, normal)
     check("Nightmare is winnable too — harder is not the same as shut",
