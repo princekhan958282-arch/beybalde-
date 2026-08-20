@@ -1,11 +1,21 @@
 """
 ui/level_up.py
 --------------
-Listens for the `level_up` bot event fired by award_xp() in profile.py.
+Listens for the `level_up` bot event and DMs the player their level-up card.
 
-- Sends a DM to the player only (no public channel spam)
-- Awards 1,000 coins per level gained
-- MAX_LEVEL guard prevents any loop
+This cog does NOT pay the coins, and that is the important line in this file.
+It used to: 1,000 flat per level gained, written straight to the profile. Two
+things were wrong with that.
+
+  * The event it listens for is dispatched by `cogs/economy/profile.award_xp`,
+    which has no callers anywhere in the bot. So this handler has never run and
+    nobody has ever been paid for a level.
+  * Even once it did run, paying here means the reward is owed to whichever
+    code path remembered to dispatch, rather than to the level itself.
+
+So as of v1.23 the coins are paid inside `utils.database.grant_xp` — the single
+choke point every XP grant in the game already goes through — and this file
+reports what was paid. If both paid, a level would be worth double.
 """
 
 from __future__ import annotations
@@ -14,20 +24,17 @@ import discord
 from discord.ext import commands
 
 from utils.database import (
-    get_stat_multiplier,
     xp_to_next_level,
     MAX_LEVEL,
     get_user,
-    update_user,
 )
 from utils.embeds import level_badge, xp_bar
-
-COINS_PER_LEVEL = 1_000
+from utils.trainer_levels import level_reward, level_up_payout
 
 # Milestone levels
 _MILESTONES: dict[int, tuple[str, str]] = {
     5:         ("🌟", "You're getting the hang of this!"),
-    10:        ("⚡", "Stat bonuses unlocked — you're stronger now!"),
+    10:        ("⚡", "Ten levels in — the payouts are getting real."),
     20:        ("🔥", "A seasoned Blader emerges!"),
     30:        ("💎", "Elite tier — very few reach here."),
     50:        ("👑", "Half-century legend. Incredible."),
@@ -72,21 +79,18 @@ class LevelUpCog(commands.Cog, name="LevelUp"):
             except discord.NotFound:
                 return
 
-        # ── Award coins (direct DB write, NOT via award_xp — no re-entry) ────
+        # ── Report the coins; `grant_xp` already paid them ────────────────────
+        # Read, never written. The same arithmetic as the payout, so the card
+        # and the balance can only ever agree.
         levels_gained = new_level - old_level
-        coin_reward   = COINS_PER_LEVEL * levels_gained
+        coin_reward   = level_up_payout(old_level, new_level)
         profile       = get_user(user_id)
-        profile["coins"] = profile.get("coins", 0) + coin_reward
-        update_user(user_id, profile)
 
         # ── Build embed data ──────────────────────────────────────────────────
         at_max    = new_level >= MAX_LEVEL
         badge     = level_badge(new_level)
         color     = _level_color(new_level)
         skipped   = levels_gained
-
-        mult      = get_stat_multiplier(user_id)
-        bonus_pct = int((mult - 1.0) * 100)
 
         total_xp              = profile.get("xp", 0)
         _, xp_need, xp_prog   = xp_to_next_level(total_xp)
@@ -105,10 +109,10 @@ class LevelUpCog(commands.Cog, name="LevelUp"):
             xp_line   = xp_bar(xp_prog, xp_need)
             next_line = f"Next level: **{xp_need - xp_prog:,} XP** to go"
 
-        stat_line = (
-            f"⚔️ All stats now `+{bonus_pct}%` in battle!"
-            if bonus_pct > 0
-            else "*(Reach Level 10 to unlock stat bonuses)*"
+        next_pay = level_reward(new_level + 1)
+        next_reward_line = (
+            f"🪙 Level **{new_level + 1}** pays **{next_pay:,}** coins"
+            if not at_max else "Nothing left to climb."
         )
 
         embed = discord.Embed(
@@ -122,7 +126,9 @@ class LevelUpCog(commands.Cog, name="LevelUp"):
         )
         embed.add_field(
             name="💰 Level Reward",
-            value=f"+**{coin_reward:,} coins** awarded!",
+            value=(f"+**{coin_reward:,} coins** awarded!"
+                   + (f"\n*Level {new_level} alone paid "
+                      f"{level_reward(new_level):,}.*" if skipped > 1 else "")),
             inline=False,
         )
         embed.add_field(
@@ -131,8 +137,8 @@ class LevelUpCog(commands.Cog, name="LevelUp"):
             inline=False,
         )
         embed.add_field(
-            name="💪 Battle Bonus",
-            value=stat_line,
+            name="⬆️ Next",
+            value=next_reward_line,
             inline=False,
         )
         if new_level in _MILESTONES:

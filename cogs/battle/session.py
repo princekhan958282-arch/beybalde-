@@ -112,7 +112,7 @@ def _effective_special(user_id, blade: Optional[dict]) -> int:
 from utils.database import (
     get_user, update_user, grant_xp,
     level_from_xp, xp_to_next_level, MAX_LEVEL,
-    XP_WIN, XP_LOSS, get_stat_multiplier,
+    XP_WIN, XP_LOSS, get_stat_multiplier, level_up_payout,
 )
 from utils.embeds import rarity_colour, RARITY_EMOJIS, hp_bar, level_badge
 from utils.hp_system import max_hp_for_blade, blade_hp_stat
@@ -592,8 +592,9 @@ class BattleSession:
         return avatar_engine.get_battle_bonuses(player_id)
 
     def _stat_mult_for(self, player_id) -> float:
-        # Trainer level and blade mastery are player progression. An opponent
-        # fielded at a fixed level has neither.
+        # Blade mastery is player progression — the trainer-level half of this
+        # was removed in v1.23. An opponent fielded at a fixed level has no
+        # mastery either.
         if self._is_npc(player_id):
             return 1.0
         return get_stat_multiplier(
@@ -1357,11 +1358,18 @@ class BattleSession:
             # mutated in memory only, so the result embed still renders from it
             # while nothing is written and no XP is granted. Story pays its own
             # reward once for the whole match instead of once per round.
+            # Level-up coins are paid inside `grant_xp`. The amount is computed
+            # here rather than returned, because `w_profile` still holds the
+            # PRE-grant XP — so the same `level_up_payout` the payment used can
+            # be evaluated exactly, with no second profile read and no change
+            # to `grant_xp`'s three-tuple.
             if self.payout:
+                _w_before = level_from_xp(w_profile.get("xp", 0))
                 update_user(winner.id, w_profile)
                 wlvl, _, w_up = grant_xp(winner.id, XP_WIN)
+                w_coins = level_up_payout(_w_before, wlvl)
             else:
-                wlvl, w_up = 0, False
+                wlvl, w_up, w_coins = 0, False, 0
 
             l_profile            = self._profile_for(loser.id)
             l_profile["losses"] += 1
@@ -1370,10 +1378,12 @@ class BattleSession:
                 RK.apply_ranked_loss(l_profile)   # score down, streak broken
             _bey_xp(l_profile, self.blades.get(str(loser.id)), won=False)
             if self.payout:
+                _l_before = level_from_xp(l_profile.get("xp", 0))
                 update_user(loser.id, l_profile)
                 llvl, _, l_up = grant_xp(loser.id, XP_LOSS)
+                l_coins = level_up_payout(_l_before, llvl)
             else:
-                llvl, l_up = 0, False
+                llvl, l_up, l_coins = 0, False, 0
 
             w_blade  = self.blades[str(winner.id)]
             w_rarity = w_blade.get("rarity", "Common")
@@ -1405,10 +1415,10 @@ class BattleSession:
                        f"point{'s' if RK.finish_points(kind) != 1 else ''})*"
                        if self.ranked else "") + "\n\n"
                     f"🌀 **{w_name}** +{XP_WIN} XP → Level **{wlvl}** "
-                    f"{'⬆️ LEVEL UP! ' if w_up else ''}"
+                    f"{f'⬆️ LEVEL UP! +{w_coins:,} 💰 ' if w_up else ''}"
                     f"{w_rank} | +{COINS_WIN} 💰\n"
                     f"💀 **{l_name}** +{XP_LOSS} XP → Level **{llvl}** "
-                    f"{'⬆️ LEVEL UP! ' if l_up else ''}"
+                    f"{f'⬆️ LEVEL UP! +{l_coins:,} 💰 ' if l_up else ''}"
                     f"{l_rank} | +{COINS_LOSS} 💰"
                     + (f"\n\n🔥 **{streak} WIN STREAK!** Bonus: **+{streak_bonus}** 💰"
                        if streak_bonus else

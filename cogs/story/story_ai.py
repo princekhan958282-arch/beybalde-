@@ -70,6 +70,20 @@ _FALLBACK_ORDER = (MOVE_STAMINA, MOVE_CHARGE, MOVE_DEFENSE, MOVE_ATTACK,
 # decision improvement, not a stat multiplier — which is the whole basis the
 # difficulty modes were asked to be built on.
 #
+# HOW MUCH IT IS WORTH, measured rather than assumed. Paired runs, identical
+# seeds, 160 matches per cell, a level-100 player against the whole League:
+#
+#     Normal    IQ 3                 91.2% player win rate
+#     Nightmare IQ 5, guard off      85.6%
+#     Nightmare IQ 5, guard on       83.8%
+#
+# So the IQ rung is doing the work — 5.6 points — and this guard adds about
+# 1.8 more, which at n=160 is three matches and inside the noise. It fires
+# roughly once every 24 battles, because reaching 0 stability takes ten
+# straight attacks and most battles end first. Keep it because never ringing
+# yourself out is strictly correct play and it costs one comparison; do not
+# reach for it as the lever if Nightmare ever needs to be genuinely harder.
+#
 # The numbers are imported from the real table rather than retyped. They are
 # the guaranteed component only; counters, clashes and blocks move stability
 # too and depend on what the other side plays, which is exactly the part that

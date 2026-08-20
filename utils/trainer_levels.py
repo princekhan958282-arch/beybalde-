@@ -29,6 +29,23 @@ cap costs nobody anything; rescaling the curve would silently re-level every
 profile in the store overnight, and the highest player in the live registry is
 level 57 — so the old cap was never actually reached, and the new range is
 headroom rather than a promotion.
+
+What a level is worth
+---------------------
+Coins, and nothing else. Reaching level N pays `N x 100` — level 2 pays 200,
+level 3 pays 300, and so on up.
+
+Trainer level used to also grant a flat stat multiplier (+2% per 10 levels, to
+a +20% ceiling). That is gone as of v1.23: it applied equally to attack,
+defence and stamina, so it never changed a decision, only made the same battle
+resolve faster for whoever had played longer. A coin is a reward the player can
+spend; a scalar on every stat at once is a tax on everyone who started later.
+
+The arithmetic lands where it does for a reason. XP from level N-1 to N is
+`50(N² - (N-1)²)` = `100N - 50`, and the reward for reaching N is `100N`. So the
+payout is almost exactly **one coin per XP earned, at every level forever** —
+the reward curve is the derivative of the XP curve. Nothing has to be re-tuned
+as the cap rises, and no level is a better or worse deal than any other.
 """
 
 from __future__ import annotations
@@ -42,6 +59,10 @@ MAX_LEVEL = 9999
 
 # XP per level-squared. `xp_for_level(1)` is 50, `xp_for_level(100)` is 500,000.
 XP_PER_LEVEL_SQ = 50
+
+# Coins paid for reaching a level, per level number. Level 2 pays 200, level 3
+# pays 300, level 100 pays 10,000.
+COINS_PER_LEVEL = 100
 
 
 def xp_for_level(level: int) -> int:
@@ -72,3 +93,33 @@ def xp_to_next_level(xp: int) -> tuple[int, int, int]:
     current_floor = xp_for_level(lvl)
     next_floor = xp_for_level(lvl + 1)
     return lvl, next_floor - current_floor, int(xp) - current_floor
+
+
+def level_reward(level: int) -> int:
+    """Coins for reaching this level. Level 2 is 200, level 3 is 300.
+
+    Level 0 and anything below it pay nothing: level 0 is where a profile
+    starts, so paying for it would hand every new account a bonus for existing.
+    """
+    level = int(level)
+    if level < 1 or level > MAX_LEVEL:
+        return 0
+    return level * COINS_PER_LEVEL
+
+
+def level_up_payout(old_level: int, new_level: int) -> int:
+    """Coins for every level crossed going from `old_level` to `new_level`.
+
+    Summed rather than "levels gained x a flat rate", because the reward is not
+    flat: one grant that jumps a player from 3 to 6 owes 400 + 500 + 600, and
+    paying `3 x 600` or `3 x 100` would both be wrong. A big XP drop and a
+    slow climb through the same levels are worth exactly the same.
+    """
+    old_level = max(0, int(old_level))
+    new_level = min(MAX_LEVEL, int(new_level))
+    if new_level <= old_level:
+        return 0
+    # Closed form for the sum of an arithmetic run — a loop here would run
+    # 9,999 times for one `;givexp` of a few billion.
+    lo, hi = old_level + 1, new_level
+    return COINS_PER_LEVEL * (lo + hi) * (hi - lo + 1) // 2

@@ -57,10 +57,12 @@ def _apply_parts(blade: dict, profile: dict) -> dict:
     every card go through `loadout.effective_blade`, which grows stats along the
     bey's TYPE archetype — attack blades gain attack fastest, defence blades
     defence. PvP did not: it fed the printed stats straight in and relied on
-    `get_stat_multiplier`, a flat trainer-level scalar applied equally to all
-    three stats. So a level-100 Dead Phoenix fought a boss at 217/493/289 and a
-    player at 93/187/121, and levelling raised every bey's attack at exactly the
-    same rate as its defence whatever its type.
+    `get_stat_multiplier`, which at the time was a flat trainer-level scalar
+    applied equally to all three stats. So a level-100 Dead Phoenix fought a
+    boss at 217/493/289 and a player at 93/187/121, and levelling raised every
+    bey's attack at exactly the same rate as its defence whatever its type.
+    (That trainer scalar is gone as of v1.23 — `get_stat_multiplier` now
+    carries blade mastery only, and trainer level pays coins instead.)
 
     HP and SPECIAL are deliberately left alone. `session.py` already levels
     those on their own paths (`_level_hp_gain`, `_effective_special`) — HP has
