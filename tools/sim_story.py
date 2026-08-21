@@ -133,6 +133,18 @@ from utils import ranked as RK                                   # noqa: E402
 from utils.database import get_beyblade                          # noqa: E402
 
 
+class _NoCardSession:
+    """Just enough session for `_bonuses_for` to answer for a card-less NPC."""
+
+    npc_controller = type("C", (), {"key": "999", "avatar_id": None})()
+
+    def _is_npc(self, pid):
+        return True
+
+    def _avatar_card_for(self, pid):
+        return {}
+
+
 # ── Discord stand-ins ─────────────────────────────────────────────────────────
 class FakeMessage:
     def __init__(self, payload):
@@ -245,16 +257,26 @@ class Brain:
 
 
 def build_session(player, pblade, npc_blade, hp_gain, rung, *,
-                  payout=False, spend_energy=True, seed=0, battle_no=1):
+                  payout=False, spend_energy=True, seed=0, battle_no=1,
+                  victory_points=None):
+    """A League round, built the way `LeagueMatch._rounds` builds one.
+
+    Kept deliberately in step with the real constructor — including the blader
+    card and the Victory-Point score — because a harness that drops an argument
+    tests a battle nobody plays.
+    """
     ch = FakeChannel()
     npc = NPCFighter(battle_no, npc_blade["name"])
+    entry = SD.battle(battle_no) or {}
     ctrl = LeagueOpponent(npc, npc_blade, difficulty=rung,
                           level=SD.OPPONENT_LEVEL, hp_gain=hp_gain,
-                          rng=random.Random(seed))
+                          rng=random.Random(seed),
+                          avatar_id=entry.get("avatar"))
     s = BattleSession(bot=None, channel=ch, p1=player, p2=npc,
                       blade1=pblade, blade2=npc_blade, ranked=False,
                       npc_controller=ctrl, payout=payout,
-                      spend_energy=spend_energy)
+                      spend_energy=spend_energy,
+                      victory_points=victory_points)
     return s, ch, npc, ctrl
 
 
@@ -270,15 +292,22 @@ async def drive(session, player_key, policy, cap=80):
 
 
 async def play_match(player, pblade, npc_blade, hp_gain, rung, seed=0,
-                     hum="elite"):
-    """The Victory-Point loop, run the way `LeagueMatch` runs it."""
+                     hum="elite", battle_no=1):
+    """The Victory-Point loop, run the way `LeagueMatch` runs it.
+
+    `battle_no` is NOT decorative and defaulting it silently was a measurement
+    bug: `build_session` looks the opponent's blader card up by battle number,
+    so a table that leaves it at 1 fights Rantaro's card in all eight cells and
+    reports one opponent eight times.
+    """
     pts = {"p": 0, "n": 0}
     rounds = turns = 0
     finishes = []
     while max(pts.values()) < SD.VICTORY_TARGET and rounds < SD.MAX_ROUNDS:
         rounds += 1
         s, _ch, npc, _c = build_session(player, pblade, npc_blade, hp_gain,
-                                        rung, seed=seed * 100 + rounds)
+                                        rung, seed=seed * 100 + rounds,
+                                        battle_no=battle_no)
         pk, nk = str(player.id), str(npc.id)
         turns += await drive(s, pk, Brain(hum, seed * 100 + rounds))
         w = getattr(s, "winner_id", None)
@@ -488,8 +517,16 @@ async def suite(trials: int) -> None:
     stub["coins"] = 999999
     check("...and mutating it changes nothing anyone can see",
           s2._profile_for(npc2.id)["coins"] == 0)
-    check("the NPC gets no avatar bonuses",
-          not s2._bonuses_for(npc2.id).has_any_bonus)
+    # v1.25: an opponent DOES get avatar bonuses now — its blader card. What
+    # must stay true is that it reads them off the card and never off a
+    # profile, which is what the store-log checks above prove.
+    check("the NPC's bonuses come from its blader card",
+          s2._bonuses_for(npc2.id).has_any_bonus
+          and s2._avatar_card_for(npc2.id).get("rarity") == "Blader",
+          s2._avatar_card_for(npc2.id).get("id"))
+    check("...and an opponent with no card configured still gets nothing",
+          not SESSION.BattleSession._bonuses_for(
+              _NoCardSession(), 999).has_any_bonus)
     check("the NPC gets no trainer/mastery multiplier",
           s2._stat_mult_for(npc2.id) == 1.0)
     check("the NPC's blade level is the League's, not a profile's",
@@ -662,7 +699,7 @@ async def suite(trials: int) -> None:
 
     seed_profile()
     pts, rounds, turns, finishes = await play_match(
-        player, pblade, nblade, ngain, "elite", seed=5)
+        player, pblade, nblade, ngain, "elite", seed=5, battle_no=5)
     check("a real match reached the target",
           max(pts.values()) >= SD.VICTORY_TARGET, pts)
     check("...and stopped there rather than playing on",
@@ -1014,7 +1051,8 @@ async def win_rate_table(trials: int) -> tuple[float, float]:
             wins, turns = 0, []
             for t in range(trials):
                 pts, _r, tn, _f = await play_match(
-                    player, pblade, nb, ng, SD.AI_RUNG[diff], seed=t + 1)
+                    player, pblade, nb, ng, SD.AI_RUNG[diff], seed=t + 1,
+                    battle_no=e["n"])
                 wins += pts["p"] > pts["n"]
                 turns.append(tn)
             cell[diff] = wins

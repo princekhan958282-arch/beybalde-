@@ -52,6 +52,7 @@ from typing import Any
 
 from cogs.battle.constants import (
     MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_SPECIAL, MOVE_CHARGE,
+    SPECIAL_GAUGE_MAX,
 )
 from cogs.battle.damage_filter import DamageFilter
 from .legacy_convert import legacy_convert
@@ -223,7 +224,61 @@ class AbilityEngine:
         # honour ability_2 disable for rule sets too (rules tagged with _ab_index)
         if key and self.ability_2_disabled.get(key):
             out = [(i, r) for i, r in out if r.get("_ab_index") != 1]
+        if key:
+            out = out + self._avatar_rules_for(key)
         return out
+
+    # Avatar rule ids start here so they can never collide with a blade's.
+    # `rid` keys per-rule battle state — `once_fired`, and the counters an
+    # ability builds — so two rules sharing an id would let one consume the
+    # other's stacks. No blade has anything near this many rules.
+    AVATAR_RID_BASE = 10_000
+
+    def _avatar_rules_for(self, key: str) -> list[tuple[int, dict]]:
+        """Compiled rules from the avatar this side is wearing.
+
+        Avatar SKILLS are written in the same DSL blades use, so they reach the
+        battle through the same triggers rather than through a second engine.
+        Which skills are live is not decided here:
+
+          * a player spends energy on ONE slot, and `session.skill_commit`
+            records which — only that slot's rules compile;
+          * a League opponent has no energy pool, so all three of its skills
+            are live at once.
+
+        Cached per (avatar id, slot) exactly as blade rules cache per form.
+        Swallows everything: a malformed card must not stop a battle.
+        """
+        try:
+            card = (getattr(self.session, "avatar_cards", None) or {}).get(key)
+            if not card:
+                return []
+            skills = card.get("skills") or []
+            if not skills:
+                return []
+            slot = (getattr(self.session, "avatar_skill_slots", None)
+                    or {}).get(key)
+            cache_key = f"@avatar:{card.get('id', '?')}#{slot}"
+            if cache_key not in self._compiled:
+                live = skills if slot in (None, 0) else [
+                    skills[slot - 1]] if 1 <= slot <= len(skills) else []
+                rules: list[dict] = []
+                for _i, sk in enumerate(live):
+                    for _r in (sk.get("rules") or []):
+                        if not isinstance(_r, dict):
+                            continue
+                        _r = dict(_r)
+                        _r.setdefault("_name", sk.get("name", card.get("name")))
+                        # Deliberately NOT `_ab_index`: "disable the enemy's
+                        # 2nd ability" is about the blade's abilities, and an
+                        # avatar skill is not one of them.
+                        _r["_avatar"] = True
+                        rules.append(_r)
+                self._compiled[cache_key] = [
+                    (self.AVATAR_RID_BASE + i, r) for i, r in enumerate(rules)]
+            return self._compiled[cache_key]
+        except Exception:                                # noqa: BLE001
+            return []
 
     # =========================================================================
     #  Condition evaluation
@@ -241,6 +296,37 @@ class AbilityEngine:
             return cur / mx
         except Exception:
             return 1.0
+
+    def _stability_pct(self, key: str) -> float:
+        """Stability as a fraction of this blade's own starting bar.
+
+        Defence types start at 150 and everyone else at 100, so an absolute
+        threshold would mean two different things depending on who is holding
+        it. Missing manager reads as full, which fails an `above` gate closed
+        only if the caller asked for more than 1.0.
+        """
+        try:
+            sm = self.session.stability_manager
+            cur = sm.stability.get(key, 0)
+            mx = (getattr(sm, "max", {}) or {}).get(key) or 100
+            return cur / mx
+        except Exception:                                # noqa: BLE001
+            return 1.0
+
+    def _gauge(self, key: str) -> float:
+        try:
+            return float(self.session.stamina_manager.gauge.get(key, 0.0))
+        except Exception:                                # noqa: BLE001
+            return 0.0
+
+    def _move_tally(self, key: str) -> dict:
+        """How many times this side has played each move so far.
+
+        `BattleSession` records it — see `move_counts` there. Absent (an older
+        session, a harness) it reads empty, which fails every gate built on it
+        closed rather than making one fire for free.
+        """
+        return (getattr(self.session, "move_counts", None) or {}).get(key, {})
 
     def _check(self, cond: dict, key: str, okey: str, move: str, matchup: str) -> bool:
         c = cond.get("cond")
@@ -359,6 +445,48 @@ class AbilityEngine:
             return (self.session.blades.get(okey, {}).get("type", "")).lower() == str(v).lower()
         if c == "my_type_is":
             return (self.session.blades.get(key, {}).get("type", "")).lower() == str(v).lower()
+        if c == "stability_above_pct":
+            return self._stability_pct(key) >= float(v)
+        if c == "stability_below_pct":
+            return self._stability_pct(key) < float(v)
+        if c == "gauge_at_least":
+            # The Special gauge, absolute. `SPECIAL_GAUGE_MAX` is the charged
+            # value, so "when Special is charged" is written as that number
+            # rather than a fraction nobody would recognise.
+            try:
+                return self._gauge(key) >= float(v)
+            except (TypeError, ValueError):
+                return False
+        if c == "move_variety_at_least":
+            # How many DISTINCT moves this side has played. "Winning different
+            # action types" is a breadth condition, not a count of wins, and
+            # there was no way to express breadth at all.
+            try:
+                return len([m for m, n in self._move_tally(key).items() if n]) \
+                    >= int(v)
+            except (TypeError, ValueError):
+                return False
+        if c == "enemy_most_used_move_is":
+            # Reads the opponent's habit, for abilities that adapt to it. Ties
+            # and an empty tally both fail closed — adapting to nothing is not
+            # adapting.
+            tally = self._move_tally(okey)
+            if not tally:
+                return False
+            top = max(tally.values())
+            leaders = [m for m, n in tally.items() if n == top]
+            return len(leaders) == 1 and leaders[0] == v
+        if c == "behind_on_points":
+            # Story Mode only. `BattleSession.victory_points` is (mine, theirs)
+            # for the side this session belongs to, set by the League match and
+            # None in every PvP battle — so a rule built on this is simply
+            # inert outside the League rather than wrong inside it.
+            vp = getattr(self.session, "victory_points", None) or {}
+            try:
+                mine, theirs = int(vp.get(key, 0)), int(vp.get(okey, 0))
+            except (AttributeError, TypeError, ValueError):
+                return False
+            return mine < theirs
         return False  # unknown condition blocks (fail-closed: a typo'd cond
                       # should never make an ability fire unconditionally)
 
@@ -1046,6 +1174,22 @@ class AbilityEngine:
                     else:
                         logs.append(f"🪫 **{ab_name}** — {amt:g} stamina!")
                 except Exception:
+                    pass
+            elif kind == "gain_gauge":
+                # Special-gauge charge, the resource the Charge move builds.
+                # Every other resource on the board — HP, stamina, stability —
+                # already had an op and this one did not, so an ability could
+                # never hand back progress toward a Special.
+                try:
+                    sm = self.session.stamina_manager
+                    cap = float(SPECIAL_GAUGE_MAX)
+                    cur = float(sm.gauge.get(key, 0.0))
+                    new_g = max(0.0, min(cap, cur + float(val)))
+                    gained = round(new_g - cur, 2)
+                    sm.gauge[key] = round(new_g, 2)
+                    if gained > 0:
+                        logs.append(f"🌟 **{ab_name}** — +{gained:g} Special gauge!")
+                except Exception:                        # noqa: BLE001
                     pass
             elif kind == "steal_hp":
                 take = min(int(val), max(0, self.session.hp.get(okey, 0)))

@@ -24,6 +24,9 @@ RARITY_COLORS: dict[str, int] = {
     # than inside one, so the existing packs cannot roll it by accident: every
     # pack filters candidates by an explicit rarity pool.
     "MLBB":      0x00E5A0,
+    # The School League bladers — Season 1's cast. Their own tier for the same
+    # reason MLBB is: a closed banner no other pack can reach.
+    "Blader":    0xE67E22,
 }
 
 RARITY_EMOJI: dict[str, str] = {
@@ -35,11 +38,17 @@ RARITY_EMOJI: dict[str, str] = {
     "Ultimate":  "🩵",
     "Exclusive": "💎",
     "MLBB":      "🌟",
+    "Blader":    "🏫",
 }
 
 RARITY_ORDER: list[str] = [
-    "Common", "Rare", "Epic", "Legendary", "Mythic", "Ultimate", "Exclusive",
-    "MLBB",
+    # `Blader` sits between Legendary and Mythic on purpose. It is a closed
+    # tier like MLBB, but it is a 250,000-coin story reward, not a 15,000,000
+    # banner, and the eight cards are pitched around Legendary. Ranking them
+    # above Ultimate because they happen to be newer would missort every
+    # collection.
+    "Common", "Rare", "Epic", "Legendary", "Blader", "Mythic", "Ultimate",
+    "Exclusive", "MLBB",
 ]
 
 

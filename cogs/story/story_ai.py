@@ -212,7 +212,7 @@ class LeagueOpponent:
 
     def __init__(self, member, blade: dict, difficulty: str,
                  level: int = 100, hp_gain: int = 0,
-                 rng=None) -> None:
+                 rng=None, avatar_id: Optional[str] = None) -> None:
         self.member = member
         self.key = str(member.id)
         self.blade = blade
@@ -220,6 +220,10 @@ class LeagueOpponent:
         self.level = int(level)
         self.hp_gain = int(hp_gain)
         self.rng = rng
+        # The blader card this opponent fights as. Read by
+        # `BattleSession._avatar_card_for`, which looks it up straight from the
+        # avatar roster — an NPC has no profile to equip anything from.
+        self.avatar_id = avatar_id
         # Read by `BattleSession._profile_for`. Empty on purpose: an opponent
         # has no parts, no avatar and no mastery.
         self.profile: dict = {}

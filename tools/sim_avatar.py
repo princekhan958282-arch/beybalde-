@@ -341,12 +341,29 @@ def _want(card):
                  + (HP_DEF_BUMP if card.get("type") == "defense" else 0.0), 4)
 
 
-check(f"all {len(_CARDS)} cards are on a known rarity band",
-      all(c["rarity"] in HP_BAND for c in _CARDS),
-      sorted({c["rarity"] for c in _CARDS} - set(HP_BAND)))
+# The band governs hp_PERCENT, which multiplies a ~2,100 pool and therefore
+# needs a ceiling that rises with rarity. The School League bladers state HP as
+# a FLAT number instead — 120, 135, … — because that is what their design
+# specifies, and a flat pool bonus does not scale with the pool, so it needs no
+# band. They are exempted here explicitly rather than by a silent `.get`, and
+# the exemption is asserted below so it cannot quietly widen.
+_FLAT_HP_RARITIES = {"Blader"}
+_BANDED = [c for c in _CARDS if c["rarity"] not in _FLAT_HP_RARITIES]
+
+check(f"all {len(_BANDED)} percent-HP cards are on a known rarity band",
+      all(c["rarity"] in HP_BAND for c in _BANDED),
+      sorted({c["rarity"] for c in _BANDED} - set(HP_BAND)))
+_flat = [c for c in _CARDS if c["rarity"] in _FLAT_HP_RARITIES]
+check("...and the flat-HP tier really does use flat HP, not a zeroed percent "
+      "hiding a missing band",
+      bool(_flat) and all(c["bonuses"]["hp_flat"] > 0
+                          and c["bonuses"]["hp_percent"] == 0 for c in _flat),
+      [(c["id"], c["bonuses"]["hp_flat"], c["bonuses"]["hp_percent"])
+       for c in _flat if not (c["bonuses"]["hp_flat"] > 0
+                              and c["bonuses"]["hp_percent"] == 0)])
 
 _zero = []
-for c in _CARDS:
+for c in _BANDED:
     want = _want(c)
     if c.get("skills"):
         # bonuses_for zeroes a skill card's top-level block and writes back
@@ -403,13 +420,14 @@ check("a defence card outranks a non-defence card of the same rarity",
 from cogs.avatar.avatar_utils import format_bonuses_summary        # noqa: E402
 _noline = [c["name"] for c in _CARDS
            if "HP" not in format_bonuses_summary(c.get("bonuses") or {})]
-check("all 36 cards show an HP line in the shop", not _noline, _noline)
+check(f"all {len(_CARDS)} cards show an HP line in the shop — flat or "
+      f"percent", not _noline, _noline)
 check("...and the line shows the real number",
       all(f"{_want(c):.0%}".rstrip("%") in
           format_bonuses_summary(c["bonuses"]).replace("+", "")
           or f"{_want(c) * 100:g}" in format_bonuses_summary(c["bonuses"])
-          for c in _CARDS),
-      format_bonuses_summary(_CARDS[0]["bonuses"]))
+          for c in _BANDED),
+      format_bonuses_summary(_BANDED[0]["bonuses"]))
 
 print(f"\n{'─' * 66}\n  the HP% ceiling\n{'─' * 66}")
 check("there is a cap", hasattr(_AB, "HP_PERCENT_CAP"))
@@ -417,7 +435,7 @@ check("...set above the top of the curve, so it guards rather than tunes",
       _AB.HP_PERCENT_CAP > max(HP_BAND.values()) + HP_DEF_BUMP,
       _AB.HP_PERCENT_CAP)
 check("no shipped card is anywhere near it",
-      all(_want(c) <= _AB.HP_PERCENT_CAP for c in _CARDS))
+      all(_want(c) <= _AB.HP_PERCENT_CAP for c in _BANDED))
 _over = _AB(hp_percent=12.0)          # the +1200% typo the validator allowed
 check("a wildly out-of-range value is clamped, not applied",
       _over.apply_hp_bonus(2000) == 2000 * (1 + _AB.HP_PERCENT_CAP),

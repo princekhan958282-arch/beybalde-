@@ -90,7 +90,7 @@ Public API
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from cogs.abilities.type_system import resolve_active_bonuses
 
@@ -157,7 +157,8 @@ class StabilityManager:
     All methods are synchronous.
     """
 
-    def __init__(self, blades: dict[str, dict], type_mods: dict) -> None:
+    def __init__(self, blades: dict[str, dict], type_mods: dict,
+                 avatar_bonuses: Optional[dict] = None) -> None:
         self._blades = blades
         self.stability: dict[str, int] = {}
         # Starting stability doubles as the CEILING: recovery (stamina +25,
@@ -168,6 +169,22 @@ class StabilityManager:
         for key in blades:
             mod = type_mods.get(key)
             start = mod.stability_start if mod is not None else STABILITY_DEFAULT
+            # The avatar's stability line, folded in here.
+            #
+            # `AvatarBonuses.stability_flat` / `stability_percent` and
+            # `apply_stability_bonus` were written when the avatar system was
+            # built and had NO CALLERS ANYWHERE — every card advertising a
+            # stability bonus in the shop was advertising nothing, because the
+            # only bar in the game was built from the type table alone. This
+            # is the seam it should always have gone through: it raises the
+            # starting value AND the ceiling together, which is what "more
+            # stability" means when the two are the same number.
+            av = (avatar_bonuses or {}).get(key)
+            if av is not None:
+                try:
+                    start = int(round(av.apply_stability_bonus(float(start))))
+                except Exception:                        # noqa: BLE001
+                    pass
             self.stability[key] = start
             self.max[key] = start
 

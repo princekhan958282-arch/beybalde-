@@ -473,6 +473,51 @@ def grant_xp(user_id: int, xp_amount: int,
     return new_level, new_xp, (new_level > old_level)
 
 
+def claim_once(user_id: int, key: str) -> bool:
+    """Flip a one-time flag on a profile. True ONLY for the caller that flipped it.
+
+    The read and the write happen inside `_users_lock` together, which is the
+    whole point: two wins landing at the same moment cannot both see the flag
+    unset and both pay out. A read-modify-write split across the lock — check
+    here, set there — is the shape that hands out two of a once-ever reward,
+    and no amount of UI guarding fixes it because the UI is not where the race
+    is.
+
+    Deliberately generic. It is the reward-claim primitive, not one reward's:
+    `starter_claimed` and the quest ledger both grew their own version of this
+    and both are read-modify-write outside a lock.
+    """
+    with _users_lock:
+        uid = str(user_id)
+        profile = USER_STORE.get_one(uid) or _default_profile(uid)
+        if profile.get(key):
+            return False
+        profile[key] = True
+        USER_STORE.put_one(uid, profile)
+    return True
+
+
+def release_claim(user_id: int, key: str) -> None:
+    """Undo a claim whose reward could not be delivered.
+
+    `claim_once` marks BEFORE the reward is handed over, because paying twice
+    is the failure that matters. That leaves one hole — marked, then the grant
+    raised — and this closes it. Never call it on a delivered reward.
+    """
+    with _users_lock:
+        uid = str(user_id)
+        profile = USER_STORE.get_one(uid)
+        if not profile or not profile.get(key):
+            return
+        profile[key] = False
+        USER_STORE.put_one(uid, profile)
+
+
+def has_claimed(user_id: int, key: str) -> bool:
+    """Read a claim flag without touching it."""
+    return bool(get_user(user_id).get(key))
+
+
 def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) -> float:
     """
     A damage/stat multiplier from BLADE MASTERY, and nothing else.

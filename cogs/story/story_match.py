@@ -99,7 +99,8 @@ class LeagueMatch:
         npc_member = NPCFighter(self.battle_no, opponent_blade.get("name", "?"))
         controller = LeagueOpponent(
             npc_member, opponent_blade, difficulty=rung,
-            level=SD.OPPONENT_LEVEL, hp_gain=hp_gain)
+            level=SD.OPPONENT_LEVEL, hp_gain=hp_gain,
+            avatar_id=self.entry.get("avatar"))
 
         try:
             await self._rounds(npc_member, controller, opponent_blade)
@@ -138,6 +139,10 @@ class LeagueMatch:
                 npc_controller=controller,
                 payout=False,
                 spend_energy=True,
+                # The running score, so a skill can read "behind on points".
+                # None in PvP, where there is no score to be behind on.
+                victory_points={pkey: self.points["player"],
+                                nkey: self.points["npc"]},
             )
             await session.run()
 
@@ -161,7 +166,8 @@ class LeagueMatch:
                 f"R{self.rounds}: {label} — **{who}** +{gained}")
 
     # ── the card ─────────────────────────────────────────────────────────────
-    def result_embed(self, coins: int, first: bool) -> discord.Embed:
+    def result_embed(self, coins: int, first: bool,
+                     card: Optional[dict] = None) -> discord.Embed:
         won = bool(self.won)
         e = discord.Embed(
             title=("🏆 VICTORY" if won else "💀 DEFEAT"),
@@ -178,4 +184,15 @@ class LeagueMatch:
                 e.add_field(name="Reward",
                             value="*already cleared — replays pay nothing*",
                             inline=True)
+        if card:
+            # The League is finished. One blader joins the player's collection,
+            # once ever — the same card the opponents fight as.
+            e.add_field(
+                name="🏫 School League complete",
+                value=(f"**{card.get('name', card.get('id', '?'))}** joins your "
+                       f"collection!\n`;equipavatar {card.get('id', '')}` to "
+                       f"take them into a battle."),
+                inline=False)
+            if card.get("image"):
+                e.set_thumbnail(url=card["image"])
         return e

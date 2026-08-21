@@ -315,6 +315,16 @@ def bonuses_for(avatar: Optional[dict], slot: int) -> dict:
     if not has_skills(avatar):
         return dict(card)
 
+    # `stats_always_on` cards keep their whole statline whatever slot is
+    # picked, and their skills carry no stat block at all — the skill is a
+    # triggered EFFECT, written in the ability DSL. The School League bladers
+    # are built that way: a statline plus three moves, not three statlines.
+    #
+    # Every card written before this flag existed omits it, so all of them go
+    # down the narrowing path exactly as before.
+    if (avatar or {}).get("stats_always_on"):
+        return dict(card)
+
     out = {k: (v if k in CARD_LEVEL_BONUS_KEYS
                else (False if isinstance(v, bool) else 0))
            for k, v in card.items()}

@@ -1474,6 +1474,856 @@
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false
       }
+    },
+    {
+      "id": "avatar_s101",
+      "name": "Rantaro Kiyama",
+      "rarity": "Blader",
+      "type": "stamina",
+      "price": 0,
+      "description": "Never stops spinning, and never stops talking about it. Rantaro wins by still being there when you are not.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1540054504131526677/389bb2f32ad5e088caee56f0a2a43ab2.jpg",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "school_league_bey": "Rising Roktavor",
+      "theme": "Stamina",
+      "skills": [
+        {
+          "name": "Roktavor Rush",
+          "description": "Winning an Attack matchup builds Attack — up to five times.",
+          "rules": [
+            {
+              "when": "on_attack_win",
+              "do": [
+                {
+                  "op": "stacking_buff",
+                  "stat": "attack",
+                  "value": 6,
+                  "max": 5,
+                  "name": "roktavor_rush"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Stamina Wheel",
+          "description": "Winning a Stamina matchup restores 1.5 stamina.",
+          "rules": [
+            {
+              "when": "on_stamina_win",
+              "do": [
+                {
+                  "op": "gain_stamina",
+                  "value": 1.5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Relentless Spin",
+          "description": "Below 35% stamina: +15 stability and 18% less damage taken.",
+          "rules": [
+            {
+              "when": "on_low_stamina",
+              "do": [
+                {
+                  "op": "gain_stability",
+                  "value": 15
+                },
+                {
+                  "op": "reduce_damage_pct",
+                  "value": 18
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 35.0,
+        "attack_percent": 0.16,
+        "defence_flat": 28.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 42.0,
+        "stamina_percent": 0.18,
+        "stability_flat": 30.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 120.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_s102",
+      "name": "Ken Midori",
+      "rarity": "Blader",
+      "type": "defense",
+      "price": 0,
+      "description": "Three heads, one wall. Ken lets you tire yourself out against it.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1540054528684982272/caf89ecbe512994dcf0c87d3f114a1ae.jpg",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "school_league_bey": "King Kerbeus",
+      "theme": "Defense",
+      "skills": [
+        {
+          "name": "Guardian Wall",
+          "description": "A successful Defense cuts incoming damage by 22%.",
+          "rules": [
+            {
+              "when": "on_defense_win",
+              "do": [
+                {
+                  "op": "reduce_damage_pct",
+                  "value": 22
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Kerbeus Lock",
+          "description": "A successful Defense has a 40% chance to drain 1.5 of the opponent's stamina.",
+          "rules": [
+            {
+              "when": "on_defense_win",
+              "chance": 0.4,
+              "do": [
+                {
+                  "op": "drain_stamina",
+                  "value": 1.5
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Fortress Core",
+          "description": "Below half HP: +20 stability every round.",
+          "rules": [
+            {
+              "when": "on_low_hp",
+              "do": [
+                {
+                  "op": "gain_stability",
+                  "value": 20
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 27.0,
+        "attack_percent": 0.0,
+        "defence_flat": 45.0,
+        "defence_percent": 0.2,
+        "stamina_flat": 35.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 42.0,
+        "stability_percent": 0.22,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 135.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_s103",
+      "name": "Daigo Kurogami",
+      "rarity": "Blader",
+      "type": "attack",
+      "price": 0,
+      "description": "The scythe finds the gap your guard leaves open, and then it finds it again.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1540054558737305690/323b5126fa107fae243e819e87bed81b.jpg",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "school_league_bey": "Hollow Deathscyther",
+      "theme": "Attack",
+      "skills": [
+        {
+          "name": "Death Scythe",
+          "description": "Winning an Attack matchup deals 22 bonus damage.",
+          "rules": [
+            {
+              "when": "on_attack_win",
+              "do": [
+                {
+                  "op": "bonus_damage",
+                  "value": 22
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dark Pursuit",
+          "description": "Deals 25% more damage to an opponent below 40% HP.",
+          "rules": [
+            {
+              "when": "passive",
+              "if": [
+                {
+                  "cond": "enemy_hp_below_pct",
+                  "value": 0.4
+                }
+              ],
+              "do": [
+                {
+                  "op": "bonus_damage_pct",
+                  "value": 25
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Death Spiral",
+          "description": "Consecutive Attack wins build toward a crit — three in a row and the next one lands.",
+          "rules": [
+            {
+              "when": "on_attack_win",
+              "do": [
+                {
+                  "op": "add_counter",
+                  "name": "spiral",
+                  "value": 1,
+                  "max": 3
+                }
+              ]
+            },
+            {
+              "when": "on_attack_win",
+              "if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "spiral",
+                  "value": 3
+                }
+              ],
+              "do": [
+                {
+                  "op": "consume_counter",
+                  "name": "spiral",
+                  "value": 3
+                },
+                {
+                  "op": "guaranteed_crit",
+                  "value": 1
+                }
+              ]
+            },
+            {
+              "when": "on_attack_loss",
+              "do": [
+                {
+                  "op": "reset_counter",
+                  "name": "spiral"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 46.0,
+        "attack_percent": 0.22,
+        "defence_flat": 25.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 34.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 28.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 115.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_s104",
+      "name": "Hoji Konda",
+      "rarity": "Blader",
+      "type": "balance",
+      "price": 0,
+      "description": "Reads the board, plays the percentages, and never stoops to a brawl.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1540054602286768268/cc423da4014f89536ddc9ba34bd6c68c.jpg",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "school_league_bey": "Hyper Horusood",
+      "theme": "Balance",
+      "skills": [
+        {
+          "name": "Horus Guard",
+          "description": "A successful Defense grants +12 stability.",
+          "rules": [
+            {
+              "when": "on_defense_win",
+              "do": [
+                {
+                  "op": "gain_stability",
+                  "value": 12
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Balanced Rotation",
+          "description": "Once three different moves have been played, every win grants +5 to all stats.",
+          "rules": [
+            {
+              "when": "on_any_win",
+              "if": [
+                {
+                  "cond": "move_variety_at_least",
+                  "value": 3
+                }
+              ],
+              "do": [
+                {
+                  "op": "buff_all",
+                  "value": 5,
+                  "turns": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Golden Eye",
+          "description": "Reading the opponent — a mirrored move — feeds 25 Special gauge.",
+          "rules": [
+            {
+              "when": "on_mirror",
+              "do": [
+                {
+                  "op": "gain_gauge",
+                  "value": 25
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 36.0,
+        "attack_percent": 0.15,
+        "defence_flat": 34.0,
+        "defence_percent": 0.12,
+        "stamina_flat": 36.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 35.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 125.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_s105",
+      "name": "Wakiya Murasaki",
+      "rarity": "Blader",
+      "type": "defense",
+      "price": 0,
+      "description": "Armour with a temper. Hit it hard enough and it hits back harder.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1540054626248949891/61472777e5331c207e4f81979a4769a5.jpg",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "school_league_bey": "Wild Wyvern",
+      "theme": "Counter",
+      "skills": [
+        {
+          "name": "Wyvron Counter",
+          "description": "A successful Defense primes a 30-damage counter on the next exchange.",
+          "rules": [
+            {
+              "when": "on_defense_win",
+              "do": [
+                {
+                  "op": "prime_bonus",
+                  "value": 30
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Wild Wind",
+          "description": "A successful Defense cuts the opponent's Attack by 12 for two rounds.",
+          "rules": [
+            {
+              "when": "on_defense_win",
+              "do": [
+                {
+                  "op": "enemy_debuff",
+                  "stat": "attack",
+                  "value": 12,
+                  "turns": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Wyvron Guard",
+          "description": "While stability is above 70%, incoming damage is cut by 20%.",
+          "rules": [
+            {
+              "when": "on_defend",
+              "if": [
+                {
+                  "cond": "stability_above_pct",
+                  "value": 0.7
+                }
+              ],
+              "do": [
+                {
+                  "op": "reduce_damage_pct",
+                  "value": 20
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 30.0,
+        "attack_percent": 0.0,
+        "defence_flat": 43.0,
+        "defence_percent": 0.18,
+        "stamina_flat": 37.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 44.0,
+        "stability_percent": 0.2,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 130.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_s106",
+      "name": "Orochi Ginba",
+      "rarity": "Blader",
+      "type": "attack",
+      "price": 0,
+      "description": "Fights on the beat. Let him find the tempo and the drop lands.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1540054676668551319/e136fb71ab4b89f71bc321ef76a3ef9e.jpg",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "school_league_bey": "Omni Odax",
+      "theme": "Power",
+      "skills": [
+        {
+          "name": "Odax Smash",
+          "description": "Winning an Attack matchup adds 18% of your Attack stat as damage.",
+          "rules": [
+            {
+              "when": "on_attack_win",
+              "do": [
+                {
+                  "op": "bonus_damage_stat",
+                  "stat": "attack",
+                  "value": 18
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Omni Rotation",
+          "description": "Once three different moves have been played, wins grant +8 Attack and +8 Stamina.",
+          "rules": [
+            {
+              "when": "on_any_win",
+              "if": [
+                {
+                  "cond": "move_variety_at_least",
+                  "value": 3
+                }
+              ],
+              "do": [
+                {
+                  "op": "buff",
+                  "stat": "attack",
+                  "value": 8,
+                  "turns": 2
+                },
+                {
+                  "op": "buff",
+                  "stat": "stamina",
+                  "value": 8,
+                  "turns": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Full Force",
+          "description": "With the Special gauge charged, Attack rises by 20.",
+          "rules": [
+            {
+              "when": "passive",
+              "if": [
+                {
+                  "cond": "gauge_at_least",
+                  "value": 150
+                }
+              ],
+              "do": [
+                {
+                  "op": "buff",
+                  "stat": "attack",
+                  "value": 20,
+                  "turns": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 43.0,
+        "attack_percent": 0.2,
+        "defence_flat": 30.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 39.0,
+        "stamina_percent": 0.15,
+        "stability_flat": 32.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 118.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_s107",
+      "name": "Valt Aoi",
+      "rarity": "Blader",
+      "type": "attack",
+      "price": 0,
+      "description": "The school's ace. Fast, direct, and completely out of patience.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1540054697916899408/daa275cccdcb45c472b3f334dd6d5275.jpg",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "school_league_bey": "Victory Valkyrie",
+      "theme": "Aggression",
+      "skills": [
+        {
+          "name": "Valkyrie Strike",
+          "description": "Winning an Attack matchup adds 20% crit chance for the round.",
+          "rules": [
+            {
+              "when": "on_attack_win",
+              "do": [
+                {
+                  "op": "crit_chance",
+                  "value": 20,
+                  "turns": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Brave Sword",
+          "description": "Each consecutive Attack win adds 14 damage, stacking to four.",
+          "rules": [
+            {
+              "when": "on_attack_win",
+              "do": [
+                {
+                  "op": "stacking_buff",
+                  "stat": "attack",
+                  "value": 14,
+                  "max": 4,
+                  "name": "brave_sword"
+                }
+              ]
+            },
+            {
+              "when": "on_attack_loss",
+              "do": [
+                {
+                  "op": "reset_counter",
+                  "name": "brave_sword"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Victory Evolution",
+          "description": "Behind on Victory Points: +18 to all stats, every round.",
+          "rules": [
+            {
+              "when": "passive",
+              "if": [
+                {
+                  "cond": "behind_on_points",
+                  "value": 1
+                }
+              ],
+              "do": [
+                {
+                  "op": "buff_all",
+                  "value": 18,
+                  "turns": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 52.0,
+        "attack_percent": 0.25,
+        "defence_flat": 28.0,
+        "defence_percent": 0.0,
+        "stamina_flat": 35.0,
+        "stamina_percent": 0.0,
+        "stability_flat": 30.0,
+        "stability_percent": 0.0,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 120.0,
+        "hp_percent": 0.0
+      }
+    },
+    {
+      "id": "avatar_s108",
+      "name": "Shu Kurenai",
+      "rarity": "Blader",
+      "type": "balance",
+      "price": 0,
+      "description": "Balanced, unhurried, and better than you. Shu learns the shape of your game and takes it apart.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1540054726110875761/22c0a1d777354b6836106a9425bccaa3.jpg",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "school_league_bey": "Storm Spriggan",
+      "theme": "Adaptation",
+      "skills": [
+        {
+          "name": "Spriggan Adaptation",
+          "description": "Reads your habit — whichever move you lean on, Spriggan is ready for it.",
+          "rules": [
+            {
+              "when": "passive",
+              "if": [
+                {
+                  "cond": "enemy_most_used_move_is",
+                  "value": "attack"
+                }
+              ],
+              "do": [
+                {
+                  "op": "reduce_damage_pct",
+                  "value": 18
+                },
+                {
+                  "op": "gain_stability",
+                  "value": 8
+                }
+              ]
+            },
+            {
+              "when": "passive",
+              "if": [
+                {
+                  "cond": "enemy_most_used_move_is",
+                  "value": "defense"
+                }
+              ],
+              "do": [
+                {
+                  "op": "ignore_defense",
+                  "value": 25
+                }
+              ]
+            },
+            {
+              "when": "passive",
+              "if": [
+                {
+                  "cond": "enemy_most_used_move_is",
+                  "value": "stamina"
+                }
+              ],
+              "do": [
+                {
+                  "op": "drain_stamina",
+                  "value": 1.0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Storm Counter",
+          "description": "A successful Defense or Stamina matchup primes a 26-damage response.",
+          "rules": [
+            {
+              "when": "on_defense_win",
+              "do": [
+                {
+                  "op": "prime_bonus",
+                  "value": 26
+                }
+              ]
+            },
+            {
+              "when": "on_stamina_win",
+              "do": [
+                {
+                  "op": "prime_bonus",
+                  "value": 26
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Ultimate Balance",
+          "description": "At critical HP or stamina: +18 stability and 20% less damage taken.",
+          "rules": [
+            {
+              "when": "on_low_hp",
+              "do": [
+                {
+                  "op": "gain_stability",
+                  "value": 18
+                },
+                {
+                  "op": "reduce_damage_pct",
+                  "value": 20
+                }
+              ]
+            },
+            {
+              "when": "on_low_stamina",
+              "do": [
+                {
+                  "op": "gain_stability",
+                  "value": 18
+                },
+                {
+                  "op": "reduce_damage_pct",
+                  "value": 20
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bonuses": {
+        "attack_flat": 45.0,
+        "attack_percent": 0.2,
+        "defence_flat": 40.0,
+        "defence_percent": 0.15,
+        "stamina_flat": 43.0,
+        "stamina_percent": 0.18,
+        "stability_flat": 45.0,
+        "stability_percent": 0.2,
+        "charge_flat": 0.0,
+        "charge_percent": 0.0,
+        "special_move_flat": 0.0,
+        "special_move_percent": 0.0,
+        "crit_percent": 0.0,
+        "dodge_chance": 0.0,
+        "counter_chance": 0.0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0.0,
+        "resistance_status_chance": 0.0,
+        "hp_flat": 125.0,
+        "hp_percent": 0.0
+      }
     }
   ]
 }

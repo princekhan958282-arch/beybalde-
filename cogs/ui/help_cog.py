@@ -321,6 +321,7 @@ COMMAND_DATA = {
         # Packs
         (";avatarpacks  or  ;apacks",   "View packs and their prices"),
         (";buypack mlbb",              "🌟 MLBB banner — 15,000,000 coins, MLBB avatars only"),
+        (";buypack season1",           "🏫 Beyblade Burst Season 1 — 250,000 coins, unlocks when Season 1 is complete"),
         # Battle skills
         (";avatarskill <1-3>  or  ;askill", "Pick the ONE skill you fight with (25/50/75⚡ of 100)"),
         (";energyrefill  or  ;erefill", "⚡ Refill energy now for 🪙 40,000 — or wait, +25 every 5 min"),
