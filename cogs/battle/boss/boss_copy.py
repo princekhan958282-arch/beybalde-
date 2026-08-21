@@ -439,6 +439,22 @@ def unequip(user_id: int) -> None:
         update_user(user_id, profile)
 
 
+def has_equipped_blade(user_id: int) -> bool:
+    """Does this player have anything to fight with?
+
+    Asks `equipped_blade` — the function that actually decides what they fight
+    with — instead of reading `active_beyblade` off the profile. Those two
+    disagreed: a player whose equipped blade is a boss COPY has `active_copy`
+    set and `active_beyblade` empty, so every gate that read the profile field
+    told them "You need a Beyblade equipped" while `equipped_blade` would have
+    handed back their copy. Story and PvP both refused them.
+    """
+    try:
+        return equipped_blade(user_id)[0] is not None
+    except Exception:                                    # noqa: BLE001
+        return False
+
+
 def equipped_blade(user_id: int) -> tuple[Optional[dict], Optional[dict]]:
     """The blade dict every battle path should fight with, plus its instance.
 

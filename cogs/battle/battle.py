@@ -274,12 +274,18 @@ class BattleCog(commands.Cog, name="Battle"):
         c_profile = get_user(ctx.author.id)
         o_profile = get_user(opponent.id)
 
-        if not c_profile.get("active_beyblade"):
+        # `has_equipped_blade`, not `profile["active_beyblade"]`. A player whose
+        # equipped blade is a boss COPY has `active_copy` set and
+        # `active_beyblade` empty, so the profile field said "nothing equipped"
+        # about a player `equipped_blade()` would happily arm. The gate now
+        # asks the same function the battle does.
+        from .boss.boss_copy import has_equipped_blade
+        if not has_equipped_blade(ctx.author.id):
             return await ctx.send(
                 f"❌ {ctx.author.mention} you don't have a Beyblade equipped!\n"
                 f"Use `;equip <name>` to equip one from your inventory."
             )
-        if not o_profile.get("active_beyblade"):
+        if not has_equipped_blade(opponent.id):
             return await ctx.send(
                 f"❌ {opponent.mention} doesn't have a Beyblade equipped!"
             )

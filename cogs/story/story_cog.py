@@ -64,6 +64,54 @@ def _opponent_blade(name: str) -> Optional[tuple[dict, int]]:
     return blade, max(0, gain)
 
 
+def player_blade(user_id: int) -> Optional[tuple[dict, Optional[dict]]]:
+    """The blade this player fights the League with, plus its copy instance.
+
+    Returns `(blade, copy)`, or None when they have nothing equipped.
+
+    THE BUG THIS REPLACES, because it cost four releases of players their
+    levels. This was:
+
+        blade, _lvl = bey_level_and_stats(player.id, profile, dict(blade_raw))
+
+    and `utils.loadout.bey_level_and_stats(profile, blade)` takes TWO arguments
+    and returns `(level, stats)` — wrong arity, and unpacked backwards. It
+    raised `TypeError` every single time, a bare `except Exception` two lines
+    below swallowed it, and the fallback handed the battle the blade's PRINTED
+    stats. A level-50 Storm Spriggan fought at 74/78/78 instead of 192/196/196,
+    against an opponent at level 100.
+
+    It read as three separate bugs because it IS internally inconsistent:
+    `BattleSession` levels HP and the Special stat on its own paths
+    (`_level_hp_gain`, `_effective_special`), so those were right while attack,
+    defence and stamina were not — full HP, a quarter of the stats, an empty
+    stamina bar (the bar is derived from the stamina stat) and a ring-out every
+    time the matchup was lost.
+
+    `battle._apply_parts` is the shared entry point PvP (`battle.py:307`) and
+    the tournament (`tournament.py:665`) already use, and two suites pin its
+    behaviour. It resolves the spin mode first — which Story also never did, so
+    Master Diabolos, Janus Bahamut and Cho-Z Achilles fought in the wrong form
+    — then applies bey levels, and deliberately leaves HP and Special printed
+    because the session levels those itself. Exactly the half Story was
+    missing.
+
+    No `try` around it. Swallowing is what turned a hard error into a silent
+    quarter-strength nerf that nobody could see.
+    """
+    from cogs.battle.battle import _apply_parts
+    from cogs.battle.boss import boss_copy as bcopy
+
+    blade_raw, copy = bcopy.equipped_blade(user_id)
+    if not blade_raw:
+        return None
+    # A boss copy arrives already resolved and levelled — levelling it a second
+    # time would double its growth. Same arm as `battle.py:307`.
+    blade = dict(blade_raw) if copy else _apply_parts(dict(blade_raw),
+                                                      get_user(user_id))
+    return blade, copy
+
+
 def _state_icon(profile: dict, n: int, difficulty: str) -> str:
     if n in SD.cleared(profile, difficulty):
         return "✅"
@@ -235,7 +283,8 @@ class StoryCog(commands.Cog, name="Story Mode"):
         profile = get_user(user_id)
         if not SD.is_unlocked(profile, n, difficulty):
             return False, SD.lock_reason(profile, n, difficulty)
-        if not profile.get("active_beyblade"):
+        from cogs.battle.boss.boss_copy import has_equipped_blade
+        if not has_equipped_blade(user_id):
             return False, ("You need a Beyblade equipped — `;equip <name>`.")
         return True, ""
 
@@ -265,17 +314,11 @@ class StoryCog(commands.Cog, name="Story Mode"):
             return
         opponent_blade, hp_gain = built
 
-        from cogs.battle.boss import boss_copy as bcopy
-        from utils.loadout import bey_level_and_stats
-        profile = get_user(player.id)
-        blade_raw, copy = bcopy.equipped_blade(player.id)
-        if not blade_raw:
+        built_blade = player_blade(player.id)
+        if built_blade is None:
             await channel.send("❌ You need a Beyblade equipped.")
             return
-        try:
-            blade, _lvl = bey_level_and_stats(player.id, profile, dict(blade_raw))
-        except Exception:                                # noqa: BLE001
-            blade = dict(blade_raw)
+        blade, copy = built_blade
 
         self._active.add(int(player.id))
         try:
@@ -288,6 +331,19 @@ class StoryCog(commands.Cog, name="Story Mode"):
                              f"First to **{SD.VICTORY_TARGET}** Victory "
                              f"Points takes the battle."),
                 colour=(0xED4245 if difficulty == SD.NIGHTMARE else 0x3498DB)))
+
+            # Which avatar skill are you taking in? Once per LEAGUE BATTLE,
+            # not once per round — a battle is up to nine sessions and the
+            # energy budget is match-long, the same rule `;battle` follows.
+            #
+            # The solo entry point, deliberately: the two-player one resolves
+            # both sides through `get_user`, which would create a profile for
+            # the NPC opponent.
+            try:
+                from cogs.battle.skill_prompt import resolve_avatar_skills_solo
+                await resolve_avatar_skills_solo(channel, player)
+            except Exception:                            # noqa: BLE001
+                log.exception("[story] skill prompt failed for %s", player.id)
 
             match = LeagueMatch(self.bot, channel, player, blade, n, difficulty)
             won = await match.run(opponent_blade, hp_gain=hp_gain)
