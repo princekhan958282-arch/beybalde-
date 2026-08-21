@@ -65,6 +65,8 @@ RARITY_ORDER: list[str] = [
     "Rare",
     "Epic",
     "Legendary",
+    # See the note in avatar_utils.RARITY_ORDER — the two lists must agree.
+    "Blader",
     "Mythic",
     "Ultimate",
     "Exclusive",
@@ -96,6 +98,11 @@ PACK_POOL: dict[str, list[str]] = {
     # what stops the other four packs ever rolling an MLBB avatar, since every
     # pack filters candidates by this list before weights are applied.
     "mlbb":      ["MLBB"],
+    # The Season 1 banner — a closed pool of the eight School League bladers,
+    # exactly like MLBB. `_build_rarity_map` only groups rarities that are in
+    # the pack's own pool, so listing `Blader` here and nowhere else is the
+    # whole of the containment: no other pack can reach one.
+    "season1":   ["Blader"],
 }
 
 # Exact guaranteed rarity for slot 1
@@ -105,6 +112,7 @@ PACK_GUARANTEE: dict[str, Optional[str]] = {
     "epic":      "Epic",
     "legendary": "Legendary",
     "mlbb":      "MLBB",
+    "season1":   "Blader",
 }
 
 PACK_PRICE: dict[str, int] = {
@@ -113,6 +121,7 @@ PACK_PRICE: dict[str, int] = {
     "epic":      275_000,
     "legendary": 500_000,
     "mlbb":      15_000_000,
+    "season1":   250_000,
 }
 
 PACK_DISPLAY: dict[str, str] = {
@@ -121,6 +130,7 @@ PACK_DISPLAY: dict[str, str] = {
     "epic":      "Epic Pack",
     "legendary": "Legendary Pack",
     "mlbb":      "MLBB Pack",
+    "season1":   "Beyblade Burst Season 1 Pack",
 }
 
 # ── Duplicate refund rates (% of pack price returned per rarity) ──────────────
@@ -144,6 +154,9 @@ DUPE_REFUND_RATE: dict[str, float] = {
     # At 20% the worst case is 6,000,000 back on 15,000,000 spent, so a bad
     # pull still hurts without ever paying.
     "MLBB":      0.20,   # 20%
+    # 20% of 250,000 = 50,000. Eight cards on a closed banner means duplicates
+    # arrive quickly, and the refund is what stops a late pack feeling wasted.
+    "Blader":    0.20,   # 20%
 }
 
 # ── Pack emoji ────────────────────────────────────────────────────────────────
@@ -154,6 +167,7 @@ PACK_EMOJI: dict[str, str] = {
     "epic":      "🟣",
     "legendary": "🟡",
     "mlbb":      "🌟",
+    "season1":   "🏫",
 }
 
 
@@ -200,6 +214,46 @@ PACK_RARITY_WEIGHT: dict[str, dict[str, int]] = {
     "mlbb": {
         "MLBB": 1000,
     },
+    # Season 1: eight bladers, one closed tier, equal odds. They are all the
+    # same power by design, so there is nothing to weight.
+    "season1": {
+        "Blader": 1000,
+    },
+}
+
+# How many avatars a pack hands over. This was a hardcoded `if pack != "common"`
+# inside `buy_pack`, which meant `;avatarpacks` said "Each pack gives 2 avatars"
+# above a Common pack that gives one — and a second single-pull pack had nowhere
+# to say so.
+PACK_PULLS: dict[str, int] = {
+    "common":    1,
+    "rare":      2,
+    "epic":      2,
+    "legendary": 2,
+    "mlbb":      2,
+    "season1":   1,
+}
+
+# What a pack needs before it can be bought at all, checked BEFORE any coins
+# move. `None` — every pack that existed before Season 1 — is always open.
+# Each entry is `(predicate(profile) -> bool, reason_if_locked(profile) -> str)`.
+
+
+def _season1_open(profile: dict) -> bool:
+    from cogs.story import story_data as SD
+    return SD.season_complete(profile, 1)
+
+
+def _season1_reason(profile: dict) -> str:
+    from cogs.story import story_data as SD
+    done, total = SD.season_progress(profile, 1)
+    return (f"🔒 Finish **Beyblade Burst Season 1** first — "
+            f"**{done}/{total}** chapters cleared. "
+            f"(`;story` → 🏫 Beyblade Burst School)")
+
+
+PACK_REQUIRES: dict[str, tuple] = {
+    "season1": (_season1_open, _season1_reason),
 }
 
 
@@ -452,13 +506,16 @@ class AvatarShop(commands.Cog, name="Avatar"):
         embed = discord.Embed(
             title="🎴 Avatar Packs",
             description=(
-                "Each pack gives **2 avatars**.\n"
-                "Slot 1 is the **guaranteed** pull. Slot 2 is random from the pool.\n"
+                "Slot 1 is the **guaranteed** pull. Slot 2, where a pack has "
+                "one, is random from the pool.\n"
                 "Duplicate avatars are automatically refunded in coins.\n\n"
                 "Use `;buypack <pack>` to open one."
             ),
             color=0x3498DB,
         )
+        # Read once for the lock states below rather than per pack.
+        from utils.database import get_user as _get_user
+        _profile = _get_user(ctx.author.id)
 
         # Derived from the tables the pack opener actually reads, not a
         # hand-written list. The hardcoded version had drifted twice over: the
@@ -495,13 +552,21 @@ class AvatarShop(commands.Cog, name="Avatar"):
                 refund = (f"{lo:.0%}–{hi:.0%}  ({int(price * lo):,}–"
                           f"{int(price * hi):,} coins)")
 
+            pulls = PACK_PULLS.get(pack_key, 2)
+            _gate = PACK_REQUIRES.get(pack_key)
+            locked = bool(_gate) and not _gate[0](_profile)
+            last_line = (_gate[1](_profile) if locked
+                         else f"`;buypack {pack_key}`")
+
             embed.add_field(
-                name=f"{emoji} {PACK_DISPLAY[pack_key]}  —  {price:,} coins",
+                name=(f"{'🔒 ' if locked else ''}{emoji} "
+                      f"{PACK_DISPLAY[pack_key]}  —  {price:,} coins"),
                 value=(
+                    f"**Pulls:** {pulls}\n"
                     f"**Guarantee:** {guarantee}\n"
                     f"**Pool:** {', '.join(pool)}\n"
                     f"**Dupe refund:** {refund} per duplicate\n"
-                    f"`;buypack {pack_key}`"
+                    f"{last_line}"
                 ),
                 inline=False,
             )
@@ -535,6 +600,20 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
         player_id = ctx.author.id
         price     = PACK_PRICE[pack]
+
+        # The gate comes BEFORE the balance check and long before any coins
+        # move. A locked pack that took the money and then refused would be
+        # the worst possible ordering, and refunding after the fact is a
+        # second write that can fail on its own.
+        gate = PACK_REQUIRES.get(pack)
+        if gate:
+            from utils.database import get_user
+            profile = get_user(player_id)
+            allowed, reason = gate
+            if not allowed(profile):
+                await ctx.send(reason(profile))
+                return
+
         coins     = self._get_player_coins(player_id)
 
         if coins < price:
@@ -555,8 +634,9 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
         # Slot 1 — exact guaranteed rarity (or random if common)
         slot1 = _pull_from_pool(pack, pool, rarity_map, exact_rarity=guarantee)
-        # Slot 2 — fully random from pool (common pack only gets 1 pull)
-        slot2 = _pull_from_pool(pack, pool, rarity_map, exact_rarity=None) if pack != "common" else None
+        # Slot 2 — fully random from pool, for the packs that pull twice
+        slot2 = (_pull_from_pool(pack, pool, rarity_map, exact_rarity=None)
+                 if PACK_PULLS.get(pack, 2) > 1 else None)
 
         if not slot1 and not slot2:
             # Shouldn't happen but refund gracefully

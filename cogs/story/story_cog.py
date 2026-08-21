@@ -15,13 +15,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 from typing import Optional
 
 import discord
 from discord.ext import commands
 
 from utils import bey_levels as BL
-from utils.database import get_user, grant_xp, update_user
+from utils.database import (
+    add_avatar_to_inventory, claim_once, get_user, grant_xp, release_claim,
+    update_user,
+)
 
 from . import story_data as SD
 from .story_match import LeagueMatch
@@ -299,10 +303,41 @@ class StoryCog(commands.Cog, name="Story Mode"):
             self.release(player.id)
 
     # ── payout ───────────────────────────────────────────────────────────────
+    def _award_blader(self, user_id: int) -> Optional[dict]:
+        """One random blader card for finishing the League. Once per player, ever.
+
+        Returns the card granted, or None if this player already has theirs.
+
+        The claim flag is its own profile key, NOT the League progress — which
+        is what lets a player who cleared the League before this reward existed
+        collect it by winning once more, while nobody is handed one
+        retroactively.
+
+        The flag goes down BEFORE the card is handed over. Paying twice is the
+        failure that matters, and `claim_once` is atomic under the store lock,
+        so two wins landing together cannot both win the race. The one hole
+        that ordering leaves — marked, then the grant raises — is closed by
+        releasing the claim.
+        """
+        if not claim_once(user_id, SD.K_AVATAR_CLAIM):
+            return None
+        card_id = random.choice(SD.LEAGUE_AVATARS)
+        try:
+            add_avatar_to_inventory(user_id, card_id)
+        except Exception:                                # noqa: BLE001
+            release_claim(user_id, SD.K_AVATAR_CLAIM)
+            raise
+        try:
+            from cogs.avatar.avatar_engine import avatar_engine
+            return avatar_engine.get_avatar(card_id) or {"id": card_id}
+        except Exception:                                # noqa: BLE001
+            return {"id": card_id}
+
     async def _finish(self, channel, player, match: LeagueMatch, won: bool,
                       difficulty: str, copy) -> None:
         coins = 0
         first = False
+        card: Optional[dict] = None
         if won:
             profile = get_user(player.id)
             first = SD.record_clear(profile, difficulty, match.battle_no)
@@ -324,8 +359,21 @@ class StoryCog(commands.Cog, name="Story Mode"):
             except Exception:                            # noqa: BLE001
                 pass
 
+            # AFTER `update_user`, never before. `profile` above is a snapshot
+            # taken at the top of this function and `claim_once` does its own
+            # locked write — claiming first and then writing the snapshot back
+            # would erase the flag, which is the bug `onboarding.py` records as
+            # "the same bug that ate blades in redeem.grant".
+            if difficulty == SD.NORMAL and SD.normal_complete(
+                    get_user(player.id)):
+                try:
+                    card = self._award_blader(player.id)
+                except Exception:                        # noqa: BLE001
+                    log.exception("[story] blader reward failed for %s",
+                                  player.id)
+
         try:
-            await channel.send(embed=match.result_embed(coins, first))
+            await channel.send(embed=match.result_embed(coins, first, card))
         except Exception:                                # noqa: BLE001
             log.exception("[story] could not post the League result card")
 

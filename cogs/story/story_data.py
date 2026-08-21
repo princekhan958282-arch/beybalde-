@@ -86,21 +86,21 @@ NIGHTMARE_REWARD_MULT = 2.5
 # because a typo here is an opponent that cannot be built and a battle that
 # cannot start.
 SCHOOL_LEAGUE: list[dict] = [
-    {"n": 1, "blade": "Rising Ragnaruk",     "coins": 600,
+    {"n": 1, "blade": "Rising Ragnaruk",     "coins": 600, "avatar": "avatar_s101",
      "blurb": "First bell. A steady spin that simply refuses to stop."},
-    {"n": 2, "blade": "King Kerbeus",        "coins": 850,
+    {"n": 2, "blade": "King Kerbeus",        "coins": 850, "avatar": "avatar_s102",
      "blurb": "Three heads, one wall. Nothing gets through cheaply."},
-    {"n": 3, "blade": "Hollow Deathscyther", "coins": 1100,
+    {"n": 3, "blade": "Hollow Deathscyther", "coins": 1100, "avatar": "avatar_s103",
      "blurb": "The scythe finds the gap your guard leaves open."},
-    {"n": 4, "blade": "Hyper Horusood",      "coins": 1350,
+    {"n": 4, "blade": "Hyper Horusood",      "coins": 1350, "avatar": "avatar_s104",
      "blurb": "It never stoops. It just takes the floor out from under you."},
-    {"n": 5, "blade": "Wild Wyvern",         "coins": 1600,
+    {"n": 5, "blade": "Wild Wyvern",         "coins": 1600, "avatar": "avatar_s105",
      "blurb": "Armour with a temper. Hit it hard enough and it hits back harder."},
-    {"n": 6, "blade": "Omni Odax",           "coins": 1850,
+    {"n": 6, "blade": "Omni Odax",           "coins": 1850, "avatar": "avatar_s106",
      "blurb": "It fights on the beat. Let it find the tempo and the drop lands."},
-    {"n": 7, "blade": "Victory Valkyrie",    "coins": 2100,
+    {"n": 7, "blade": "Victory Valkyrie",    "coins": 2100, "avatar": "avatar_s107",
      "blurb": "The school's ace. Fast, direct, and out of patience."},
-    {"n": 8, "blade": "Storm Spriggan",      "coins": 2550,
+    {"n": 8, "blade": "Storm Spriggan",      "coins": 2550, "avatar": "avatar_s108",
      "blurb": "Final bell. Balanced, unhurried, and better than you."},
 ]
 
@@ -110,12 +110,26 @@ XENDER = "xender"
 
 CHAPTERS: list[dict] = [
     {"key": SCHOOL, "emoji": "🏫", "name": "Beyblade Burst School",
-     "available": True,
+     "available": True, "season": 1,
      "blurb": "Eight opponents, one league. Beat each to open the next."},
     {"key": XENDER, "emoji": "🔒", "name": "Xender Dojo — Coming Soon",
-     "available": False,
+     "available": False, "season": 1,
      "blurb": "Not open yet."},
 ]
+
+# ── The bladers ───────────────────────────────────────────────────────────────
+# Every League opponent fields one, which is what makes the eight battles feel
+# different from each other rather than the same fight with bigger numbers. The
+# cards live in `cogs/avatar/avatar_data.json` and go through the ordinary
+# avatar system — `BattleSession._avatar_card_for` reads the id off the
+# controller, and the skills fire through the blade ability engine.
+LEAGUE_AVATARS: list[str] = [b["avatar"] for b in SCHOOL_LEAGUE]
+
+# Set the first time a player finishes the whole League on Normal. Separate
+# from `K_LEAGUE` progress on purpose: a player who cleared the League before
+# the reward existed has the progress and not the flag, so they collect on
+# their next Normal win rather than being handed a card retroactively.
+K_AVATAR_CLAIM = "school_league_avatar_reward_claimed"
 
 
 # ── Profile key ───────────────────────────────────────────────────────────────
@@ -227,6 +241,33 @@ def lock_reason(profile: dict, n: int, difficulty: str) -> str:
         return f"🔒 Battle **{n}** is locked."
     return (f"🔒 Battle **{n}** is locked. Beat battle **{n - 1} · "
             f"{prev['blade']}** first.")
+
+
+def chapter_complete(profile: dict, key: str) -> bool:
+    """Is this chapter finished on Normal?
+
+    A chapter with no battle table cannot be complete — the Xender Dojo has no
+    battles yet, so it reads False and keeps Season 1 open. That is deliberate:
+    when the Dojo ships with a table of its own, Season 1 starts completing
+    without a line of this file changing.
+    """
+    if key == SCHOOL:
+        return normal_complete(profile)
+    return False
+
+
+def season_complete(profile: dict, season: int = 1) -> bool:
+    """Every chapter of a season, cleared on Normal."""
+    chapters = [c for c in CHAPTERS if int(c.get("season", 0)) == int(season)]
+    return bool(chapters) and all(
+        chapter_complete(profile, c["key"]) for c in chapters)
+
+
+def season_progress(profile: dict, season: int = 1) -> tuple[int, int]:
+    """`(chapters cleared, chapters in the season)` — for the shop's lock text."""
+    chapters = [c for c in CHAPTERS if int(c.get("season", 0)) == int(season)]
+    done = sum(1 for c in chapters if chapter_complete(profile, c["key"]))
+    return done, len(chapters)
 
 
 def next_battle(profile: dict, difficulty: str) -> Optional[int]:

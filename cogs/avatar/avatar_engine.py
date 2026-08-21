@@ -463,6 +463,20 @@ class AvatarEngine:
 
         b = self._active_bonuses(player_id, avatar)
         level_bonus = self._level_bonus(player_id, avatar_id, avatar)
+        return self.bonuses_from_block(b, level_bonus)
+
+    def bonuses_from_block(self, block: Optional[dict],
+                           level_bonus: Optional[dict] = None) -> AvatarBonuses:
+        """Build an `AvatarBonuses` straight from a card's bonus block.
+
+        Extracted from `get_battle_bonuses` rather than copied. A League
+        opponent has no profile to resolve a card level or a skill slot from,
+        so it needs this half of the work without the other half — and a second
+        hand-written copy of a thirty-five field constructor is a copy that
+        drifts. `get_battle_bonuses` is still the only path a PLAYER takes.
+        """
+        b = block or {}
+        level_bonus = level_bonus or {"attack": 0, "defense": 0, "stamina": 0}
         return AvatarBonuses(
             attack_flat=b.get("attack_flat", 0.0) + level_bonus["attack"],
             attack_percent=b.get("attack_percent", 0.0),

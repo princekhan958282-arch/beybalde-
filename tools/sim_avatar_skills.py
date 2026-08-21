@@ -48,7 +48,23 @@ from cogs.avatar.avatar_engine import avatar_engine, AvatarBonuses  # noqa: E402
 avatar_engine.load()
 ALL = avatar_engine.get_all_avatars()
 CARDS = {a["name"]: a for a in ALL}
-SIGNATURE = [a for a in ALL if a.get("skills")]
+# Two shapes of skilled card, and the partition rules below only make sense
+# for one of them.
+#
+#   BONUS skills  — the card's bonus block is SPLIT across three slots, and one
+#                   slot's slice applies. Freya and the rest of the signature
+#                   cast. Nothing may be lost, invented or double-counted.
+#   RULE skills   — the statline is always on and the skill is a triggered
+#                   EFFECT written in the ability DSL. The School League
+#                   bladers. There is no partition to check; what matters is
+#                   that the rules exist and the statline survives.
+#
+# Splitting them here rather than widening the partition checks keeps those
+# checks binding at full strength on every card they were written for.
+SKILLED = [a for a in ALL if a.get("skills")]
+SIGNATURE = [a for a in SKILLED
+             if any(sk.get("bonuses") for sk in a["skills"])]
+RULE_CARDS = [a for a in SKILLED if a.get("stats_always_on")]
 PLAIN = [a for a in ALL if not a.get("skills")]
 
 print("\n── 1. the rules as stated ───────────────────────────────────────")
@@ -70,9 +86,28 @@ print("\n── 2. the signature cards, three skills each ───────�
 check(f"{len(SIGNATURE)} cards carry skills, and every one of them is real",
       len(SIGNATURE) >= 9 and all(a.get("skills") for a in SIGNATURE),
       [a["name"] for a in SIGNATURE])
-check("skills and plain cards account for the whole roster",
-      len(SIGNATURE) + len(PLAIN) == len(ALL),
-      (len(SIGNATURE), len(PLAIN), len(ALL)))
+check("bonus-split, rule-skill and plain cards account for the whole roster",
+      len(SIGNATURE) + len(RULE_CARDS) + len(PLAIN) == len(ALL),
+      (len(SIGNATURE), len(RULE_CARDS), len(PLAIN), len(ALL)))
+check("...and no card is in two of the three",
+      not ({a["id"] for a in SIGNATURE} & {a["id"] for a in RULE_CARDS})
+      and not ({a["id"] for a in SIGNATURE} | {a["id"] for a in RULE_CARDS})
+      & {a["id"] for a in PLAIN})
+
+# The rule-skill shape, asserted so it cannot silently become the bonus shape.
+check(f"{len(RULE_CARDS)} cards carry DSL-rule skills",
+      len(RULE_CARDS) == 8, [a["name"] for a in RULE_CARDS])
+check("every one of their skills carries rules",
+      all(sk.get("rules") for a in RULE_CARDS for sk in a["skills"]))
+check("...and none carries a bonus block — the statline is the card's, not "
+      "the skill's",
+      not [sk["name"] for a in RULE_CARDS for sk in a["skills"]
+           if sk.get("bonuses")],
+      [sk["name"] for a in RULE_CARDS for sk in a["skills"]
+       if sk.get("bonuses")])
+check("...so their statline survives every slot, unlike a split card",
+      all(AS.bonuses_for(a, slot)["attack_flat"] == a["bonuses"]["attack_flat"]
+          for a in RULE_CARDS for slot in (0, 1, 2, 3)))
 check("no card is in both halves",
       not ({a["name"] for a in SIGNATURE} & {a["name"] for a in PLAIN}))
 for av in SIGNATURE:
@@ -92,7 +127,7 @@ for av in SIGNATURE:
             if v and k not in AS.CARD_LEVEL_BONUS_KEYS}
     claimed: dict[str, int] = {}
     for sk in av["skills"]:
-        for k in sk["bonuses"]:
+        for k in (sk.get("bonuses") or {}):
             claimed[k] = claimed.get(k, 0) + 1
     check(f"{av['name']}: nothing lost", not (live - set(claimed)),
           sorted(live - set(claimed)))
@@ -103,7 +138,8 @@ for av in SIGNATURE:
           [k for k, n in claimed.items() if n > 1])
     # Values must match the card, not merely the key names.
     for sk in av["skills"]:
-        bad = {k: (v, av["bonuses"].get(k)) for k, v in sk["bonuses"].items()
+        bad = {k: (v, av["bonuses"].get(k))
+               for k, v in (sk.get("bonuses") or {}).items()
                if av["bonuses"].get(k) != v}
         check(f"{av['name']} / {sk['name']}: values match the card",
               not bad, bad)
@@ -112,7 +148,8 @@ for av in SIGNATURE:
 # still required to be live on the card and to reach the fight at every slot.
 for av in SIGNATURE:
     for key in sorted(AS.CARD_LEVEL_BONUS_KEYS):
-        in_skill = [sk["name"] for sk in av["skills"] if key in sk["bonuses"]]
+        in_skill = [sk["name"] for sk in av["skills"]
+                    if key in (sk.get("bonuses") or {})]
         check(f"{av['name']}: {key} is not duplicated into the skills",
               not in_skill, in_skill)
     got = [AS.bonuses_for(av, slot).get("hp_percent") for slot in (1, 2, 3)]
@@ -431,7 +468,7 @@ combat_src = open(os.path.join(os.path.dirname(os.path.dirname(
 FIELDS = set(AvatarBonuses.__dataclass_fields__)
 for av in SIGNATURE:
     for sk in av["skills"]:
-        unknown = [k for k in sk["bonuses"] if k not in FIELDS]
+        unknown = [k for k in (sk.get("bonuses") or {}) if k not in FIELDS]
         check(f"{av['name']} / {sk['name']}: every key is a real bonus field",
               not unknown, unknown)
 

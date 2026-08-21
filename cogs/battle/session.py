@@ -242,6 +242,7 @@ class BattleSession:
         npc_controller=None,
         payout:  bool = True,
         spend_energy: Optional[bool] = None,
+        victory_points: Optional[dict] = None,
     ):
         # ── PvE hooks (Story Mode) ────────────────────────────────────────────
         # Three optional parameters, all defaulting to exactly what every
@@ -316,6 +317,26 @@ class BattleSession:
         self.avatar_bonuses: dict[str, Any] = {
             str(p1.id): self._bonuses_for(p1.id),
             str(p2.id): self._bonuses_for(p2.id),
+        }
+        # The card each side is wearing, and which of its skills is live.
+        # `AbilityEngine._avatar_rules_for` reads both: avatar skills are
+        # written in the same rules DSL blades use, so they fire through the
+        # same triggers instead of through a second engine.
+        #
+        # The slot is what separates a player from a League opponent. A player
+        # paid energy for exactly one skill and gets that one; an opponent has
+        # no energy pool, so `None` means all three of its skills are live.
+        self.avatar_cards: dict[str, dict] = {
+            str(p1.id): self._avatar_card_for(p1.id),
+            str(p2.id): self._avatar_card_for(p2.id),
+        }
+        self.avatar_skill_slots: dict[str, Optional[int]] = {
+            str(p1.id): (None if self._is_npc(p1.id)
+                         else int((self.skill_commit.get(str(p1.id)) or {})
+                                  .get("slot", 0) or 0)),
+            str(p2.id): (None if self._is_npc(p2.id)
+                         else int((self.skill_commit.get(str(p2.id)) or {})
+                                  .get("slot", 0) or 0)),
         }
         # Apply avatar HP bonuses on top of the blade's own pool
         for _pid, _bonuses in self.avatar_bonuses.items():
@@ -415,7 +436,8 @@ class BattleSession:
             str(p1.id): TypeModifiers(blade1, stats=self.battle_stats[str(p1.id)]),
             str(p2.id): TypeModifiers(blade2, stats=self.battle_stats[str(p2.id)]),
         }
-        self.stability_manager = StabilityManager(self.blades, self.type_mods)
+        self.stability_manager = StabilityManager(self.blades, self.type_mods,
+                                                    self.avatar_bonuses)
 
         # Stamina's signature type effect: while it holds the advantage, its
         # own move costs are cut. Resolved ONCE, here — both blades' types are
@@ -469,6 +491,12 @@ class BattleSession:
 
         self.moves:      dict[str, Optional[str]] = {str(p1.id): None, str(p2.id): None}
         self.round:    int  = 1
+        # move -> times played, per player key. Written in __resolve_round_body.
+        self.move_counts: dict[str, dict[str, int]] = {}
+        # (mine, theirs) Victory Points for a Story League round, keyed by
+        # player key. None in PvP — see `behind_on_points` in the ability
+        # engine, which is inert without it.
+        self.victory_points: Optional[dict[str, int]] = victory_points
         # Forces long matches to resolve — see cogs/battle/attrition.py
         self.attrition = AttritionSystem(self)
         self.log:      list[str] = []
@@ -584,11 +612,35 @@ class BattleSession:
             return int(getattr(self.npc_controller, "hp_gain", 0) or 0)
         return _level_hp_gain(player_id, blade)
 
+    def _avatar_card_for(self, player_id) -> dict:
+        """The avatar card this side is wearing, or {}.
+
+        An NPC's card is named by its controller — a League opponent fields a
+        blader — and is looked up straight from the roster, never through a
+        profile the NPC does not have.
+        """
+        try:
+            if self._is_npc(player_id):
+                aid = getattr(self.npc_controller, "avatar_id", None)
+            else:
+                aid = avatar_engine.get_equipped_avatar_id(int(player_id))
+            return (avatar_engine.get_avatar(aid or "") or {}) if aid else {}
+        except Exception:                                # noqa: BLE001
+            return {}
+
     def _bonuses_for(self, player_id):
-        # An NPC has no avatar card, so it gets the same null snapshot a
-        # player with nothing equipped gets.
+        # A League opponent wears a blader card. It has no profile and no
+        # energy, so its statline is read straight off the card rather than
+        # through `get_battle_bonuses` (which starts from a profile) and
+        # without slot narrowing — all three of its skills are live.
         if self._is_npc(player_id):
-            return NULL_BONUSES
+            card = self._avatar_card_for(player_id)
+            if not card:
+                return NULL_BONUSES
+            try:
+                return avatar_engine.bonuses_from_block(card.get("bonuses"))
+            except Exception:                            # noqa: BLE001
+                return NULL_BONUSES
         return avatar_engine.get_battle_bonuses(player_id)
 
     def _stat_mult_for(self, player_id) -> float:
@@ -881,6 +933,14 @@ class BattleSession:
         # `self.moves` is cleared to None as soon as the round resolves, so it
         # cannot be used for this; the snapshot has to be taken here.
         self.last_moves = {k1: m1, k2: m2}
+        # Running tally of what each side has played, for abilities that read a
+        # HABIT rather than the last move — "adapts to the opponent's most
+        # frequently used action", "winning different action types". One round
+        # of history cannot answer either.
+        for _k, _m in ((k1, m1), (k2, m2)):
+            if _m:
+                self.move_counts.setdefault(_k, {})
+                self.move_counts[_k][_m] = self.move_counts[_k].get(_m, 0) + 1
         # Compute effective stats (base stats + active ATK/DEF buff bonuses + stat_mult).
         # Previously raw blade stats were passed here, which meant ability buffs
         # (e.g. ATK+20 for 2 rounds) had zero effect on actual damage math — the
