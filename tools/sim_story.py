@@ -1012,8 +1012,129 @@ async def suite(trials: int) -> None:
           lv_src.count("get_user(") == 2          # __init__ and refresh
           and "profile = self.profile" in lv_src, lv_src.count("get_user("))
 
-    # ── 13. win rates, measured ──────────────────────────────────────────────
-    print("\n── 13. win rates, measured rather than assumed ─────────────────")
+    # ── 13. the blade the player actually fights with ───────────────────────
+    print("\n── 13. the REAL blade path, driven ─────────────────────────────")
+    #
+    # This section exists because 155 checks passed over a line that raised
+    # every single time it ran. Every battle above builds the player's blade
+    # with `levelled()` — the harness's own helper — so `story_cog._fight`'s
+    # construction was never once executed by the suite, and a `TypeError`
+    # swallowed by a bare `except` handed four releases of players a blade at
+    # PRINTED stats while its HP and Special were correctly levelled.
+    #
+    # So: run what `_fight` runs, and compare against the level curve.
+    import cogs.story.story_cog as SC13
+    from utils.database import get_beyblade as _get_blade
+
+    LVL = 50
+    BLADE = "Storm Spriggan"
+    want = BL.stats_at(_get_blade(BLADE), LVL, {})
+
+    prof = seed_profile(blade=BLADE)
+    prof["bey_progress"] = {BLADE: {"xp": BL.xp_for_level(LVL)}}
+    prof["inventory"] = [BLADE]
+    STORE.data[str(HUMAN_ID)] = copy.deepcopy(prof)
+
+    built, _copy = SC13.player_blade(HUMAN_ID)
+    check("a player's blade is built at THEIR level, not its printed stats",
+          built is not None
+          and all(built["stats"][k] == want[k]
+                  for k in ("attack", "defense", "stamina")),
+          (built or {}).get("stats"))
+    check("...and the printed stats are not what comes back",
+          built["stats"]["attack"] != _get_blade(BLADE)["stats"]["attack"],
+          built["stats"]["attack"])
+
+    fsrc = inspect.getsource(SC13.StoryCog._fight)
+    check("`_fight` no longer swallows a failure to build the blade — that is "
+          "what turned a TypeError into a silent quarter-strength nerf",
+          "bey_level_and_stats" not in fsrc)
+    check("it goes through the same helper PvP and the tournament use",
+          "_apply_parts" in inspect.getsource(SC13.player_blade))
+
+    # …and it has to survive into the session, which is where it was invisible
+    nb13, ng13 = levelled("Rising Ragnaruk", 100)
+    s13, _c13, npc13, _x13 = build_session(player, built, nb13, ng13, "elite",
+                                           seed=1, battle_no=1)
+    pk13 = str(player.id)
+    check("the levelled stats reach the battle itself",
+          all(s13.battle_stats[pk13][k] == want[k]
+              for k in ("attack", "defense", "stamina")),
+          s13.battle_stats[pk13])
+    check("...and the stamina bar follows the stamina stat up with it",
+          abs(s13.stamina_manager.cap_for(pk13)
+              - SM.max_stamina_for(want["stamina"])) < 0.01,
+          (s13.stamina_manager.cap_for(pk13),
+           SM.max_stamina_for(want["stamina"])))
+    check("...which is a bigger bar than the printed blade would have given",
+          s13.stamina_manager.cap_for(pk13)
+          > SM.max_stamina_for(_get_blade(BLADE)["stats"]["stamina"]))
+
+    # a dual-spin blade arrives with its mode resolved
+    from utils.spin_mode import is_dual as _is_dual
+    duals = [b["name"] for b in
+             [_get_blade(n) for n in ("Master Diabolos", "Janus Bahamut",
+                                      "Cho-Z Achilles")] if _is_dual(b)]
+    check("the three dual-spin blades are still dual", len(duals) == 3, duals)
+    for dname in duals:
+        dprof = seed_profile(blade=dname)
+        dprof["inventory"] = [dname]
+        STORE.data[str(HUMAN_ID)] = copy.deepcopy(dprof)
+        dbuilt, _dc = SC13.player_blade(HUMAN_ID)
+        check(f"{dname} reaches Story with its spin mode resolved",
+              (dbuilt or {}).get("active_spin_mode"),
+              (dbuilt or {}).get("active_spin_mode"))
+
+    # a boss copy is already resolved and must not be levelled a second time
+    check("a boss copy is passed through untouched, as PvP does",
+          "if copy" in inspect.getsource(SC13.player_blade)
+          or "copy else" in inspect.getsource(SC13.player_blade),
+          inspect.getsource(SC13.player_blade))
+
+    # ── the skill picker, and the gate ──────────────────────────────────────
+    print("\n   the avatar skill picker, and the equipped-blade gate:")
+    from cogs.battle import skill_prompt as SP13
+    check("Story offers the skill picker at all — it never used to",
+          "resolve_avatar_skills_solo" in inspect.getsource(SC13.StoryCog._fight))
+    check("...through the SOLO entry point, because `participants()` resolves "
+          "a player through get_user and would create a profile for the NPC",
+          callable(getattr(SP13, "resolve_avatar_skills_solo", None)))
+    solo = inspect.getsource(SP13.resolve_avatar_skills_solo)
+    check("...and it is handed one player, not a pair",
+          "participants((member,))" in solo, solo[:0])
+    check("it is asked once per BATTLE, before the match runs",
+          inspect.getsource(SC13.StoryCog._fight).index(
+              "resolve_avatar_skills_solo")
+          < inspect.getsource(SC13.StoryCog._fight).index("LeagueMatch("))
+
+    # the prompt must never touch the opponent's id
+    seed_profile()
+    STORE.clear_log()
+    entries = SP13.participants((player,))
+    check("asking for the human's card reads the human and nobody else",
+          all(r == str(player.id) for r in STORE.reads), STORE.reads)
+    check("a player with no avatar gets no prompt at all — silence is the "
+          "common case", entries == [], entries)
+
+    from cogs.battle.boss.boss_copy import has_equipped_blade
+    check("the equipped-blade gate asks what actually arms the player",
+          "has_equipped_blade" in inspect.getsource(SC13.StoryCog._can_fight))
+    check("...and PvP asks the same question",
+          "has_equipped_blade" in inspect.getsource(
+              __import__("cogs.battle.battle", fromlist=["x"])))
+    STORE.data["7770000000000001"] = {"user_id": "7770000000000001",
+                                      "active_beyblade": "Storm Spriggan"}
+    STORE.data["7770000000000002"] = {"user_id": "7770000000000002",
+                                      "active_beyblade": None}
+    check("a player with a blade passes the gate",
+          has_equipped_blade(7770000000000001))
+    check("...and a player with nothing at all still does not",
+          not has_equipped_blade(7770000000000002))
+
+    seed_profile()          # leave the store as section 14 expects it
+
+    # ── 14. win rates, measured ──────────────────────────────────────────────
+    print("\n── 14. win rates, measured rather than assumed ─────────────────")
     normal, nightmare = await win_rate_table(trials)
     check("Normal is winnable overall", normal > 0.35, normal)
     check("Nightmare is winnable too — harder is not the same as shut",

@@ -33,8 +33,12 @@ Where it is NOT used, deliberately
 `cogs/extras/tournament.py` builds a session with nobody watching — its players
 come from `guild.get_member()` and may be offline — so a blocking prompt would
 hang a bracket. The boss lobby is up to four players and auto-launches on
-timeout, and Story has no confirm step at all. All three keep the standing
-`;askill` pick, which is exactly what they had before.
+timeout, so it keeps the standing `;askill` pick.
+
+Story DOES use it, as of v1.26 — through `resolve_avatar_skills_solo` below,
+because a League battle has one human and an NPC that must never be handed to
+`participants()`. It was left out when this module was written, which meant a
+Story player could not choose their skill at all.
 """
 
 from __future__ import annotations
@@ -283,3 +287,38 @@ async def resolve_avatar_skills(ctx, p1, p2, ranked: bool = False) -> None:
             pass
     except Exception as exc:                             # noqa: BLE001
         log.exception("avatar skill prompt failed: %s", exc)
+
+
+async def resolve_avatar_skills_solo(channel, member, ranked: bool = False
+                                     ) -> None:
+    """The same prompt, for ONE player. Used by Story Mode.
+
+    A League battle has exactly one human in it, and the other side is an NPC
+    with no profile. `participants()` resolves each player's card through
+    `avatar_engine.get_equipped_avatar_id` → `utils.database.get_user`, which
+    CREATES AND PERSISTS a profile for any id it has not seen — so handing it a
+    League opponent would register that opponent as a real player, in the
+    population count, the funnel and `;audit`. Everything else in the PvE path
+    is guarded against exactly that (`BattleSession._profile_for` and friends);
+    this is that guard for the prompt, and it is why Story does not simply call
+    the two-player entry point with a dummy second player.
+
+    Takes a CHANNEL rather than a Context: the view only ever needs `.send`.
+
+    Never raises, for the same reason `resolve_avatar_skills` does not — the
+    picker is a convenience over a stored setting that already has a working
+    default.
+    """
+    try:
+        entries = participants((member,))
+        if not entries:
+            return
+        view = SkillPromptView(entries, ranked)
+        view.message = await channel.send(embed=view._status(), view=view)
+        await view.wait()
+        try:
+            await view.message.edit(view=None)
+        except Exception:                                # noqa: BLE001
+            pass
+    except Exception as exc:                             # noqa: BLE001
+        log.exception("avatar skill prompt (solo) failed: %s", exc)
