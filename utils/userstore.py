@@ -72,6 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_users_rank       ON users(rank_score DESC, wins D
 CREATE INDEX IF NOT EXISTS idx_users_level      ON users(level DESC);
 CREATE INDEX IF NOT EXISTS idx_users_last_seen  ON users(last_seen DESC);
 CREATE INDEX IF NOT EXISTS idx_users_created    ON users(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_users_inv        ON users(inv_count);
 
 -- ── Notifications ────────────────────────────────────────────────────────────
 -- These live in the USER STORE and not in a JSON file under data/, and that is
@@ -606,6 +607,115 @@ class UserStore:
             except (TypeError, ValueError):
                 continue
         return out
+
+    # ── Audience filters ─────────────────────────────────────────────────────
+    #
+    # "Owns nothing" is the filter, and it is deliberately EXACT rather than
+    # just `inv_count = 0`.
+    #
+    # `inv_count` is `len(profile["inventory"])`, mirrored into a real column
+    # on every write, so it is an index scan. But a boss COPY lives in
+    # `profile["boss_copies"]`, not in `inventory` — so a player whose only
+    # blade is a copy has `inv_count = 0` while being someone who has very
+    # obviously played. That is the same disagreement between "what the column
+    # says" and "what the player can actually fight with" that had Story and
+    # PvP refusing copy holders in v1.26, and repeating it here would be
+    # repeating a bug I just removed.
+    #
+    # So: the index does the bulk of the work, and only the profiles that come
+    # back EMPTY — the minority, and precisely the ones about to be dropped —
+    # are deserialised to check for copies.
+
+    def _copy_holders(self, uids) -> set:
+        """Of these ids, which hold a boss copy. Reads JSON; keep the set small."""
+        wanted = [str(u) for u in uids]
+        if not wanted:
+            return set()
+        out: set = set()
+        for i in range(0, len(wanted), 500):
+            chunk = wanted[i:i + 500]
+            marks = ",".join("?" for _ in chunk)
+            for r in self._conn().execute(
+                    f"SELECT user_id, data FROM users "
+                    f"WHERE user_id IN ({marks})", chunk):
+                try:
+                    prof = json.loads(r["data"])
+                except (json.JSONDecodeError, ValueError, TypeError):
+                    continue
+                if prof.get("boss_copies"):
+                    out.add(r["user_id"])
+        return out
+
+    def _empty_ids(self, limit: Optional[int] = None) -> list[str]:
+        sql = "SELECT user_id FROM users WHERE inv_count < 1"
+        args: tuple = ()
+        if limit:
+            sql += " LIMIT ?"
+            args = (max(1, int(limit)),)
+        return [r["user_id"] for r in self._conn().execute(sql, args)]
+
+    def user_ids_with_beys(self, minimum: int = 1,
+                           limit: Optional[int] = None) -> list[int]:
+        """Everyone holding at least `minimum` blades.
+
+        At `minimum = 1` a boss copy counts, because it is a blade the player
+        fights with. Above 1 the count is inventory only — one copy is not two
+        blades.
+        """
+        self.ensure_ready()
+        minimum = max(1, int(minimum))
+        sql = "SELECT user_id FROM users WHERE inv_count >= ?"
+        args: tuple = (minimum,)
+        if limit:
+            sql += " LIMIT ?"
+            args += (max(1, int(limit)),)
+        ids = [r["user_id"] for r in self._conn().execute(sql, args)]
+        if minimum <= 1:
+            ids.extend(sorted(self._copy_holders(self._empty_ids())))
+        out = []
+        for u in ids:
+            try:
+                out.append(int(u))
+            except (TypeError, ValueError):
+                continue
+        return out
+
+    def ids_without_beys(self, user_ids) -> set:
+        """Which of THESE ids own nothing at all.
+
+        The composable half: an audience already narrowed some other way — a
+        guild's members, everyone who missed update X — is filtered by
+        subtracting this rather than re-querying from scratch. Ids the registry
+        has never seen count as owning nothing, because they do.
+        """
+        self.ensure_ready()
+        wanted = [str(u) for u in dict.fromkeys(user_ids)]
+        if not wanted:
+            return set()
+        have: set = set()
+        for i in range(0, len(wanted), 500):
+            chunk = wanted[i:i + 500]
+            marks = ",".join("?" for _ in chunk)
+            rows = self._conn().execute(
+                f"SELECT user_id FROM users "
+                f"WHERE inv_count >= 1 AND user_id IN ({marks})", chunk)
+            have.update(r["user_id"] for r in rows)
+        maybe_empty = [u for u in wanted if u not in have]
+        have |= self._copy_holders(maybe_empty)
+        out = set()
+        for u in wanted:
+            if u not in have:
+                try:
+                    out.add(int(u))
+                except (TypeError, ValueError):
+                    continue
+        return out
+
+    def count_without_beys(self) -> int:
+        """How many registered profiles own nothing — the number to report."""
+        self.ensure_ready()
+        empty = self._empty_ids()
+        return len(empty) - len(self._copy_holders(empty))
 
     # ── Reports ──────────────────────────────────────────────────────────────
     _REPORT_COLS = ("report_id", "kind", "user_id", "guild_id", "summary",
