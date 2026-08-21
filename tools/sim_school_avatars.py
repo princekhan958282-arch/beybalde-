@@ -73,7 +73,9 @@ from cogs.abilities.ability_engine import AbilityEngine          # noqa: E402
 from cogs.avatar import avatar_shop as SHOP                      # noqa: E402
 from cogs.avatar import avatar_skills as AS                      # noqa: E402
 from cogs.avatar.avatar_engine import avatar_engine              # noqa: E402
-from cogs.core.constants import MOVE_ATTACK                      # noqa: E402
+from cogs.core.constants import (                                # noqa: E402
+    MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA,
+)
 from cogs.story import story_data as SD                          # noqa: E402
 
 avatar_engine.load()
@@ -194,57 +196,155 @@ async def suite() -> None:
 
     # ── 3. every skill actually fires ────────────────────────────────────────
     print("\n── 3. all 24 skills FIRE in a real battle ──────────────────────")
+    #
+    # DRIVEN, not sampled. An earlier version of this section played ordinary
+    # League battles and asserted "at least 23 of 24 fired" — and which one was
+    # missing changed run to run, because whether a boss happens to drop below
+    # half HP in eight sampled battles is luck. A check that passes or fails on
+    # luck is not a check. Each skill is now driven into the exact state its
+    # trigger names.
+    #
+    # The matchup wheel is Attack > Stamina > Defense > Attack, so a boss is
+    # made to WIN with attack by giving the player stamina, and so on.
+    A, D, ST = MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA
+
+    def low_hp(s, nk, pk):
+        s.hp[nk] = int(s.max_hp_per_player[nk] * 0.30)
+
+    def low_stam(s, nk, pk):
+        s.stamina_manager.stamina[nk] = s.stamina_manager.cap_for(nk) * 0.20
+
+    def enemy_low_hp(s, nk, pk):
+        s.hp[pk] = int(s.max_hp_per_player[pk] * 0.20)
+
+    def variety(s, nk, pk):
+        s.move_counts[nk] = {"attack": 2, "defense": 2, "stamina": 2}
+
+    def full_gauge(s, nk, pk):
+        s.stamina_manager.gauge[nk] = 150.0
+
+    def high_stability(s, nk, pk):
+        s.stability_manager.stability[nk] = s.stability_manager.max[nk]
+
+    def player_spams_attack(s, nk, pk):
+        s.move_counts[pk] = {"attack": 6, "defense": 1}
+
+    def behind(s, nk, pk):
+        s.victory_points = {nk: 0, pk: 2}
+
+    # skill -> (battle, boss move, player move, setup, rounds to try)
+    DRIVE = {
+        "Roktavor Rush":       (1, A,  ST, None,            1),
+        "Stamina Wheel":       (1, ST, D,  low_stam,        1),
+        # NOT the Stamina move: it restores stamina back above the 35%
+        # threshold before the trigger is evaluated, so the boss would no
+        # longer be at low stamina by the time its own skill looks.
+        "Relentless Spin":     (1, D,  A,  low_stam,        1),
+        "Guardian Wall":       (2, D,  A,  None,            1),
+        "Kerbeus Lock":        (2, D,  A,  None,           12),   # 40% chance
+        "Fortress Core":       (2, D,  A,  low_hp,          1),
+        "Death Scythe":        (3, A,  ST, None,            1),
+        "Dark Pursuit":        (3, A,  ST, enemy_low_hp,    1),
+        "Death Spiral":        (3, A,  ST, None,            1),
+        "Horus Guard":         (4, D,  A,  None,            1),
+        "Balanced Rotation":   (4, A,  ST, variety,         1),
+        "Golden Eye":          (4, A,  A,  None,            1),   # a mirror
+        "Wyvron Counter":      (5, D,  A,  None,            1),
+        "Wild Wind":           (5, D,  A,  None,            1),
+        "Wyvron Guard":        (5, D,  A,  high_stability,  1),
+        "Odax Smash":          (6, A,  ST, None,            1),
+        "Omni Rotation":       (6, A,  ST, variety,         1),
+        "Full Force":          (6, A,  ST, full_gauge,      1),
+        "Valkyrie Strike":     (7, A,  ST, None,            1),
+        "Brave Sword":         (7, A,  ST, None,            1),
+        "Victory Evolution":   (7, A,  ST, behind,          1),
+        "Spriggan Adaptation": (8, A,  ST, player_spams_attack, 1),
+        "Storm Counter":       (8, D,  A,  None,            1),
+        "Ultimate Balance":    (8, D,  A,  low_hp,          1),
+    }
+
+    check("every skill has a driver — none is skipped",
+          set(DRIVE) == set(ALL_SKILLS),
+          sorted(set(ALL_SKILLS) ^ set(DRIVE)))
+
+    async def drive_skill(name):
+        bno, bmove, pmove, setup, tries = DRIVE[name]
+        e = SD.battle(bno)
+        nb, ng = H.levelled(e["blade"], 100)
+        spy = Spy()
+        with spy:
+            for seed in range(tries):
+                s, _ch, npc, _c = H.build_session(
+                    player, pblade, nb, ng, "elite", seed=seed,
+                    battle_no=bno)
+                nk, pk = str(npc.id), str(player.id)
+                if setup:
+                    setup(s, nk, pk)
+                s.moves[nk] = bmove
+                s.moves[pk] = pmove
+                await s._resolve_round()
+                if spy.fired[name]:
+                    break
+        return spy.fired[name]
+
+    unfired = []
+    for name in ALL_SKILLS:
+        if not await drive_skill(name):
+            unfired.append(name)
+    check("all 24 fire when driven into the state they describe — none is "
+          "decoration", not unfired, unfired)
+
+    # And the same 24 are reachable in ORDINARY play, reported rather than
+    # asserted: whether a given boss drops below half HP in a sample is luck,
+    # and this number is here to be read, not to fail a build.
     spy = Spy()
     with spy:
         for e in SD.SCHOOL_LEAGUE:
             nb, ng = H.levelled(e["blade"], 100)
-            for seed in range(8):
+            for seed in range(6):
                 s, _ch, npc, _c = H.build_session(
                     player, pblade, nb, ng, "elite", seed=seed,
                     battle_no=e["n"],
-                    # the boss BEHIND on points, so `behind_on_points` is
-                    # reachable — the skill that reads it is Valt's
                     victory_points={str(player.id): 2, str(e["n"]): 0})
                 await H.drive(s, str(player.id), H.Brain("elite", seed),
                               cap=60)
-    ran = [n for n in ALL_SKILLS if spy.fired[n]]
-    missed = [n for n in ALL_SKILLS if not spy.fired[n]]
-    check(f"{len(ran)} of 24 fire in ordinary League play",
-          len(ran) >= 23, missed)
-    # Rantaro's third skill needs the opponent below 35% stamina, which the AI
-    # avoids by playing Stamina. Rare in play is not the same as broken, so it
-    # is driven into that state deliberately rather than left unproven.
-    spy2 = Spy()
-    with spy2:
-        nb, ng = H.levelled("Rising Ragnaruk", 100)
-        s, _ch, npc, _c = H.build_session(player, pblade, nb, ng, "elite",
-                                          seed=1, battle_no=1)
-        nkey = str(npc.id)
-        s.stamina_manager.stamina[nkey] = s.stamina_manager.cap_for(nkey) * 0.2
-        await s._prime_npc_move()
-        s.moves[str(player.id)] = MOVE_ATTACK
-        await s._resolve_round()
-    check("...and Relentless Spin fires once its opponent is really at low "
-          "stamina", spy2.fired["Relentless Spin"] > 0)
-    check("so all 24 are live, none is decoration",
-          len(set(ran) | {"Relentless Spin"}) == 24,
-          sorted(set(ALL_SKILLS) - set(ran) - {"Relentless Spin"}))
+    seen = [n for n in ALL_SKILLS if spy.fired[n]]
+    print(f"       ({len(seen)}/24 also came up in 48 ordinary battles; the "
+          f"rest need states a boss reaches rarely)")
 
-    # a sampled EFFECT check — the rule ran, and the number moved
-    print("\n   …and the effects land, not just the rules:")
+    # a sampled EFFECT check — the rule ran, AND the number it owns moved.
+    #
+    # Deliberately measuring Fortress Core's own +20, not the boss's stability
+    # at the end of the round. A round applies several stability changes and
+    # some are random — counters cost 5 each and fire on a chance roll — so a
+    # net comparison reads as a failure roughly one run in six with the skill
+    # working perfectly. That is a flaky test, not a finding.
+    print("\n   …and the effect lands, not just the rule:")
+    from cogs.battle.stability_manager import StabilityManager
+    deltas: list = []
+    _real_apply = StabilityManager._apply
+
+    def tracing_apply(mgr, key, delta):
+        deltas.append((key, float(delta)))
+        return _real_apply(mgr, key, delta)
+
     nb, ng = H.levelled("King Kerbeus", 100)
     s, _ch, npc, _c = H.build_session(player, pblade, nb, ng, "elite",
                                       seed=3, battle_no=2)
-    nkey = str(npc.id)
+    nkey, pkey = str(npc.id), str(player.id)
     s.stability_manager.stability[nkey] = 40        # room to gain
-    before = s.stability_manager.stability[nkey]
     s.hp[nkey] = int(s.max_hp_per_player[nkey] * 0.3)   # below half → Fortress
-    await s._prime_npc_move()
-    s.moves[str(player.id)] = MOVE_ATTACK
-    await s._resolve_round()
-    check("Fortress Core really moves Ken's stability when he is hurt",
-          s.stability_manager.stability[nkey] > before,
-          (before, s.stability_manager.stability[nkey]))
+    s.moves[nkey] = MOVE_DEFENSE
+    s.moves[pkey] = MOVE_ATTACK
+    StabilityManager._apply = tracing_apply
+    try:
+        await s._resolve_round()
+    finally:
+        StabilityManager._apply = _real_apply
+    check("Fortress Core really adds its 20 stability to Ken when he is hurt",
+          (nkey, 20.0) in deltas, deltas)
+    check("...and it lands on Ken, not on the player",
+          not [d for k, d in deltas if k == pkey and d == 20.0], deltas)
 
     # ── 4. bosses run all three; a player runs the one they paid for ─────────
     print("\n── 4. three skills for a boss, one for a player ────────────────")

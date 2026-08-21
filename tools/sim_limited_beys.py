@@ -278,8 +278,12 @@ asrc = open(os.path.join(ROOT, "cogs", "avatar", "avatar_shop.py"),
             encoding="utf-8").read()
 check("the pack roll actually consults it — it never used to",
       "avatar_is_available(av)" in asrc)
+# Sliced after the DEFINITION, not after the first mention of the name: any
+# comment elsewhere in the file that refers to `_build_rarity_map` would
+# otherwise move the window and fail a check about code that never changed.
 check("...at _build_rarity_map, the one choke point every pull reads",
-      "avatar_is_available" in asrc.split("_build_rarity_map", 1)[1][:900])
+      "avatar_is_available" in asrc.split("def _build_rarity_map", 1)[1][:900],
+      asrc.split("def _build_rarity_map", 1)[1][:200])
 
 print(f"\n{PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)
