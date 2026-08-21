@@ -72,6 +72,65 @@ CREATE TABLE IF NOT EXISTS kv_store (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 """
 
+# ── Notifications ────────────────────────────────────────────────────────────
+# The SQLite twin of these lives in `utils/userstore.py`; the two schemas and
+# every method name below are deliberately kept identical so no caller has to
+# know which backend is live. Only the placeholder style (%s vs ?) and the
+# ignore-duplicate spelling differ.
+_SCHEMA_UPDATES = """
+CREATE TABLE IF NOT EXISTS updates (
+    update_id    VARCHAR(64)  NOT NULL PRIMARY KEY,
+    version      VARCHAR(32)  NULL,
+    title        VARCHAR(256) NOT NULL,
+    body         LONGTEXT     NOT NULL,
+    priority     VARCHAR(16)  NOT NULL,
+    audience     LONGTEXT     NOT NULL,
+    image_url    TEXT         NULL,
+    event        VARCHAR(32)  NULL,
+    created_by   VARCHAR(32)  NULL,
+    created_at   DOUBLE       NOT NULL,
+    scheduled_at DOUBLE       NULL,
+    state        VARCHAR(16)  NOT NULL,
+    INDEX idx_updates_created (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
+# The composite PRIMARY KEY is the duplicate prevention, enforced by the
+# database rather than by application logic — see the note in userstore.py.
+_SCHEMA_DELIVERIES = """
+CREATE TABLE IF NOT EXISTS update_deliveries (
+    update_id  VARCHAR(64) NOT NULL,
+    user_id    VARCHAR(32) NOT NULL,
+    state      VARCHAR(16) NOT NULL,
+    attempts   INT         NOT NULL DEFAULT 0,
+    last_error TEXT        NULL,
+    queued_at  DOUBLE      NOT NULL,
+    sent_at    DOUBLE      NULL,
+    PRIMARY KEY (update_id, user_id),
+    INDEX idx_deliveries_update_state (update_id, state),
+    INDEX idx_deliveries_state (state)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
+_SCHEMA_REPORTS = """
+CREATE TABLE IF NOT EXISTS reports (
+    report_id  VARCHAR(64)  NOT NULL PRIMARY KEY,
+    kind       VARCHAR(16)  NOT NULL,
+    user_id    VARCHAR(32)  NOT NULL,
+    guild_id   VARCHAR(32)  NULL,
+    summary    VARCHAR(256) NOT NULL,
+    body       LONGTEXT     NOT NULL,
+    image_url  TEXT         NULL,
+    status     VARCHAR(16)  NOT NULL,
+    created_at DOUBLE       NOT NULL,
+    handled_by VARCHAR(32)  NULL,
+    handled_at DOUBLE       NULL,
+    message_id VARCHAR(32)  NULL,
+    INDEX idx_reports_user_time (user_id, created_at DESC),
+    INDEX idx_reports_status (status, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
 # The JSON stores worth moving. beyblades.json is deliberately NOT here — it's
 # static game content that ships with the code, not player data.
 KV_FILES = [
@@ -174,6 +233,9 @@ class MySQLStore:
             with self._conn().cursor() as cur:
                 cur.execute(_SCHEMA_USERS)
                 cur.execute(_SCHEMA_KV)
+                cur.execute(_SCHEMA_UPDATES)
+                cur.execute(_SCHEMA_DELIVERIES)
+                cur.execute(_SCHEMA_REPORTS)
             self._ready = True
 
     # ── Row helpers ──────────────────────────────────────────────────────────
@@ -378,6 +440,267 @@ class MySQLStore:
         return len(data)
 
     # ── Key-value stores (the small JSON files) ──────────────────────────────
+    # ── Notifications: updates, the delivery ledger, and reports ─────────────
+    #
+    # Every method here has a same-named twin on `utils.userstore.UserStore`
+    # with the same signature. Two spellings differ and nothing else:
+    # placeholders are %s, and "insert unless it exists" is INSERT IGNORE
+    # rather than INSERT OR IGNORE.
+
+    _UPDATE_COLS = ("update_id", "version", "title", "body", "priority",
+                    "audience", "image_url", "event", "created_by",
+                    "created_at", "scheduled_at", "state")
+
+    def updates_put(self, row: dict) -> None:
+        self.ensure_ready()
+        data = dict(row)
+        if isinstance(data.get("audience"), (dict, list)):
+            data["audience"] = json.dumps(data["audience"])
+        vals = tuple(data.get(c) for c in self._UPDATE_COLS)
+        cols = ",".join(self._UPDATE_COLS)
+        marks = ",".join("%s" for _ in self._UPDATE_COLS)
+        dup = ",".join(f"{c}=VALUES({c})" for c in self._UPDATE_COLS[1:])
+        with self._conn().cursor() as cur:
+            cur.execute(f"INSERT INTO updates ({cols}) VALUES ({marks}) "
+                        f"ON DUPLICATE KEY UPDATE {dup}", vals)
+
+    @staticmethod
+    def _update_row(row) -> dict:
+        out = dict(row)
+        try:
+            out["audience"] = json.loads(out.get("audience") or "{}")
+        except (json.JSONDecodeError, ValueError, TypeError):
+            out["audience"] = {}
+        return out
+
+    def updates_get(self, update_id: str) -> Optional[dict]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT * FROM updates WHERE update_id=%s",
+                        (str(update_id),))
+            row = cur.fetchone()
+        return self._update_row(row) if row else None
+
+    def updates_list(self, limit: int = 20) -> list[dict]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT * FROM updates ORDER BY created_at DESC "
+                        "LIMIT %s", (max(1, int(limit)),))
+            rows = cur.fetchall() or []
+        return [self._update_row(r) for r in rows]
+
+    def updates_set_state(self, update_id: str, state: str) -> None:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("UPDATE updates SET state=%s WHERE update_id=%s",
+                        (str(state), str(update_id)))
+
+    def deliveries_enqueue(self, update_id: str, user_ids, *,
+                           now: Optional[float] = None) -> int:
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        rows = [(str(update_id), str(u), "PENDING", ts)
+                for u in dict.fromkeys(user_ids)]
+        if not rows:
+            return 0
+        with self._conn().cursor() as cur:
+            cur.executemany(
+                "INSERT IGNORE INTO update_deliveries "
+                "(update_id, user_id, state, queued_at) "
+                "VALUES (%s,%s,%s,%s)", rows)
+            return int(cur.rowcount or 0)
+
+    def deliveries_claim(self, update_id: str, limit: int = 25) -> list[str]:
+        """Take a batch off the queue, atomically.
+
+        MySQL has no UPDATE…RETURNING, so this is a SELECT … FOR UPDATE inside
+        a transaction rather than SQLite's single statement. Same guarantee —
+        the rows are locked before they are read, so a second claimer blocks
+        instead of taking them too — reached a different way because the engine
+        offers a different tool.
+        """
+        self.ensure_ready()
+        conn = self._conn()
+        conn.begin()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT user_id FROM update_deliveries "
+                    "WHERE update_id=%s AND state IN ('PENDING','RETRY') "
+                    "ORDER BY queued_at LIMIT %s FOR UPDATE",
+                    (str(update_id), max(1, int(limit))))
+                ids = [r["user_id"] for r in (cur.fetchall() or [])]
+                if ids:
+                    marks = ",".join(["%s"] * len(ids))
+                    cur.execute(
+                        f"UPDATE update_deliveries SET state='SENDING' "
+                        f"WHERE update_id=%s AND user_id IN ({marks})",
+                        (str(update_id), *ids))
+            conn.commit()
+            return ids
+        except Exception:
+            conn.rollback()
+            raise
+
+    def deliveries_mark(self, update_id: str, user_id: str, state: str,
+                        error: Optional[str] = None,
+                        bump_attempt: bool = True) -> None:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("""
+                UPDATE update_deliveries
+                   SET state=%s,
+                       attempts = attempts + %s,
+                       last_error=%s,
+                       sent_at = CASE WHEN %s='SENT' THEN %s ELSE sent_at END
+                 WHERE update_id=%s AND user_id=%s
+            """, (str(state), 1 if bump_attempt else 0, (error or None),
+                  str(state), time.time(), str(update_id), str(user_id)))
+
+    def deliveries_counts(self, update_id: str) -> dict:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT state, COUNT(*) AS n FROM update_deliveries "
+                        "WHERE update_id=%s GROUP BY state", (str(update_id),))
+            return {r["state"]: int(r["n"]) for r in (cur.fetchall() or [])}
+
+    def deliveries_attempts(self, update_id: str, user_id: str) -> int:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT attempts FROM update_deliveries "
+                        "WHERE update_id=%s AND user_id=%s",
+                        (str(update_id), str(user_id)))
+            row = cur.fetchone()
+        return int(row["attempts"]) if row else 0
+
+    def deliveries_reset_stuck(self) -> int:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("UPDATE update_deliveries SET state='PENDING' "
+                        "WHERE state='SENDING'")
+            return int(cur.rowcount or 0)
+
+    def deliveries_drop_pending(self, update_id: str) -> int:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("DELETE FROM update_deliveries WHERE update_id=%s "
+                        "AND state IN ('PENDING','RETRY','SENDING')",
+                        (str(update_id),))
+            return int(cur.rowcount or 0)
+
+    def deliveries_pending_updates(self) -> list[str]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT DISTINCT update_id FROM update_deliveries "
+                        "WHERE state IN ('PENDING','RETRY')")
+            return [r["update_id"] for r in (cur.fetchall() or [])]
+
+    def users_never_received(self, update_id: str,
+                             limit: Optional[int] = None) -> list[int]:
+        self.ensure_ready()
+        sql = ("SELECT u.user_id AS uid FROM users u "
+               "LEFT JOIN update_deliveries d "
+               "  ON d.user_id = u.user_id AND d.update_id = %s "
+               "WHERE d.user_id IS NULL")
+        args: tuple = (str(update_id),)
+        if limit:
+            sql += " LIMIT %s"
+            args += (max(1, int(limit)),)
+        out = []
+        with self._conn().cursor() as cur:
+            cur.execute(sql, args)
+            for r in (cur.fetchall() or []):
+                try:
+                    out.append(int(r["uid"]))
+                except (TypeError, ValueError):
+                    continue
+        return out
+
+    def created_since(self, cutoff: float,
+                      limit: Optional[int] = None) -> list[int]:
+        self.ensure_ready()
+        sql = ("SELECT user_id FROM users WHERE created_at >= %s "
+               "ORDER BY created_at DESC")
+        args: tuple = (float(cutoff),)
+        if limit:
+            sql += " LIMIT %s"
+            args += (max(1, int(limit)),)
+        out = []
+        with self._conn().cursor() as cur:
+            cur.execute(sql, args)
+            for r in (cur.fetchall() or []):
+                try:
+                    out.append(int(r["user_id"]))
+                except (TypeError, ValueError):
+                    continue
+        return out
+
+    # ── Reports ──────────────────────────────────────────────────────────────
+    _REPORT_COLS = ("report_id", "kind", "user_id", "guild_id", "summary",
+                    "body", "image_url", "status", "created_at",
+                    "handled_by", "handled_at", "message_id")
+
+    def reports_put(self, row: dict) -> None:
+        self.ensure_ready()
+        vals = tuple(row.get(c) for c in self._REPORT_COLS)
+        cols = ",".join(self._REPORT_COLS)
+        marks = ",".join("%s" for _ in self._REPORT_COLS)
+        dup = ",".join(f"{c}=VALUES({c})" for c in self._REPORT_COLS[1:])
+        with self._conn().cursor() as cur:
+            cur.execute(f"INSERT INTO reports ({cols}) VALUES ({marks}) "
+                        f"ON DUPLICATE KEY UPDATE {dup}", vals)
+
+    def reports_get(self, report_id: str) -> Optional[dict]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT * FROM reports WHERE report_id=%s",
+                        (str(report_id),))
+            row = cur.fetchone()
+        return dict(row) if row else None
+
+    def reports_set_status(self, report_id: str, status: str,
+                           handled_by: Optional[str] = None) -> None:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("UPDATE reports SET status=%s, handled_by=%s, "
+                        "handled_at=%s WHERE report_id=%s",
+                        (str(status),
+                         (str(handled_by) if handled_by else None),
+                         time.time(), str(report_id)))
+
+    def reports_set_field(self, report_id: str, field: str, value) -> None:
+        if field not in ("image_url", "message_id"):
+            raise ValueError(f"reports_set_field: {field!r} is not settable")
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute(f"UPDATE reports SET {field}=%s WHERE report_id=%s",
+                        (value, str(report_id)))
+
+    def reports_open(self, limit: int = 10) -> list[dict]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT * FROM reports WHERE status IN "
+                        "('OPEN','ACK') ORDER BY created_at DESC LIMIT %s",
+                        (max(1, int(limit)),))
+            return [dict(r) for r in (cur.fetchall() or [])]
+
+    def reports_count_since(self, user_id: str, cutoff: float) -> int:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT COUNT(*) AS n FROM reports "
+                        "WHERE user_id=%s AND created_at >= %s",
+                        (str(user_id), float(cutoff)))
+            row = cur.fetchone()
+        return int(row["n"]) if row else 0
+
+    def reports_last_at(self, user_id: str) -> Optional[float]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT created_at FROM reports WHERE user_id=%s "
+                        "ORDER BY created_at DESC LIMIT 1", (str(user_id),))
+            row = cur.fetchone()
+        return float(row["created_at"]) if row else None
+
     def kv_get(self, name: str) -> Optional[dict]:
         self.ensure_ready()
         with self._conn().cursor() as cur:

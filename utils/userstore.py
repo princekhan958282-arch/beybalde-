@@ -71,6 +71,69 @@ CREATE INDEX IF NOT EXISTS idx_users_coins      ON users(coins DESC);
 CREATE INDEX IF NOT EXISTS idx_users_rank       ON users(rank_score DESC, wins DESC);
 CREATE INDEX IF NOT EXISTS idx_users_level      ON users(level DESC);
 CREATE INDEX IF NOT EXISTS idx_users_last_seen  ON users(last_seen DESC);
+CREATE INDEX IF NOT EXISTS idx_users_created    ON users(created_at DESC);
+
+-- ── Notifications ────────────────────────────────────────────────────────────
+-- These live in the USER STORE and not in a JSON file under data/, and that is
+-- a deliberate durability decision rather than a filing preference.
+-- `mysql_store.kv_get` / `kv_put` have no readers anywhere: `migrate()` copies
+-- the JSON files into MySQL once and every runtime read still goes to local
+-- disk. On the MySQL deployment — which exists so data survives a container
+-- rebuild — only the `users` table actually survives. A delivery ledger in a
+-- JSON file would be wiped on the next rebuild and the next send would DM
+-- everybody a second time, which is the one thing this feature must not do.
+CREATE TABLE IF NOT EXISTS updates (
+    update_id    TEXT PRIMARY KEY,
+    version      TEXT,
+    title        TEXT NOT NULL,
+    body         TEXT NOT NULL,
+    priority     TEXT NOT NULL,
+    audience     TEXT NOT NULL,          -- JSON {kind, params}
+    image_url    TEXT,
+    event        TEXT,
+    created_by   TEXT,
+    created_at   REAL NOT NULL,
+    scheduled_at REAL,
+    state        TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_updates_created ON updates(created_at DESC);
+
+-- The composite PRIMARY KEY is the duplicate prevention, and it is the
+-- DATABASE enforcing it rather than application logic. Enqueue is
+-- INSERT OR IGNORE, so re-queueing after a restart, a retry, or an admin
+-- pressing Send twice adds nothing and reports how many rows were new.
+CREATE TABLE IF NOT EXISTS update_deliveries (
+    update_id  TEXT NOT NULL,
+    user_id    TEXT NOT NULL,
+    state      TEXT NOT NULL,
+    attempts   INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT,
+    queued_at  REAL NOT NULL,
+    sent_at    REAL,
+    PRIMARY KEY (update_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_deliveries_update_state
+    ON update_deliveries(update_id, state);
+CREATE INDEX IF NOT EXISTS idx_deliveries_state ON update_deliveries(state);
+
+CREATE TABLE IF NOT EXISTS reports (
+    report_id  TEXT PRIMARY KEY,
+    kind       TEXT NOT NULL,
+    user_id    TEXT NOT NULL,
+    guild_id   TEXT,
+    summary    TEXT NOT NULL,
+    body       TEXT NOT NULL,
+    image_url  TEXT,
+    status     TEXT NOT NULL,
+    created_at REAL NOT NULL,
+    handled_by TEXT,
+    handled_at REAL,
+    message_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_reports_user_time
+    ON reports(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reports_status
+    ON reports(status, created_at DESC);
 """
 
 
@@ -345,3 +408,270 @@ class UserStore:
             os.fsync(f.fileno())
         os.replace(tmp, path)
         return len(data)
+
+    # ── Notifications: updates, the delivery ledger, and reports ─────────────
+    #
+    # Every method below has a same-named twin on `MySQLStore` with the same
+    # signature, so no caller ever branches on which backend is live. The only
+    # differences are the placeholder style and the ignore-duplicate spelling.
+
+    _UPDATE_COLS = ("update_id", "version", "title", "body", "priority",
+                    "audience", "image_url", "event", "created_by",
+                    "created_at", "scheduled_at", "state")
+
+    def updates_put(self, row: dict) -> None:
+        """Insert or replace one update. `audience` is stored as JSON text."""
+        self.ensure_ready()
+        data = dict(row)
+        if isinstance(data.get("audience"), (dict, list)):
+            data["audience"] = json.dumps(data["audience"])
+        vals = tuple(data.get(c) for c in self._UPDATE_COLS)
+        marks = ",".join("?" for _ in self._UPDATE_COLS)
+        self._conn().execute(
+            f"INSERT OR REPLACE INTO updates "
+            f"({','.join(self._UPDATE_COLS)}) VALUES ({marks})", vals)
+
+    @staticmethod
+    def _update_row(row) -> dict:
+        out = dict(row)
+        try:
+            out["audience"] = json.loads(out.get("audience") or "{}")
+        except (json.JSONDecodeError, ValueError, TypeError):
+            out["audience"] = {}
+        return out
+
+    def updates_get(self, update_id: str) -> Optional[dict]:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT * FROM updates WHERE update_id = ?",
+            (str(update_id),)).fetchone()
+        return self._update_row(row) if row else None
+
+    def updates_list(self, limit: int = 20) -> list[dict]:
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT * FROM updates ORDER BY created_at DESC LIMIT ?",
+            (max(1, int(limit)),))
+        return [self._update_row(r) for r in rows]
+
+    def updates_set_state(self, update_id: str, state: str) -> None:
+        self.ensure_ready()
+        self._conn().execute(
+            "UPDATE updates SET state = ? WHERE update_id = ?",
+            (str(state), str(update_id)))
+
+    def deliveries_enqueue(self, update_id: str, user_ids, *,
+                           now: Optional[float] = None) -> int:
+        """Queue an update for these users. Returns how many rows were NEW.
+
+        `INSERT OR IGNORE` against the composite primary key is the whole of
+        the duplicate prevention: queueing the same (update, user) twice is a
+        no-op, so a retry, a restart or a double-click cannot produce a second
+        DM. The count comes from `total_changes` rather than `rowcount`, which
+        reports -1 for an executemany on some builds.
+        """
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        rows = [(str(update_id), str(u), "PENDING", ts)
+                for u in dict.fromkeys(user_ids)]   # de-duped, order kept
+        if not rows:
+            return 0
+        conn = self._conn()
+        before = conn.total_changes
+        conn.executemany(
+            "INSERT OR IGNORE INTO update_deliveries "
+            "(update_id, user_id, state, queued_at) VALUES (?, ?, ?, ?)", rows)
+        return conn.total_changes - before
+
+    def deliveries_claim(self, update_id: str, limit: int = 25) -> list[str]:
+        """Take a batch off the queue, atomically.
+
+        One statement flips PENDING/RETRY to SENDING and hands back the ids it
+        took, so two workers cannot claim the same row even if one ever exists.
+        Written this way rather than select-then-update because that pair has a
+        window between the two halves, and the window is exactly the bug.
+        """
+        self.ensure_ready()
+        rows = self._conn().execute("""
+            UPDATE update_deliveries SET state = 'SENDING'
+             WHERE rowid IN (
+                   SELECT rowid FROM update_deliveries
+                    WHERE update_id = ? AND state IN ('PENDING', 'RETRY')
+                    ORDER BY queued_at LIMIT ?)
+         RETURNING user_id
+        """, (str(update_id), max(1, int(limit)))).fetchall()
+        return [r["user_id"] for r in rows]
+
+    def deliveries_mark(self, update_id: str, user_id: str, state: str,
+                        error: Optional[str] = None,
+                        bump_attempt: bool = True) -> None:
+        self.ensure_ready()
+        self._conn().execute("""
+            UPDATE update_deliveries
+               SET state = ?,
+                   attempts = attempts + ?,
+                   last_error = ?,
+                   sent_at = CASE WHEN ? = 'SENT' THEN ? ELSE sent_at END
+             WHERE update_id = ? AND user_id = ?
+        """, (str(state), 1 if bump_attempt else 0,
+              (error or None), str(state), time.time(),
+              str(update_id), str(user_id)))
+
+    def deliveries_counts(self, update_id: str) -> dict:
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT state, COUNT(*) AS n FROM update_deliveries "
+            "WHERE update_id = ? GROUP BY state", (str(update_id),))
+        return {r["state"]: r["n"] for r in rows}
+
+    def deliveries_attempts(self, update_id: str, user_id: str) -> int:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT attempts FROM update_deliveries "
+            "WHERE update_id = ? AND user_id = ?",
+            (str(update_id), str(user_id))).fetchone()
+        return int(row["attempts"]) if row else 0
+
+    def deliveries_reset_stuck(self) -> int:
+        """SENDING -> PENDING, for every update. Run once at startup.
+
+        A process killed mid-batch leaves rows claimed and nobody holding them.
+        Without this they are stranded forever, which for the player is an
+        update that never arrives and for the ledger is a send that never
+        finishes.
+        """
+        self.ensure_ready()
+        conn = self._conn()
+        before = conn.total_changes
+        conn.execute("UPDATE update_deliveries SET state = 'PENDING' "
+                     "WHERE state = 'SENDING'")
+        return conn.total_changes - before
+
+    def deliveries_drop_pending(self, update_id: str) -> int:
+        """Cancel: forget what has not gone out. Sent rows are left alone."""
+        self.ensure_ready()
+        conn = self._conn()
+        before = conn.total_changes
+        conn.execute(
+            "DELETE FROM update_deliveries WHERE update_id = ? "
+            "AND state IN ('PENDING', 'RETRY', 'SENDING')", (str(update_id),))
+        return conn.total_changes - before
+
+    def deliveries_pending_updates(self) -> list[str]:
+        """Update ids with work left, so a restarted worker knows where to go."""
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT DISTINCT update_id FROM update_deliveries "
+            "WHERE state IN ('PENDING', 'RETRY')")
+        return [r["update_id"] for r in rows]
+
+    def users_never_received(self, update_id: str,
+                             limit: Optional[int] = None) -> list[int]:
+        """Everyone in the registry with no delivery row for this update.
+
+        The "players who have not received a specific update" audience, as one
+        indexed LEFT JOIN rather than loading the registry and subtracting.
+        """
+        self.ensure_ready()
+        sql = ("SELECT u.user_id AS uid FROM users u "
+               "LEFT JOIN update_deliveries d "
+               "  ON d.user_id = u.user_id AND d.update_id = ? "
+               "WHERE d.user_id IS NULL")
+        args: tuple = (str(update_id),)
+        if limit:
+            sql += " LIMIT ?"
+            args += (max(1, int(limit)),)
+        out = []
+        for r in self._conn().execute(sql, args):
+            try:
+                out.append(int(r["uid"]))
+            except (TypeError, ValueError):
+                continue
+        return out
+
+    def created_since(self, cutoff: float, limit: Optional[int] = None
+                      ) -> list[int]:
+        """Accounts registered since `cutoff` — the "new players" audience."""
+        self.ensure_ready()
+        sql = ("SELECT user_id FROM users WHERE created_at >= ? "
+               "ORDER BY created_at DESC")
+        args: tuple = (float(cutoff),)
+        if limit:
+            sql += " LIMIT ?"
+            args += (max(1, int(limit)),)
+        out = []
+        for r in self._conn().execute(sql, args):
+            try:
+                out.append(int(r["user_id"]))
+            except (TypeError, ValueError):
+                continue
+        return out
+
+    # ── Reports ──────────────────────────────────────────────────────────────
+    _REPORT_COLS = ("report_id", "kind", "user_id", "guild_id", "summary",
+                    "body", "image_url", "status", "created_at",
+                    "handled_by", "handled_at", "message_id")
+
+    def reports_put(self, row: dict) -> None:
+        self.ensure_ready()
+        vals = tuple(row.get(c) for c in self._REPORT_COLS)
+        marks = ",".join("?" for _ in self._REPORT_COLS)
+        self._conn().execute(
+            f"INSERT OR REPLACE INTO reports "
+            f"({','.join(self._REPORT_COLS)}) VALUES ({marks})", vals)
+
+    def reports_get(self, report_id: str) -> Optional[dict]:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT * FROM reports WHERE report_id = ?",
+            (str(report_id),)).fetchone()
+        return dict(row) if row else None
+
+    def reports_set_status(self, report_id: str, status: str,
+                           handled_by: Optional[str] = None) -> None:
+        self.ensure_ready()
+        self._conn().execute(
+            "UPDATE reports SET status = ?, handled_by = ?, handled_at = ? "
+            "WHERE report_id = ?",
+            (str(status), (str(handled_by) if handled_by else None),
+             time.time(), str(report_id)))
+
+    def reports_set_field(self, report_id: str, field: str, value) -> None:
+        """Set `image_url` or `message_id` after the fact.
+
+        The column name is checked against a whitelist rather than formatted in
+        blind: it is the one place here a caller supplies an identifier.
+        """
+        if field not in ("image_url", "message_id"):
+            raise ValueError(f"reports_set_field: {field!r} is not settable")
+        self.ensure_ready()
+        self._conn().execute(
+            f"UPDATE reports SET {field} = ? WHERE report_id = ?",
+            (value, str(report_id)))
+
+    def reports_open(self, limit: int = 10) -> list[dict]:
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT * FROM reports WHERE status IN ('OPEN', 'ACK') "
+            "ORDER BY created_at DESC LIMIT ?", (max(1, int(limit)),))
+        return [dict(r) for r in rows]
+
+    def reports_count_since(self, user_id: str, cutoff: float) -> int:
+        """How many this player has filed since `cutoff` — the spam gate.
+
+        Counted from the TABLE, not from an in-process dict, so restarting the
+        bot is not a way to reset your own cooldown.
+        """
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT COUNT(*) AS n FROM reports "
+            "WHERE user_id = ? AND created_at >= ?",
+            (str(user_id), float(cutoff))).fetchone()
+        return int(row["n"]) if row else 0
+
+    def reports_last_at(self, user_id: str) -> Optional[float]:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT created_at FROM reports WHERE user_id = ? "
+            "ORDER BY created_at DESC LIMIT 1", (str(user_id),)).fetchone()
+        return float(row["created_at"]) if row else None
