@@ -198,6 +198,73 @@ class ReportButton(discord.ui.DynamicItem[discord.ui.Button],
             f"been told.", ephemeral=True)
 
 
+SETUP_NUDGE = (
+    "⚠️ **No reports channel is set**, so this came to you here.\n"
+    "Set one with `;reportchannel` in the channel you want them in, or "
+    "`/update → 📥 Reports`.")
+
+
+def split_location(value) -> tuple[Optional[int], Optional[int]]:
+    """`"<channel>/<message>"` → the two ids.
+
+    The report row has no channel column, and there is no migration path for
+    adding one to a table that already exists on the live install — so where a
+    report landed is carried inside `message_id`. A bare id from before this
+    was so still parses, and resolves against the configured channel.
+    """
+    s = str(value or "")
+    chan, _, msg = s.rpartition("/")
+    return (int(chan) if chan.isdigit() else None,
+            int(msg) if msg.isdigit() else None)
+
+
+async def destinations(bot) -> list[tuple[object, bool]]:
+    """Where a report may land, best first: `(channel, is_fallback)`.
+
+    The owner's DM is the second entry and not a nicety. A report filed while
+    no channel is configured used to be stored and nothing else — correct, but
+    invisible until somebody thought to open the admin panel, which is exactly
+    how a bug report goes unread.
+    """
+    from utils.database import get_report_channel
+    out: list[tuple[object, bool]] = []
+    try:
+        cid = get_report_channel()
+        ch = bot.get_channel(cid) if cid else None
+        if ch is not None:
+            out.append((ch, False))
+    except Exception:                                    # noqa: BLE001
+        log.exception("[reports] could not resolve the report channel")
+    try:
+        from cogs.admin import actions as A
+        owner = bot.get_user(A.MASTER_ID)
+        if owner is None:
+            owner = await bot.fetch_user(A.MASTER_ID)
+        out.append((await owner.create_dm(), True))
+    except Exception:                                    # noqa: BLE001
+        log.exception("[reports] could not open the owner's DM")
+    return out
+
+
+async def deliver_report(bot, report: dict) -> Optional[str]:
+    """Post it somewhere a human will see. Returns `"<channel>/<message>"`."""
+    for channel, fallback in await destinations(bot):
+        try:
+            msg = await channel.send(
+                content=(SETUP_NUDGE if fallback else None),
+                embed=build_embed(report),
+                view=view_for(report["report_id"]))
+        except Exception:                                # noqa: BLE001
+            log.exception("[reports] could not post to %r", channel)
+            continue
+        loc = f"{msg.channel.id}/{msg.id}"
+        S.set_report_field(report["report_id"], "message_id", loc)
+        return loc
+    log.warning("[reports] %s stored but delivered nowhere",
+                report.get("report_id"))
+    return None
+
+
 def view_for(report_id: str) -> discord.ui.View:
     v = discord.ui.View(timeout=None)
     for act in ("ack", "fixed", "wontfix", "dupe"):
@@ -234,8 +301,6 @@ class ReportModal(discord.ui.Modal):
 async def submit_report(interaction: discord.Interaction, *, kind: str,
                         summary: str, body: str) -> None:
     """Store it, post it, then offer the image window. Never raises."""
-    from utils.database import get_report_channel
-
     ok, why = may_report(interaction.user.id)
     if not ok:
         return await interaction.response.send_message(why, ephemeral=True)
@@ -257,28 +322,18 @@ async def submit_report(interaction: discord.Interaction, *, kind: str,
     }
     S.put_report(report)
 
-    cid = get_report_channel()
-    channel = interaction.client.get_channel(cid) if cid else None
-    if channel is None:
-        # Filed but undeliverable. The report is NOT lost — it is in the table
-        # and `/admin → Open reports` will show it — so the player is thanked
-        # rather than told about a configuration problem that is not theirs.
-        log.warning("[reports] no report channel set; %s stored only",
-                    report["report_id"])
-    else:
-        try:
-            msg = await channel.send(embed=build_embed(report),
-                                     view=view_for(report["report_id"]))
-            S.set_report_field(report["report_id"], "message_id", str(msg.id))
-        except Exception:                                # noqa: BLE001
-            log.exception("[reports] could not post to the report channel")
-
+    # The player is answered FIRST. Delivery may have to fetch a user and open
+    # a DM, and a modal interaction is dead three seconds after submit — so
+    # posting inline would risk the reporter seeing an interaction failure for
+    # a report that was in fact saved.
     cfg = tune()
     await interaction.response.send_message(
         f"✅ Thanks — filed as `{report['report_id']}`.\n"
         f"📎 Want to add a screenshot? Post **one image here in the next "
         f"{int(cfg['image_window'])} seconds** and I'll attach it.",
         ephemeral=True)
+    interaction.client.loop.create_task(
+        deliver_report(interaction.client, report))
     interaction.client.loop.create_task(
         _await_image(interaction, report["report_id"], cfg["image_window"]))
 
@@ -313,10 +368,12 @@ async def _await_image(interaction: discord.Interaction, report_id: str,
         S.set_report_field(report_id, "image_url", url)
         report = S.get_report(report_id)
         if report and report.get("message_id"):
+            # Wherever it landed — the configured channel or the owner's DM.
+            chan_id, msg_id = split_location(report["message_id"])
             from utils.database import get_report_channel
-            ch = bot.get_channel(get_report_channel() or 0)
-            if ch:
-                m = await ch.fetch_message(int(report["message_id"]))
+            ch = bot.get_channel(chan_id or (get_report_channel() or 0))
+            if ch and msg_id:
+                m = await ch.fetch_message(msg_id)
                 await m.edit(embed=build_embed(report),
                              view=view_for(report_id))
         await msg.add_reaction("📎")

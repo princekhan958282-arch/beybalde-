@@ -117,9 +117,9 @@ check("no command is a group any more — groups are what render flat",
 # Pinned to the number rather than a floor, because the claim being made is
 # "nothing was lost", and a floor would pass while a command quietly vanished.
 # v1.18 removed exactly one: `;verify`, with the gate it belonged to.
-# v1.27 added exactly one: `;notifications`, the prefix command the new
-# /player row invokes.
-PREFIX_BEFORE = 132
+# v1.27 added two: `;notifications`, the prefix command the new /player row
+# invokes, and `;reportchannel`, which sets where /bugs and /suggest land.
+PREFIX_BEFORE = 133
 check(f"the prefix surface is {PREFIX_BEFORE} commands",
       len(list(BOT.walk_commands())) == PREFIX_BEFORE,
       len(list(BOT.walk_commands())))
