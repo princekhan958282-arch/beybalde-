@@ -59,7 +59,9 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_coins (coins DESC),
     INDEX idx_rank  (rank_score DESC, wins DESC),
     INDEX idx_level (level DESC),
-    INDEX idx_seen  (last_seen DESC)
+    INDEX idx_seen  (last_seen DESC),
+    INDEX idx_created (created_at DESC),
+    INDEX idx_inv   (inv_count)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 """
 
@@ -634,6 +636,97 @@ class MySQLStore:
                 except (TypeError, ValueError):
                     continue
         return out
+
+    # ── Audience filters ─────────────────────────────────────────────────────
+    # See the SQLite twin in utils/userstore.py for why this is exact rather
+    # than a bare `inv_count = 0`: a boss copy lives in the JSON blob, not in
+    # `inventory`, and a player whose only blade is a copy has very obviously
+    # played. Only the profiles that come back EMPTY get deserialised.
+
+    def _copy_holders(self, uids) -> set:
+        wanted = [str(u) for u in uids]
+        if not wanted:
+            return set()
+        out: set = set()
+        with self._conn().cursor() as cur:
+            for i in range(0, len(wanted), 500):
+                chunk = wanted[i:i + 500]
+                marks = ",".join(["%s"] * len(chunk))
+                cur.execute(f"SELECT user_id, data FROM users "
+                            f"WHERE user_id IN ({marks})", chunk)
+                for r in (cur.fetchall() or []):
+                    try:
+                        prof = json.loads(r["data"])
+                    except (json.JSONDecodeError, ValueError, TypeError):
+                        continue
+                    if prof.get("boss_copies"):
+                        out.add(r["user_id"])
+        return out
+
+    def _empty_ids(self, limit: Optional[int] = None) -> list[str]:
+        sql = "SELECT user_id FROM users WHERE inv_count < 1"
+        args: tuple = ()
+        if limit:
+            sql += " LIMIT %s"
+            args = (max(1, int(limit)),)
+        with self._conn().cursor() as cur:
+            cur.execute(sql, args)
+            return [r["user_id"] for r in (cur.fetchall() or [])]
+
+    def user_ids_with_beys(self, minimum: int = 1,
+                           limit: Optional[int] = None) -> list[int]:
+        """Everyone holding at least `minimum` blades. A boss copy counts at
+        `minimum = 1` and not above it — one copy is not two blades."""
+        self.ensure_ready()
+        minimum = max(1, int(minimum))
+        sql = "SELECT user_id FROM users WHERE inv_count >= %s"
+        args: tuple = (minimum,)
+        if limit:
+            sql += " LIMIT %s"
+            args += (max(1, int(limit)),)
+        with self._conn().cursor() as cur:
+            cur.execute(sql, args)
+            ids = [r["user_id"] for r in (cur.fetchall() or [])]
+        if minimum <= 1:
+            ids.extend(sorted(self._copy_holders(self._empty_ids())))
+        out = []
+        for u in ids:
+            try:
+                out.append(int(u))
+            except (TypeError, ValueError):
+                continue
+        return out
+
+    def ids_without_beys(self, user_ids) -> set:
+        """Which of THESE ids own nothing at all. Unknown ids count as none."""
+        self.ensure_ready()
+        wanted = [str(u) for u in dict.fromkeys(user_ids)]
+        if not wanted:
+            return set()
+        have: set = set()
+        with self._conn().cursor() as cur:
+            for i in range(0, len(wanted), 500):
+                chunk = wanted[i:i + 500]
+                marks = ",".join(["%s"] * len(chunk))
+                cur.execute(f"SELECT user_id FROM users "
+                            f"WHERE inv_count >= 1 AND user_id IN ({marks})",
+                            chunk)
+                have.update(r["user_id"] for r in (cur.fetchall() or []))
+        maybe_empty = [u for u in wanted if u not in have]
+        have |= self._copy_holders(maybe_empty)
+        out = set()
+        for u in wanted:
+            if u not in have:
+                try:
+                    out.add(int(u))
+                except (TypeError, ValueError):
+                    continue
+        return out
+
+    def count_without_beys(self) -> int:
+        self.ensure_ready()
+        empty = self._empty_ids()
+        return len(empty) - len(self._copy_holders(empty))
 
     # ── Reports ──────────────────────────────────────────────────────────────
     _REPORT_COLS = ("report_id", "kind", "user_id", "guild_id", "summary",
