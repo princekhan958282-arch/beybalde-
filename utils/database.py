@@ -614,6 +614,46 @@ def save_config(data: dict) -> None:
     _atomic_write_json(CONFIG_PATH, data)
 
 
+# ── The report channel ────────────────────────────────────────────────────────
+# ONE destination for every server's bug reports and suggestions, not one per
+# guild. Reports are for the person who maintains the bot, and the useful ones
+# arrive from servers that person is not in — a per-guild setting would file
+# them where nobody is reading.
+#
+# Stored under a top-level "reports" key. The per-guild entries in this file
+# are keyed by a stringified guild id, so a non-numeric key cannot collide
+# with one.
+_REPORTS_KEY = "reports"
+
+
+def get_report_channel() -> Optional[int]:
+    """Where `/bugs` and `/suggest` post, or None if it was never set."""
+    with _config_lock:
+        cfg = load_config()
+    entry = cfg.get(_REPORTS_KEY)
+    if not isinstance(entry, dict):
+        return None
+    cid = entry.get("channel_id")
+    try:
+        return int(cid) if cid else None
+    except (TypeError, ValueError):
+        return None
+
+
+def set_report_channel(channel_id: Optional[int]) -> None:
+    with _config_lock:
+        cfg = load_config()
+        entry = cfg.get(_REPORTS_KEY)
+        if not isinstance(entry, dict):
+            entry = {}
+        if channel_id is None:
+            entry.pop("channel_id", None)
+        else:
+            entry["channel_id"] = int(channel_id)
+        cfg[_REPORTS_KEY] = entry
+        save_config(cfg)
+
+
 def get_spawn_channel(guild_id: int) -> Optional[int]:
     """Return the configured spawn channel ID for a guild, or None if not set."""
     with _config_lock:

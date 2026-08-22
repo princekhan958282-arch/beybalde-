@@ -1067,6 +1067,44 @@ def update_note() -> str:
     return "\n".join(lines)
 
 
+@register("report_channel", "Set the report channel",
+          "where /bugs and /suggest land", "announce", needs=("channel",))
+async def _report_channel(ctx: ActionCtx) -> Result:
+    """ONE destination for every server, not one per guild.
+
+    Reports are for whoever maintains the bot, and the useful ones arrive from
+    servers that person is not in — a per-guild setting would file them where
+    nobody is reading.
+    """
+    from utils.database import set_report_channel
+    ch = ctx.channel
+    if ch is None:
+        return Result.fail("Pick a channel.")
+    set_report_channel(ch.id)
+    return Result(message=(f"✅ `/bugs` and `/suggest` from **every** server "
+                           f"will now land in {ch.mention}."))
+
+
+@register("reports_open", "Open reports", "what players have filed",
+          "announce")
+async def _reports_open(ctx: ActionCtx) -> Result:
+    from cogs.updates import reports as R
+    from cogs.updates import store as S
+    rows = S.open_reports(8)
+    if not rows:
+        return Result(message="✅ No open reports.")
+    e = _embed(f"📋  Open reports ({len(rows)})", ANNOUNCE_COLOUR)
+    for r in rows:
+        kemoji, klabel, _c = R.KIND_LABEL.get(r.get("kind"), ("❓", "?", 0))
+        semoji, slabel, _c2 = R.STATUS_LABEL.get(r.get("status"), ("❓", "?", 0))
+        e.add_field(
+            name=f"{kemoji} {r.get('summary', '?')}"[:256],
+            value=(f"{semoji} {slabel} · <@{r.get('user_id')}>\n"
+                   f"`{r.get('report_id')}`")[:1024],
+            inline=False)
+    return Result(embed=e)
+
+
 @register("announce_tournament", "Announce a tournament",
           "posts the panel, Join button and all", "announce")
 async def _announce_tournament(ctx: ActionCtx) -> Result:
