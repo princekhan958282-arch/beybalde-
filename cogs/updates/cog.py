@@ -132,6 +132,36 @@ class NotificationCog(commands.Cog, name="Notifications"):
     async def suggest(self, interaction: discord.Interaction) -> None:
         await interaction.response.send_modal(R.ReportModal(R.IDEA))
 
+    # ── Where the reports go ─────────────────────────────────────────────────
+    @commands.command(name="reportchannel",
+                      aliases=["bugchannel", "reportshere"],
+                      hidden=True)
+    async def reportchannel(self, ctx: commands.Context,
+                            target: str = "") -> None:
+        """`;reportchannel` — show it, set it here, or turn it off.
+
+        The panel route works, but it is four clicks deep in a category named
+        Announce, and a setting nobody can find is a setting nobody has set —
+        which is how reports end up going nowhere.
+        """
+        from cogs.admin import actions as A
+        if not A.is_admin(ctx.author):
+            return
+        from utils.database import set_report_channel
+        arg = (target or "").strip().lower()
+        if arg in ("off", "none", "clear", "unset"):
+            set_report_channel(None)
+            return await ctx.send(
+                "🚫 Reports channel cleared. `/bugs` and `/suggest` will DM the "
+                "owner instead — they are never dropped.")
+        if arg in ("here", "this", "set"):
+            set_report_channel(ctx.channel.id)
+            return await ctx.send(
+                f"✅ `/bugs` and `/suggest` from **every** server now land in "
+                f"{ctx.channel.mention}.")
+        await ctx.send(embed=reports_embed(self.bot),
+                       view=ReportsView(self.bot))
+
     # ── Player preferences ───────────────────────────────────────────────────
     @commands.command(name="notifications",
                       aliases=["notify", "dms"],
@@ -142,6 +172,66 @@ class NotificationCog(commands.Cog, name="Notifications"):
         await ctx.send(embed=discord.Embed(
             title="🔔  Your notifications", colour=COLOUR,
             description=P.summary(profile)), view=PrefsView(ctx.author.id))
+
+
+def reports_embed(bot) -> discord.Embed:
+    """Where reports land, said plainly, with the open count."""
+    from utils.database import get_report_channel
+    cid = get_report_channel()
+    ch = bot.get_channel(cid) if cid else None
+    if ch is not None:
+        where = f"✅ {ch.mention} — in **{getattr(ch.guild, 'name', '?')}**"
+    elif cid:
+        where = (f"⚠️ Set to `{cid}`, which this bot cannot see. Reports are "
+                 f"DMing the owner instead.")
+    else:
+        where = ("⚠️ **Not set.** Reports are DMing the owner instead, so "
+                 "nothing is lost — but a channel is easier to work through.")
+    e = discord.Embed(title="📥  Bug reports & suggestions", colour=COLOUR,
+                      description=where)
+    try:
+        rows = S.open_reports(50)
+        e.add_field(name="Open", value=f"**{len(rows)}** waiting",
+                    inline=True)
+    except Exception:                                    # noqa: BLE001
+        pass
+    e.set_footer(text="Reports from every server land in the one channel.")
+    return e
+
+
+class ReportsView(discord.ui.View):
+    """One click to set the destination, one to clear it."""
+
+    def __init__(self, bot) -> None:
+        super().__init__(timeout=180)
+        self.bot = bot
+
+    async def _guard(self, interaction) -> bool:
+        from cogs.admin import actions as A
+        if A.is_admin(interaction.user):
+            return True
+        await interaction.response.send_message("Staff only.", ephemeral=True)
+        return False
+
+    @discord.ui.button(label="Send reports here", emoji="📥",
+                       style=discord.ButtonStyle.success)
+    async def here(self, interaction: discord.Interaction, _b) -> None:
+        if not await self._guard(interaction):
+            return
+        from utils.database import set_report_channel
+        set_report_channel(interaction.channel_id)
+        await interaction.response.edit_message(
+            embed=reports_embed(self.bot), view=ReportsView(self.bot))
+
+    @discord.ui.button(label="Turn off", emoji="🚫",
+                       style=discord.ButtonStyle.secondary)
+    async def off(self, interaction: discord.Interaction, _b) -> None:
+        if not await self._guard(interaction):
+            return
+        from utils.database import set_report_channel
+        set_report_channel(None)
+        await interaction.response.edit_message(
+            embed=reports_embed(self.bot), view=ReportsView(self.bot))
 
 
 class PrefsToggle(discord.ui.Button):
@@ -194,6 +284,7 @@ class UpdateActions(discord.ui.Select):
         ("status",  "Status",  "how the current send is going",  "📊"),
         ("cancel",  "Cancel",  "stop a send in flight",          "🛑"),
         ("history", "History", "the last updates and their totals", "🗂️"),
+        ("reports", "Reports", "where /bugs and /suggest land",     "📥"),
     ]
 
     def __init__(self, cog: NotificationCog) -> None:
@@ -283,6 +374,12 @@ class UpdateActions(discord.ui.Select):
         await interaction.followup.send(
             f"🛑 Cancelled. **{dropped:,}** undelivered rows dropped; "
             f"anything already sent stays on the record.", ephemeral=True)
+
+    async def _reports(self, interaction, draft) -> None:
+        # Not gated on a draft: this is the reports destination, not an update.
+        await interaction.followup.send(
+            embed=reports_embed(self.cog.bot), view=ReportsView(self.cog.bot),
+            ephemeral=True)
 
     async def _history(self, interaction, draft) -> None:
         rows = S.list_updates(8)

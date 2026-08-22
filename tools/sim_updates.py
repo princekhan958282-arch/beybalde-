@@ -91,6 +91,9 @@ class FakeUser:
         self.id = int(uid)
         self.client = client
 
+    async def create_dm(self):
+        return self.client.dm_of(self.id)
+
     async def send(self, **kw):
         self.client.attempts.append(self.id)
         outcome = self.client.behaviour.get(self.id)
@@ -105,6 +108,33 @@ class FakeUser:
         raise outcome
 
 
+class FakeMessage:
+    def __init__(self, channel, mid):
+        self.channel = channel
+        self.id = int(mid)
+
+    async def edit(self, **kw):
+        self.channel.edits.append(kw)
+
+
+class FakeChannel:
+    """A place a report can land. `fail` makes it refuse, like a missing perm."""
+
+    def __init__(self, cid, *, fail=None, guild=None):
+        self.id = int(cid)
+        self.fail = fail
+        self.guild = guild
+        self.mention = f"<#{cid}>"
+        self.sent: list = []
+        self.edits: list = []
+
+    async def send(self, **kw):
+        if self.fail is not None:
+            raise self.fail
+        self.sent.append(kw)
+        return FakeMessage(self, 900_000 + len(self.sent))
+
+
 class FakeClient:
     """Just enough bot for the worker. `behaviour` decides who fails and how."""
 
@@ -113,6 +143,8 @@ class FakeClient:
         self.delivered: list = []
         self.attempts: list = []
         self.guilds = list(guilds)
+        self.channels: dict = {}
+        self.dms: dict = {}
         self.loop = asyncio.get_event_loop_policy().get_event_loop()
 
     def get_user(self, uid):
@@ -125,7 +157,10 @@ class FakeClient:
         return None
 
     def get_channel(self, cid):
-        return None
+        return self.channels.get(int(cid or 0))
+
+    def dm_of(self, uid):
+        return self.dms.setdefault(int(uid), FakeChannel(700_000 + int(uid)))
 
     def get_guild(self, gid):
         for g in self.guilds:
@@ -506,11 +541,12 @@ async def suite() -> None:
 
     menu = C.UpdateMenu(None)
     sel = menu.children[0]
-    check("the /update menu offers all six operations",
+    check("the /update menu offers every operation",
           {o.value for o in sel.options} ==
-          {"create", "preview", "send", "status", "cancel", "history"},
+          {"create", "preview", "send", "status", "cancel", "history",
+           "reports"},
           {o.value for o in sel.options})
-    for key in ("preview", "send", "status", "cancel", "history"):
+    for key in ("preview", "send", "status", "cancel", "history", "reports"):
         check(f"...and `{key}` has a handler behind it",
               callable(getattr(C.UpdateActions, f"_{key}", None)))
 
@@ -547,6 +583,100 @@ async def suite() -> None:
           hasattr(C.NotificationCog, "on_beycord_notify"))
     check("an unknown event answers to the update switch rather than "
           "bypassing both", P.switch_for("SOMETHING_NEW") == P.K_UPDATES)
+
+    # ── 13. a report always reaches a human ─────────────────────────────────
+    print("\n── 13. a filed report is never invisible ───────────────────────")
+    # The reported failure: "even if anyone report or suggest i can't see".
+    # Storing the row is not delivery. If no channel is configured — which is
+    # the state every install starts in — the report has to go SOMEWHERE a
+    # person will look, and the setting has to be findable in one command.
+    import utils.database as _DB
+    _cell = {"cid": None}
+    _real_get, _real_set = _DB.get_report_channel, _DB.set_report_channel
+    _DB.get_report_channel = lambda: _cell["cid"]
+    _DB.set_report_channel = lambda cid: _cell.__setitem__(
+        "cid", int(cid) if cid else None)
+    try:
+        from cogs.admin import actions as A
+        owner_id = A.MASTER_ID
+
+        def a_report(rid="rep_t1", uid=8100):
+            row = {"report_id": rid, "kind": R.BUG, "user_id": str(uid),
+                   "guild_id": "42", "summary": "s", "body": "b",
+                   "image_url": None, "status": R.OPEN,
+                   "created_at": time.time(), "handled_by": None,
+                   "handled_at": None, "message_id": None}
+            S.put_report(row)
+            return row
+
+        cl = FakeClient()
+        loc = await R.deliver_report(cl, a_report("rep_t1"))
+        dm = cl.dm_of(owner_id)
+        check("with no channel set the report is DMed to the owner rather "
+              "than filed where nobody looks", len(dm.sent) == 1, len(dm.sent))
+        check("...and it says how to set a channel, so the fallback is not "
+              "silent", ";reportchannel" in str(dm.sent[0].get("content")),
+              dm.sent[0].get("content"))
+        check("...and where it landed is recorded, not guessed",
+              loc == f"{dm.id}/900001", loc)
+        check("...with the channel half readable back",
+              R.split_location(S.get_report("rep_t1")["message_id"])[0] == dm.id,
+              S.get_report("rep_t1")["message_id"])
+
+        real = FakeChannel(555, guild=type("G", (), {"name": "Home"})())
+        cl2 = FakeClient()
+        cl2.channels[555] = real
+        _DB.set_report_channel(555)
+        await R.deliver_report(cl2, a_report("rep_t2"))
+        check("once a channel is set the report goes there",
+              len(real.sent) == 1 and not cl2.dm_of(owner_id).sent,
+              (len(real.sent), len(cl2.dm_of(owner_id).sent)))
+        check("...without the setup nudge attached",
+              real.sent[0].get("content") is None, real.sent[0].get("content"))
+        check("...and it carries the status buttons",
+              len(real.sent[0]["view"].children) == 4)
+
+        broken = FakeChannel(556, fail=discord.Forbidden(
+            type("R", (), {"status": 403, "reason": "x"})(), "no perms"))
+        cl3 = FakeClient()
+        cl3.channels[556] = broken
+        _DB.set_report_channel(556)
+        await R.deliver_report(cl3, a_report("rep_t3"))
+        check("a channel the bot cannot post in falls through to the owner "
+              "instead of losing the report",
+              len(cl3.dm_of(owner_id).sent) == 1,
+              len(cl3.dm_of(owner_id).sent))
+
+        check("a bare message id from before the location was recorded still "
+              "parses", R.split_location("123456") == (None, 123456),
+              R.split_location("123456"))
+
+        # The setting itself — findable, and one command.
+        rc = getattr(C.NotificationCog, "reportchannel", None)
+        check(";reportchannel exists under that exact name",
+              getattr(rc, "name", None) == "reportchannel",
+              getattr(rc, "name", None))
+        check("...with the names someone would actually try",
+              {"bugchannel", "reportshere"} <= set(getattr(rc, "aliases", [])),
+              getattr(rc, "aliases", None))
+        _DB.set_report_channel(None)
+        rv = C.ReportsView(cl2)
+        labels = [c.label for c in rv.children]
+        check("the reports panel offers one click to set it and one to clear",
+              labels == ["Send reports here", "Turn off"], labels)
+        emb = C.reports_embed(cl2)
+        check("...and says plainly that no channel is set",
+              "Not set" in (emb.description or ""), emb.description)
+        _DB.set_report_channel(555)
+        emb2 = C.reports_embed(cl2)
+        check("...and names the channel once one is",
+              "<#555>" in (emb2.description or ""), emb2.description)
+
+        act = A.REGISTRY.get("report_channel")
+        check("the admin route is still there too", act is not None
+              and "channel" in act.needs, act)
+    finally:
+        _DB.get_report_channel, _DB.set_report_channel = _real_get, _real_set
 
 
 if __name__ == "__main__":

@@ -322,6 +322,7 @@ COMMAND_DATA = {
         (";notifications  or  ;notify", "🔔 Choose which DMs Beycord sends you"),
         ("/bugs",                       "🐛 Report a bug — works in any server"),
         ("/suggest",                    "💡 Suggest an improvement"),
+        (";reportchannel",              "[Staff] Where /bugs and /suggest land"),
         (";avatarpacks  or  ;apacks",   "View packs and their prices"),
         (";buypack mlbb",              "🌟 MLBB banner — 15,000,000 coins, MLBB avatars only"),
         (";buypack season1",           "🏫 Beyblade Burst Season 1 — 250,000 coins, unlocks when Season 1 is complete"),

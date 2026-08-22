@@ -1067,8 +1067,9 @@ def update_note() -> str:
     return "\n".join(lines)
 
 
-@register("report_channel", "Set the report channel",
-          "where /bugs and /suggest land", "announce", needs=("channel",))
+@register("report_channel", "Bug & suggestion channel",
+          "where /bugs and /suggest land — or ;reportchannel", "announce",
+          needs=("channel",))
 async def _report_channel(ctx: ActionCtx) -> Result:
     """ONE destination for every server, not one per guild.
 
@@ -1085,8 +1086,8 @@ async def _report_channel(ctx: ActionCtx) -> Result:
                            f"will now land in {ch.mention}."))
 
 
-@register("reports_open", "Open reports", "what players have filed",
-          "announce")
+@register("reports_open", "Open bug reports",
+          "what players have filed with /bugs and /suggest", "announce")
 async def _reports_open(ctx: ActionCtx) -> Result:
     from cogs.updates import reports as R
     from cogs.updates import store as S
