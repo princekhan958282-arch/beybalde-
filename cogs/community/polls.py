@@ -84,14 +84,21 @@ class PollManager:
         S.put_poll(row)
         return row
 
-    def get(self, guild_id: Any, poll_id: str) -> Optional[dict]:
-        require_main(guild_id)
+    def _own(self, guild_id: Any, poll_id: str) -> Optional[dict]:
+        """The row, but only if it belongs to the guild asking for it.
+
+        `require_main` proves the CALLER is the main server; this proves the
+        ROW is. Repointing the main server made those different questions, and
+        without this the loop would close and announce the old guild's polls.
+        """
+        main = require_main(guild_id)
         poll = S.get_poll(poll_id)
-        # A poll from another guild is not this guild's to read, even if the
-        # id was guessed correctly.
-        if poll and str(poll.get("guild_id")) != str(require_main(guild_id)):
+        if poll is None or str(poll.get("guild_id")) != str(main):
             return None
         return poll
+
+    def get(self, guild_id: Any, poll_id: str) -> Optional[dict]:
+        return self._own(guild_id, poll_id)
 
     def recent(self, guild_id: Any, limit: int = 10) -> list[dict]:
         require_main(guild_id)
@@ -100,8 +107,7 @@ class PollManager:
     def vote(self, guild_id: Any, poll_id: str, user_id: Any,
              choice: int, now: Optional[float] = None) -> dict:
         """Record one vote. `{"ok", "why", "choice"}` — never raises."""
-        require_main(guild_id)
-        poll = S.get_poll(poll_id)
+        poll = self._own(guild_id, poll_id)
         if not poll:
             return {"ok": False, "why": "That poll is gone."}
         if poll.get("state") != OPEN:
@@ -122,8 +128,7 @@ class PollManager:
         return {"ok": True, "choice": index, "label": options[index]}
 
     def results(self, guild_id: Any, poll_id: str) -> dict:
-        require_main(guild_id)
-        poll = S.get_poll(poll_id) or {}
+        poll = self._own(guild_id, poll_id) or {}
         options = poll.get("options") or []
         tally = S.tally(poll_id)
         counts = [int(tally.get(str(i), 0)) for i in range(len(options))]
@@ -132,8 +137,7 @@ class PollManager:
     def close(self, guild_id: Any, poll_id: str,
               now: Optional[float] = None) -> Optional[dict]:
         """Finalise and freeze the tally. Idempotent — safe to call twice."""
-        require_main(guild_id)
-        poll = S.get_poll(poll_id)
+        poll = self._own(guild_id, poll_id)
         if not poll or poll.get("state") in (CLOSED, CANCELLED):
             return poll
         res = self.results(guild_id, poll_id)
@@ -143,8 +147,7 @@ class PollManager:
         return S.get_poll(poll_id)
 
     def cancel(self, guild_id: Any, poll_id: str) -> bool:
-        require_main(guild_id)
-        poll = S.get_poll(poll_id)
+        poll = self._own(guild_id, poll_id)
         if not poll or poll.get("state") in (CLOSED, CANCELLED):
             return False
         S.set_poll_state(poll_id, CANCELLED, closed_at=time.time())

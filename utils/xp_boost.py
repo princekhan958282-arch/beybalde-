@@ -25,9 +25,11 @@ Battles, story and boss wins are boosted on BOTH tracks. Chat is boosted on
 BEY EXP ONLY — trainer EXP from chat stays at its normal rate.
 
 That split is deliberate and it has a consequence worth stating out loud:
-chat EXP has no cooldown (`XP_CHAT_COOLDOWN_S = 0`), so under a Surge a bey
-reaches level 100 in roughly 112 messages. Trainer level, which gates far
-more, is protected from that; bey level is not, by choice.
+under a Surge a bey reaches level 100 in roughly 112 paying messages. Since
+v1.28 a message only pays once every `XP_CHAT_COOLDOWN_S` seconds, so those
+112 messages are also a floor in real time rather than a burst. Trainer level,
+which gates far more, is protected from the Surge entirely; bey level is not,
+by choice.
 
 Deliberately discord-free — `utils/bey_levels.py` says it must be importable
 from the parts of the bot that cannot import discord, and it imports this.

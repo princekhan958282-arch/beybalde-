@@ -41,6 +41,7 @@ from utils.embeds import (
 from utils.ranks import tier_for_score, rank_score_for
 from utils.mobile_ui import bar as ui_bar, trunc as ui_trunc
 from utils.hp_system import blade_hp_stat, max_hp_for_blade, hp_display_pct
+from utils.bey_levels import STAT_BAR_MAX as _BAR_MAX
 from utils import info_card
 from utils import availability as _avail
 
@@ -116,19 +117,38 @@ def _win_rate(wins: int, losses: int) -> str:
     return f"{round((wins / total) * 100)}%"
 
 
-def _stat_line(label: str, emoji: str, value: int, max_val: int = 200) -> str:
+def _stat_line(label: str, emoji: str, value: int,
+               max_val: int = _BAR_MAX) -> str:
     """Single coloured stat bar line."""
     filled = round((max(0, min(value, max_val)) / max_val) * 12)
     bar = "█" * filled + "░" * (12 - filled)
     return f"{emoji} **{label}** `{bar}` **{value}**"
 
 
-def _hp_stat_line(blade: dict) -> str:
+def _battle_pool(blade: dict, user_id=None) -> int:
+    """The pool this bey really fights with, for whoever owns it.
+
+    `max_hp_for_blade` clamps the HP stat back into the type band, which drops
+    every point of levelled HP — but the battle adds that gain back on
+    (`loadout.level_hp_gain`). Printing the clamped figure understated a
+    level-100 bey's pool by hundreds on its own card.
+    """
+    if user_id is None:
+        return max_hp_for_blade(blade)
+    try:
+        from utils.loadout import battle_pool
+        return battle_pool(user_id, blade)
+    except Exception:                                    # noqa: BLE001
+        return max_hp_for_blade(blade)
+
+
+def _hp_stat_line(blade: dict, user_id=None) -> str:
     """HP bar, normalised over the reachable cross-type HP range."""
     hp     = blade_hp_stat(blade)
     filled = round(hp_display_pct(blade) / 100 * 12)
     bar    = "\u2588" * filled + "\u2591" * (12 - filled)
-    return f"\u2764\ufe0f **HP** `{bar}` **{hp}**  `{max_hp_for_blade(blade)} pool`"
+    return (f"\u2764\ufe0f **HP** `{bar}` **{hp}**  "
+            f"`{_battle_pool(blade, user_id)} pool`")
 
 
 def _beypedia_hp_bar(blade: dict, bar_len: int = 14) -> str:
@@ -424,7 +444,7 @@ def build_profile_embed(
             f"{_stat_line('DEF', '🛡️', _def)}\n"
             f"{_stat_line('STA', '🌀', _sta)}\n"
             f"{_stat_line('SPC', '✨', _spc)}\n"
-            f"{_hp_stat_line(active_blade)}"
+            f"{_hp_stat_line(active_blade, getattr(target, 'id', None))}"
         ),
         inline=False,
     )
@@ -479,7 +499,7 @@ def build_profile_embed(
 #  Info embed builder (;info)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def build_info_embed(blade: dict) -> discord.Embed:
+def build_info_embed(blade: dict, viewer_id=None) -> discord.Embed:
     """
     Detailed Beyblade info card — richer than the old beyblade_info_embed.
     """
@@ -523,7 +543,7 @@ def build_info_embed(blade: dict) -> discord.Embed:
             f"{_stat_line('DEF', '🛡️', stats.get('defense', 0))}\n"
             f"{_stat_line('STA', '🌀', stats.get('stamina', 0))}\n"
             f"{_stat_line('SPC', '✨', stats.get('special', 0))}\n"
-            f"{_hp_stat_line(blade)}"
+            f"{_hp_stat_line(blade, viewer_id)}"
         ),
         inline=False,
     )
@@ -576,14 +596,15 @@ def build_info_embed(blade: dict) -> discord.Embed:
 #  Beypedia embed builder (;beypedia)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _beypedia_stat_bar(value: int, max_val: int = 200, bar_len: int = 14) -> str:
+def _beypedia_stat_bar(value: int, max_val: int = _BAR_MAX,
+                       bar_len: int = 14) -> str:
     """Render a visual stat bar like: 98 ██████████████░░"""
     filled = round((max(0, min(value, max_val)) / max_val) * bar_len)
     bar = "█" * filled + "░" * (bar_len - filled)
     return f"`{value:<3}` `{bar}`"
 
 
-def build_beypedia_embed(blade: dict) -> discord.Embed:
+def build_beypedia_embed(blade: dict, viewer_id=None) -> discord.Embed:
     """
     Beypedia-style card matching the Discord screenshot format:
     Rarity · Type · Stats (with bars) · Ability · Special Move · Image
@@ -657,7 +678,8 @@ def build_beypedia_embed(blade: dict) -> discord.Embed:
             f"🛡️ **Defense**\n{_beypedia_stat_bar(def_)}\n"
             f"🌀 **Stamina**\n{_beypedia_stat_bar(sta)}\n"
             f"✨ **Special**\n{_beypedia_stat_bar(spc)}\n"
-            f"❤️ **HP**\n{_beypedia_hp_bar(blade)}  `{max_hp_for_blade(blade)} battle pool`"
+            f"❤️ **HP**\n{_beypedia_hp_bar(blade)}  "
+            f"`{_battle_pool(blade, viewer_id)} battle pool`"
         ),
         inline=False,
     )
@@ -1217,7 +1239,8 @@ class ProfileCog(commands.Cog, name="Profile"):
                 sent = await ctx.send(file=discord.File(buf, filename=fname),
                                       view=view)
             else:
-                sent = await ctx.send(embed=build_beypedia_embed(blade),
+                sent = await ctx.send(
+                    embed=build_beypedia_embed(blade, ctx.author.id),
                                       view=view)
             if view is not None:
                 view.message = sent
@@ -1330,7 +1353,7 @@ class BladeSelect(discord.ui.Select):
         blade = v.beyblades.get(name) or get_beyblade(name)
         if blade is None:
             return await interaction.response.defer()
-        e = build_beypedia_embed(blade)
+        e = build_beypedia_embed(blade, interaction.user.id)
         if name.lower() in v.owned:
             e.set_footer(text="✅ You own this one")
         else:

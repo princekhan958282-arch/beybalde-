@@ -20,6 +20,7 @@ CATEGORIES = {
     "avatar":      {"emoji": "🖼️",  "color": 0x5B6AE8, "label": "Avatars"},
     "moves":       {"emoji": "⚡",  "color": 0xFFD700, "label": "Battle Moves"},
     "matchups":    {"emoji": "🎯",  "color": 0xF39C12, "label": "Type Matchups"},
+    "community":   {"emoji": "🏠",  "color": 0x5865F2, "label": "Community"},
     "tips":        {"emoji": "💡",  "color": 0x2ECC71, "label": "Pro Tips"},
 }
 
@@ -162,6 +163,19 @@ PRO_TIPS = {
 
 # ── Static command data (mirrors the React preview) ────────────────────────────
 COMMAND_DATA = {
+    "community": [
+        # Main server only. Everywhere else these refuse, by design.
+        ("/level [@user]",  "✨ Your community level, XP and progress"),
+        ("/poll",           "📊 Start a poll — close, cancel and read results"),
+        ("/giveaway",       "🎉 [Staff] Create, end now, reroll or cancel one"),
+        (";leaderboard chatxp",   "✨ Who talks the most"),
+        (";leaderboard commlevel", "🌟 Highest community level"),
+        (";notifications",  "🔔 Choose which DMs Beycord sends you"),
+        ("/bugs",           "🐛 Report a bug — works in any server"),
+        ("/suggest",        "💡 Suggest an improvement"),
+        ("/server",         "🏠 [Owner] Pick the main server and tune it"),
+        (";reportchannel",  "📥 [Staff] Where /bugs and /suggest land"),
+    ],
     "story": [
         (";story",             "🏫 Open the School League and pick a battle"),
         (";story <n>",         "Jump straight in, e.g. `;story 3` or `;story 3 nightmare`"),
@@ -189,6 +203,8 @@ COMMAND_DATA = {
         (";inventory",      "View your full Beyblade parts inventory"),
     ],
     "leaderboard": [
+        (";leaderboard chatxp",    "✨ Community XP (main server)"),
+        (";leaderboard commlevel", "🌟 Community level (main server)"),
         ("/leaderboard",          "Every board from one menu, no typing"),
         (";leaderboard rank",     "Top bladers by rank score"),
         (";leaderboard winrate",  "Best ranked win rate (min 10 games)"),
@@ -323,11 +339,6 @@ COMMAND_DATA = {
         ("/bugs",                       "🐛 Report a bug — works in any server"),
         ("/suggest",                    "💡 Suggest an improvement"),
         (";reportchannel",              "[Staff] Where /bugs and /suggest land"),
-        # Community systems — main server only
-        ("/level",                      "✨ Your community level and XP"),
-        ("/poll",                       "📊 Ask the server something"),
-        ("/giveaway",                   "🎉 [Staff] Run a giveaway"),
-        ("/server",                     "🏠 [Owner] Set the main community server"),
         (";avatarpacks  or  ;apacks",   "View packs and their prices"),
         (";buypack mlbb",              "🌟 MLBB banner — 15,000,000 coins, MLBB avatars only"),
         (";buypack season1",           "🏫 Beyblade Burst Season 1 — 250,000 coins, unlocks when Season 1 is complete"),

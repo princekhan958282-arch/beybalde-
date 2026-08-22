@@ -240,3 +240,35 @@ def summary_lines(breakdown: dict) -> list[str]:
             bits.append(f"{d['avatar']:+} avatar")
         out.append(f"{stat.title()} {d['total']} ({', '.join(bits)})")
     return out
+
+
+def level_hp_gain(user_id, blade: Optional[dict]) -> int:
+    """Extra HP a bey has earned from its level, above the printed pool.
+
+    `hp_system.max_hp_for_blade` runs the HP stat through `blade_hp_stat`,
+    which CLAMPS it into the blade's type band (80-139). That clamp is right
+    for a printed stat — it keeps the roster in class — but it throws away
+    every point of levelled HP, so the gain has to be added back on top.
+
+    Lives here, and not in `battle/session.py` where it was written, because
+    the display side needs the same number: `;info` printed the clamped pool
+    as "battle pool" while the bey actually fought with this added on, so a
+    level-100 card understated its own HP by hundreds. One function, one
+    answer, both surfaces.
+
+    Never raises: a missing profile must not stop a battle starting, nor break
+    a card.
+    """
+    try:
+        _eff, breakdown, _av = effective_blade(int(user_id), blade=blade)
+        hp_bd = (breakdown or {}).get("hp") or {}
+        gain = float(hp_bd.get("total", 0)) - float(hp_bd.get("base", 0))
+        return int(gain) if gain > 0 else 0
+    except Exception:                                    # noqa: BLE001
+        return 0
+
+
+def battle_pool(user_id, blade: Optional[dict]) -> int:
+    """The HP this bey really fights with. What a card should print."""
+    from utils.hp_system import max_hp_for_blade
+    return max_hp_for_blade(blade) + level_hp_gain(user_id, blade)

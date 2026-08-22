@@ -451,13 +451,23 @@ keys = {p: {a.key for a in PN.SPECS[p]().actions("", USER)} for p in PN.SPECS}
 lost = [old for old, (panel, key) in MOVED.items() if key not in keys[panel]]
 check(f"all {len(MOVED)} old subcommands have a home", not lost, lost)
 
-check("every leaderboard is its own option, not a typed category",
+# `USER` has no guild, so this is the view from OUTSIDE the main server, where
+# the community boards are deliberately not offered: the panel posts publicly,
+# and a public "that board is main-server only" is worse than never showing the
+# option. `tools/sim_community.py` asserts the inside view.
+PUBLIC_BOARDS = {k for k in RK.CATEGORIES
+                 if k not in getattr(RK, "MAIN_ONLY", ())}
+check("every public leaderboard is its own option, not a typed category",
       len([k for k in keys["leaderboard"] if k.startswith("lb_")])
-      == len(RK.CATEGORIES),
+      == len(PUBLIC_BOARDS),
       sorted(k for k in keys["leaderboard"] if k.startswith("lb_")))
 check("...built from RK.CATEGORIES, so a new board appears without editing "
-      "this file", {f"lb_{k}" for k in RK.CATEGORIES} == keys["leaderboard"],
+      "this file", {f"lb_{k}" for k in PUBLIC_BOARDS} == keys["leaderboard"],
       keys["leaderboard"])
+check("...and the main-server boards are the only ones held back",
+      {f"lb_{k}" for k in RK.CATEGORIES} - keys["leaderboard"]
+      == {f"lb_{k}" for k in RK.MAIN_ONLY},
+      sorted({f"lb_{k}" for k in RK.CATEGORIES} - keys["leaderboard"]))
 check("the boards left /player — a board is about everyone",
       not any(k.startswith("lb_") for k in keys["player"]),
       sorted(k for k in keys["player"] if k.startswith("lb_")))

@@ -34,6 +34,7 @@ K_ROAST_MAX      = "roast_max_level"
 K_ANNOUNCE       = "level_channel_id"
 K_LEVEL_ROLES    = "level_roles"          # {"10": role_id, ...}
 K_XP_ENABLED     = "xp_enabled"
+K_POLL_STAFF_ONLY = "poll_staff_only"
 K_BANTER_DENY    = "banter_deny_channels"
 
 DEFAULTS: dict[str, Any] = {
@@ -44,6 +45,7 @@ DEFAULTS: dict[str, Any] = {
     K_ANNOUNCE:    None,
     K_LEVEL_ROLES: {},
     K_XP_ENABLED:  True,
+    K_POLL_STAFF_ONLY: True,
     K_BANTER_DENY: [],
 }
 

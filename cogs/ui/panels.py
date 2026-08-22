@@ -120,12 +120,27 @@ class LeaderboardSpec(K.PrefixSpec):
             from utils import ranked as RK
         except Exception:                                # noqa: BLE001
             return []
+        # Built per invocation, so unlike the native slash choices — which are
+        # registered once, globally — this list CAN tell which server it is in.
+        # The community boards are main-server only, and offering a player a
+        # dropdown entry that answers "that board is main-server only" (in
+        # public, since this panel posts publicly) is worse than not offering
+        # it.
+        main_only = getattr(RK, "MAIN_ONLY", frozenset())
+        allowed = True
+        if main_only:
+            try:
+                from cogs.community import guard as _guard
+                allowed = _guard.is_main(getattr(user, "guild", None))
+            except Exception:                            # noqa: BLE001
+                allowed = False
         return [A(key=f"lb_{key}",
                   label=spec["label"],
                   description=spec.get("describe", "")[:100],
                   emoji=spec.get("emoji") or "🏅",
                   invoke="leaderboard", kwargs={"category": key})
-                for key, spec in RK.CATEGORIES.items()]
+                for key, spec in RK.CATEGORIES.items()
+                if allowed or key not in main_only]
 
 
 # ══════════════════════════════════════════════════════════════════════════════

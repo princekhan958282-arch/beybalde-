@@ -824,9 +824,17 @@ class ShopCog(commands.Cog, name="Shop"):
         profile["equipped_parts"] = equipped
         update_user(ctx.author.id, profile)
 
-        ps  = part.get("penalty_stat")
-        pv  = part.get("penalty", 0)
-        pen_line = f"\n⬇️ −{pv} {ps.capitalize()} (tradeoff)" if ps and pv else ""
+        # Through `part_penalties`, not the legacy pair. Reading
+        # `penalty_stat`/`penalty` directly missed every part that uses the
+        # newer `penalties` dict — Ragnarok Core printed "+120 Attack" and no
+        # downside at all, while the Loadout total two lines below (which does
+        # use this helper) disagreed with it in the same message.
+        pen_line = ""
+        penalties = part_penalties(part)
+        if penalties:
+            pen_line = "\n" + "\n".join(
+                f"⬇️ −{amount} {stat.capitalize()} (tradeoff)"
+                for stat, amount in sorted(penalties.items()))
         msg = f"{emoji} **{match}** equipped in {label} slot!\n⬆️ +{part['bonus']} {part['stat'].capitalize()} now active in battles.{pen_line}"
         if replaced:
             msg += f"\n↩️ **{replaced}** moved back to inventory."
