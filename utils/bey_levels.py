@@ -81,7 +81,12 @@ DEFAULT_GROWTH = GROWTH["balance"]
 # steady trickle, a win is the payoff, a loss still pays so a losing streak
 # isn't dead time.
 XP_CHAT = (50, 90)
-XP_CHAT_COOLDOWN_S = 0        # no cooldown — every qualifying message pays
+# 2 seconds, live since v1.28. Stated plainly because the number matters: at
+# this setting a determined spammer still earns roughly 1,300-2,300 trainer XP
+# per minute, and every trainer level pays level x 100 coins. This closes
+# accidental farming — a burst of one-word replies, a paste, a rapid
+# conversation — not deliberate farming. 30-60s would close that.
+XP_CHAT_COOLDOWN_S = 2
 XP_BATTLE_WIN = (300, 459)
 XP_BATTLE_LOSS = (120, 220)
 

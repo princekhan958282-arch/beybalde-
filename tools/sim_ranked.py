@@ -115,23 +115,29 @@ check("a 1-0 record cannot top the win-rate board",
 check(f"...because {RK.MIN_RANKED_GAMES} games are required",
       RK.MIN_RANKED_GAMES >= 10)
 
-print("\n── 4. the seven categories ──────────────────────────────────────")
-check("the five ranked boards, plus level and money",
+print("\n── 4. the nine categories ───────────────────────────────────────")
+check("the five ranked boards, plus level, money and the two community ones",
       set(RK.CATEGORIES) == {"rank", "winrate", "wins", "streak", "catches",
-                             "level", "money"},
+                             "level", "money", "chatxp", "commlevel"},
       set(RK.CATEGORIES))
+check("only the community pair is main-server gated",
+      RK.MAIN_ONLY == frozenset({"chatxp", "commlevel"}), RK.MAIN_ONLY)
 for key, spec in RK.CATEGORIES.items():
     for field in ("label", "emoji", "describe", "value", "format",
                   "eligible", "empty"):
         check(f"{key} defines {field}", field in spec)
 
+# Every category is walked below, so every player carries a value for every
+# board. The community columns are here for the same reason as the rest: a
+# board with no eligible player in the pool is an empty list, and `[0][0]` on
+# it is an IndexError rather than a failed assertion.
 pool = [
     player(100, rank_score=900, ranked_wins=30, ranked_losses=10,
-           best_streak=9, beys_caught=12),
+           best_streak=9, beys_caught=12, community_xp=100, com_level=2),
     player(101, rank_score=400, ranked_wins=50, ranked_losses=40,
-           best_streak=4, beys_caught=99),
+           best_streak=4, beys_caught=99, community_xp=9000, com_level=18),
     player(102, rank_score=700, ranked_wins=12, ranked_losses=1,
-           best_streak=12, beys_caught=3),
+           best_streak=12, beys_caught=3, community_xp=500, com_level=4),
 ]
 tops = {k: RK.build_board(pool, k, config=CFG_OFF)[0][0]["user_id"]
         for k in RK.CATEGORIES}
@@ -141,6 +147,13 @@ check("streak board tops on best streak", tops["streak"] == "102", tops)
 check("catches board tops on catches", tops["catches"] == "101", tops)
 check("winrate board tops on rate, not volume", tops["winrate"] == "102", tops)
 check("the four boards genuinely differ", len(set(tops.values())) >= 3, tops)
+# v1.28: community XP is a separate track, earned by talking in the main
+# server rather than by battling, so it tops on a different player than rank.
+check("the community XP board tops on community xp",
+      tops["chatxp"] == "101", tops)
+check("the community level board tops on community level",
+      tops["commlevel"] == "101", tops)
+check("...and neither is the rank board", tops["chatxp"] != tops["rank"], tops)
 
 # Level and money are not ranked stats — they come from playing at all — so
 # they are the two boards a player can be on without ever queuing for ranked.

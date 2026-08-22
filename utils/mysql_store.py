@@ -133,6 +133,77 @@ CREATE TABLE IF NOT EXISTS reports (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 """
 
+# ── Community systems (main server only) ─────────────────────────────────────
+# The SQLite twin of every table below is in userstore.py, with the reasoning.
+# The short version: config lives in a TABLE because config.json does not
+# survive a container rebuild on this deployment, and the main-server id going
+# missing would silently switch the whole community layer off.
+_SCHEMA_COMMUNITY_CONFIG = """
+CREATE TABLE IF NOT EXISTS community_config (
+    `key`      VARCHAR(64) NOT NULL PRIMARY KEY,
+    value      LONGTEXT    NOT NULL,
+    updated_at DOUBLE      NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
+_SCHEMA_POLLS = """
+CREATE TABLE IF NOT EXISTS community_polls (
+    poll_id    VARCHAR(64)  NOT NULL PRIMARY KEY,
+    guild_id   VARCHAR(32)  NOT NULL,
+    channel_id VARCHAR(32)  NULL,
+    message_id VARCHAR(32)  NULL,
+    author_id  VARCHAR(32)  NOT NULL,
+    question   VARCHAR(512) NOT NULL,
+    options    LONGTEXT     NOT NULL,
+    multi      TINYINT      NOT NULL DEFAULT 0,
+    anonymous  TINYINT      NOT NULL DEFAULT 1,
+    ends_at    DOUBLE       NULL,
+    state      VARCHAR(16)  NOT NULL,
+    created_at DOUBLE       NOT NULL,
+    closed_at  DOUBLE       NULL,
+    results    LONGTEXT     NULL,
+    INDEX idx_polls_due (state, ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
+_SCHEMA_POLL_VOTES = """
+CREATE TABLE IF NOT EXISTS community_poll_votes (
+    poll_id  VARCHAR(64) NOT NULL,
+    user_id  VARCHAR(32) NOT NULL,
+    choice   VARCHAR(64) NOT NULL,
+    voted_at DOUBLE      NOT NULL,
+    PRIMARY KEY (poll_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
+_SCHEMA_GIVEAWAYS = """
+CREATE TABLE IF NOT EXISTS community_giveaways (
+    giveaway_id VARCHAR(64)  NOT NULL PRIMARY KEY,
+    guild_id    VARCHAR(32)  NOT NULL,
+    channel_id  VARCHAR(32)  NULL,
+    message_id  VARCHAR(32)  NULL,
+    host_id     VARCHAR(32)  NOT NULL,
+    prize       VARCHAR(512) NOT NULL,
+    winners     INT          NOT NULL DEFAULT 1,
+    requirement LONGTEXT     NULL,
+    ends_at     DOUBLE       NULL,
+    state       VARCHAR(16)  NOT NULL,
+    created_at  DOUBLE       NOT NULL,
+    ended_at    DOUBLE       NULL,
+    winner_ids  LONGTEXT     NULL,
+    INDEX idx_giveaways_due (state, ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
+_SCHEMA_GIVEAWAY_ENTRIES = """
+CREATE TABLE IF NOT EXISTS community_giveaway_entries (
+    giveaway_id VARCHAR(64) NOT NULL,
+    user_id     VARCHAR(32) NOT NULL,
+    entered_at  DOUBLE      NOT NULL,
+    PRIMARY KEY (giveaway_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
 # The JSON stores worth moving. beyblades.json is deliberately NOT here — it's
 # static game content that ships with the code, not player data.
 KV_FILES = [
@@ -238,6 +309,11 @@ class MySQLStore:
                 cur.execute(_SCHEMA_UPDATES)
                 cur.execute(_SCHEMA_DELIVERIES)
                 cur.execute(_SCHEMA_REPORTS)
+                cur.execute(_SCHEMA_COMMUNITY_CONFIG)
+                cur.execute(_SCHEMA_POLLS)
+                cur.execute(_SCHEMA_POLL_VOTES)
+                cur.execute(_SCHEMA_GIVEAWAYS)
+                cur.execute(_SCHEMA_GIVEAWAY_ENTRIES)
             self._ready = True
 
     # ── Row helpers ──────────────────────────────────────────────────────────
@@ -793,6 +869,303 @@ class MySQLStore:
                         "ORDER BY created_at DESC LIMIT 1", (str(user_id),))
             row = cur.fetchone()
         return float(row["created_at"]) if row else None
+
+    # ── Community: config, polls, giveaways ──────────────────────────────────
+    #
+    # The SQLite twins are in userstore.py. Same names, same signatures; the
+    # differences are the placeholder style, INSERT IGNORE, and the two
+    # claim methods, which have no UPDATE…RETURNING to use.
+
+    def community_config_get(self, key: str) -> Optional[str]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT value FROM community_config WHERE `key`=%s",
+                        (str(key),))
+            row = cur.fetchone()
+        return row["value"] if row else None
+
+    def community_config_put(self, key: str, value: str) -> None:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute(
+                "INSERT INTO community_config (`key`, value, updated_at) "
+                "VALUES (%s,%s,%s) ON DUPLICATE KEY UPDATE "
+                "value=VALUES(value), updated_at=VALUES(updated_at)",
+                (str(key), str(value), time.time()))
+
+    def community_config_delete(self, key: str) -> None:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("DELETE FROM community_config WHERE `key`=%s",
+                        (str(key),))
+
+    def community_config_all(self) -> dict:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT `key`, value FROM community_config")
+            rows = cur.fetchall() or []
+        return {r["key"]: r["value"] for r in rows}
+
+    _POLL_COLS = ("poll_id", "guild_id", "channel_id", "message_id",
+                  "author_id", "question", "options", "multi", "anonymous",
+                  "ends_at", "state", "created_at", "closed_at", "results")
+
+    def polls_put(self, row: dict) -> None:
+        self.ensure_ready()
+        data = dict(row)
+        for key in ("options", "results"):
+            if isinstance(data.get(key), (dict, list)):
+                data[key] = json.dumps(data[key])
+        vals = tuple(data.get(c) for c in self._POLL_COLS)
+        marks = ",".join(["%s"] * len(self._POLL_COLS))
+        updates = ",".join(f"{c}=VALUES({c})" for c in self._POLL_COLS[1:])
+        with self._conn().cursor() as cur:
+            cur.execute(
+                f"INSERT INTO community_polls "
+                f"({','.join(self._POLL_COLS)}) VALUES ({marks}) "
+                f"ON DUPLICATE KEY UPDATE {updates}", vals)
+
+    @staticmethod
+    def _poll_row(row) -> dict:
+        out = dict(row)
+        for key, empty in (("options", []), ("results", None)):
+            raw = out.get(key)
+            if raw is None:
+                out[key] = empty
+                continue
+            try:
+                out[key] = json.loads(raw)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                out[key] = empty
+        return out
+
+    def polls_get(self, poll_id: str) -> Optional[dict]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT * FROM community_polls WHERE poll_id=%s",
+                        (str(poll_id),))
+            row = cur.fetchone()
+        return self._poll_row(row) if row else None
+
+    def polls_list(self, guild_id: str, limit: int = 10) -> list[dict]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT * FROM community_polls WHERE guild_id=%s "
+                        "ORDER BY created_at DESC LIMIT %s",
+                        (str(guild_id), max(1, int(limit))))
+            rows = cur.fetchall() or []
+        return [self._poll_row(r) for r in rows]
+
+    def polls_set_state(self, poll_id: str, state: str, *, results=None,
+                        closed_at: Optional[float] = None) -> None:
+        self.ensure_ready()
+        payload = (json.dumps(results) if isinstance(results, (dict, list))
+                   else results)
+        with self._conn().cursor() as cur:
+            cur.execute(
+                "UPDATE community_polls SET state=%s, "
+                "results=COALESCE(%s, results), "
+                "closed_at=COALESCE(%s, closed_at) WHERE poll_id=%s",
+                (str(state), payload, closed_at, str(poll_id)))
+
+    def polls_set_message(self, poll_id: str, channel_id, message_id) -> None:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("UPDATE community_polls SET channel_id=%s, "
+                        "message_id=%s WHERE poll_id=%s",
+                        (str(channel_id), str(message_id), str(poll_id)))
+
+    def _claim_due(self, table: str, id_col: str, order_col: str,
+                   now: Optional[float], limit: int) -> list[str]:
+        """SELECT … FOR UPDATE, then flip. The MySQL shape of a claim.
+
+        Same guarantee as SQLite's single UPDATE…RETURNING — the rows are
+        locked before they are read, so a second tick blocks rather than
+        closing the same poll a second time.
+        """
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        conn = self._conn()
+        conn.begin()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"SELECT {id_col} FROM {table} "
+                    f"WHERE state='OPEN' AND ends_at IS NOT NULL "
+                    f"AND ends_at <= %s ORDER BY {order_col} LIMIT %s "
+                    f"FOR UPDATE", (ts, max(1, int(limit))))
+                ids = [r[id_col] for r in (cur.fetchall() or [])]
+                if ids:
+                    marks = ",".join(["%s"] * len(ids))
+                    cur.execute(
+                        f"UPDATE {table} SET state='CLOSING' "
+                        f"WHERE {id_col} IN ({marks})", tuple(ids))
+            conn.commit()
+            return ids
+        except Exception:
+            conn.rollback()
+            raise
+
+    def polls_claim_due(self, now: Optional[float] = None,
+                        limit: int = 20) -> list[str]:
+        return self._claim_due("community_polls", "poll_id", "ends_at",
+                               now, limit)
+
+    def polls_recover(self) -> int:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("UPDATE community_polls SET state='OPEN' "
+                        "WHERE state='CLOSING'")
+            return int(cur.rowcount or 0)
+
+    def poll_vote(self, poll_id: str, user_id: str, choice: str, *,
+                  now: Optional[float] = None) -> bool:
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        with self._conn().cursor() as cur:
+            cur.execute(
+                "INSERT IGNORE INTO community_poll_votes "
+                "(poll_id, user_id, choice, voted_at) VALUES (%s,%s,%s,%s)",
+                (str(poll_id), str(user_id), str(choice), ts))
+            return int(cur.rowcount or 0) > 0
+
+    def poll_vote_of(self, poll_id: str, user_id: str) -> Optional[str]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT choice FROM community_poll_votes "
+                        "WHERE poll_id=%s AND user_id=%s",
+                        (str(poll_id), str(user_id)))
+            row = cur.fetchone()
+        return row["choice"] if row else None
+
+    def poll_tally(self, poll_id: str) -> dict:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT choice, COUNT(*) AS n FROM "
+                        "community_poll_votes WHERE poll_id=%s GROUP BY choice",
+                        (str(poll_id),))
+            rows = cur.fetchall() or []
+        return {r["choice"]: r["n"] for r in rows}
+
+    def poll_voters(self, poll_id: str) -> list[str]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT user_id FROM community_poll_votes "
+                        "WHERE poll_id=%s", (str(poll_id),))
+            rows = cur.fetchall() or []
+        return [r["user_id"] for r in rows]
+
+    _GIVEAWAY_COLS = ("giveaway_id", "guild_id", "channel_id", "message_id",
+                      "host_id", "prize", "winners", "requirement", "ends_at",
+                      "state", "created_at", "ended_at", "winner_ids")
+
+    def giveaways_put(self, row: dict) -> None:
+        self.ensure_ready()
+        data = dict(row)
+        for key in ("requirement", "winner_ids"):
+            if isinstance(data.get(key), (dict, list)):
+                data[key] = json.dumps(data[key])
+        vals = tuple(data.get(c) for c in self._GIVEAWAY_COLS)
+        marks = ",".join(["%s"] * len(self._GIVEAWAY_COLS))
+        updates = ",".join(f"{c}=VALUES({c})" for c in self._GIVEAWAY_COLS[1:])
+        with self._conn().cursor() as cur:
+            cur.execute(
+                f"INSERT INTO community_giveaways "
+                f"({','.join(self._GIVEAWAY_COLS)}) VALUES ({marks}) "
+                f"ON DUPLICATE KEY UPDATE {updates}", vals)
+
+    @staticmethod
+    def _giveaway_row(row) -> dict:
+        out = dict(row)
+        for key, empty in (("requirement", {}), ("winner_ids", [])):
+            raw = out.get(key)
+            if raw is None:
+                out[key] = empty
+                continue
+            try:
+                out[key] = json.loads(raw)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                out[key] = empty
+        return out
+
+    def giveaways_get(self, giveaway_id: str) -> Optional[dict]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT * FROM community_giveaways "
+                        "WHERE giveaway_id=%s", (str(giveaway_id),))
+            row = cur.fetchone()
+        return self._giveaway_row(row) if row else None
+
+    def giveaways_list(self, guild_id: str, limit: int = 10) -> list[dict]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT * FROM community_giveaways WHERE guild_id=%s "
+                        "ORDER BY created_at DESC LIMIT %s",
+                        (str(guild_id), max(1, int(limit))))
+            rows = cur.fetchall() or []
+        return [self._giveaway_row(r) for r in rows]
+
+    def giveaways_set_state(self, giveaway_id: str, state: str, *,
+                            winner_ids=None,
+                            ended_at: Optional[float] = None) -> None:
+        self.ensure_ready()
+        payload = (json.dumps(winner_ids)
+                   if isinstance(winner_ids, (dict, list)) else winner_ids)
+        with self._conn().cursor() as cur:
+            cur.execute(
+                "UPDATE community_giveaways SET state=%s, "
+                "winner_ids=COALESCE(%s, winner_ids), "
+                "ended_at=COALESCE(%s, ended_at) WHERE giveaway_id=%s",
+                (str(state), payload, ended_at, str(giveaway_id)))
+
+    def giveaways_set_message(self, giveaway_id: str, channel_id,
+                              message_id) -> None:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("UPDATE community_giveaways SET channel_id=%s, "
+                        "message_id=%s WHERE giveaway_id=%s",
+                        (str(channel_id), str(message_id), str(giveaway_id)))
+
+    def giveaways_claim_due(self, now: Optional[float] = None,
+                            limit: int = 20) -> list[str]:
+        return self._claim_due("community_giveaways", "giveaway_id",
+                               "ends_at", now, limit)
+
+    def giveaways_recover(self) -> int:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("UPDATE community_giveaways SET state='OPEN' "
+                        "WHERE state='CLOSING'")
+            return int(cur.rowcount or 0)
+
+    def giveaway_enter(self, giveaway_id: str, user_id: str, *,
+                       now: Optional[float] = None) -> bool:
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        with self._conn().cursor() as cur:
+            cur.execute(
+                "INSERT IGNORE INTO community_giveaway_entries "
+                "(giveaway_id, user_id, entered_at) VALUES (%s,%s,%s)",
+                (str(giveaway_id), str(user_id), ts))
+            return int(cur.rowcount or 0) > 0
+
+    def giveaway_entries(self, giveaway_id: str) -> list[str]:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT user_id FROM community_giveaway_entries "
+                        "WHERE giveaway_id=%s ORDER BY entered_at",
+                        (str(giveaway_id),))
+            rows = cur.fetchall() or []
+        return [r["user_id"] for r in rows]
+
+    def giveaway_entry_count(self, giveaway_id: str) -> int:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute("SELECT COUNT(*) AS n FROM "
+                        "community_giveaway_entries WHERE giveaway_id=%s",
+                        (str(giveaway_id),))
+            row = cur.fetchone()
+        return int(row["n"]) if row else 0
 
     def kv_get(self, name: str) -> Optional[dict]:
         self.ensure_ready()
