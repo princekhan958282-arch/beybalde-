@@ -382,7 +382,7 @@ def update_user(user_id: int, profile: dict, touch: bool = True) -> None:
         USER_STORE.put_one(str(user_id), profile, touch=touch)
 
 
-def mutate_user(user_id: int, fn):
+def mutate_user(user_id: int, fn, touch: bool = True):
     """Read-modify-write one profile atomically. Returns whatever `fn` returns.
 
     `get_user()` then `update_user()` is a race: the profile can change between
@@ -396,6 +396,11 @@ def mutate_user(user_id: int, fn):
     call get_user/update_user itself — `_users_lock` is a plain Lock, so a
     nested call deadlocks. Raising from `fn` abandons the write entirely, which
     is the desired behaviour for "you cannot afford this".
+
+    `touch=False` writes without stamping `last_seen`, for the same reason
+    `update_user` has the flag: anything driven by an incoming MESSAGE rather
+    than by a command must not mark the author as an active player, or every
+    "who played today" number counts a busy chat channel as a busy game.
     """
     with _users_lock:
         uid = str(user_id)
@@ -403,7 +408,7 @@ def mutate_user(user_id: int, fn):
         if prof is None:
             prof = _default_profile(uid)
         result = fn(prof)
-        USER_STORE.put_one(uid, prof)
+        USER_STORE.put_one(uid, prof, touch=touch)
         return result
 
 

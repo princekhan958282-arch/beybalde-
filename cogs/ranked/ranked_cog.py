@@ -94,6 +94,20 @@ class RankedCog(commands.Cog, name="Ranked"):
             opts = ", ".join(f"`{k}`" for k in RK.CATEGORIES)
             return await ctx.send(f"❌ Unknown category `{category}`. Pick one of: {opts}")
 
+        # The community boards belong to the main server. The slash choices are
+        # built once at registration, so the option exists everywhere whatever
+        # the table says — the refusal has to happen HERE, where a board is
+        # actually rendered, rather than by hiding the choice.
+        if key in getattr(RK, "MAIN_ONLY", ()):
+            try:
+                from cogs.community import guard as _guard
+                allowed = _guard.is_main(ctx.guild)
+            except Exception:                            # noqa: BLE001
+                allowed = False
+            if not allowed:
+                return await ctx.send(
+                    "🔒 That board is main-server only.")
+
         spec = RK.CATEGORIES[key]
         # Read once. This used to call `_all_users()` again below for "Your
         # position", deserialising all 3,400 profiles a second time to answer

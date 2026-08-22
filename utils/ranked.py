@@ -232,6 +232,26 @@ def coins(profile: dict) -> int:
     return _int(profile, "coins")
 
 
+# Community XP is a SEPARATE track from trainer xp — it is earned by talking,
+# voting and entering giveaways in the main server, and it never pays coins.
+# The key is deliberately not "level": `get_user` recomputes that one from
+# trainer xp on every read, so a community level stored there would not survive
+# the next profile read.
+def community_xp(profile: dict) -> int:
+    return _int(profile, "community_xp")
+
+
+def community_level(profile: dict) -> int:
+    return _int(profile, "com_level")
+
+
+# The boards below are MAIN-SERVER ONLY, and that is enforced where a board is
+# run, not here: `@app_commands.choices` is built once at registration, so the
+# choice exists in every server whatever this table says. `MAIN_ONLY` is what
+# the command layer consults before rendering one.
+MAIN_ONLY = frozenset({"chatxp", "commlevel"})
+
+
 CATEGORIES: dict[str, dict] = {
     "rank": {
         "label": "Rank Score",
@@ -300,6 +320,24 @@ CATEGORIES: dict[str, dict] = {
         "format": lambda p: f"{coins(p):,} coins",
         "eligible": lambda p: coins(p) > 0,
         "empty": "Nobody has any Beycoins yet.",
+    },
+    "chatxp": {
+        "label": "Community XP",
+        "emoji": "✨",
+        "describe": "Most active in the main server",
+        "value": community_xp,
+        "format": lambda p: f"{community_xp(p):,} XP",
+        "eligible": lambda p: community_xp(p) > 0,
+        "empty": "Nobody has earned community XP yet.",
+    },
+    "commlevel": {
+        "label": "Community Level",
+        "emoji": "🌟",
+        "describe": "Highest community level",
+        "value": community_level,
+        "format": lambda p: f"Level {community_level(p):,}",
+        "eligible": lambda p: community_level(p) > 0,
+        "empty": "Nobody has reached community level 1 yet.",
     },
 }
 

@@ -323,6 +323,11 @@ COMMAND_DATA = {
         ("/bugs",                       "🐛 Report a bug — works in any server"),
         ("/suggest",                    "💡 Suggest an improvement"),
         (";reportchannel",              "[Staff] Where /bugs and /suggest land"),
+        # Community systems — main server only
+        ("/level",                      "✨ Your community level and XP"),
+        ("/poll",                       "📊 Ask the server something"),
+        ("/giveaway",                   "🎉 [Staff] Run a giveaway"),
+        ("/server",                     "🏠 [Owner] Set the main community server"),
         (";avatarpacks  or  ;apacks",   "View packs and their prices"),
         (";buypack mlbb",              "🌟 MLBB banner — 15,000,000 coins, MLBB avatars only"),
         (";buypack season1",           "🏫 Beyblade Burst Season 1 — 250,000 coins, unlocks when Season 1 is complete"),

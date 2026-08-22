@@ -135,6 +135,75 @@ CREATE INDEX IF NOT EXISTS idx_reports_user_time
     ON reports(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reports_status
     ON reports(status, created_at DESC);
+
+-- ── Community systems (main server only) ─────────────────────────────────────
+-- Config lives in a TABLE and not in data/config.json for the durability reason
+-- spelled out above: config.json is a local file, so on the MySQL deployment it
+-- does not survive a container rebuild. The main-server id is the switch every
+-- community feature is gated on — if it evaporates the whole layer silently
+-- turns itself off, which looks exactly like a bug.
+CREATE TABLE IF NOT EXISTS community_config (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,          -- JSON-encoded
+    updated_at REAL NOT NULL
+);
+
+-- Polls and giveaways carry every column they will ever need, because there is
+-- no ALTER TABLE anywhere in this codebase and no migration path for adding one
+-- to a table that already exists on the live install.
+CREATE TABLE IF NOT EXISTS community_polls (
+    poll_id    TEXT PRIMARY KEY,
+    guild_id   TEXT NOT NULL,
+    channel_id TEXT,
+    message_id TEXT,
+    author_id  TEXT NOT NULL,
+    question   TEXT NOT NULL,
+    options    TEXT NOT NULL,          -- JSON list[str]
+    multi      INTEGER NOT NULL DEFAULT 0,
+    anonymous  INTEGER NOT NULL DEFAULT 1,
+    ends_at    REAL,
+    state      TEXT NOT NULL,
+    created_at REAL NOT NULL,
+    closed_at  REAL,
+    results    TEXT                    -- JSON {choice: count} at close
+);
+CREATE INDEX IF NOT EXISTS idx_polls_due ON community_polls(state, ends_at);
+
+-- One row per voter. The composite PRIMARY KEY is the duplicate-vote
+-- prevention and it is the DATABASE enforcing it, not a set in memory that a
+-- restart would empty.
+CREATE TABLE IF NOT EXISTS community_poll_votes (
+    poll_id  TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    choice   TEXT NOT NULL,            -- JSON list[int] (multi) or "N"
+    voted_at REAL NOT NULL,
+    PRIMARY KEY (poll_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS community_giveaways (
+    giveaway_id TEXT PRIMARY KEY,
+    guild_id    TEXT NOT NULL,
+    channel_id  TEXT,
+    message_id  TEXT,
+    host_id     TEXT NOT NULL,
+    prize       TEXT NOT NULL,
+    winners     INTEGER NOT NULL DEFAULT 1,
+    requirement TEXT,                  -- JSON, reserved: level/role gates
+    ends_at     REAL,
+    state       TEXT NOT NULL,
+    created_at  REAL NOT NULL,
+    ended_at    REAL,
+    winner_ids  TEXT                   -- JSON list[str], every winner ever drawn
+);
+CREATE INDEX IF NOT EXISTS idx_giveaways_due
+    ON community_giveaways(state, ends_at);
+
+CREATE TABLE IF NOT EXISTS community_giveaway_entries (
+    giveaway_id TEXT NOT NULL,
+    user_id     TEXT NOT NULL,
+    entered_at  REAL NOT NULL,
+    PRIMARY KEY (giveaway_id, user_id)
+);
 """
 
 
@@ -785,3 +854,275 @@ class UserStore:
             "SELECT created_at FROM reports WHERE user_id = ? "
             "ORDER BY created_at DESC LIMIT 1", (str(user_id),)).fetchone()
         return float(row["created_at"]) if row else None
+
+    # ── Community: config, polls, giveaways ──────────────────────────────────
+    #
+    # Same rule as the notification methods above: every one has a same-named
+    # twin on `MySQLStore` with the same signature.
+
+    def community_config_get(self, key: str) -> Optional[str]:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT value FROM community_config WHERE key = ?",
+            (str(key),)).fetchone()
+        return row["value"] if row else None
+
+    def community_config_put(self, key: str, value: str) -> None:
+        self.ensure_ready()
+        self._conn().execute(
+            "INSERT OR REPLACE INTO community_config (key, value, updated_at) "
+            "VALUES (?, ?, ?)", (str(key), str(value), time.time()))
+
+    def community_config_delete(self, key: str) -> None:
+        self.ensure_ready()
+        self._conn().execute("DELETE FROM community_config WHERE key = ?",
+                             (str(key),))
+
+    def community_config_all(self) -> dict:
+        self.ensure_ready()
+        rows = self._conn().execute("SELECT key, value FROM community_config")
+        return {r["key"]: r["value"] for r in rows}
+
+    _POLL_COLS = ("poll_id", "guild_id", "channel_id", "message_id",
+                  "author_id", "question", "options", "multi", "anonymous",
+                  "ends_at", "state", "created_at", "closed_at", "results")
+
+    def polls_put(self, row: dict) -> None:
+        self.ensure_ready()
+        data = dict(row)
+        for key in ("options", "results"):
+            if isinstance(data.get(key), (dict, list)):
+                data[key] = json.dumps(data[key])
+        vals = tuple(data.get(c) for c in self._POLL_COLS)
+        marks = ",".join("?" for _ in self._POLL_COLS)
+        self._conn().execute(
+            f"INSERT OR REPLACE INTO community_polls "
+            f"({','.join(self._POLL_COLS)}) VALUES ({marks})", vals)
+
+    @staticmethod
+    def _poll_row(row) -> dict:
+        out = dict(row)
+        for key, empty in (("options", []), ("results", None)):
+            raw = out.get(key)
+            if raw is None:
+                out[key] = empty
+                continue
+            try:
+                out[key] = json.loads(raw)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                out[key] = empty
+        return out
+
+    def polls_get(self, poll_id: str) -> Optional[dict]:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT * FROM community_polls WHERE poll_id = ?",
+            (str(poll_id),)).fetchone()
+        return self._poll_row(row) if row else None
+
+    def polls_list(self, guild_id: str, limit: int = 10) -> list[dict]:
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT * FROM community_polls WHERE guild_id = ? "
+            "ORDER BY created_at DESC LIMIT ?",
+            (str(guild_id), max(1, int(limit))))
+        return [self._poll_row(r) for r in rows]
+
+    def polls_set_state(self, poll_id: str, state: str, *,
+                        results=None, closed_at: Optional[float] = None) -> None:
+        self.ensure_ready()
+        payload = (json.dumps(results) if isinstance(results, (dict, list))
+                   else results)
+        self._conn().execute(
+            "UPDATE community_polls SET state = ?, "
+            "results = COALESCE(?, results), closed_at = COALESCE(?, closed_at) "
+            "WHERE poll_id = ?",
+            (str(state), payload, closed_at, str(poll_id)))
+
+    def polls_set_message(self, poll_id: str, channel_id, message_id) -> None:
+        self.ensure_ready()
+        self._conn().execute(
+            "UPDATE community_polls SET channel_id = ?, message_id = ? "
+            "WHERE poll_id = ?",
+            (str(channel_id), str(message_id), str(poll_id)))
+
+    def polls_claim_due(self, now: Optional[float] = None,
+                        limit: int = 20) -> list[str]:
+        """Flip every poll whose timer has run out to CLOSING, atomically.
+
+        One statement, exactly like `deliveries_claim`: select-then-update has
+        a window between the halves, and with two ticks in flight that window
+        is a poll closed and announced twice.
+        """
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        rows = self._conn().execute("""
+            UPDATE community_polls SET state = 'CLOSING'
+             WHERE rowid IN (
+                   SELECT rowid FROM community_polls
+                    WHERE state = 'OPEN' AND ends_at IS NOT NULL
+                      AND ends_at <= ?
+                    ORDER BY ends_at LIMIT ?)
+         RETURNING poll_id
+        """, (ts, max(1, int(limit)))).fetchall()
+        return [r["poll_id"] for r in rows]
+
+    def polls_recover(self) -> int:
+        """Return anything a dead process left mid-close to the queue."""
+        self.ensure_ready()
+        conn = self._conn()
+        before = conn.total_changes
+        conn.execute("UPDATE community_polls SET state = 'OPEN' "
+                     "WHERE state = 'CLOSING'")
+        return conn.total_changes - before
+
+    def poll_vote(self, poll_id: str, user_id: str, choice: str, *,
+                  now: Optional[float] = None) -> bool:
+        """Record one vote. Returns False if this player already voted."""
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        conn = self._conn()
+        before = conn.total_changes
+        conn.execute(
+            "INSERT OR IGNORE INTO community_poll_votes "
+            "(poll_id, user_id, choice, voted_at) VALUES (?, ?, ?, ?)",
+            (str(poll_id), str(user_id), str(choice), ts))
+        return conn.total_changes > before
+
+    def poll_vote_of(self, poll_id: str, user_id: str) -> Optional[str]:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT choice FROM community_poll_votes "
+            "WHERE poll_id = ? AND user_id = ?",
+            (str(poll_id), str(user_id))).fetchone()
+        return row["choice"] if row else None
+
+    def poll_tally(self, poll_id: str) -> dict:
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT choice, COUNT(*) AS n FROM community_poll_votes "
+            "WHERE poll_id = ? GROUP BY choice", (str(poll_id),))
+        return {r["choice"]: r["n"] for r in rows}
+
+    def poll_voters(self, poll_id: str) -> list[str]:
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT user_id FROM community_poll_votes WHERE poll_id = ?",
+            (str(poll_id),))
+        return [r["user_id"] for r in rows]
+
+    _GIVEAWAY_COLS = ("giveaway_id", "guild_id", "channel_id", "message_id",
+                      "host_id", "prize", "winners", "requirement", "ends_at",
+                      "state", "created_at", "ended_at", "winner_ids")
+
+    def giveaways_put(self, row: dict) -> None:
+        self.ensure_ready()
+        data = dict(row)
+        for key in ("requirement", "winner_ids"):
+            if isinstance(data.get(key), (dict, list)):
+                data[key] = json.dumps(data[key])
+        vals = tuple(data.get(c) for c in self._GIVEAWAY_COLS)
+        marks = ",".join("?" for _ in self._GIVEAWAY_COLS)
+        self._conn().execute(
+            f"INSERT OR REPLACE INTO community_giveaways "
+            f"({','.join(self._GIVEAWAY_COLS)}) VALUES ({marks})", vals)
+
+    @staticmethod
+    def _giveaway_row(row) -> dict:
+        out = dict(row)
+        for key, empty in (("requirement", {}), ("winner_ids", [])):
+            raw = out.get(key)
+            if raw is None:
+                out[key] = empty
+                continue
+            try:
+                out[key] = json.loads(raw)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                out[key] = empty
+        return out
+
+    def giveaways_get(self, giveaway_id: str) -> Optional[dict]:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT * FROM community_giveaways WHERE giveaway_id = ?",
+            (str(giveaway_id),)).fetchone()
+        return self._giveaway_row(row) if row else None
+
+    def giveaways_list(self, guild_id: str, limit: int = 10) -> list[dict]:
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT * FROM community_giveaways WHERE guild_id = ? "
+            "ORDER BY created_at DESC LIMIT ?",
+            (str(guild_id), max(1, int(limit))))
+        return [self._giveaway_row(r) for r in rows]
+
+    def giveaways_set_state(self, giveaway_id: str, state: str, *,
+                            winner_ids=None,
+                            ended_at: Optional[float] = None) -> None:
+        self.ensure_ready()
+        payload = (json.dumps(winner_ids)
+                   if isinstance(winner_ids, (dict, list)) else winner_ids)
+        self._conn().execute(
+            "UPDATE community_giveaways SET state = ?, "
+            "winner_ids = COALESCE(?, winner_ids), "
+            "ended_at = COALESCE(?, ended_at) WHERE giveaway_id = ?",
+            (str(state), payload, ended_at, str(giveaway_id)))
+
+    def giveaways_set_message(self, giveaway_id: str, channel_id,
+                              message_id) -> None:
+        self.ensure_ready()
+        self._conn().execute(
+            "UPDATE community_giveaways SET channel_id = ?, message_id = ? "
+            "WHERE giveaway_id = ?",
+            (str(channel_id), str(message_id), str(giveaway_id)))
+
+    def giveaways_claim_due(self, now: Optional[float] = None,
+                            limit: int = 20) -> list[str]:
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        rows = self._conn().execute("""
+            UPDATE community_giveaways SET state = 'CLOSING'
+             WHERE rowid IN (
+                   SELECT rowid FROM community_giveaways
+                    WHERE state = 'OPEN' AND ends_at IS NOT NULL
+                      AND ends_at <= ?
+                    ORDER BY ends_at LIMIT ?)
+         RETURNING giveaway_id
+        """, (ts, max(1, int(limit)))).fetchall()
+        return [r["giveaway_id"] for r in rows]
+
+    def giveaways_recover(self) -> int:
+        self.ensure_ready()
+        conn = self._conn()
+        before = conn.total_changes
+        conn.execute("UPDATE community_giveaways SET state = 'OPEN' "
+                     "WHERE state = 'CLOSING'")
+        return conn.total_changes - before
+
+    def giveaway_enter(self, giveaway_id: str, user_id: str, *,
+                       now: Optional[float] = None) -> bool:
+        """Enter once. Returns False if this player was already in."""
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        conn = self._conn()
+        before = conn.total_changes
+        conn.execute(
+            "INSERT OR IGNORE INTO community_giveaway_entries "
+            "(giveaway_id, user_id, entered_at) VALUES (?, ?, ?)",
+            (str(giveaway_id), str(user_id), ts))
+        return conn.total_changes > before
+
+    def giveaway_entries(self, giveaway_id: str) -> list[str]:
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT user_id FROM community_giveaway_entries "
+            "WHERE giveaway_id = ? ORDER BY entered_at",
+            (str(giveaway_id),))
+        return [r["user_id"] for r in rows]
+
+    def giveaway_entry_count(self, giveaway_id: str) -> int:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT COUNT(*) AS n FROM community_giveaway_entries "
+            "WHERE giveaway_id = ?", (str(giveaway_id),)).fetchone()
+        return int(row["n"]) if row else 0

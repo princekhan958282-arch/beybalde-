@@ -684,8 +684,8 @@ check("...and the board parameter is optional, so bare /leaderboard still "
       not BOT.tree.get_command("leaderboard").parameters[0].required)
 check("/rank is a top-level slash command",
       BOT.tree.get_command("rank") is not None)
-check("the picker is 12 lines",  # +/update, /bugs, /suggest in v1.27
-      len(BOT.tree.get_commands()) == 12,
+check("the picker is 16 lines",  # +/server, /poll, /giveaway, /level in v1.28
+      len(BOT.tree.get_commands()) == 16,
       sorted(c.name for c in BOT.tree.get_commands()))
 
 

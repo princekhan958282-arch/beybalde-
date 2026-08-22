@@ -11,17 +11,23 @@ Two separate things were both missing:
   * Bey XP.  Per-bey levels need a steady trickle that isn't gated behind
     finding an opponent, so the equipped bey earns alongside its trainer.
 
-EVERY qualifying message is paid — there is no cooldown. That is deliberate
-per request, but it does mean chat XP scales with message count, so the cheap
-filters below (bots, commands, very short messages) are the only thing standing
-between the level curve and a spam loop. Set XP_CHAT_COOLDOWN_S and restore the
-timestamp check if that turns out to matter.
+A qualifying message pays at most once every `BL.XP_CHAT_COOLDOWN_S` seconds
+per player. It used to pay for EVERY message, which made spam an income source
+in every server: 50-90 trainer XP a message, and `grant_xp` pays level x 100
+coins on each level crossed.
+
+The gate is in memory rather than on the profile, deliberately. It runs on
+every message the bot sees in every server, and a profile read there would put
+a database round-trip in front of all of them; the durable caps that an exploit
+would actually route around live in the community XP layer, which does read the
+profile.
 """
 
 from __future__ import annotations
 
 import logging
 import random
+import time
 
 import discord
 from discord.ext import commands
@@ -38,6 +44,24 @@ MIN_LENGTH = 3                # "k" and "lol" shouldn't farm XP
 class ChatXPCog(commands.Cog, name="Chat XP"):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
+        self._paid_at: dict[int, float] = {}
+
+    def ready(self, uid: int, now: float | None = None) -> bool:
+        """Has this player's cooldown elapsed? Exposed so it can be tested."""
+        window = float(getattr(BL, "XP_CHAT_COOLDOWN_S", 0) or 0)
+        if window <= 0:
+            return True
+        when = time.time() if now is None else now
+        last = self._paid_at.get(int(uid))
+        return last is None or (when - last) >= window
+
+    def stamp(self, uid: int, now: float | None = None) -> None:
+        self._paid_at[int(uid)] = time.time() if now is None else now
+        if len(self._paid_at) > 20_000:
+            # Bounded: a cooldown that forgets an idle player is harmless.
+            cutoff = sorted(self._paid_at.values())[len(self._paid_at) // 2]
+            self._paid_at = {k: v for k, v in self._paid_at.items()
+                             if v >= cutoff}
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
@@ -53,7 +77,10 @@ class ChatXPCog(commands.Cog, name="Chat XP"):
             return
 
         uid = message.author.id
+        if not self.ready(uid):
+            return
         try:
+            self.stamp(uid)
             await self._award(message, uid)
         except Exception as e:                       # noqa: BLE001
             # A chat listener runs on every message in every server — it must
