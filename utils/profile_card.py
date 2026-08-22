@@ -157,7 +157,7 @@ RANK_TIERS = [
 
 from utils.trainer_levels import MAX_LEVEL, level_from_xp as _lvl_from_xp
 
-STAT_MAX  = 500        # matches bey_levels.STAT_CAP — levelled stats reach it
+from utils.bey_levels import STAT_BAR_MAX as STAT_MAX   # one ceiling, one file
 
 # The frame is one consistent product, so the accent stays fixed rather than
 # recolouring per tier. Rank is still readable: the tier chip and the rank bar

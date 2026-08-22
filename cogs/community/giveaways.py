@@ -74,12 +74,22 @@ class GiveawayManager:
         S.put_giveaway(row)
         return row
 
-    def get(self, guild_id: Any, giveaway_id: str) -> Optional[dict]:
-        require_main(guild_id)
+    def _own(self, guild_id: Any, giveaway_id: str) -> Optional[dict]:
+        """The row, but only if it belongs to the guild asking for it.
+
+        `require_main` proves the CALLER is the main server; this proves the
+        ROW is. They are different questions the moment the main server is
+        repointed: without this, the loop would happily end, announce and DM
+        for giveaways belonging to the server that used to be main.
+        """
+        main = require_main(guild_id)
         row = S.get_giveaway(giveaway_id)
-        if row and str(row.get("guild_id")) != str(require_main(guild_id)):
+        if row is None or str(row.get("guild_id")) != str(main):
             return None
         return row
+
+    def get(self, guild_id: Any, giveaway_id: str) -> Optional[dict]:
+        return self._own(guild_id, giveaway_id)
 
     def recent(self, guild_id: Any, limit: int = 10) -> list[dict]:
         require_main(guild_id)
@@ -88,8 +98,7 @@ class GiveawayManager:
     def enter(self, guild_id: Any, giveaway_id: str, user_id: Any,
               now: Optional[float] = None) -> dict:
         """One entry per player, enforced by the composite primary key."""
-        require_main(guild_id)
-        row = S.get_giveaway(giveaway_id)
+        row = self._own(guild_id, giveaway_id)
         if not row:
             return {"ok": False, "why": "That giveaway is gone."}
         if row.get("state") != OPEN:
@@ -108,8 +117,7 @@ class GiveawayManager:
     def draw(self, guild_id: Any, giveaway_id: str, *, count: int = 0,
              exclude_previous: bool = True) -> list[str]:
         """Pick winners without re-picking anyone who has already won."""
-        require_main(guild_id)
-        row = S.get_giveaway(giveaway_id)
+        row = self._own(guild_id, giveaway_id)
         if not row:
             return []
         pool = list(S.entries(giveaway_id))
@@ -124,13 +132,18 @@ class GiveawayManager:
     def end(self, guild_id: Any, giveaway_id: str,
             now: Optional[float] = None) -> dict:
         """Draw, record, close. Idempotent for an already-ended giveaway."""
-        require_main(guild_id)
-        row = S.get_giveaway(giveaway_id)
+        row = self._own(guild_id, giveaway_id)
         if not row:
             return {"ok": False, "why": "That giveaway is gone."}
         if row.get("state") in (ENDED, CANCELLED):
+            # NO winners in this reply, deliberately. `winner_ids` is the
+            # cumulative history including every reroll, and the caller reads
+            # `winners` to decide who to congratulate and DM — so handing the
+            # history back here means pressing End on an already-ended giveaway
+            # re-pings and re-DMs everybody who has ever won it.
             return {"ok": False, "why": "That giveaway already ended.",
-                    "winners": row.get("winner_ids") or [], "row": row}
+                    "winners": [], "history": row.get("winner_ids") or [],
+                    "row": row}
         winners = self.draw(guild_id, giveaway_id)
         history = list(row.get("winner_ids") or []) + winners
         S.set_giveaway_state(
@@ -143,8 +156,7 @@ class GiveawayManager:
     def reroll(self, guild_id: Any, giveaway_id: str,
                count: int = 1) -> dict:
         """Draw replacements. Anyone already drawn stays excluded, forever."""
-        require_main(guild_id)
-        row = S.get_giveaway(giveaway_id)
+        row = self._own(guild_id, giveaway_id)
         if not row:
             return {"ok": False, "why": "That giveaway is gone."}
         if row.get("state") not in (ENDED,):
@@ -158,8 +170,7 @@ class GiveawayManager:
         return {"ok": True, "winners": winners}
 
     def cancel(self, guild_id: Any, giveaway_id: str) -> bool:
-        require_main(guild_id)
-        row = S.get_giveaway(giveaway_id)
+        row = self._own(guild_id, giveaway_id)
         if not row or row.get("state") in (ENDED, CANCELLED):
             return False
         S.set_giveaway_state(giveaway_id, CANCELLED, ended_at=time.time())

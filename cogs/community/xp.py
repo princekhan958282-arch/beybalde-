@@ -22,6 +22,7 @@ import hashlib
 import logging
 import math
 import random
+import time
 from typing import Any, Optional
 
 from . import config as C
@@ -35,8 +36,7 @@ K_XP        = "community_xp"
 K_LEVEL     = "com_level"
 K_LAST_MSG  = "com_last_msg"
 K_DAY       = "com_day"
-K_LAST_HASH = "com_last_hash"
-K_HASH_AT   = "com_last_hash_at"
+K_HASHES    = "com_recent_hashes"      # [[digest, when], ...] newest last
 
 # ── The curve ────────────────────────────────────────────────────────────────
 # Same family as the trainer curve (utils/trainer_levels.py) so the two feel
@@ -57,6 +57,7 @@ XP_MEME_UPVOTE   = 1
 MESSAGE_COOLDOWN = 60.0      # per player, between paying messages
 MIN_LENGTH       = 8         # characters, after stripping
 DUPLICATE_WINDOW = 300.0     # repeating yourself earns nothing for this long
+DUPLICATE_MEMORY = 5         # how many recent messages are remembered
 DAILY_XP_CAP     = 1_500
 DAILY_REACT_CAP  = 20
 
@@ -88,6 +89,49 @@ def _text_hash(text: str) -> str:
     return hashlib.sha1((text or "").strip().lower().encode()).hexdigest()[:16]
 
 
+def recent_digests(profile: dict, now: Optional[float] = None) -> set:
+    """Digests still inside the duplicate window.
+
+    A single remembered digest — which is what this was — is defeated by
+    alternating two sentences, because each message differs from the one
+    immediately before it. Remembering the last few closes that.
+    """
+    when = time.time() if now is None else now
+    out = set()
+    for entry in (profile.get(K_HASHES) or []):
+        try:
+            digest, at = entry[0], float(entry[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if when - at < DUPLICATE_WINDOW:
+            out.add(digest)
+    return out
+
+
+def remember_digest(profile: dict, digest: str,
+                    now: Optional[float] = None) -> None:
+    when = time.time() if now is None else now
+    ring = [e for e in (profile.get(K_HASHES) or [])
+            if isinstance(e, (list, tuple)) and len(e) == 2]
+    ring.append([digest, when])
+    profile[K_HASHES] = ring[-DUPLICATE_MEMORY:]
+
+
+def outcome(*, awarded: int = 0, xp: int = 0, level: int = 0,
+            from_level: int = 0, capped: bool = False,
+            refused: str = "") -> dict:
+    """Every award path returns THIS shape.
+
+    `grant()` used to omit `refused` while `award_message()` included it, so
+    `award["refused"]` raised a KeyError or not depending on which branch fired.
+    One constructor means one shape.
+    """
+    return {"awarded": int(awarded), "xp": int(xp), "level": int(level),
+            "levelled": int(level) > int(from_level),
+            "from_level": int(from_level), "capped": bool(capped),
+            "refused": refused}
+
+
 class XPManager:
     """Every community XP award goes through `grant`. Nothing else writes it.
 
@@ -100,8 +144,11 @@ class XPManager:
         self.bot = bot
         # In memory on purpose: "have I already paid for a reaction on THIS
         # message" only has to survive until the reaction stops being fresh,
-        # and the daily cap on the profile is the durable backstop.
+        # and the daily cap on the profile is the durable backstop. Keyed by
+        # UTC day so it empties itself instead of being cleared wholesale —
+        # a blanket clear let everybody re-earn every message at once.
         self._reacted: set[tuple[str, str]] = set()
+        self._reacted_day: str = CD.utc_day()
 
     # ── The one write path ───────────────────────────────────────────────────
     def grant(self, guild_id: Any, user_id: Any, amount: int, *,
@@ -113,30 +160,32 @@ class XPManager:
         `touch=False` because most of these arrive from a message rather than
         a command, and `last_seen` means "played", not "typed".
         """
+        # Checked HERE and not inside the mutate callback. `mutate_user` holds
+        # `_users_lock` — the process-wide lock in front of every profile read
+        # and write in the bot — and `require_main` can miss its 5s config
+        # cache and go to the store, which on MySQL is a network round-trip
+        # under that lock, with every battle and purchase queued behind it.
         require_main(guild_id)
         from utils.database import mutate_user
 
         amount = max(0, int(amount))
         if amount == 0 or not C.get(C.K_XP_ENABLED, True):
-            return {"awarded": 0, "xp": 0, "level": 0, "levelled": False,
-                    "from_level": 0, "capped": False}
+            return outcome(refused="xp is off" if amount else "nothing to give")
 
         def _apply(profile: dict) -> dict:
             today = CD.day_total(profile, K_DAY, "xp", now)
-            room = max(0, DAILY_XP_CAP - today)
-            give = min(amount, room)
+            give = min(amount, max(0, DAILY_XP_CAP - today))
             before = int(profile.get(K_XP) or 0)
             total = before + give
             from_level = level_from_xp(before)
-            level = level_from_xp(total)
             profile[K_XP] = total
-            profile[K_LEVEL] = level
+            profile[K_LEVEL] = level_from_xp(total)
             if give:
                 CD.bump_day(profile, K_DAY, "xp", give, now)
                 CD.bump_day(profile, K_DAY, source, 1, now)
-            return {"awarded": give, "xp": total, "level": level,
-                    "levelled": level > from_level, "from_level": from_level,
-                    "capped": give < amount}
+            return outcome(awarded=give, xp=total, level=profile[K_LEVEL],
+                           from_level=from_level, capped=give < amount,
+                           refused="" if give else "daily cap")
 
         return mutate_user(int(user_id), _apply, touch=touch)
 
@@ -152,16 +201,15 @@ class XPManager:
         text = (content or "").strip()
         if len(text) < MIN_LENGTH:
             return False, "too short"
+        # Duplicate BEFORE cooldown, so repeating yourself is reported as
+        # repeating yourself. The other order labelled every duplicate inside
+        # the window "cooling down", which is a misleading reason to hand a
+        # caller that is deciding what to tell the player.
+        if _text_hash(text) in recent_digests(profile, now):
+            return False, "same message again"
         ok, _left = CD.profile_gate(profile, K_LAST_MSG, MESSAGE_COOLDOWN, now)
         if not ok:
             return False, "cooling down"
-        digest = _text_hash(text)
-        if profile.get(K_LAST_HASH) == digest:
-            last_at = float(profile.get(K_HASH_AT) or 0.0)
-            import time as _t
-            when = _t.time() if now is None else now
-            if when - last_at < DUPLICATE_WINDOW:
-                return False, "same message again"
         if CD.day_total(profile, K_DAY, "xp", now) >= DAILY_XP_CAP:
             return False, "daily cap"
         return True, ""
@@ -170,35 +218,53 @@ class XPManager:
                       now: Optional[float] = None) -> dict:
         """Pay for one message, or refuse and say why."""
         require_main(guild_id)
-        from utils.database import mutate_user
+        from utils.database import get_user, mutate_user
 
         text = (content or "").strip()
+        if len(text) < MIN_LENGTH:
+            # Cheapest refusal first: no store access at all for the shortest
+            # messages, which are most of them.
+            return outcome(refused="too short")
+
+        # A read before the write. This runs on EVERY message in the main
+        # server, and with a 60s cooldown ~98% of them award nothing — the old
+        # version still took `_users_lock`, re-serialised the whole profile
+        # JSON and upserted it for each one, and created a profile row for
+        # anyone who merely talked. A read is cheap and takes no lock.
+        peek = get_user(int(user_id))
+        ok, why = self.may_award_message(guild_id, peek, text, now)
+        if not ok:
+            return outcome(xp=int(peek.get(K_XP) or 0),
+                           level=int(peek.get(K_LEVEL) or 0),
+                           from_level=int(peek.get(K_LEVEL) or 0),
+                           capped=(why == "daily cap"), refused=why)
+
         amount = random.randint(XP_MESSAGE_MIN, XP_MESSAGE_MAX)
 
         def _apply(profile: dict) -> dict:
-            ok, why = self.may_award_message(guild_id, profile, text, now)
-            if not ok:
-                return {"awarded": 0, "xp": int(profile.get(K_XP) or 0),
-                        "level": int(profile.get(K_LEVEL) or 0),
-                        "levelled": False,
-                        "from_level": int(profile.get(K_LEVEL) or 0),
-                        "capped": why == "daily cap", "refused": why}
+            # Re-checked under the lock: the read above is a fast path, not the
+            # decision. Two messages a millisecond apart must not both pay.
+            fresh_ok, fresh_why = self.may_award_message(
+                guild_id, profile, text, now)
+            if not fresh_ok:
+                return outcome(xp=int(profile.get(K_XP) or 0),
+                               level=int(profile.get(K_LEVEL) or 0),
+                               from_level=int(profile.get(K_LEVEL) or 0),
+                               capped=(fresh_why == "daily cap"),
+                               refused=fresh_why)
             today = CD.day_total(profile, K_DAY, "xp", now)
             give = min(amount, max(0, DAILY_XP_CAP - today))
             before = int(profile.get(K_XP) or 0)
             total = before + give
             from_level = level_from_xp(before)
-            level = level_from_xp(total)
             profile[K_XP] = total
-            profile[K_LEVEL] = level
+            profile[K_LEVEL] = level_from_xp(total)
             CD.stamp(profile, K_LAST_MSG, now)
-            profile[K_LAST_HASH] = _text_hash(text)
-            CD.stamp(profile, K_HASH_AT, now)
+            remember_digest(profile, _text_hash(text), now)
             CD.bump_day(profile, K_DAY, "xp", give, now)
             CD.bump_day(profile, K_DAY, "message", 1, now)
-            return {"awarded": give, "xp": total, "level": level,
-                    "levelled": level > from_level, "from_level": from_level,
-                    "capped": give < amount, "refused": ""}
+            return outcome(awarded=give, xp=total, level=profile[K_LEVEL],
+                           from_level=from_level, capped=give < amount)
 
         # touch=False: this is a message, not a command. See mutate_user.
         return mutate_user(int(user_id), _apply, touch=False)
@@ -208,24 +274,34 @@ class XPManager:
                        now: Optional[float] = None) -> dict:
         """Pay for reacting to somebody ELSE's message, once per message."""
         require_main(guild_id)
-        nothing = {"awarded": 0, "xp": 0, "level": 0, "levelled": False,
-                   "from_level": 0, "capped": False}
-        if author_id is not None and str(author_id) == str(user_id):
-            return dict(nothing, refused="own message")
+        # An unknown author is treated as your own message, not somebody
+        # else's. The old default ran the other way, so when the author lookup
+        # failed, reacting to your own messages paid.
+        if author_id is None or str(author_id) == str(user_id):
+            return outcome(refused="own message")
+
+        day = CD.utc_day(now)
+        if day != self._reacted_day:
+            self._reacted_day, self._reacted = day, set()
         key = (str(user_id), str(message_id))
         if key in self._reacted:
-            return dict(nothing, refused="already reacted")
+            return outcome(refused="already reacted")
 
         from utils.database import get_user
         profile = get_user(int(user_id))
         if CD.day_total(profile, K_DAY, "reaction", now) >= DAILY_REACT_CAP:
-            return dict(nothing, refused="daily reaction cap")
+            return outcome(refused="daily reaction cap")
 
-        self._reacted.add(key)
-        if len(self._reacted) > 50_000:
-            self._reacted.clear()
-        return self.grant(guild_id, user_id, XP_REACTION, source="reaction",
-                          now=now)
+        result = self.grant(guild_id, user_id, XP_REACTION, source="reaction",
+                            now=now)
+        # Marked consumed only if it actually paid. Burning the key first meant
+        # a capped-out day permanently ate the message: the cap lifts at
+        # midnight, but the "already reacted" memory did not.
+        if result["awarded"]:
+            self._reacted.add(key)
+            if len(self._reacted) > 100_000:
+                self._reacted = set(list(self._reacted)[-50_000:])
+        return result
 
     def award_poll_vote(self, guild_id: Any, user_id: Any,
                         now: Optional[float] = None) -> dict:
@@ -252,10 +328,6 @@ class XPManager:
                 "today": CD.day_total(profile, K_DAY, "xp"),
                 "cap": DAILY_XP_CAP,
                 "next_at": xp_for_level(level + 1) if level < MAX_LEVEL else 0}
-
-    def reset_memory(self) -> None:
-        self._reacted.clear()
-
 
 class LevelManager:
     """Level-ups: the announcement, and the role rewards.
@@ -303,12 +375,17 @@ class LevelManager:
         C.put(C.K_LEVEL_ROLES, mapping)
         return True, f"Level **{level}** now grants **{role}**."
 
-    def clear_level_role(self, guild_id: Any, level: int) -> bool:
+    def clear_level_roles(self, guild_id: Any) -> int:
+        """Forget every level -> role mapping. Returns how many went.
+
+        Replaces a single-level version that nothing could reach; the panel was
+        writing the config key directly, which put a second writer next to the
+        manager that owns it.
+        """
         require_main(guild_id)
-        mapping = {str(k): v for k, v in C.level_roles().items()}
-        removed = mapping.pop(str(int(level)), None) is not None
-        C.put(C.K_LEVEL_ROLES, mapping)
-        return removed
+        had = len(C.level_roles())
+        C.put(C.K_LEVEL_ROLES, {})
+        return had
 
     def roles_for(self, guild_id: Any, level: int) -> list[int]:
         """Every role a player at this level has earned, lowest first."""

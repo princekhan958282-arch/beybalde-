@@ -51,12 +51,22 @@ K_VERIFIED = "ranked_verified"
 # Every key a leaderboard reset is allowed to clear. Kept as an explicit list so
 # a reset can never wander into coins, inventory or trainer level — the failure
 # mode there is unrecoverable and silent.
+K_COMMUNITY_XP    = "community_xp"
+K_COMMUNITY_LEVEL = "com_level"
+
 RESETTABLE = {
     "rank":     (K_RANK_SCORE, K_RANKED_WINS, K_RANKED_LOSSES),
     "winrate":  (K_RANKED_WINS, K_RANKED_LOSSES),
     "wins":     (K_RANKED_WINS, K_RANKED_LOSSES),
     "streak":   (K_BEST_STREAK, K_WIN_STREAK),
     "catches":  (K_CAUGHT,),
+    # Community XP and its level ARE resettable — a community season can start
+    # over, and unlike the two below, nothing was bought with them. Both keys
+    # go together: leaving the level behind would show a level 20 next to zero
+    # XP. They were missing here at first, so `rank_reset all` quietly left
+    # both boards standing while the admin screen listed them as boards.
+    "chatxp":   (K_COMMUNITY_XP, K_COMMUNITY_LEVEL),
+    "commlevel": (K_COMMUNITY_XP, K_COMMUNITY_LEVEL),
     # `level` and `money` are boards but not resettable: their keys are the
     # player's progression and wallet, and "reset a leaderboard" must never be
     # a route to wiping either for every profile in the store.
@@ -238,11 +248,11 @@ def coins(profile: dict) -> int:
 # trainer xp on every read, so a community level stored there would not survive
 # the next profile read.
 def community_xp(profile: dict) -> int:
-    return _int(profile, "community_xp")
+    return _int(profile, K_COMMUNITY_XP)
 
 
 def community_level(profile: dict) -> int:
-    return _int(profile, "com_level")
+    return _int(profile, K_COMMUNITY_LEVEL)
 
 
 # The boards below are MAIN-SERVER ONLY, and that is enforced where a board is
@@ -379,16 +389,25 @@ def position_of(users: list[dict], user_id, category: str = DEFAULT_CATEGORY,
 
 
 def placings(users: list[dict], user_id,
-             config: Optional[dict] = None) -> dict[str, int]:
+             config: Optional[dict] = None,
+             include_main_only: bool = False) -> dict[str, int]:
     """Every board this player is placed on, as `{category: position}`.
 
     Boards they are not on are left out rather than mapped to None, so the
     caller renders what it is given. Lives here rather than in the cog because
     it is a rule about the ladder, and because the cog would otherwise sort the
-    whole registry seven times inline with no way to test the result.
+    whole registry once per board inline with no way to test the result.
+
+    `include_main_only` defaults to FALSE, and that default is the fix for a
+    leak: this walked every category, so `/rank` printed the main-server-only
+    community placings to players in every other server — around the gate that
+    exists to withhold exactly that. A caller that has checked the guild passes
+    True; everyone else gets the public boards.
     """
     out: dict[str, int] = {}
     for key in CATEGORIES:
+        if key in MAIN_ONLY and not include_main_only:
+            continue
         pos = position_of(users, user_id, key, config=config)
         if pos:
             out[key] = pos

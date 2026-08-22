@@ -75,7 +75,10 @@ CARD_ENABLED = True
 
 CARD_WIDTH   = 720          # CSS px; deviceScaleFactor 2 → 1440px PNG
 NAV_TIMEOUT  = 6_000        # ms budget for remote blade art
-STAT_MAX     = 200          # ATK/DEF/STA/BUR bar ceiling
+# Was 200 while the profile card used 500. `;info` renders the viewer's
+# LEVELLED stats, which reach the 500 cap, so every levelled bey showed a full
+# bar here and a partial one there — same blade, same moment, two answers.
+from utils.bey_levels import STAT_BAR_MAX as STAT_MAX
 
 # ── Rarity palettes ──────────────────────────────────────────────────────────
 # accent / glow / deep background tint — the whole card recolours from here.

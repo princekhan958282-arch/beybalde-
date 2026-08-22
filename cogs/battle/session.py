@@ -70,28 +70,14 @@ def _bey_xp(profile: dict, blade: Optional[dict], won: bool) -> Optional[dict]:
 def _level_hp_gain(user_id, blade: Optional[dict]) -> int:
     """Extra HP this bey has earned from its level.
 
-    max_hp_for_blade() runs the HP stat through hp_system.blade_hp_stat(), which
-    CLAMPS it into the blade's type band (80-139). That clamp is right for a
-    printed stat — it is what keeps the roster in class — but it also threw away
-    every point of levelled HP: a level-100 blade with a levelled HP stat of 280
-    was clamped back to 130, so bey HP growth did nothing at all in PvP. Boss
-    and Story fights never had this bug because they compose HP through
-    loadout.effective_blade instead, which is why the same bey was tougher there.
-
-    Adding the level GAIN on top of the clamped printed stat keeps the type band
-    doing its job while letting levels matter, and matches how
-    boss_battle._player_fighter already does it.
-
-    Never raises: a missing profile must not stop a battle starting.
+    The implementation moved to `utils.loadout.level_hp_gain` so the CARD can
+    print the same number this fight uses — `;info` was showing the clamped
+    pool while the bey fought with the gain added, understating a level-100
+    bey's HP by hundreds. This stays as the name the battle code already
+    calls.
     """
-    try:
-        from utils.loadout import effective_blade
-        _eff, breakdown, _av = effective_blade(int(user_id), blade=blade)
-        hp_bd = (breakdown or {}).get("hp") or {}
-        gain = float(hp_bd.get("total", 0)) - float(hp_bd.get("base", 0))
-        return int(gain) if gain > 0 else 0
-    except Exception:                                # noqa: BLE001
-        return 0
+    from utils.loadout import level_hp_gain
+    return level_hp_gain(user_id, blade)
 
 
 def _effective_special(user_id, blade: Optional[dict]) -> int:

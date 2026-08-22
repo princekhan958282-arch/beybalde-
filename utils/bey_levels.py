@@ -49,6 +49,17 @@ MAX_LEVEL = 100
 # curve, and lowering growth to fit a small cap would have flattened the
 # archetypes instead.
 STAT_CAP = 500
+
+# The bar ceiling. One number for every surface: `utils/profile_card.py`,
+# `utils/info_card.py`, `utils/info_card_pillow.py` and the embed fallbacks in
+# `cogs/economy/profile.py` all read it from here.
+#
+# They used to disagree — 500 on the profile card, 200 on the info card — and
+# since `;info` renders the viewer's LEVELLED stats (which reach the 500 cap),
+# every levelled bey showed a permanently full bar on one surface and a partial
+# one on the other, for the same blade at the same moment.
+STAT_BAR_MAX = STAT_CAP
+
 IV_MAX = 10
 LEVEL_OFFSET = 1          # see note 1 above
 

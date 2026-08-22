@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import logging
 
+from typing import Optional
+
 import discord
 
 from . import config as C
@@ -60,6 +62,10 @@ def build_embed(bot, invoker_guild=None) -> discord.Embed:
         e.add_field(name="XP",
                     value="on" if C.get(C.K_XP_ENABLED, True) else "off",
                     inline=True)
+        e.add_field(name="Polls",
+                    value=("staff only"
+                           if C.get(C.K_POLL_STAFF_ONLY, True) else "everyone"),
+                    inline=True)
         e.add_field(name="Level-ups",
                     value=(f"<#{chan}>" if chan else "in the channel they "
                            "levelled up in"), inline=True)
@@ -97,7 +103,12 @@ class LevelRoleModal(discord.ui.Modal, title="Level role"):
             guard.main_guild_id(), level, self.role)
         await interaction.response.send_message(message, ephemeral=True)
         if ok:
-            await self.panel.refresh(interaction)
+            # NOT `panel.refresh(interaction)`. For a modal submit,
+            # `original_response()` is the ephemeral line just sent — not the
+            # /server panel, which belongs to a different interaction — so
+            # refreshing through it replaced the confirmation with a second
+            # copy of the panel and left the real one stale above.
+            await self.panel.refresh_parent()
 
 
 class PersonalitySelect(discord.ui.Select):
@@ -128,6 +139,17 @@ class LevelRoleSelect(discord.ui.RoleSelect):
         if not await self.panel.guard(interaction):
             return
         role = self.values[0]
+        # A RoleSelect can only offer roles from the guild the interaction
+        # happened in, and `/server` is deliberately usable from anywhere. So
+        # configuring from another server used to save a role id the main guild
+        # has never heard of, validated against the wrong guild's hierarchy —
+        # and the reward was then silently skipped at grant time, with the
+        # panel still rendering it as if it worked.
+        main = guard.main_guild_id()
+        if main is None or role.guild is None or role.guild.id != main:
+            return await interaction.response.send_message(
+                "Level roles have to be picked **in the main server** — a role "
+                "from anywhere else can't be granted there.", ephemeral=True)
         ok, why = self.panel.levels.check_role(role.guild, role)
         if not ok:
             # Refused here rather than at grant time, so the mapping never
@@ -144,15 +166,39 @@ class ServerView(discord.ui.View):
         self.bot = bot
         self.invoker_id = int(invoker_id)
         self.levels = levels
+        # Set once the panel has been sent, so a modal opened from it can edit
+        # the panel rather than its own reply.
+        self.parent: Optional[discord.InteractionMessage] = None
         self.rebuild()
+
+    async def refresh_parent(self) -> None:
+        """Re-render the panel message itself. Never raises."""
+        C.invalidate()
+        self.rebuild()
+        if self.parent is None:
+            return
+        try:
+            await self.parent.edit(embed=build_embed(self.bot), view=self)
+        except Exception:                                # noqa: BLE001
+            log.exception("[community] could not refresh /server")
+
+    async def on_timeout(self) -> None:
+        for child in self.children:
+            child.disabled = True
+        if self.parent is None:
+            return
+        try:
+            await self.parent.edit(view=self)
+        except Exception:                                # noqa: BLE001
+            pass
 
     def rebuild(self) -> None:
         self.clear_items()
         if guard.is_configured():
             self.add_item(PersonalitySelect(self))
             self.add_item(LevelRoleSelect(self))
-        for item in (self.set_here, self.toggle_xp, self.announce_here,
-                     self.clear_roles, self.unset):
+        for item in (self.set_here, self.toggle_xp, self.toggle_polls,
+                     self.announce_here, self.clear_roles, self.unset):
             self.add_item(item)
 
     async def guard(self, interaction: discord.Interaction) -> bool:
@@ -191,6 +237,14 @@ class ServerView(discord.ui.View):
         C.put(C.K_XP_ENABLED, not C.get(C.K_XP_ENABLED, True))
         await self.refresh(interaction)
 
+    @discord.ui.button(label="Who can poll", emoji="📊", row=2,
+                       style=discord.ButtonStyle.secondary)
+    async def toggle_polls(self, interaction: discord.Interaction, _b) -> None:
+        if not await self.guard(interaction):
+            return
+        C.put(C.K_POLL_STAFF_ONLY, not C.get(C.K_POLL_STAFF_ONLY, True))
+        await self.refresh(interaction)
+
     @discord.ui.button(label="Announce level-ups here", emoji="📣", row=3,
                        style=discord.ButtonStyle.secondary)
     async def announce_here(self, interaction: discord.Interaction, _b) -> None:
@@ -204,7 +258,7 @@ class ServerView(discord.ui.View):
     async def clear_roles(self, interaction: discord.Interaction, _b) -> None:
         if not await self.guard(interaction):
             return
-        C.put(C.K_LEVEL_ROLES, {})
+        self.levels.clear_level_roles(guard.main_guild_id())
         await self.refresh(interaction)
 
     @discord.ui.button(label="Turn the whole layer off", emoji="🔒", row=4,

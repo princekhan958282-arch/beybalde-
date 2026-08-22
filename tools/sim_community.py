@@ -27,6 +27,7 @@ import logging
 import os
 import sys
 import tempfile
+import re
 import threading
 import time
 
@@ -133,12 +134,18 @@ class FakeMember:
 
 
 class FakeResponse:
-    def __init__(self, box):
+    def __init__(self, box, owner=None):
         self.box = box
+        self.owner = owner
         self._done = False
 
     def is_done(self):
         return self._done
+
+    async def defer(self, **kw):
+        self._done = True
+        if self.owner is not None:
+            self.owner.deferred = True
 
     async def send_message(self, content=None, **kw):
         self._done = True
@@ -169,7 +176,8 @@ class FakeInteraction:
         self.channel_id = 999
         self.channel = None
         self.sent: list = []
-        self.response = FakeResponse(self.sent)
+        self.deferred = False
+        self.response = FakeResponse(self.sent, self)
         self.followup = FakeFollowup(self.sent)
         self.client = None
 
@@ -280,10 +288,15 @@ async def suite() -> None:
     from cogs.community import cog as CG
     bot = FakeBot()
     cog = CG.CommunityCog(bot)
+    import inspect as _i
     for name in ("poll", "giveaway", "level"):
         command = getattr(CG.CommunityCog, name)
         it = FakeInteraction(guild_id=OTHER)
-        await command.callback(cog, it, None)
+        # Arity read from the callback rather than hardcoded, so a command
+        # gaining or losing a parameter does not turn this section into a
+        # TypeError that looks like a suite bug.
+        extra = [None] * (len(_i.signature(command.callback).parameters) - 2)
+        await command.callback(cog, it, *extra)
         said = str(it.sent[0].get("content") or "")
         check(f"/{name} refuses in another server",
               "main-server" in said or "isn't available" in said, it.sent)
@@ -291,7 +304,7 @@ async def suite() -> None:
               "modal" not in it.sent[0], it.sent[0].keys())
 
     it = FakeInteraction(guild_id=MAIN, user_id=5001)
-    await CG.CommunityCog.level.callback(cog, it, None)
+    await CG.CommunityCog.level.callback(cog, it, None)  # user= defaults
     check("/level works in the main server",
           bool(it.sent and it.sent[0].get("embed")), it.sent)
 
@@ -583,7 +596,7 @@ async def suite() -> None:
     kinds = [type(c).__name__ for c in pview.children]
     check("the /server panel builds with its selects and buttons",
           "PersonalitySelect" in kinds and "LevelRoleSelect" in kinds
-          and len([k for k in kinds if k == "Button"]) == 5, kinds)
+          and len([k for k in kinds if k == "Button"]) == 6, kinds)
     pembed = PN.build_embed(bot, guild)
     check("...and its embed names the configured server",
           str(MAIN) in (pembed.description or ""), pembed.description)
@@ -621,12 +634,293 @@ async def suite() -> None:
     check("the cog listens for messages and reactions",
           hasattr(CG.CommunityCog, "community_message_xp")
           and hasattr(CG.CommunityCog, "community_reaction_xp"))
-    check("the scheduler loop exists and recovers before it claims",
+    check("the scheduler loop sweeps stranded rows before it claims",
           hasattr(cog, "community_loop")
-          and "recover" in CG.CommunityCog.community_loop.coro.__code__.co_names)
+          and "_sweep_stranded"
+          in CG.CommunityCog.community_loop.coro.__code__.co_names)
     check("/server is NOT gated on the main server — it is what sets it",
           "gate" not in CG.CommunityCog.server.callback.__code__.co_names,
           CG.CommunityCog.server.callback.__code__.co_names)
+
+    # ── 15. every manager method is reachable from Discord ──────────────────
+    print("\n── 15. nothing here is testable-but-unreachable ────────────────")
+    # THE check this suite was missing. v1.28 shipped 89 passing checks over
+    # three features no player could reach: `GiveawayManager.reroll`, `.cancel`
+    # and `PollManager.cancel` had no caller outside this file, and `close` and
+    # `end` were reachable only from the timer. The suite proved they worked
+    # and could not see that nothing called them — the same failure as
+    # sim_panels passing 244 checks over a dead panel in v1.19.
+    #
+    # So: a public manager method must be called from somewhere in the package
+    # that is not this file. Grepping the package is crude, and it is exactly
+    # as crude as the bug.
+    import glob
+    import inspect as _inspect
+
+    package = ""
+    for path in glob.glob(os.path.join(ROOT, "cogs/community/*.py")):
+        package += open(path, encoding="utf-8").read()
+
+    # Matched through the attribute each manager is reached by, not by bare
+    # `.name(` — the first version of this check cleared `GiveawayManager.cancel`
+    # because `self.community_loop.cancel()` happens to contain `.cancel(`.
+    HELD_AS = {"XPManager": "xp", "LevelManager": "levels",
+               "PollManager": "polls", "GiveawayManager": "giveaways"}
+    unreachable = []
+    surface = 0
+    for manager in (xpm, lvm, pm, gm):
+        attr = HELD_AS[type(manager).__name__]
+        for name, fn in _inspect.getmembers(manager, callable):
+            if name.startswith("_"):
+                continue
+            surface += 1
+            # Reached either through the attribute the cog holds it by, or
+            # through `self.` from a sibling method that is itself reachable.
+            if not re.search(rf"\b(?:{attr}|self)\.{re.escape(name)}\s*\(",
+                             package):
+                unreachable.append(f"{type(manager).__name__}.{name}")
+    for name in sorted(unreachable):
+        print(f"       unreachable: {name}")
+    check(f"all {surface} public manager methods are called from the package, "
+          f"not only from this suite", not unreachable, unreachable)
+
+
+    # ── 16. the v1.28 bugs, each with the check that would have caught it ───
+    print("\n── 16. the fixes, driven the way a player would ────────────────")
+    from cogs.community import manage as MG
+
+    # -- End / reroll / cancel now exist, and go through the same code the
+    #    timer does rather than a second implementation.
+    live = gm.create(MAIN, 1, "Hand-ended prize", winners=1)   # NO duration
+    check("a giveaway can be created with no timer at all",
+          live["ends_at"] is None, live["ends_at"])
+    check("...and the timer will never claim it, so a human must",
+          live["giveaway_id"] not in gm.due(time.time() + 10_000))
+    for uid in range(7700, 7704):
+        gm.enter(MAIN, live["giveaway_id"], uid)
+
+    from cogs.admin import actions as _A
+    OWNER = _A.MASTER_ID                     # staff, and the panel's owner
+    gpanel = MG.GiveawayPanel(cog, OWNER)
+    gpanel.selected = live["giveaway_id"]
+    labels = [getattr(c, "label", None) for c in gpanel.children]
+    check("the giveaway panel offers Create, End now, Reroll and Cancel",
+          {"Create", "End now", "Reroll", "Cancel"} <= set(labels), labels)
+
+    it = FakeInteraction(guild_id=MAIN, user_id=OWNER)
+    await gpanel.end_now.callback(it)
+    ended = S.get_giveaway(live["giveaway_id"])
+    check("pressing End now ends it", ended["state"] == GV.ENDED,
+          ended["state"])
+    first = list(ended["winner_ids"])
+    check("...and draws a winner", len(first) == 1, first)
+
+    await gpanel.reroll.callback(it)
+    after = S.get_giveaway(live["giveaway_id"])
+    check("pressing Reroll draws somebody else",
+          len(after["winner_ids"]) == 2
+          and after["winner_ids"][0] != after["winner_ids"][1],
+          after["winner_ids"])
+
+    # The trap that would have made End now a double-DM bug.
+    again = gm.end(MAIN, live["giveaway_id"])
+    check("ending an already-ended giveaway returns NO winners, so nobody is "
+          "congratulated or DMed twice",
+          not again.get("ok") and again.get("winners") == [], again)
+    check("...while the history is still available under its own key",
+          len(again.get("history") or []) == 2, again.get("history"))
+
+    doomed = gm.create(MAIN, 1, "Cancelled prize")
+    gpanel.selected = doomed["giveaway_id"]
+    await gpanel.cancel_it.callback(it)
+    check("pressing Cancel cancels it and draws nobody",
+          S.get_giveaway(doomed["giveaway_id"])["state"] == GV.CANCELLED
+          and not S.get_giveaway(doomed["giveaway_id"])["winner_ids"])
+
+    # -- A poll with no timer can be closed by hand.
+    forever = pm.create(MAIN, 1, "Open ended?", ["yes", "no"])
+    check("a poll can be created with no timer",
+          forever["ends_at"] is None)
+    check("...which the timer will never claim",
+          forever["poll_id"] not in pm.due(time.time() + 10_000))
+    pm.vote(MAIN, forever["poll_id"], 7800, 0)
+    ppanel = MG.PollPanel(cog, OWNER)
+    ppanel.selected = forever["poll_id"]
+    plabels = [getattr(c, "label", None) for c in ppanel.children]
+    check("the poll panel offers Create, Close now, Cancel and Results",
+          {"Create", "Close now", "Cancel", "Results"} <= set(plabels),
+          plabels)
+    await ppanel.close_now.callback(it)
+    closed = S.get_poll(forever["poll_id"])
+    check("pressing Close now closes it and freezes the tally",
+          closed["state"] == PL.CLOSED and closed["results"] == {"0": 1, "1": 0},
+          (closed["state"], closed["results"]))
+
+    # -- One bad row must not strand its batch or skip the giveaway pass.
+    a = pm.create(MAIN, 1, "first", ["a", "b"], duration=1)
+    b = pm.create(MAIN, 1, "second", ["a", "b"], duration=1)
+    boom = {"count": 0}
+    real_finish = cog.finish_poll
+
+    async def exploding(poll_id):
+        boom["count"] += 1
+        if poll_id == a["poll_id"]:
+            raise RuntimeError("channel is gone")
+        return await real_finish(poll_id)
+
+    cog.finish_poll = exploding
+    cog._finish_poll = exploding
+    try:
+        for pid in pm.due(time.time() + 5):
+            await cog._guarded(cog._finish_poll(pid), pid)
+    finally:
+        cog.finish_poll = real_finish
+        cog._finish_poll = real_finish
+    check("a poll that raises does not stop the ones behind it",
+          boom["count"] == 2, boom)
+    check("...the healthy one still closed",
+          S.get_poll(b["poll_id"])["state"] == PL.CLOSED,
+          S.get_poll(b["poll_id"])["state"])
+    stuck = S.get_poll(a["poll_id"])
+    check("...and the broken one is parked in CLOSING, not lost",
+          stuck["state"] == PL.CLOSING, stuck["state"])
+
+    # -- and a stranded row comes back WITHOUT a restart.
+    # The first sweep of the process happens here, so that the check below is
+    # testing the PERIODIC sweep and not the once-per-process one it replaced.
+    # Without this line a "recover once, ever" implementation passes.
+    cog._sweep_stranded()
+    check("the row is still stranded after the first sweep has been used up",
+          S.get_poll(a["poll_id"])["state"] in (PL.CLOSING, PL.OPEN),
+          S.get_poll(a["poll_id"])["state"])
+    S.set_poll_state(a["poll_id"], PL.CLOSING)
+    cog._last_sweep = time.time() - CG.RECOVER_EVERY - 1
+    cog._sweep_stranded()
+    check("the periodic sweep returns it to the queue with the process still "
+          "running", S.get_poll(a["poll_id"])["state"] == PL.OPEN,
+          S.get_poll(a["poll_id"])["state"])
+    check("...and it is claimable again",
+          a["poll_id"] in pm.due(time.time() + 5))
+    cog.polls.recover()
+
+    # -- Buttons answer even when the store is broken.
+    it2 = FakeInteraction(guild_id=MAIN, user_id=7801)
+    await cog.handle_vote(it2, "poll_does_not_exist", 0)
+    check("a vote on a missing poll still gets an answer rather than a dead "
+          "interaction", bool(it2.sent), it2.sent)
+    check("...delivered after a defer, not as an initial response",
+          it2.deferred, it2.deferred)
+
+    # -- A level-up earned by REACTING announces and grants, like any other.
+    seed(7900, community_xp=XP.xp_for_level(2) - 1)
+    C.put(C.K_LEVEL_ROLES, {})
+    react_award = xpm.award_reaction(MAIN, 7900, 5555, author_id=4242)
+    check("a reaction that crosses a level boundary reports the level-up",
+          react_award["levelled"], react_award)
+    check("...and the listener acts on it rather than discarding it",
+          "_after_award"
+          in CG.CommunityCog.community_reaction_xp.__code__.co_names,
+          CG.CommunityCog.community_reaction_xp.__code__.co_names)
+    check("reacting with an unknown author earns nothing, instead of paying "
+          "for your own message",
+          xpm.award_reaction(MAIN, 7900, 5556, author_id=None)["awarded"] == 0)
+
+    # -- Alternating two sentences no longer defeats the duplicate guard.
+    seed(7901)
+    base = time.time()
+    got = 0
+    for i in range(6):
+        text = "good game everyone" if i % 2 == 0 else "nice one there"
+        got += xpm.award_message(MAIN, 7901, text, now=base + i * 61)["awarded"]
+    check("alternating two sentences is still caught as repetition",
+          got == 0 or got <= XP.XP_MESSAGE_MAX * 2, got)
+    check("...while genuinely new sentences still pay",
+          xpm.award_message(MAIN, 7901, "a completely fresh thought",
+                            now=base + 700)["awarded"] > 0)
+
+    # -- One shape out of every award path.
+    shapes = [
+        xpm.grant(MAIN, 7902, 0),
+        xpm.award_message(MAIN, 7902, "hi"),
+        xpm.award_reaction(MAIN, 7902, 1, author_id=7902),
+        xpm.award_poll_vote(MAIN, 7902),
+    ]
+    check("every award path returns the same keys, so `award['refused']` "
+          "cannot KeyError depending on the branch",
+          len({tuple(sorted(shape)) for shape in shapes}) == 1,
+          [sorted(shape) for shape in shapes])
+
+    # -- A row belonging to the previous main server is not ours to touch.
+    stale = pm.create(MAIN, 1, "from the old server", ["a", "b"])
+    STORE._conn().execute(
+        "UPDATE community_polls SET guild_id = ? WHERE poll_id = ?",
+        (str(OTHER), stale["poll_id"]))
+    check("a poll left behind by the previous main server is invisible",
+          pm.get(MAIN, stale["poll_id"]) is None)
+    check("...and cannot be closed or voted on from the new one",
+          pm.close(MAIN, stale["poll_id"]) is None
+          and not pm.vote(MAIN, stale["poll_id"], 1, 0)["ok"])
+
+
+    # ── 17. the leaks v1.28 opened into every other server ──────────────────
+    print("\n── 17. main-server data stays in the main server ───────────────")
+    board_pool = [DB.get_user(7500), DB.get_user(7302), DB.get_user(7300)]
+    public = RK.placings(board_pool, 7500)
+    check("/rank shows NO community placing by default — the card is rendered "
+          "in every server", not (set(public) & RK.MAIN_ONLY), public)
+    inside = RK.placings(board_pool, 7500, include_main_only=True)
+    check("...and does show it to a caller that has checked the guild",
+          set(inside) >= (set(public)), (public, inside))
+    check("the ranked boards are still placed either way",
+          set(public) <= set(inside))
+
+    from cogs.ui import panels as PNL
+
+    class _M:
+        def __init__(self, guild):
+            self.guild = guild
+            self.id = 4242
+            self.roles = []
+
+    spec = PNL.LeaderboardSpec()
+    here = {a.kwargs["category"] for a in spec.actions("", _M(FakeGuild(MAIN)))}
+    away = {a.kwargs["category"]
+            for a in spec.actions("", _M(FakeGuild(OTHER)))}
+    check("the /leaderboard panel offers the community boards in the main "
+          "server", RK.MAIN_ONLY <= here, sorted(here))
+    check("...and does not offer them anywhere else — this panel posts "
+          "PUBLICLY, so a refusal would be a public one",
+          not (RK.MAIN_ONLY & away), sorted(away))
+    check("...while every other board is offered in both",
+          (here - RK.MAIN_ONLY) == away, (sorted(here), sorted(away)))
+
+    check("a board reset covers the community keys, so `reset all` does not "
+          "quietly leave them standing",
+          {XP.K_XP, XP.K_LEVEL}
+          <= set(sum((RK.RESETTABLE[k] for k in RK.RESETTABLE), ())),
+          sorted(set(sum((RK.RESETTABLE[k] for k in RK.RESETTABLE), ()))))
+
+    from cogs.ui import help_cog as HC
+    check("the community commands have a help category of their own, rather "
+          "than sitting inside Avatars",
+          "community" in HC.CATEGORIES and "community" in HC.COMMAND_DATA)
+    community_help = " ".join(c for c, _d in HC.COMMAND_DATA["community"])
+    check("...listing every community command",
+          all(name in community_help
+              for name in ("/level", "/poll", "/giveaway", "/server")),
+          community_help)
+    avatar_help = " ".join(c for c, _d in HC.COMMAND_DATA["avatar"])
+    check("...and none of them left behind in the Avatars page",
+          "/poll" not in avatar_help and "/giveaway" not in avatar_help,
+          avatar_help)
+
+    from utils import bey_levels as _BL
+    for path in ("cogs/economy/chat_xp.py", "utils/xp_boost.py",
+                 "utils/database.py"):
+        text = open(os.path.join(ROOT, path), encoding="utf-8").read()
+        check(f"{path} no longer claims chat XP has no cooldown",
+              "no cooldown" not in text and "XP_CHAT_COOLDOWN_S = 0" not in text)
+    check("...because it has one", float(_BL.XP_CHAT_COOLDOWN_S) > 0)
 
 
 def _tick(cx, uid, when) -> bool:

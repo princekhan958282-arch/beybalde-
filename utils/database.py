@@ -436,10 +436,10 @@ def grant_xp(user_id: int, xp_amount: int,
     rather than at each caller, where one missed site is a booster that
     silently covers four fifths of the game.
 
-    `boostable=False` opts a source out. Chat passes it: chat EXP has no
-    cooldown, so a boosted chat loop would run trainer level as fast as bey
-    level, and trainer level gates far more. Admin grants should pass it too —
-    an explicit `;givexp 500` means 500.
+    `boostable=False` opts a source out. Chat passes it: even with the
+    per-message cooldown added in v1.28, a boosted chat loop would run trainer
+    level as fast as bey level, and trainer level gates far more. Admin grants
+    should pass it too — an explicit `;givexp 500` means 500.
 
     `touch=False` grants the XP without marking the player as having used the
     bot — see `update_user`. Chat XP passes it, so talking still levels you up

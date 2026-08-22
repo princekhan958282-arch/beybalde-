@@ -77,6 +77,15 @@ def _display_name(bot: commands.Bot, guild: Optional[discord.Guild],
     return u.display_name if u else f"User {uid_i}"
 
 
+def _community_here(guild) -> bool:
+    """Is this the main server? Fails CLOSED if the package is unavailable."""
+    try:
+        from cogs.community import guard as _guard
+        return _guard.is_main(guild)
+    except Exception:                                    # noqa: BLE001
+        return False
+
+
 class RankedCog(commands.Cog, name="Ranked"):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -91,22 +100,18 @@ class RankedCog(commands.Cog, name="Ranked"):
         appears in both places or in neither."""
         key = str(category or "").lower().strip()
         if key not in RK.CATEGORIES:
-            opts = ", ".join(f"`{k}`" for k in RK.CATEGORIES)
+            opts = ", ".join(f"`{k}`" for k in RK.CATEGORIES
+                             if k not in getattr(RK, "MAIN_ONLY", ())
+                             or _community_here(ctx.guild))
             return await ctx.send(f"❌ Unknown category `{category}`. Pick one of: {opts}")
 
         # The community boards belong to the main server. The slash choices are
         # built once at registration, so the option exists everywhere whatever
         # the table says — the refusal has to happen HERE, where a board is
         # actually rendered, rather than by hiding the choice.
-        if key in getattr(RK, "MAIN_ONLY", ()):
-            try:
-                from cogs.community import guard as _guard
-                allowed = _guard.is_main(ctx.guild)
-            except Exception:                            # noqa: BLE001
-                allowed = False
-            if not allowed:
-                return await ctx.send(
-                    "🔒 That board is main-server only.")
+        if key in getattr(RK, "MAIN_ONLY", ()) and not _community_here(
+                ctx.guild):
+            return await ctx.send("🔒 That board is main-server only.")
 
         spec = RK.CATEGORIES[key]
         # Read once. This used to call `_all_users()` again below for "Your
@@ -136,7 +141,13 @@ class RankedCog(commands.Cog, name="Ranked"):
         elif not mine:
             e.add_field(name="Your position", value="Unranked", inline=True)
 
-        foot = [spec["describe"], "ranked battles only"]
+        foot = [spec["describe"]]
+        if key in getattr(RK, "MAIN_ONLY", ()):
+            foot.append("main server only")
+        elif key in ("level", "money"):
+            foot.append("everything you play counts")
+        else:
+            foot.append("ranked battles only")
         e.set_footer(text=" · ".join(foot))
         await ctx.send(embed=e)
 
@@ -153,8 +164,17 @@ class RankedCog(commands.Cog, name="Ranked"):
         # placing sorts the whole registry, and the read parses every profile
         # in it — together that is the most expensive thing a player can ask
         # for, and it used to happen on the event loop.
+        # The community boards are main-server only, so the card only shows a
+        # community placing to somebody standing in the main server. Without
+        # the flag this printed it everywhere, straight past the gate below.
+        try:
+            from cogs.community import guard as _guard
+            here = _guard.is_main(ctx.guild)
+        except Exception:                                # noqa: BLE001
+            here = False
         placings = await asyncio.to_thread(
-            lambda: RK.placings(_all_users(), target.id))
+            lambda: RK.placings(_all_users(), target.id,
+                                include_main_only=here))
 
         score = RK.rank_score(prof)
         tier = tier_for_score(score)

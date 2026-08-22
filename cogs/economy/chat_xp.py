@@ -91,10 +91,10 @@ class ChatXPCog(commands.Cog, name="Chat XP"):
         # Trainer XP — the half that was missing entirely.
         #
         # `boostable=False`: an EXP Surge does NOT multiply trainer XP from
-        # chat. There is no per-message cooldown here (see XP_CHAT_COOLDOWN_S
-        # and the comment above it), so a boosted chat loop would run trainer
-        # level as fast as anything in the game. Bey XP below IS boosted, by
-        # design — that is the deliberate split.
+        # chat. The per-message cooldown (XP_CHAT_COOLDOWN_S, live since v1.28)
+        # slows a chat loop but does not stop one, and a boosted loop on top of
+        # it would still run trainer level faster than anything else in the
+        # game. Bey XP below IS boosted, by design — that is the split.
         # `touch=False`: chatting still levels you up, and still does NOT make
         # you an "active player". `last_seen` is what every audit report counts,
         # and this listener fires on every message in every server — with the

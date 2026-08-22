@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 
 W = 720
 PAD = 30                     # inner padding of the card frame
-STAT_MAX = 200
+from utils.bey_levels import STAT_BAR_MAX as STAT_MAX
 
 # JPEG quality for the rendered card, and the extension the caller must use.
 # The same pair `utils/profile_card.py` carries, for the same reason — see the

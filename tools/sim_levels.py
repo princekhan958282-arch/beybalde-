@@ -81,9 +81,23 @@ def check_special(blades: dict) -> None:
     check("level 1 reproduces the authored damage for every blade",
           identical == len(blades), f"{identical}/{len(blades)}")
 
-    grew = same = 0
+    # `non_damage` Specials are excluded, and that is the whole point of the
+    # flag rather than an exemption for awkward cases. Deep Caynox, Deep Caynox
+    # ELT and Hyper Horusood author 0 damage because their Special IS the
+    # ability payload — a heal, a stability gain, a stamina drain — and
+    # `damage_rules.resolve_special` returns before `scale` is applied
+    # specifically so an authored 0 cannot become 1 through the
+    # `max(1, ceil(per_hit * scale))` floor (damage_rules.py:229-240).
+    #
+    # This check predates the flag and had been red ever since, asserting the
+    # opposite of what `tools/sim_v108_content.py:560` asserts about the same
+    # three blades. A test that contradicts another test is not a finding.
+    grew = same = skipped = 0
     for blade in blades.values():
         if not (blade.get("stats") or {}).get("special"):
+            continue
+        if ((blade.get("special_move") or {}).get("non_damage")):
+            skipped += 1
             continue
         base = resolve_special(blade, blade["stats"]["special"])
         top = resolve_special(blade, BL.stats_at(blade, 100, {})["special"])
@@ -91,8 +105,20 @@ def check_special(blades: dict) -> None:
             grew += 1
         else:
             same += 1
-    check("every blade's Special is stronger at level 100", same == 0,
-          f"{grew} grew, {same} did not")
+    check("every damaging Special is stronger at level 100", same == 0,
+          f"{grew} grew, {same} did not, {skipped} deal no damage by design")
+
+    # And the inverse, so "deals nothing" cannot quietly start dealing
+    # something the moment somebody edits the scaling path.
+    still_zero = 0
+    non_damage = [b for b in blades.values()
+                  if (b.get("special_move") or {}).get("non_damage")]
+    for blade in non_damage:
+        top = resolve_special(blade, BL.stats_at(blade, 100, {})["special"])
+        still_zero += (top[1] == 0)
+    check(f"all {len(non_damage)} non-damaging Specials still deal exactly 0 "
+          f"at level 100", still_zero == len(non_damage) and non_damage,
+          f"{still_zero}/{len(non_damage)}")
 
     check("scale never drops below 1.0 on a debuffed stat",
           special_scale({"stats": {"special": 120}}, 40) == 1.0)
