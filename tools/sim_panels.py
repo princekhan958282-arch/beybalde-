@@ -101,10 +101,13 @@ lines = 0
 for cmd in BOT.tree.get_commands():
     subs = list(getattr(cmd, "commands", []) or [])
     lines += len(subs) if subs else 1
-check("the slash picker is 9 lines", lines == 9, lines)
+# 9 until v1.27, which added three: /update (one line replacing six admin
+# operations) and /bugs + /suggest, both player-facing and reachable no other
+# way. Still one line per feature, which is the property v1.14 was defending.
+check("the slash picker is 12 lines", lines == 12, lines)
 check("...one per feature", sorted(c.name for c in BOT.tree.get_commands())
-      == ["admin", "avatar", "casino", "leaderboard", "player", "rank",
-          "story", "tournament", "trade"],
+      == ["admin", "avatar", "bugs", "casino", "leaderboard", "player", "rank",
+          "story", "suggest", "tournament", "trade", "update"],
       sorted(c.name for c in BOT.tree.get_commands()))
 check("no command is a group any more — groups are what render flat",
       not any(getattr(c, "commands", None) for c in BOT.tree.get_commands()),
@@ -114,7 +117,9 @@ check("no command is a group any more — groups are what render flat",
 # Pinned to the number rather than a floor, because the claim being made is
 # "nothing was lost", and a floor would pass while a command quietly vanished.
 # v1.18 removed exactly one: `;verify`, with the gate it belonged to.
-PREFIX_BEFORE = 131
+# v1.27 added exactly one: `;notifications`, the prefix command the new
+# /player row invokes.
+PREFIX_BEFORE = 132
 check(f"the prefix surface is {PREFIX_BEFORE} commands",
       len(list(BOT.walk_commands())) == PREFIX_BEFORE,
       len(list(BOT.walk_commands())))

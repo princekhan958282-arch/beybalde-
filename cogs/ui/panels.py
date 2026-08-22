@@ -68,6 +68,8 @@ class PlayerSpec(K.PrefixSpec):
         A("balance", "Balance", "your Beycoin wallet", "🪙", invoke="bal"),
         A("quests", "Quests", "your daily and weekly quests", "📋",
           invoke="quests"),
+        A("notifications", "Notifications", "which DMs you get from Beycord",
+          "🔔", invoke="notifications"),
         A("claim", "Claim quest rewards", "collect what you've finished", "🎁",
           invoke="questclaim"),
         A("achievements", "Achievements", "what you've unlocked", "🏆",
