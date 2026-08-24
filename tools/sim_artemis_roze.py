@@ -136,16 +136,67 @@ def main() -> int:
     check("no stat is pinned to the level-100 cap (that's a roster-wide "
           "sanity rule sim_levels.py enforces — this blade must not trip it)",
           all(v < BL.STAT_CAP for v in at100.values()), at100)
+    check("defense is 90 — lowered twice from the first draft (175 hit the "
+          "stat cap; -60 more after that)",
+          AR["stats"]["defense"] == 90, AR["stats"]["defense"])
+
+    # ── 1b. card_theme — the per-blade colour override ─────────────────────
+    print("\n── 1b. her card uses its own palette, not just Mythic red ──────")
+
+    from utils import info_card as IC
+    from utils import info_card_pillow as ICP
+
+    theme = AR.get("card_theme")
+    check("she carries a card_theme override",
+          isinstance(theme, dict) and {"accent", "glow", "tint"} <= theme.keys(),
+          theme)
+
+    resolved = IC.theme_for(AR)
+    check("theme_for() returns HER colours, not the shared Mythic ones",
+          resolved == theme and resolved != IC._RARITY_THEME["Mythic"], resolved)
+
+    other = get_beyblade("Dead Phoenix")
+    check("a blade with no override still gets its plain rarity theme — the "
+          "override cannot leak onto a blade that never asked for one",
+          IC.theme_for(other) == IC._RARITY_THEME["Mythic"], IC.theme_for(other))
+
+    html = IC.build_html(AR)
+    check("the HTML/Playwright card actually renders her accent colour",
+          theme["accent"] in html, theme["accent"])
+    check("...and the glow and tint too",
+          theme["glow"] in html and theme["tint"] in html, None)
+
+    buf = ICP._render(AR, {})
+    check("the Pillow fallback card renders without raising",
+          buf is not None and len(buf.getvalue()) > 0,
+          len(buf.getvalue()) if buf else None)
+    # The bug this caught before shipping: info_card_pillow.py used to read
+    # `_RARITY_THEME[rarity]` directly, bypassing theme_for() entirely — a
+    # blade's own card_theme was honoured by the HTML renderer and silently
+    # ignored by the Pillow one, so which palette you saw depended on which
+    # renderer happened to run, not on the blade.
+    pillow_src = open(os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "utils/info_card_pillow.py"), encoding="utf-8").read()
+    check("the Pillow renderer goes through theme_for(), not a raw rarity "
+          "lookup that would skip card_theme",
+          "theme_for(blade)" in pillow_src
+          and "_RARITY_THEME.get(rarity" not in pillow_src, None)
 
     # ── 2. Prismatic Rebirth — Petal Layer ──────────────────────────────────
     print("\n── 2. Prismatic Rebirth — stack, heal, cleanse at 5 ─────────────")
 
+    # Each stack rounds its OWN +8% independently (stacking_buff computes
+    # `per` fresh every call) rather than rounding a running total once, so
+    # the expected value is `round(defense * 0.08) * i`, not
+    # `round(defense * 0.08 * i)` — the two diverge as soon as a single
+    # stack's rounding remainder would have crossed an integer boundary.
+    per_stack_def = round(AR["stats"]["defense"] * 0.08)
     e, s = engine()
     for i in range(1, 5):
         dmg, _t = e._fire("on_defend", "p", "e", AR, "attack", "lose", 0, 0, [])
         check(f"stack {i}: defense grows +8%",
-              e.st.get_buff_bonus("p", "defense")
-              == round(AR["stats"]["defense"] * 0.08 * i),
+              e.st.get_buff_bonus("p", "defense") == per_stack_def * i,
               e.st.get_buff_bonus("p", "defense"))
         check(f"stack {i}: lifesteal is {i*5}%",
               e.lifesteal_pct["p"] == i * 5, e.lifesteal_pct["p"])

@@ -9123,7 +9123,7 @@
     "description": "Each attack she survives adds another crystalline petal to her silken mantle, until she has enough to either turn them into an unbreakable ward or let them all go at once.",
     "stats": {
       "attack": 105,
-      "defense": 150,
+      "defense": 90,
       "stamina": 120,
       "special": 155,
       "hp": 165
@@ -9352,6 +9352,11 @@
         "🌸 **Flowering Metamorphosis** — crystalline petals bloom into a living gown!",
         "🎀 **Hit 2** — ribbon and petal strike as one!"
       ]
+    },
+    "card_theme": {
+      "accent": "#ff3d6e",
+      "glow": "#8a0f35",
+      "tint": "#180810"
     }
   }
 }
