@@ -124,26 +124,43 @@ def _weighted(rows, rng):
 
 def roll_copy(profile_src: dict, rng: Optional[random.Random] = None,
               perfect_odds: Optional[int] = None,
-              bands: Optional[list] = None) -> dict:
+              bands: Optional[list] = None,
+              forced_grade: Optional[str] = None) -> dict:
     """Roll one copy instance from a boss profile.
 
     `perfect_odds` and `bands` let a paid difficulty tier shorten the Perfect
     roll and shift the grade ladder (see boss_tiers.py). Both default to the
     module constants, so every caller that doesn't know about tiers — and
     every future one — keeps today's behaviour exactly.
+
+    `forced_grade` skips the random grade roll entirely and pins the result
+    to that grade — for a gift code that promises a specific tier rather than
+    the odds anyone beating the boss gets. Everything else (which parts of
+    the kit land, the stat split within the grade's band, whether it
+    awakens) still rolls normally, so two "Perfect" boss-bey codes still
+    don't hand out identical copies.
     """
     rng = rng or random
     odds  = int(perfect_odds or PERFECT_ODDS)
     table = bands or GRADE_BANDS
 
-    perfect = rng.randint(1, max(1, odds)) == 1
+    if forced_grade:
+        perfect = forced_grade == "Perfect"
+    else:
+        perfect = rng.randint(1, max(1, odds)) == 1
 
     if perfect:
         grade, penalty = "Perfect", 0
         n_sp, n_ult, n_ab = 99, 99, 99      # everything
         loadout_label = "Complete kit"
     else:
-        _w, lo, hi, grade = _weighted(table, rng)
+        if forced_grade:
+            match = next((row for row in table if row[3] == forced_grade), None)
+            if match is None:
+                raise ValueError(f"unknown grade {forced_grade!r}")
+            _w, lo, hi, grade = match
+        else:
+            _w, lo, hi, grade = _weighted(table, rng)
         penalty = rng.randint(lo, hi)
         _w2, n_sp, n_ult, n_ab, loadout_label = _weighted(LOADOUTS, rng)
 

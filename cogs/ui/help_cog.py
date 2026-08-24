@@ -1,5 +1,6 @@
 # help_cog.py — Drop into your cogs/ folder
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 # ── Category registry ──────────────────────────────────────────────────────────
@@ -575,6 +576,37 @@ class HelpView(discord.ui.View):
         super().__init__(timeout=120)
         self.add_item(CategorySelect())
 
+# ── The full list, DM'd ──────────────────────────────────────────────────────
+# `;help` is a category browser on purpose — see onboarding.py's "three doors,
+# not a wall of 160 commands". This is the escape hatch for someone who
+# genuinely wants the wall: every category, in a DM, so it doesn't spam the
+# channel and stays somewhere they can scroll back to. One embed per
+# category, reusing build_category_embed exactly as `;help <category>` does,
+# so the two can never list different commands for the same category.
+#
+# Discord caps a single message at 10 embeds, and there are more categories
+# than that, so this sends the intro plus the categories in batches.
+async def send_full_command_list(user: discord.abc.User) -> bool:
+    """DM every command, organized by category. False if the DM was refused."""
+    intro = discord.Embed(
+        title="📚  Every Beybot Command",
+        description=("Everything below is also one command away any time — "
+                     "`;help <category>`.\n\n**Categories:** "
+                     + " · ".join(CATEGORIES[k]["label"] for k in COMMAND_DATA
+                                 if k in CATEGORIES)),
+        color=0x7B68EE,
+    )
+    embeds = [build_category_embed(key, CATEGORIES[key])
+             for key in COMMAND_DATA if key in CATEGORIES]
+    try:
+        await user.send(embed=intro)
+        for i in range(0, len(embeds), 10):
+            await user.send(embeds=embeds[i:i + 10])
+    except (discord.Forbidden, discord.HTTPException):
+        return False
+    return True
+
+
 # ── Cog ───────────────────────────────────────────────────────────────────────
 class HelpCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -636,6 +668,21 @@ class HelpCog(commands.Cog):
                 f"❌ Unknown help topic: `{args[0]}`\n"
                 f"Available: **story** · **battle** · **marketplace** · **shop** · **leaderboard** · **boosters** · **spawncog** · **casino** · **avatar** · **moves** · **matchups** · **tips**"
             )
+
+    @app_commands.command(
+        name="commands",
+        description="DM you every Beybot command, organized by category")
+    async def commands_slash(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=True)
+        sent = await send_full_command_list(interaction.user)
+        if sent:
+            await interaction.followup.send(
+                "📬 Sent — check your DMs.", ephemeral=True)
+        else:
+            await interaction.followup.send(
+                "❌ I couldn't DM you. Check that direct messages from server "
+                "members are allowed, then try again — or use `;help` here instead.",
+                ephemeral=True)
 
 async def setup(bot: commands.Bot):
     bot.remove_command("help")   # Remove discord.py default before adding ours

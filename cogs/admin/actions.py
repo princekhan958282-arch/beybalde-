@@ -861,11 +861,11 @@ async def _t_ban(ctx: ActionCtx) -> Result:
 #  🎟️  Codes
 # ══════════════════════════════════════════════════════════════════════════════
 
-@register("code_create", "Create a redeem code", "e.g. coins:5000 uses:100 days:7",
+@register("code_create", "Create a redeem code",
+          "type a spec: coins:5000 blade:Name avatar:Name bossbey:Name uses:100 days:7",
           "codes", needs=("text",))
 async def _code_create(ctx: ActionCtx) -> Result:
-    from cogs.codes.code_store import REDEEM_PATH, make_code, normalise, redeem_lock, save
-    from cogs.codes.redeem import _load, _pretty, describe, parse_rewards
+    from cogs.codes.redeem import _pretty, create_code, describe, parse_rewards
 
     args = (ctx.text or "").strip()
     # The note is pulled out FIRST, taking the rest of the string with it.
@@ -890,32 +890,29 @@ async def _code_create(ctx: ActionCtx) -> Result:
     if err:
         return Result.fail(f"❌ {err}")
 
-    key = normalise(make_code("BEY"))
-    with redeem_lock:
-        data = _load()
-        while key in data["codes"]:
-            key = normalise(make_code("BEY"))
-        data["codes"][key] = {
-            "rewards": rewards, "max_uses": uses,
-            "expires": (time.time() + days * 86400) if days else 0,
-            "created_at": time.time(), "created_by": ctx.invoker_id,
-            "claimed_by": {}, "note": note, "revoked": False,
-            "display": _pretty(key),
-        }
-        save(REDEEM_PATH, data)
+    key, entry = create_code(rewards, uses, days, note, ctx.invoker_id)
 
     e = _embed("🎟️  Code created", 0x2ECC71,
                f"## `{_pretty(key)}`\n\n{describe(rewards)}")
     e.add_field(name="Uses", value=("unlimited" if not uses else str(uses)),
                 inline=True)
     e.add_field(name="Expires",
-                value=("never" if not days
-                       else f"<t:{int(time.time() + days * 86400)}:R>"),
+                value=("never" if not entry["expires"]
+                       else f"<t:{int(entry['expires'])}:R>"),
                 inline=True)
     if note:
         e.add_field(name="Note", value=note, inline=False)
     e.set_footer(text="Players claim it with ;redeem <code>")
     return Result(embed=e)
+
+
+@register("code_builder", "Build a code (picker)",
+          "pick rewards from a menu instead of typing a spec",
+          "codes")
+async def _code_builder(ctx: ActionCtx) -> Result:
+    from cogs.codes.builder import CodeBuilderView
+    view = CodeBuilderView(ctx.bot, ctx.invoker_id)
+    return Result(embed=view.embed(), view=view)
 
 
 @register("code_list", "List redeem codes", "newest first, with usage",
