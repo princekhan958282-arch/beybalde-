@@ -113,7 +113,8 @@ def main() -> int:
 
     check("Artemis Roze is in the roster", AR is not None)
     check("rarity Mythic", AR["rarity"] == "Mythic", AR.get("rarity"))
-    check("type Defense", AR["type"] == "Defense", AR.get("type"))
+    check("type Attack — switched from Defense per the follow-up request",
+          AR["type"] == "Attack", AR.get("type"))
     check("its id is unique",
           sum(1 for b in ALL.values() if b.get("id") == AR["id"]) == 1, AR["id"])
     check("the image is the one supplied",
@@ -134,11 +135,19 @@ def main() -> int:
 
     at100 = BL.stats_at(AR, 100, {})
     check("no stat is pinned to the level-100 cap (that's a roster-wide "
-          "sanity rule sim_levels.py enforces — this blade must not trip it)",
+          "sanity rule sim_levels.py enforces — this blade must not trip it, "
+          "even after the +50 Attack buff)",
           all(v < BL.STAT_CAP for v in at100.values()), at100)
-    check("defense is 90 — lowered twice from the first draft (175 hit the "
-          "stat cap; -60 more after that)",
-          AR["stats"]["defense"] == 90, AR["stats"]["defense"])
+    check("the roster-wide 'almost nothing pinned to the cap' gate still "
+          "holds for attack — sim_levels.py enforces capped <= 2 roster-wide, "
+          "and she must not push it past that",
+          sum(1 for b in ALL.values()
+              if BL.stats_at(b, 100, {}).get("attack") == BL.STAT_CAP) <= 2)
+    check("attack is 155 — buffed +50 per the follow-up request",
+          AR["stats"]["attack"] == 155, AR["stats"]["attack"])
+    check("defense is 70 — lowered again (150 -> 90 -> 70) across three "
+          "follow-up requests",
+          AR["stats"]["defense"] == 70, AR["stats"]["defense"])
 
     # ── 1b. card_theme — the per-blade colour override ─────────────────────
     print("\n── 1b. her card uses its own palette, not just Mythic red ──────")
@@ -182,6 +191,35 @@ def main() -> int:
           "lookup that would skip card_theme",
           "theme_for(blade)" in pillow_src
           and "_RARITY_THEME.get(rarity" not in pillow_src, None)
+
+    # ── 1c. player exclusive — every route is shut ──────────────────────────
+    print("\n── 1c. player exclusive — every route is shut ──────────────────")
+
+    from utils.availability import obtainable                # noqa: E402
+    import cogs.economy.shop as SHOP                          # noqa: E402
+    import cogs.spawn.spawn as SPAWN                          # noqa: E402
+    from cogs.tournament.tournament import draft_pool         # noqa: E402
+    import random as _random
+
+    OWNER = 1273889267986468885
+
+    check("nobody in general can obtain it", not obtainable(AR))
+    check("the named owner can", obtainable(AR, OWNER))
+    check("...and nobody else can", not obtainable(AR, 956773141265391676))
+    check("it is flagged limited", AR.get("limited") is True)
+    check("...and bound to exactly one id", AR.get("owner_ids") == [OWNER],
+          AR.get("owner_ids"))
+
+    _random.seed(11)
+    spawned = sum(1 for _ in range(50_000)
+                  if (SPAWN._pick_random_beyblade(ALL) or {}).get("name") == NAME)
+    check("50,000 wild spawns produce none", spawned == 0, spawned)
+    check("it is not in the booster pack pool",
+          not any(b.get("name") == NAME for b in SHOP._load_booster_pool()))
+    check("...nor the booster hidden pool",
+          not any(b.get("name") == NAME for b in SHOP._hidden_drop_pool()))
+    check("...nor a tournament draft",
+          not any(b.get("name") == NAME for b in draft_pool()))
 
     # ── 2. Prismatic Rebirth — Petal Layer ──────────────────────────────────
     print("\n── 2. Prismatic Rebirth — stack, heal, cleanse at 5 ─────────────")
