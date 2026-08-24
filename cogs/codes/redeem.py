@@ -29,9 +29,9 @@ from discord.ext import commands
 
 from cogs.casino import casino_premium, casino_wallet
 from cogs.economy.profile import fuzzy_find_beyblade
-from utils.database import add_beyblade_to_inventory, mutate_user
+from utils.database import add_avatar_to_inventory, add_beyblade_to_inventory, mutate_user
 
-from .code_store import REDEEM_PATH, load, normalise, redeem_lock, save
+from .code_store import REDEEM_PATH, load, make_code, normalise, redeem_lock, save
 
 MASTER_ID = 956773141265391676
 
@@ -85,6 +85,52 @@ def parse_rewards(spec: str) -> tuple[Optional[list[dict]], Optional[str]]:
                 return None, ("Premium must be one of: "
                               + ", ".join(f"`{k}`" for k in casino_premium.PACKS))
             rewards.append({"kind": "premium", "value": key})
+        elif kind in ("avatar", "avatarcard", "card"):
+            from cogs.avatar import avatar_engine
+            cards = avatar_engine.get_all_avatars()
+            vl = value.lower()
+            exact = [a for a in cards if a["id"].lower() == vl or a["name"].lower() == vl]
+            hits = exact or [a for a in cards if vl in a["name"].lower()]
+            if not hits:
+                return None, f"No avatar matching **{value}**. `;avatars` lists them."
+            if len(hits) > 1:
+                shown = ", ".join(f"**{a['name']}**" for a in hits[:8])
+                more = f" …and {len(hits) - 8} more" if len(hits) > 8 else ""
+                return None, (f"**{value}** matches {len(hits)} avatars: {shown}{more}. "
+                              f"Use the full name or the id.")
+            av = hits[0]
+            rewards.append({"kind": "avatar", "value": av["id"], "label": av["name"]})
+        elif kind in ("bossbey", "bosscopy", "bossblade", "boss"):
+            # boss beys are deliberately absent from beyblades.json (see
+            # boss_info.py), so they can't go through the `blade:` path above
+            # — this is the only route a code has onto one. `value` may carry
+            # an optional grade after a second colon: `bossbey:Argus:Perfect`.
+            from cogs.battle.boss import boss_copy as bcopy
+            from cogs.battle.boss import boss_info as binfo
+            name_part, _, grade_part = value.partition(":")
+            name_l = name_part.strip().lower()
+            matches = [k for k, prof in binfo.REGISTRY.items()
+                      if name_l == k or name_l in prof["name"].lower()]
+            if not matches:
+                # `.name` carries an " org" suffix internally (the marker that
+                # distinguishes the real blade from a copy — see boss_info.py) —
+                # stripped here same as roll_copy() strips it for a copy's own
+                # display name, so the error doesn't leak the internal marker.
+                names = ", ".join(p["name"].replace(" org", "").strip()
+                                  for p in binfo.REGISTRY.values())
+                return None, f"No boss bey matching **{name_part}**. Try: {names}."
+            if len(matches) > 1:
+                return None, (f"**{name_part}** matches more than one boss bey: "
+                              f"{', '.join(matches)}.")
+            boss_key = matches[0]
+            grade = None
+            if grade_part.strip():
+                g = grade_part.strip().title()
+                if g not in bcopy.GRADE_ORDER:
+                    return None, ("Grade must be one of: "
+                                  + ", ".join(bcopy.GRADE_ORDER))
+                grade = g
+            rewards.append({"kind": "bossbey", "value": boss_key, "grade": grade})
         else:
             return None, f"Unknown reward type `{kind}`."
 
@@ -104,6 +150,11 @@ def describe(rewards: list[dict]) -> str:
             bits.append(f"🌀 **{r['value']}**")
         elif r["kind"] == "premium":
             bits.append(f"👑 {casino_premium.PACKS[r['value']]['display']} pass")
+        elif r["kind"] == "avatar":
+            bits.append(f"🖼️ **{r.get('label', r['value'])}**")
+        elif r["kind"] == "bossbey":
+            grade = f" ({r['grade']})" if r.get("grade") else ""
+            bits.append(f"👹 **{r['value'].title()}** boss copy{grade}")
     return " · ".join(bits)
 
 
@@ -138,12 +189,54 @@ async def grant(user_id: int, rewards: list[dict]) -> list[str]:
                 got.append(f"👑 {casino_premium.PACKS[r['value']]['display']} pass activated")
             except Exception:
                 got.append("👑 premium pass could not be applied — tell an admin")
+        elif r["kind"] == "avatar":
+            label = r.get("label", r["value"])
+            if add_avatar_to_inventory(user_id, r["value"]):
+                got.append(f"🖼️ **{label}** added to your avatars")
+            else:
+                got.append(f"🖼️ **{label}** — you already own this one")
+        elif r["kind"] == "bossbey":
+            from cogs.battle.boss import boss_copy as bcopy
+            from cogs.battle.boss import boss_info as binfo
+            prof = binfo.REGISTRY.get(r["value"])
+            if prof is None:
+                got.append("👹 boss copy could not be granted — that boss no longer exists")
+            else:
+                rolled = bcopy.roll_copy(prof, forced_grade=r.get("grade"))
+                bcopy.add_copy(user_id, rolled)
+                got.append(f"👹 **{rolled['name']}** ({rolled['grade']}) boss copy added")
 
     if coin_delta:
         mutate_user(user_id,
                     lambda prof: prof.__setitem__(
                         "coins", int(prof.get("coins", 0) or 0) + coin_delta))
     return got
+
+
+def create_code(rewards: list[dict], uses: int, days: int, note: str,
+                created_by: int) -> tuple[str, dict]:
+    """Mint a code from an already-validated reward list. Returns (key, entry).
+
+    The one place that actually writes a new code, so the typed `;code
+    create coins:5000 blade:Dranzer` path and the picker in
+    `cogs/codes/builder.py` mint identically-shaped entries — neither can
+    drift from the other because there is only one implementation.
+    """
+    key = normalise(make_code("BEY"))
+    with redeem_lock:
+        data = _load()
+        while key in data["codes"]:
+            key = normalise(make_code("BEY"))
+        entry = {
+            "rewards": rewards, "max_uses": uses,
+            "expires": (time.time() + days * 86400) if days else 0,
+            "created_at": time.time(), "created_by": created_by,
+            "claimed_by": {}, "note": note, "revoked": False,
+            "display": _pretty(key),
+        }
+        data["codes"][key] = entry
+        save(REDEEM_PATH, data)
+    return key, entry
 
 
 # ── Cog ───────────────────────────────────────────────────────────────────────

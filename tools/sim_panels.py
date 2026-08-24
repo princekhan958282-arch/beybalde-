@@ -104,13 +104,15 @@ for cmd in BOT.tree.get_commands():
 # 9 until v1.27, which added three: /update (one line replacing six admin
 # operations) and /bugs + /suggest, both player-facing and reachable no other
 # way. v1.28 added four more for the community layer — /server (the whole admin
-# surface for nine systems, in one line), /poll, /giveaway and /level. Still one
-# line per feature, which is the property v1.14 was defending.
-check("the slash picker is 16 lines", lines == 16, lines)
+# surface for nine systems, in one line), /poll, /giveaway and /level. v1.32
+# added /commands — the full command list, DM'd, one more line for one more
+# feature. Still one line per feature, which is the property v1.14 was
+# defending.
+check("the slash picker is 17 lines", lines == 17, lines)
 check("...one per feature", sorted(c.name for c in BOT.tree.get_commands())
-      == ["admin", "avatar", "bugs", "casino", "giveaway", "leaderboard",
-          "level", "player", "poll", "rank", "server", "story", "suggest",
-          "tournament", "trade", "update"],
+      == ["admin", "avatar", "bugs", "casino", "commands", "giveaway",
+          "leaderboard", "level", "player", "poll", "rank", "server",
+          "story", "suggest", "tournament", "trade", "update"],
       sorted(c.name for c in BOT.tree.get_commands()))
 check("no command is a group any more — groups are what render flat",
       not any(getattr(c, "commands", None) for c in BOT.tree.get_commands()),

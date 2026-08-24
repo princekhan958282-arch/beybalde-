@@ -244,7 +244,12 @@ class StarterPickView(discord.ui.View):
 
 
 class NextStepsView(discord.ui.View):
-    """Three doors, not a wall of 160 commands."""
+    """A few doors, not a wall of 160 commands — plus one door TO that wall.
+
+    "All Commands" is deliberately the last, least-emphasized button: the
+    default experience is still the short list, the full one is one
+    unforced click away for whoever actually wants it.
+    """
 
     def __init__(self, player: discord.Member):
         super().__init__(timeout=300)
@@ -344,6 +349,29 @@ class NextStepsView(discord.ui.View):
             color=0x3498db,
         )
         await interaction.response.send_message(embed=e, ephemeral=True)
+
+    @discord.ui.button(label="All Commands", emoji="📚",
+                       style=discord.ButtonStyle.secondary, row=1)
+    async def all_commands_btn(self, interaction: discord.Interaction,
+                               _: discord.ui.Button):
+        """The wall of 160 commands — opt-in, one click from here.
+
+        The three (now four) buttons above stay the DEFAULT because dumping
+        the full list on a brand new player is what emptied the registry in
+        the first place (see the module docstring). This button exists for
+        the player who wants it anyway, without forcing it on everyone else.
+        """
+        from cogs.ui.help_cog import send_full_command_list
+        await interaction.response.defer(ephemeral=True)
+        sent = await send_full_command_list(interaction.user)
+        if sent:
+            await interaction.followup.send(
+                "📬 Sent every command to your DMs.", ephemeral=True)
+        else:
+            await interaction.followup.send(
+                "❌ I couldn't DM you — check that direct messages from "
+                "server members are allowed, then try again. `;help` works "
+                "here in the meantime.", ephemeral=True)
 
     async def on_timeout(self):
         for c in self.children:
