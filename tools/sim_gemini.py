@@ -79,6 +79,7 @@ os.environ["GEMINI_API_KEY"] = "test-key-aaaaaaaaaaaaaaaaaaaa"
 # against a stub. gemini.say() imports aiohttp lazily inside the call, so
 # swapping sys.modules afterwards is still enough to intercept every request.
 from cogs.battle.boss import gemini      # noqa: E402
+from utils import llm                      # noqa: E402
 import cogs.battle.boss.boss_ai as boss_ai  # noqa: E402
 
 fake_aiohttp = types.ModuleType("aiohttp")
@@ -91,12 +92,17 @@ STATE = {"boss_hp_pct": 50, "foe_hp_pct": 50, "turn": 4, "foe_habit": "attack"}
 
 
 def reset():
-    gemini._open_until = 0.0
-    gemini._trips = 0
-    gemini._reason = ""
-    gemini._fatal_key = None
-    gemini._no_aiohttp = False
-    gemini._counts.update(ok=0, failed=0, skipped=0)
+    # The breaker moved from module globals into a `utils.llm.Client` instance
+    # (so boss dialogue and server-chat banter get separate breakers off one
+    # shared quota). The state is the same state; it just has an owner now.
+    c = gemini._client
+    c.open_until = 0.0
+    c.trips = 0
+    c.reason = ""
+    c.fatal_key = None
+    c.no_aiohttp = False
+    c.counts.update(ok=0, failed=0, skipped=0, budget=0)
+    llm.ledger().reset()
     gemini._last_said.clear()
     _FakeSession.script = []
     _FakeSession.calls = 0
@@ -136,8 +142,8 @@ calls_before = _FakeSession.calls
 run(12)
 check("12 further calls make ZERO network requests",
       _FakeSession.calls == calls_before, f"{_FakeSession.calls - calls_before} fired")
-check("they are counted as skipped", gemini._counts["skipped"] == 12,
-      gemini._counts["skipped"])
+check("they are counted as skipped", gemini._client.counts["skipped"] == 12,
+      gemini._client.counts["skipped"])
 check("status() reads 'cooling down'", gemini.status()["state"] == "cooling down")
 check("status() reports a retry countdown", gemini.status()["retry_in"] > 0)
 
@@ -151,11 +157,11 @@ print("\n── 4. backoff doubles, and Retry-After is honoured ─────�
 reset()
 _FakeSession.script = [_FakeResp(429, "{}")]
 run(1)
-first_cool = gemini._open_until - time.monotonic()
-gemini._open_until = 0.0                       # simulate the cooldown elapsing
+first_cool = gemini._client.open_until - time.monotonic()
+gemini._client.open_until = 0.0                       # simulate the cooldown elapsing
 _FakeSession.script = [_FakeResp(429, "{}")]
 run(1)
-second_cool = gemini._open_until - time.monotonic()
+second_cool = gemini._client.open_until - time.monotonic()
 check("a second consecutive failure waits longer",
       second_cool > first_cool * 1.8, f"{first_cool:.0f}s then {second_cool:.0f}s")
 check("cooldown never exceeds COOLDOWN_MAX",
@@ -165,13 +171,13 @@ reset()
 _FakeSession.script = [_FakeResp(
     429, '{"error":{"details":[{"retryDelay":"600s"}]}}')]
 run(1)
-cool = gemini._open_until - time.monotonic()
+cool = gemini._client.open_until - time.monotonic()
 check("a retryDelay longer than our guess wins", cool > 590, f"{cool:.0f}s")
 
 reset()
 _FakeSession.script = [_FakeResp(429, "{}", {"Retry-After": "450"})]
 run(1)
-cool = gemini._open_until - time.monotonic()
+cool = gemini._client.open_until - time.monotonic()
 check("a Retry-After header is honoured", cool > 440, f"{cool:.0f}s")
 
 print("\n── 5. a probe that succeeds closes the breaker ──────────────────")
@@ -180,22 +186,22 @@ _FakeSession.script = [_FakeResp(500, "boom")]
 run(1)
 check("a 5xx opens the breaker", gemini._circuit_open() is True)
 check("5xx uses the short server cooldown",
-      gemini._open_until - time.monotonic() <= gemini.COOLDOWN_SERVER + 1)
-gemini._open_until = 0.0
+      gemini._client.open_until - time.monotonic() <= gemini.COOLDOWN_SERVER + 1)
+gemini._client.open_until = 0.0
 check("the breaker is half-open once the cooldown lapses",
       gemini._circuit_open() is False)
 _FakeSession.script = [_FakeResp(200, OK_BODY)]
 line = run(1)[0]
 check("the probe reaches the network and returns a live line",
       line == "A live line.", line)
-check("success resets the trip counter", gemini._trips == 0)
+check("success resets the trip counter", gemini._client.trips == 0)
 check("available() is True again", gemini.available() is True)
 
 print("\n── 6. fatal failures, and the key-change escape hatch ───────────")
 reset()
 _FakeSession.script = [_FakeResp(404, "model not found")]
 run(1)
-cool = gemini._open_until - time.monotonic()
+cool = gemini._client.open_until - time.monotonic()
 check("a 404 (bad model) locks out for hours",
       cool > 3600, f"{cool:.0f}s")
 check("a 400 classifies as fatal", gemini._classify(400, "") == "fatal")
@@ -214,7 +220,7 @@ line = run(1)[0]
 check("a socket error never propagates", isinstance(line, str) and line)
 check("it opens the breaker", gemini._circuit_open() is True)
 check("with the short network cooldown",
-      gemini._open_until - time.monotonic() <= gemini.COOLDOWN_NETWORK + 1)
+      gemini._client.open_until - time.monotonic() <= gemini.COOLDOWN_NETWORK + 1)
 
 print("\n── 8. an empty 200 does NOT trip the breaker ────────────────────")
 reset()

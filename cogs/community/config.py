@@ -28,9 +28,16 @@ CACHE_TTL = 5.0
 
 # ── Keys ─────────────────────────────────────────────────────────────────────
 K_MAIN_GUILD     = "main_guild_id"
-K_PERSONALITY    = "personality"          # FUNNY / FRIENDLY / SAVAGE / HYPE / SERIOUS
-K_BANTER         = "banter_intensity"     # OFF / LIGHT / NORMAL / CHAOTIC
-K_ROAST_MAX      = "roast_max_level"
+# The authority for both of these is `personality.PERSONALITIES` and
+# `chat.BANTER` — the names are not repeated here, because a comment listing
+# five values is a sixth place for them to drift.
+K_PERSONALITY    = "personality"
+K_BANTER         = "banter_intensity"     # see chat.BANTER
+# `K_ROAST_MAX` was declared here in v1.28 and never read by anything. It is
+# gone rather than wired up: the personality picker already IS the sharpness
+# dial (SAVAGE vs FRIENDLY), and a second one that only modifies a single
+# personality would be a setting to explain, test and keep honest for no
+# behaviour the owner cannot already get.
 K_ANNOUNCE       = "level_channel_id"
 K_LEVEL_ROLES    = "level_roles"          # {"10": role_id, ...}
 K_XP_ENABLED     = "xp_enabled"
@@ -40,8 +47,7 @@ K_BANTER_DENY    = "banter_deny_channels"
 DEFAULTS: dict[str, Any] = {
     K_MAIN_GUILD:  None,
     K_PERSONALITY: "FRIENDLY",
-    K_BANTER:      "OFF",
-    K_ROAST_MAX:   "FUNNY",
+    K_BANTER:      "OFF",   # ships OFF: merging must not make a live server chatty
     K_ANNOUNCE:    None,
     K_LEVEL_ROLES: {},
     K_XP_ENABLED:  True,

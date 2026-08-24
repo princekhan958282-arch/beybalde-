@@ -124,7 +124,10 @@ check("no command is a group any more — groups are what render flat",
 # v1.18 removed exactly one: `;verify`, with the gate it belonged to.
 # v1.27 added two: `;notifications`, the prefix command the new /player row
 # invokes, and `;reportchannel`, which sets where /bugs and /suggest land.
-PREFIX_BEFORE = 133
+# v1.36 added one: `;chat`, the per-user opt-out for server banter. Prefix
+# rather than slash on purpose — the slash picker is a curated 17 and a
+# personal mute switch does not earn a place on it.
+PREFIX_BEFORE = 134
 check(f"the prefix surface is {PREFIX_BEFORE} commands",
       len(list(BOT.walk_commands())) == PREFIX_BEFORE,
       len(list(BOT.walk_commands())))

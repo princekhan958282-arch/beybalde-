@@ -25,10 +25,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
+from . import chat as CH
 from . import config as C
 from . import giveaways as GV
 from . import guard
 from . import manage as MG
+from . import memory as MEM
 from . import panel as PN
 from . import polls as PL
 from . import store as S
@@ -51,6 +53,7 @@ class CommunityCog(commands.Cog, name="Community"):
         self.levels = XP.LevelManager(bot)
         self.polls = PL.PollManager(bot)
         self.giveaways = GV.GiveawayManager(bot)
+        self.chat = CH.ChatEngine()
         self._recovered = False
         self._last_sweep = 0.0
 
@@ -372,6 +375,9 @@ class CommunityCog(commands.Cog, name="Community"):
             return
         try:
             # A command is not conversation. Same test the spawn counter uses.
+            # Resolved ONCE and shared with the chat engine below — this call
+            # parses the message against every registered command, and doing it
+            # twice per message would double that cost for no new information.
             ctx = await self.bot.get_context(message)
             if ctx.valid:
                 return
@@ -381,6 +387,85 @@ class CommunityCog(commands.Cog, name="Community"):
                 await self._after_award(message, award, message.author)
         except Exception:                                # noqa: BLE001
             log.exception("[community] message XP failed")
+            ctx = None
+
+        # Banter is deliberately AFTER the XP award and in its own try: a
+        # failure to think of something to say must never cost somebody their
+        # XP for the message.
+        try:
+            await self._maybe_chat(message, is_command=bool(ctx and ctx.valid))
+        except Exception:                                # noqa: BLE001
+            log.exception("[community] chat failed")
+
+    async def _maybe_chat(self, message: discord.Message,
+                          *, is_command: bool) -> None:
+        """Speak, if the engine says to. Every gate lives in `chat.decide`."""
+        # Observed before the decision, and regardless of whether we speak:
+        # "how busy is this channel" has to count the messages the bot stays
+        # quiet for, or the room always reads as quiet.
+        self.chat.room.observe(message.channel.id, message.author.id)
+
+        me = self.bot.user
+        mentions_bot = bool(me and me in getattr(message, "mentions", ()))
+        ref = getattr(message, "reference", None)
+        resolved = getattr(ref, "resolved", None) if ref else None
+        replies_to_bot = bool(
+            me and resolved is not None
+            and getattr(getattr(resolved, "author", None), "id", None) == me.id)
+
+        if not (mentions_bot or replies_to_bot) and not self.chat.intensity_on():
+            # The cheap exit. With banter OFF — the shipped default — an
+            # unaddressed message costs one settings read and nothing else:
+            # no profile fetch, no engine call, on every message in the server.
+            return
+
+        profile = {}
+        try:
+            from utils.database import get_user
+            profile = get_user(message.author.id) or {}
+        except Exception:                                # noqa: BLE001
+            log.debug("[community] no profile for chat", exc_info=True)
+
+        msg = CH.Incoming(
+            guild_id=message.guild.id, channel_id=message.channel.id,
+            user_id=message.author.id, content=message.content or "",
+            display_name=getattr(message.author, "display_name", "") or "",
+            is_bot=False, is_command=is_command,
+            mentions_bot=mentions_bot, replies_to_bot=replies_to_bot,
+            profile=profile)
+
+        decision = self.chat.decide(msg)
+        if not decision.speak:
+            log.debug("[community] staying quiet: %s", decision.reason)
+            return
+
+        line = await self.chat.compose(msg, decision.moment)
+        if not line:
+            return
+
+        # allowed_mentions is belt AND braces: chat.post_filter already strips
+        # every ping shape, and this makes a miss unexploitable rather than
+        # merely unlikely.
+        await message.channel.send(
+            line, reference=message if decision.moment != "banter" else None,
+            mention_author=False,
+            allowed_mentions=discord.AllowedMentions.none())
+
+        # Rapport is only earned on a real exchange, and only when the bot was
+        # actually spoken to — unprompted banter is the bot's initiative, not
+        # the player's, so it must not inflate their relationship score.
+        if msg.addressed:
+            try:
+                from utils.database import mutate_user
+                # touch=False for the reason mutate_user's own docstring gives:
+                # this is driven by a MESSAGE, and stamping last_seen here
+                # would make every chatter count as an active player in the
+                # "who played today" numbers.
+                mutate_user(int(message.author.id), MEM.note_exchange,
+                            touch=False)
+            except Exception:                            # noqa: BLE001
+                log.debug("[community] could not record the exchange",
+                          exc_info=True)
 
     @commands.Cog.listener("on_raw_reaction_add")
     async def community_reaction_xp(self, payload) -> None:
@@ -499,6 +584,50 @@ class CommunityCog(commands.Cog, name="Community"):
                           f"today · community XP is separate from your "
                           f"trainer level")
         await interaction.response.send_message(embed=e)
+
+    # ── ;chat ────────────────────────────────────────────────────────────────
+    @commands.command(name="chat")
+    async def chat_optout(self, ctx, mode: Optional[str] = None) -> None:
+        """Let the bot talk to you, or don't.
+
+        A prefix command rather than a slash one on purpose: it adds no entry
+        to the global command list (`sim_panels` counts those), and somebody
+        who wants the bot to stop talking to them should be able to say so in
+        the channel where it just did.
+        """
+        want = str(mode or "").strip().lower()
+        if want not in ("on", "off"):
+            state = "off" if MEM.opted_out(
+                self._profile_of(ctx.author.id)) else "on"
+            return await ctx.reply(
+                f"Chat is **{state}** for you. Use `;chat off` to stop me "
+                f"replying to you, or `;chat on` to allow it again.",
+                mention_author=False)
+
+        try:
+            from utils.database import mutate_user
+
+            def _apply(profile: dict) -> dict:
+                profile[MEM.K_OPTOUT] = (want == "off")
+                return profile
+
+            mutate_user(int(ctx.author.id), _apply, touch=False)
+        except Exception:                                # noqa: BLE001
+            log.exception("[community] could not save the chat preference")
+            return await ctx.reply("Couldn't save that — try again in a moment.",
+                                   mention_author=False)
+
+        await ctx.reply(
+            "Understood — I won't reply to you any more. `;chat on` undoes it."
+            if want == "off" else "Good to have you back. I'll reply again.",
+            mention_author=False)
+
+    def _profile_of(self, user_id) -> dict:
+        try:
+            from utils.database import get_user
+            return get_user(user_id) or {}
+        except Exception:                                # noqa: BLE001
+            return {}
 
 
 async def setup(bot: commands.Bot) -> None:
