@@ -70,6 +70,8 @@ async def _send(interaction: discord.Interaction, result: A.Result) -> None:
         kwargs["embeds"] = embeds[:10]
     if result.file is not None:
         kwargs["file"] = result.file
+    if result.view is not None:
+        kwargs["view"] = result.view
     content = result.message or ("" if embeds else "Done.")
     if content:
         kwargs["content"] = content
