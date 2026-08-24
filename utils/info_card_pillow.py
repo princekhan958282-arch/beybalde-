@@ -155,13 +155,17 @@ def render_info_card_pillow(blade: dict, parts: dict | None = None) -> io.BytesI
 def _render(blade: dict, parts: dict) -> io.BytesIO:
     # Import shared vocabulary from the HTML renderer so the two cards can
     # never drift apart on chips, themes, ability collection or stat rows.
-    from utils.info_card import (_RARITY_THEME, _DEFAULT_THEME, _TYPE_LABEL,
+    from utils.info_card import (theme_for, _TYPE_LABEL,
                                  _SPIN_ICON, _collect_abilities, _chip_for,
                                  _stat_rows, _stat_total, _parts_slots)
     from utils.image_generator import _blade_art
 
     rarity = blade.get("rarity", "Common")
-    th     = _RARITY_THEME.get(rarity, _DEFAULT_THEME)
+    # theme_for() honours a blade's own `card_theme` before falling back to
+    # its rarity — the bug this fixed: this renderer used to read the rarity
+    # theme directly, so a blade with a custom palette only got it when the
+    # OTHER renderer (the HTML/Playwright one) happened to be the one that ran.
+    th     = theme_for(blade)
     accent = _hex(th["accent"]); glow = _hex(th["glow"]); tint = _hex(th["tint"])
     text_c = (244, 241, 234); muted = (185, 179, 166); desc_c = (221, 216, 205)
 

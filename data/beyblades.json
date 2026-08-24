@@ -9116,14 +9116,18 @@
     "id": "BB107",
     "name": "Artemis Roze",
     "rarity": "Mythic",
-    "type": "Defense",
+    "type": "Attack",
     "spin_direction": "Right",
     "burst_height": "Low",
+    "limited": true,
+    "owner_ids": [
+      1273889267986468885
+    ],
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541405667586478120/1785516907259.png?ex=6a8d7965&is=6a8c27e5&hm=af8ba92b991c766d02af6d6160aad74399a0dacadf8a86b19197e83fe070fbb8&",
     "description": "Each attack she survives adds another crystalline petal to her silken mantle, until she has enough to either turn them into an unbreakable ward or let them all go at once.",
     "stats": {
-      "attack": 105,
-      "defense": 150,
+      "attack": 155,
+      "defense": 70,
       "stamina": 120,
       "special": 155,
       "hp": 165
@@ -9352,6 +9356,11 @@
         "🌸 **Flowering Metamorphosis** — crystalline petals bloom into a living gown!",
         "🎀 **Hit 2** — ribbon and petal strike as one!"
       ]
+    },
+    "card_theme": {
+      "accent": "#ff3d6e",
+      "glow": "#8a0f35",
+      "tint": "#180810"
     }
   }
 }

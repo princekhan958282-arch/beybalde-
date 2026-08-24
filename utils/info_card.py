@@ -240,6 +240,23 @@ def _theme(rarity: str) -> dict:
     return _RARITY_THEME.get(rarity, _DEFAULT_THEME)
 
 
+def theme_for(blade: dict) -> dict:
+    """A blade's own `card_theme` first, else its rarity's.
+
+    The ONE place either renderer resolves accent/glow/tint, so the HTML
+    (Playwright) card and the Pillow fallback can never quietly disagree on
+    a blade's colours the way they used to — `card_theme` was read here but
+    nowhere in info_card_pillow.py, so a blade only got its own palette when
+    the browser renderer happened to be the one that ran.
+    """
+    th = dict(_theme(blade.get("rarity", "Common")))
+    custom = blade.get("card_theme")
+    if isinstance(custom, dict):
+        th.update({k: v for k, v in custom.items()
+                  if k in ("accent", "glow", "tint") and v})
+    return th
+
+
 def _collect_abilities(blade: dict) -> list[dict]:
     """All abilities for a blade, in order, capped at 3 (the card's design max).
 
@@ -354,15 +371,11 @@ def build_html(blade: dict, parts: Optional[dict] = None) -> str:
     """Render the card to a standalone HTML string (also handy for debugging —
     dump it to a file and open it in a browser)."""
     rarity = blade.get("rarity", "Common")
-    th     = dict(_theme(rarity))
-    # A blade may carry its own palette. Event-limited bosses get a background
-    # nothing else in the game uses, so they read as one-off at a glance rather
-    # than as "another teal Exclusive". Falls back to the rarity theme, so every
-    # existing blade renders exactly as before.
-    custom = blade.get("card_theme")
-    if isinstance(custom, dict):
-        th.update({k: v for k, v in custom.items()
-                   if k in ("accent", "glow", "tint") and v})
+    # A blade may carry its own palette via `card_theme` — event-limited
+    # bosses get a background nothing else in the game uses, so they read as
+    # one-off at a glance rather than as "another teal Exclusive". Falls back
+    # to the rarity theme, so every existing blade renders exactly as before.
+    th = theme_for(blade)
     accent, glow, tint = th["accent"], th["glow"], th["tint"]
 
     btype  = blade.get("type", "Balance")

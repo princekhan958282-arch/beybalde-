@@ -113,7 +113,8 @@ def main() -> int:
 
     check("Artemis Roze is in the roster", AR is not None)
     check("rarity Mythic", AR["rarity"] == "Mythic", AR.get("rarity"))
-    check("type Defense", AR["type"] == "Defense", AR.get("type"))
+    check("type Attack — switched from Defense per the follow-up request",
+          AR["type"] == "Attack", AR.get("type"))
     check("its id is unique",
           sum(1 for b in ALL.values() if b.get("id") == AR["id"]) == 1, AR["id"])
     check("the image is the one supplied",
@@ -134,18 +135,106 @@ def main() -> int:
 
     at100 = BL.stats_at(AR, 100, {})
     check("no stat is pinned to the level-100 cap (that's a roster-wide "
-          "sanity rule sim_levels.py enforces — this blade must not trip it)",
+          "sanity rule sim_levels.py enforces — this blade must not trip it, "
+          "even after the +50 Attack buff)",
           all(v < BL.STAT_CAP for v in at100.values()), at100)
+    check("the roster-wide 'almost nothing pinned to the cap' gate still "
+          "holds for attack — sim_levels.py enforces capped <= 2 roster-wide, "
+          "and she must not push it past that",
+          sum(1 for b in ALL.values()
+              if BL.stats_at(b, 100, {}).get("attack") == BL.STAT_CAP) <= 2)
+    check("attack is 155 — buffed +50 per the follow-up request",
+          AR["stats"]["attack"] == 155, AR["stats"]["attack"])
+    check("defense is 70 — lowered again (150 -> 90 -> 70) across three "
+          "follow-up requests",
+          AR["stats"]["defense"] == 70, AR["stats"]["defense"])
+
+    # ── 1b. card_theme — the per-blade colour override ─────────────────────
+    print("\n── 1b. her card uses its own palette, not just Mythic red ──────")
+
+    from utils import info_card as IC
+    from utils import info_card_pillow as ICP
+
+    theme = AR.get("card_theme")
+    check("she carries a card_theme override",
+          isinstance(theme, dict) and {"accent", "glow", "tint"} <= theme.keys(),
+          theme)
+
+    resolved = IC.theme_for(AR)
+    check("theme_for() returns HER colours, not the shared Mythic ones",
+          resolved == theme and resolved != IC._RARITY_THEME["Mythic"], resolved)
+
+    other = get_beyblade("Dead Phoenix")
+    check("a blade with no override still gets its plain rarity theme — the "
+          "override cannot leak onto a blade that never asked for one",
+          IC.theme_for(other) == IC._RARITY_THEME["Mythic"], IC.theme_for(other))
+
+    html = IC.build_html(AR)
+    check("the HTML/Playwright card actually renders her accent colour",
+          theme["accent"] in html, theme["accent"])
+    check("...and the glow and tint too",
+          theme["glow"] in html and theme["tint"] in html, None)
+
+    buf = ICP._render(AR, {})
+    check("the Pillow fallback card renders without raising",
+          buf is not None and len(buf.getvalue()) > 0,
+          len(buf.getvalue()) if buf else None)
+    # The bug this caught before shipping: info_card_pillow.py used to read
+    # `_RARITY_THEME[rarity]` directly, bypassing theme_for() entirely — a
+    # blade's own card_theme was honoured by the HTML renderer and silently
+    # ignored by the Pillow one, so which palette you saw depended on which
+    # renderer happened to run, not on the blade.
+    pillow_src = open(os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "utils/info_card_pillow.py"), encoding="utf-8").read()
+    check("the Pillow renderer goes through theme_for(), not a raw rarity "
+          "lookup that would skip card_theme",
+          "theme_for(blade)" in pillow_src
+          and "_RARITY_THEME.get(rarity" not in pillow_src, None)
+
+    # ── 1c. player exclusive — every route is shut ──────────────────────────
+    print("\n── 1c. player exclusive — every route is shut ──────────────────")
+
+    from utils.availability import obtainable                # noqa: E402
+    import cogs.economy.shop as SHOP                          # noqa: E402
+    import cogs.spawn.spawn as SPAWN                          # noqa: E402
+    from cogs.tournament.tournament import draft_pool         # noqa: E402
+    import random as _random
+
+    OWNER = 1273889267986468885
+
+    check("nobody in general can obtain it", not obtainable(AR))
+    check("the named owner can", obtainable(AR, OWNER))
+    check("...and nobody else can", not obtainable(AR, 956773141265391676))
+    check("it is flagged limited", AR.get("limited") is True)
+    check("...and bound to exactly one id", AR.get("owner_ids") == [OWNER],
+          AR.get("owner_ids"))
+
+    _random.seed(11)
+    spawned = sum(1 for _ in range(50_000)
+                  if (SPAWN._pick_random_beyblade(ALL) or {}).get("name") == NAME)
+    check("50,000 wild spawns produce none", spawned == 0, spawned)
+    check("it is not in the booster pack pool",
+          not any(b.get("name") == NAME for b in SHOP._load_booster_pool()))
+    check("...nor the booster hidden pool",
+          not any(b.get("name") == NAME for b in SHOP._hidden_drop_pool()))
+    check("...nor a tournament draft",
+          not any(b.get("name") == NAME for b in draft_pool()))
 
     # ── 2. Prismatic Rebirth — Petal Layer ──────────────────────────────────
     print("\n── 2. Prismatic Rebirth — stack, heal, cleanse at 5 ─────────────")
 
+    # Each stack rounds its OWN +8% independently (stacking_buff computes
+    # `per` fresh every call) rather than rounding a running total once, so
+    # the expected value is `round(defense * 0.08) * i`, not
+    # `round(defense * 0.08 * i)` — the two diverge as soon as a single
+    # stack's rounding remainder would have crossed an integer boundary.
+    per_stack_def = round(AR["stats"]["defense"] * 0.08)
     e, s = engine()
     for i in range(1, 5):
         dmg, _t = e._fire("on_defend", "p", "e", AR, "attack", "lose", 0, 0, [])
         check(f"stack {i}: defense grows +8%",
-              e.st.get_buff_bonus("p", "defense")
-              == round(AR["stats"]["defense"] * 0.08 * i),
+              e.st.get_buff_bonus("p", "defense") == per_stack_def * i,
               e.st.get_buff_bonus("p", "defense"))
         check(f"stack {i}: lifesteal is {i*5}%",
               e.lifesteal_pct["p"] == i * 5, e.lifesteal_pct["p"])
