@@ -169,9 +169,23 @@ class SnapshotPanel(discord.ui.View):
             e.add_field(name="​",
                         value="Pick a snapshot above to see what's in it.",
                         inline=False)
+        e.add_field(name="GitHub", value=self._github_status(), inline=False)
         if self.note:
             e.add_field(name="​", value=self.note, inline=False)
         return e
+
+    def _github_status(self) -> str:
+        from utils import github_backup as GB
+        token, repo = GB.configured()
+        if not token or not repo:
+            return "⚪ not configured — local backup only"
+        cog = self.bot.get_cog("Snapshots") if self.bot else None
+        gh = getattr(cog, "last_github", None) if cog else None
+        if not gh:
+            return f"⚪ configured for `{repo}` — no push yet this run"
+        if gh.get("ok"):
+            return f"✅ last push OK — `{repo}`"
+        return f"⚠️ last push failed — {gh.get('error', '?')}"
 
     async def refresh(self, interaction: discord.Interaction) -> None:
         self.rebuild()
@@ -203,10 +217,18 @@ class SnapshotPanel(discord.ui.View):
         await interaction.response.defer()
         import asyncio
         try:
-            path = await asyncio.to_thread(SN.write, self.folder)
-            from .clock import mark
-            mark()
-            SN.prune(self.folder)
+            # Routed through the cog, not duplicated here, so a snapshot
+            # taken from this button gets the same GitHub push as one taken
+            # from the admin registry's "Take a backup now" tile — the two
+            # used to diverge, and only one of them reached GitHub.
+            cog = self.bot.get_cog("Snapshots") if self.bot else None
+            if cog is not None:
+                path = await cog.take("admin")
+            else:
+                path = await asyncio.to_thread(SN.write, self.folder)
+                from .clock import mark
+                mark()
+                SN.prune(self.folder)
             self.selected = path
             self.note = (f"✅ Took a snapshot — "
                          f"`{os.path.basename(path)}`, "
