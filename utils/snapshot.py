@@ -290,37 +290,42 @@ def restore(snap: dict, sections: Iterable[str] = (ALL,)) -> dict:
     earned since. A profile in the snapshot that no longer exists is recreated;
     a profile that exists now but not in the snapshot is left alone, because a
     restore is not a way to delete players.
+
+    Every profile write goes through `mutate_user`/`update_user`, which hold
+    `_users_lock` — the same process-wide lock every other profile write in the
+    bot takes. This used to be a bare `get_one` → mutate → `save_all()`, with
+    no lock at all: a restore running while the bot is live could lose a
+    concurrent write (a battle result, an XP grant) or have its own write lost
+    to one. Per-profile locked writes cost more than one bulk upsert, but a
+    restore is a rare admin action, not a hot path.
     """
     from utils import database as DB
+    from utils.database import mutate_user, update_user
 
     profiles = (snap or {}).get("profiles") or {}
     keys = _keys_for(sections)
     wanted = {s.strip().lower() for s in sections if str(s).strip()}
     whole = keys is None
 
-    merged: dict[str, dict] = {}
     touched = 0
     for uid, saved in profiles.items():
         if not isinstance(saved, dict):
             continue
         if whole:
-            merged[str(uid)] = saved
+            update_user(uid, saved, touch=False)
             touched += 1
             continue
-        live = _store().get_one(str(uid))
-        if live is None:
-            live = DB._default_profile(str(uid))
-        changed = False
-        for key in keys:
-            if key in saved:
-                live[key] = saved[key]
-                changed = True
-        if changed:
-            merged[str(uid)] = live
-            touched += 1
 
-    if merged:
-        _store().save_all(merged)
+        present = [key for key in keys if key in saved]
+        if not present:
+            continue
+
+        def _apply(profile: dict, saved=saved, present=present) -> None:
+            for key in present:
+                profile[key] = saved[key]
+
+        mutate_user(uid, _apply, touch=False)
+        touched += 1
 
     files_written = []
     for key, filename in SIDE_FILES:
@@ -337,12 +342,6 @@ def restore(snap: dict, sections: Iterable[str] = (ALL,)) -> dict:
             files_written.append(filename)
         except Exception:                                # noqa: BLE001
             log.exception("[snapshot] could not restore %s", filename)
-
-    # Cached readers would otherwise serve the pre-restore contents.
-    try:
-        DB._read_json_cached.cache_clear()               # type: ignore[attr-defined]
-    except Exception:                                    # noqa: BLE001
-        pass
 
     log.info("[snapshot] restored %s profile(s) and %s file(s)",
              touched, len(files_written))

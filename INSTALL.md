@@ -183,6 +183,37 @@ update, so your keys and player data survive. Turn the updater off entirely with
 `BEYCORD_AUTO_UPDATE=0`. `;version` reports which commit is installed and
 whether the last check succeeded.
 
+## Backups to a second GitHub repo
+
+The bot already keeps a daily backup in `backups/` on its own disk (see
+`/admin → System → Backups`) with zero setup. Setting `GITHUB_BACKUP_TOKEN`
+and `GITHUB_BACKUP_REPO` adds a SECOND, off-host copy pushed there once a
+day, for the one thing the local copy alone can't survive: the whole
+container being lost at once.
+
+This is a **separate token from `GITHUB_TOKEN` above**, on purpose — it needs
+**write** access, and it points at a repo that only ever holds backups, never
+your bot's own code:
+
+1. Create a new **private, empty** repo to hold backups — e.g.
+   `Beycord-Backup-`. Don't reuse the code repo.
+2. github.com → Settings → Developer settings → Personal access tokens →
+   **Fine-grained tokens** → **Generate new token**
+3. **Repository access** → "Only select repositories" → tick ONLY the backup
+   repo from step 1
+4. **Repository permissions** → **Contents: Read and write**
+5. **Generate token**, copy the `github_pat_...` string
+
+```python
+GITHUB_BACKUP_TOKEN = "github_pat_..."   # write access, ONLY to the backup repo
+GITHUB_BACKUP_REPO  = "yourname/Beycord-Backup-"
+```
+
+Leave either one unset and the GitHub push is skipped entirely — the local
+`backups/` copy keeps working exactly as before either way. When it's on, a
+scheduled backup DMs you a receipt with a Download button and an Acknowledge
+button; a manual "Take a backup now" pushes too, silently.
+
 ## Dependencies — ab apne aap install hote hain
 
 Startup pe `utils/bootstrap.py` `requirements.txt` ke against check karta hai

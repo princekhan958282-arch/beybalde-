@@ -411,6 +411,54 @@ def main() -> int:
     check("...and ignored by git, so player data never lands in the repo",
           "backups/" in open(os.path.join(ROOT, ".gitignore")).read())
 
+    # ── 11. restore() cannot lose a concurrent write ────────────────────────
+    print("\n── 11. restore() does not race a live write ────────────────────")
+    import inspect
+    import threading
+
+    restore_src = inspect.getsource(SN.restore)
+    check("restore() carries no dead cache_clear() call",
+          "cache_clear" not in restore_src, restore_src)
+
+    seed("2001", inventory=["OldBey"], coins=100)
+
+    # Gate the ONE call the old, unlocked implementation used to finish a
+    # restore with: `_store().save_all(merged)`. Delaying it lets a concurrent
+    # `mutate_user` write land in the gap between the old code's read and its
+    # write — the gap `_users_lock` exists to close. The fixed path never
+    # calls `save_all` for a per-profile write, so this gate cannot affect it;
+    # correctness there comes from holding the lock across its own
+    # read-modify-write, not from timing.
+    real_save_all = STORE.save_all
+    concurrent_done = threading.Event()
+
+    def gated_save_all(profiles, *a, **kw):
+        if "2001" in profiles:
+            concurrent_done.wait(timeout=2)
+        return real_save_all(profiles, *a, **kw)
+
+    def concurrent_writer():
+        time.sleep(0.05)
+        DB.mutate_user(2001, lambda p: p.__setitem__("coins", 999))
+        concurrent_done.set()
+
+    STORE.save_all = gated_save_all
+    try:
+        t = threading.Thread(target=concurrent_writer)
+        t.start()
+        SN.restore({"profiles": {"2001": {"inventory": ["NewBey"]}}},
+                    sections=["beys"])
+        t.join(timeout=3)
+    finally:
+        STORE.save_all = real_save_all
+
+    after = STORE.get_one("2001")
+    check("a sectioned restore does not clobber a concurrent write to a "
+          "different key",
+          after["coins"] == 999, after)
+    check("...and still applies its own section",
+          after["inventory"] == ["NewBey"], after)
+
     shutil.rmtree(TMP, ignore_errors=True)
     print("\n" + "=" * 66)
     print(f"  {PASS} passed, {FAIL} failed")
