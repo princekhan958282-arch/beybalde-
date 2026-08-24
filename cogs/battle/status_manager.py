@@ -391,8 +391,38 @@ class StatusManager:
                 self.burn_stacks[key] = 0
                 self.burn_dmg[key]    = 0
                 logs.append(f"  🔥 **Burn** fades on {blade_name}.")
-
         return logs
+
+    # =========================================================================
+    #  Cleanse
+    # =========================================================================
+
+    def cleanse_one(self, key: str) -> str | None:
+        """Remove exactly ONE negative status from *key*. Returns what it
+        cleared ('burn', 'silence', or a stat name), or None if key is clean.
+
+        Priority order — burn (a DoT that keeps costing HP every turn is the
+        most urgent thing to lose), then silence (locks out the whole ability
+        kit, not just one stat), then the single WORST active stat debuff
+        (largest magnitude, so a "-30% attack" is cleared before a "-5%"
+        one sitting alongside it). Picking one thing rather than sweeping
+        everything keeps "cleanse 1" meaningfully different from "cleanse
+        all" for any ability that wants the weaker version.
+        """
+        if self.burn_stacks.get(key, 0) > 0:
+            self.burn_stacks[key] = 0
+            self.burn_dmg[key] = 0
+            self.burn_duration[key] = 0
+            return "burn"
+        if self.silenced_turns.get(key, 0) > 0:
+            self.silenced_turns[key] = 0
+            return "silence"
+        negatives = [b for b in self.active_buffs.get(key, []) if b["amount"] < 0]
+        if negatives:
+            worst = min(negatives, key=lambda b: b["amount"])
+            self.active_buffs[key].remove(worst)
+            return worst["stat"]
+        return None
 
     # =========================================================================
     #  Snapshot — for embeds and debugging

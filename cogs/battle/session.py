@@ -1157,6 +1157,10 @@ class BattleSession:
             round_log.extend(self.ability.tick_dmg_amps())
         except Exception:                                # noqa: BLE001
             pass
+        try:
+            round_log.extend(self.ability.tick_extras())
+        except Exception:                                # noqa: BLE001
+            pass
         for key in (k1, k2):
             st.tick_buffs(key, round_log)       # ATK/DEF/stamina_regen buffs
             st.tick_silence(key, round_log)     # Silence counter

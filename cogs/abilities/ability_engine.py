@@ -161,6 +161,20 @@ class AbilityEngine:
         # key -> [percent, rounds_left]. Opened by `reflect_pct_turns` and
         # consumed in _fire_defensive on whatever hit actually lands.
         self.reflect_windows: dict[str, list] = {}
+        # Timed `set_mode` grants — a transform that reverts itself. Each entry
+        # is {key, mode, turns, revert_to, on_expire, ab_name}. Swept by
+        # tick_extras() at end of round; `on_expire` is a normal `do` list run
+        # through _run_ops when the timer reaches 0, so "what happens when the
+        # transform ends" uses the exact same ops as any other rule instead of
+        # needing its own vocabulary.
+        self.timed_modes: list[dict] = []
+        # (key, name) -> rounds remaining. A generic "fires on an event, but
+        # not more than once every N turns" gate for abilities that describe
+        # themselves as having a cooldown — beys have no player-activated
+        # ability slot the way the Special move is, so a "cooldown" can only
+        # ever mean "this automatic trigger skips itself while on cooldown".
+        # Ticked down alongside timed_modes.
+        self.cooldowns: dict[tuple[str, str], int] = {}
         self.post_rebirth_reflect  = self.st.post_rebirth_reflect
         self.demon_mode_atk_stacks = self.st.demon_mode_atk_stacks
         self.ability_2_disabled    = self.st.ability_2_disabled
@@ -389,10 +403,21 @@ class AbilityEngine:
                 return False
         if c == "matchup_is":          return matchup == v
         if c == "mode_is":             return self.modes.get(key) == v
+        if c == "mode_is_not":         return self.modes.get(key) != v
         if c == "counter_at_least":
             return self.counters.get((key, cond.get("name", "")), 0) >= int(v)
         if c == "counter_below":
             return self.counters.get((key, cond.get("name", "")), 0) < int(v)
+        if c == "enemy_debuffed_stat":
+            # Is the ENEMY currently carrying an active negative buff on this
+            # stat? Reuses StatusManager's own buff ledger rather than a new
+            # tracked flag, so "is my bind still up" reads the same state the
+            # bind itself actually wrote — a separate flag could drift from
+            # whether the debuff was cleansed, resisted, or simply expired.
+            stat = cond.get("stat", "attack")
+            return self.st.get_buff_bonus(okey, stat) < 0
+        if c == "not_on_cooldown":
+            return self.cooldowns.get((key, cond.get("name", "")), 0) <= 0
         if c == "stamina_below_pct":
             try:
                 sm  = self.session.stamina_manager
@@ -935,6 +960,75 @@ class AbilityEngine:
                         self.st.add_buff(key, stat, per, 99)
                     logs.append(f"🔺 **{ab_name}** — stack {cur+1}/{mx} "
                                 f"(+{per} {stat})!")
+            elif kind == "stack_scaled_lifesteal_pct":
+                # Lifesteal that TRACKS a counter exactly, rather than the
+                # plain `lifesteal_pct` op's "highest value ever granted, for
+                # the rest of the battle". A stack-based heal is meant to
+                # shrink when the stacks are spent — Artemis Roze consumes
+                # her own Petal Layers for burst damage — so this OVERWRITES
+                # self.lifesteal_pct instead of taking a max with it.
+                #
+                # `bonus_in_mode`/`mode_bonus` add a flat extra percentage
+                # while a named mode is active (e.g. a transform that makes
+                # ALL damage lifesteal, on top of whatever the stacks alone
+                # are worth) — generic enough for any future blade with the
+                # same "stronger sustain while transformed" shape.
+                cname = op.get("name", f"{ab_name}_stacks")
+                cur   = self.counters.get((key, cname), 0)
+                per   = float(op.get("per_stack", val or 0))
+                pct   = per * cur
+                mode  = op.get("bonus_in_mode")
+                if mode and self.modes.get(key) == mode:
+                    pct += float(op.get("mode_bonus", 0))
+                if pct > 0:
+                    self.lifesteal_pct[key] = pct
+                    logs.append(f"🌸 **{ab_name}** — lifesteal now {pct:g}% "
+                                f"({cur} layer(s))!")
+                else:
+                    self.lifesteal_pct[key] = 0.0
+            elif kind == "consume_stack_damage_pct":
+                # Spends a counter for a ONE-MOVE damage bonus proportional to
+                # how much was banked — "each stack adds 15%, then they're
+                # gone", which `stacking_buff`'s permanent per-stack grant
+                # cannot express (nothing there ever gets spent).
+                cname = op.get("name", f"{ab_name}_stacks")
+                cur   = self.counters.get((key, cname), 0)
+                if cur > 0:
+                    per = float(op.get("per_stack", val or 0))
+                    pct = per * cur
+                    add = math.ceil(dmg_dealt * pct / 100)
+                    if add > 0:
+                        dmg_dealt += add
+                    self.counters[(key, cname)] = 0
+                    logs.append(f"🌸 **{ab_name}** — consumed {cur} stack(s) "
+                                f"for +{add} damage ({pct:g}%)!")
+            elif kind == "consume_stack_burst_enemy_hp_pct":
+                # A finisher scaled to a percentage of the ENEMY's CURRENT hp
+                # per stack consumed — deliberately swingier than every other
+                # burst in the roster (which scale off the attacker's own
+                # stats): at a full bank of stacks this can end a fight
+                # outright, which is the point of banking them.
+                cname = op.get("name", f"{ab_name}_stacks")
+                cur   = self.counters.get((key, cname), 0)
+                if cur > 0:
+                    per = float(op.get("per_stack", val or 0))
+                    pct = min(100.0, per * cur)
+                    enemy_hp = max(0, self.session.hp.get(okey, 0))
+                    dmg = math.ceil(enemy_hp * pct / 100)
+                    if dmg > 0:
+                        self.session.hp[okey] = self.session.hp.get(okey, 0) - dmg
+                        logs.append(f"🌸💥 **{ab_name}** — {cur} layer(s) burst "
+                                    f"for {dmg} damage ({pct:g}% of current HP)!")
+                    self.counters[(key, cname)] = 0
+            elif kind == "cleanse":
+                for _ in range(int(op.get("count", val or 1))):
+                    cleared = self.st.cleanse_one(key)
+                    if cleared:
+                        logs.append(f"🧼 **{ab_name}** — cleansed {cleared}!")
+                    else:
+                        break
+            elif kind == "start_cooldown":
+                self.cooldowns[(key, op.get("name", ""))] = int(op.get("turns", val or 1))
             elif kind == "dmg_amp":
                 # `turns` makes the amp TEMPORARY. add_dmg_amp is a permanent
                 # accumulator with no expiry, so "+25% for 5 turns" could only
@@ -1230,6 +1324,19 @@ class AbilityEngine:
             elif kind == "set_mode":
                 self.modes[key] = str(op.get("name", val))
                 logs.append(f"🔁 **{ab_name}** — switched to {self.modes[key]}!")
+                # `turns` makes the mode a TRANSFORM rather than a permanent
+                # switch — reverted, and optionally followed by an `on_expire`
+                # payoff, by tick_extras() at end of round. Without this every
+                # "for N turns" transform would need its own bespoke
+                # revert-and-finale code instead of reusing set_mode/_run_ops.
+                turns = int(op.get("turns", 0) or 0)
+                if turns > 0:
+                    self.timed_modes.append({
+                        "key": key, "mode": self.modes[key],
+                        "turns": turns, "revert_to": str(op.get("revert_to", "")),
+                        "on_expire": op.get("on_expire") or [],
+                        "ab_name": ab_name,
+                    })
             elif kind == "queue_chain":
                 self.session.chain_handler.queue(key, op.get("steps", []))
             elif kind == "disable_ability_2":
@@ -1495,6 +1602,49 @@ class AbilityEngine:
                 logs.append(f"  ⏳ Overdrive fades — damage amp "
                             f"-{int(entry[1] * 100)}%.")
         self.timed_dmg_amps = still
+        return logs
+
+    def tick_extras(self) -> list[str]:
+        """Expire timed_modes (transforms) and decrement cooldowns.
+
+        Called once per round, alongside tick_dmg_amps() — kept as its own
+        method rather than folded into that one because the two mechanisms it
+        sweeps (a mode with an optional finale, and a plain cooldown counter)
+        didn't exist when tick_dmg_amps was written and don't share its
+        per-entry shape.
+        """
+        logs: list[str] = []
+        cooldowns = getattr(self, "cooldowns", None)
+        if cooldowns:
+            for ck, turns in list(cooldowns.items()):
+                left = int(turns) - 1
+                if left > 0:
+                    cooldowns[ck] = left
+                else:
+                    cooldowns.pop(ck, None)
+
+        if not getattr(self, "timed_modes", None):
+            return logs
+        still: list[dict] = []
+        for entry in self.timed_modes:
+            entry["turns"] -= 1
+            if entry["turns"] > 0:
+                still.append(entry)
+                continue
+            key = entry["key"]
+            # Only revert/pay off if the mode wasn't already changed by
+            # something else in the meantime — a stale timer firing its
+            # finale on top of an unrelated later mode would be a bug, not a
+            # feature.
+            if self.modes.get(key) != entry["mode"]:
+                continue
+            self.modes[key] = entry["revert_to"]
+            logs.append(f"  🔁 **{entry['ab_name']}** — {entry['mode']} fades.")
+            if entry["on_expire"]:
+                okey = self._other_key(key)
+                self._run_ops({"do": entry["on_expire"]}, entry["ab_name"],
+                              key, okey, "", 0, 0, logs)
+        self.timed_modes = still
         return logs
 
     # ── Per-hit proc (multi-hit specials / attack) ────────────────────────────
