@@ -261,10 +261,172 @@ class ServerView(discord.ui.View):
         self.levels.clear_level_roles(guard.main_guild_id())
         await self.refresh(interaction)
 
+    @discord.ui.button(label="Banter…", emoji="💬", row=4,
+                       style=discord.ButtonStyle.primary)
+    async def banter(self, interaction: discord.Interaction, _b) -> None:
+        if not await self.guard(interaction):
+            return
+        # A sub-page rather than more controls here: `/server` already uses all
+        # five action rows Discord allows (two selects and six buttons), so a
+        # sixth row is not a design choice, it is a hard limit.
+        view = BanterView(self)
+        await interaction.response.send_message(
+            embed=banter_embed(), view=view, ephemeral=True)
+
     @discord.ui.button(label="Turn the whole layer off", emoji="🔒", row=4,
                        style=discord.ButtonStyle.danger)
     async def unset(self, interaction: discord.Interaction, _b) -> None:
         if not await self.guard(interaction):
             return
         guard.set_main_guild(None)
+        await self.refresh(interaction)
+
+
+# ── The banter sub-page ──────────────────────────────────────────────────────
+
+INTENSITIES = [
+    ("OFF",     "Off",     "never speaks unless spoken to"),
+    ("LIGHT",   "Light",   "rare — at most once every 15 minutes"),
+    ("NORMAL",  "Normal",  "chimes in now and then"),
+    ("CHAOTIC", "Chaotic", "talkative; expect it in every busy channel"),
+]
+
+
+def banter_embed() -> discord.Embed:
+    """What `/server → Banter` shows, including whether generation is live."""
+    from . import chat as CH
+
+    intensity = str(C.get(C.K_BANTER) or "OFF").upper()
+    deny = C.get(C.K_BANTER_DENY) or []
+    name = str(C.get(C.K_PERSONALITY))
+
+    e = discord.Embed(
+        title="💬  Banter",
+        colour=COLOUR,
+        description=("Being **@mentioned or replied to** always gets an answer "
+                     "— that needs nothing switched on here.\n"
+                     "This setting is only about speaking **unprompted**."))
+    e.add_field(name="Personality", value=name.title(), inline=True)
+    e.add_field(name="Unprompted", value=intensity.title(), inline=True)
+
+    # Honest about the API, exactly as the boss UI is: "dialogue offline" beats
+    # claiming a working generator while every line comes from the pools.
+    try:
+        st = CH.ChatEngine().client.status()
+        if st["state"] == "live":
+            gen = f"✅ generative · `{st['model']}`"
+        elif st["state"] == "no key":
+            gen = "➖ written lines (no `GEMINI_API_KEY` set)"
+        elif st["state"] == "budget spent":
+            gen = "🟠 written lines — hourly budget spent"
+        else:
+            gen = f"🟠 written lines — {st['state']}"
+    except Exception:                                    # noqa: BLE001
+        gen = "written lines"
+    e.add_field(name="Wording", value=gen, inline=False)
+
+    e.add_field(
+        name=f"Muted channels ({len(deny)})",
+        value=("\n".join(f"<#{c}>" for c in list(deny)[:8])
+               or "none — it may speak in any channel it can see"),
+        inline=False)
+    e.set_footer(text="Anyone can opt out for themselves with ;chat off")
+    return e
+
+
+class IntensitySelect(discord.ui.Select):
+    def __init__(self, page: "BanterView") -> None:
+        current = str(C.get(C.K_BANTER) or "OFF").upper()
+        super().__init__(
+            placeholder="How often should it speak unprompted?…", row=0,
+            options=[discord.SelectOption(label=lbl, value=key, description=d,
+                                          default=(key == current))
+                     for key, lbl, d in INTENSITIES])
+        self.page = page
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not await self.page.parent.guard(interaction):
+            return
+        C.put(C.K_BANTER, self.values[0])
+        await self.page.refresh(interaction)
+
+
+class BanterDenySelect(discord.ui.ChannelSelect):
+    def __init__(self, page: "BanterView") -> None:
+        super().__init__(placeholder="Mute banter in a channel…", row=1,
+                         min_values=1, max_values=1,
+                         channel_types=[discord.ChannelType.text])
+        self.page = page
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not await self.page.parent.guard(interaction):
+            return
+        deny = list(C.get(C.K_BANTER_DENY) or [])
+        cid = str(self.values[0].id)
+        # A toggle rather than an add-only list: without this, un-muting a
+        # channel would need a second control, and the list would only ever
+        # grow. Stored as strings so the JSON round-trip is stable.
+        deny = [d for d in deny if str(d) != cid] if cid in {str(d) for d in deny} \
+            else deny + [cid]
+        C.put(C.K_BANTER_DENY, deny)
+        await self.page.refresh(interaction)
+
+
+class BanterView(discord.ui.View):
+    """`/server → Banter`. Ephemeral, owned by whoever opened `/server`."""
+
+    def __init__(self, parent: "ServerView") -> None:
+        super().__init__(timeout=300)
+        self.parent = parent
+        self.add_item(IntensitySelect(self))
+        self.add_item(BanterDenySelect(self))
+
+    async def refresh(self, interaction: discord.Interaction) -> None:
+        C.invalidate()
+        self.clear_items()
+        self.add_item(IntensitySelect(self))
+        self.add_item(BanterDenySelect(self))
+        for item in (self.say_something, self.clear_muted):
+            self.add_item(item)
+        try:
+            await interaction.response.edit_message(embed=banter_embed(),
+                                                    view=self)
+        except Exception:                                # noqa: BLE001
+            log.exception("[community] could not refresh the banter page")
+
+    @discord.ui.button(label="Say something", emoji="🗣️", row=2,
+                       style=discord.ButtonStyle.primary)
+    async def say_something(self, interaction: discord.Interaction, _b) -> None:
+        """Hear the current personality before committing to it.
+
+        Goes through the real engine — same prompt, same fallback, same
+        post-filter — so what the owner hears is what the server will get.
+        """
+        if not await self.parent.guard(interaction):
+            return
+        from . import chat as CH
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        # The live cog's engine when there is one, so the sample reflects the
+        # real breaker and budget state rather than a fresh client that always
+        # looks healthy.
+        cog = self.parent.bot.get_cog("Community") if self.parent.bot else None
+        engine = getattr(cog, "chat", None) or CH.ChatEngine()
+        msg = CH.Incoming(
+            guild_id=guard.main_guild_id(), channel_id=interaction.channel_id,
+            user_id=interaction.user.id, content="say something",
+            display_name=getattr(interaction.user, "display_name", "") or "",
+            mentions_bot=True, profile={})
+        try:
+            line = await engine.compose(msg, "mentioned")
+        except Exception:                                # noqa: BLE001
+            log.exception("[community] sample line failed")
+            line = "…"
+        await interaction.followup.send(line or "…", ephemeral=True)
+
+    @discord.ui.button(label="Unmute all", emoji="🧹", row=2,
+                       style=discord.ButtonStyle.secondary)
+    async def clear_muted(self, interaction: discord.Interaction, _b) -> None:
+        if not await self.parent.guard(interaction):
+            return
+        C.put(C.K_BANTER_DENY, [])
         await self.refresh(interaction)
