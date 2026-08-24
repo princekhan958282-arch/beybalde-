@@ -104,6 +104,8 @@ PROTECTED = (
     ".env",
     "config_local.py",
     "data/",                 # live player stores — overwriting these loses data
+    "backups/",              # snapshots of those stores — same reasoning, and
+                             # the one place you look when data/ has gone wrong
     "__pycache__/",
     ".update_state.json",
     ".update_backup/",
@@ -440,7 +442,7 @@ def _apply(zf: zipfile.ZipFile, sha: str) -> tuple[int, int]:
 #   venv/.venv/…     an installed interpreter's own bytecode. Deleting
 #                    site-packages bytecode is legal but pointless and slow,
 #                    and one bad glob there is a very long reinstall.
-_PURGE_SKIP = {".git", ".update_backup", "data", "node_modules",
+_PURGE_SKIP = {".git", ".update_backup", "data", "backups", "node_modules",
                "venv", ".venv", "env", "site-packages", ".mypy_cache"}
 
 

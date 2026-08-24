@@ -27,3 +27,8 @@ data/avatar_inventory.json
 __pycache__/
 *.pyc
 *.pyo
+
+# Player-data snapshots. Never committed: this is real player data, and the
+# boot updater downloads the repo, so backups in git would be pulled onto
+# every install at every restart.
+backups/

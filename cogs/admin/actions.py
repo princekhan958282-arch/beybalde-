@@ -228,6 +228,9 @@ class Result:
     embed: Any = None
     embeds: list = field(default_factory=list)
     file: Any = None
+    # For an action whose answer is interactive rather than a line of text —
+    # restoring a backup needs a picker and a confirm, not a typed filename.
+    view: Any = None
 
     @staticmethod
     def fail(message: str) -> "Result":
@@ -1928,6 +1931,37 @@ async def _errors_clear(ctx: ActionCtx) -> Result:
     n = errorlog.count()
     errorlog.clear()
     return Result(message=f"🧹 Cleared **{n}** recorded error(s).")
+
+
+@register("backups", "Backups", "daily player-data snapshots, and restore",
+          "system")
+async def _backups(ctx: ActionCtx) -> Result:
+    """The one door to the backup system.
+
+    Returns a VIEW rather than text because the destructive half of this needs
+    a picker and a confirm — typing a filename to restore 3,400 profiles is how
+    the wrong file gets restored.
+    """
+    from cogs.snapshots.panel import SnapshotPanel
+    panel = SnapshotPanel(ctx.bot, ctx.invoker_id)
+    return Result(embed=panel.embed(), view=panel)
+
+
+@register("backup_now", "Take a backup now", "snapshot every profile right now",
+          "system")
+async def _backup_now(ctx: ActionCtx) -> Result:
+    import os
+    cog = ctx.bot.get_cog("Snapshots") if ctx.bot else None
+    if cog is None:
+        return Result.fail("The snapshot cog isn't loaded.")
+    try:
+        path = await cog.take("admin")
+    except Exception as exc:                             # noqa: BLE001
+        return Result.fail(f"Couldn't take one: `{type(exc).__name__}: {exc}`")
+    return Result(message=(f"💾 Saved `{os.path.basename(path)}` "
+                           f"({os.path.getsize(path) // 1024 or 1} KB). "
+                           f"`/admin → System → Backups` to download or "
+                           f"restore it."))
 
 
 @register("maintenance_on", "Maintenance mode ON", "refuse everyone but the owner",
