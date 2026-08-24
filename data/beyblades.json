@@ -9111,5 +9111,247 @@
         "🦅 **HORUSOOD FIELD** — five passes, no damage, nothing left standing!"
       ]
     }
+  },
+  "Artemis Roze": {
+    "id": "BB107",
+    "name": "Artemis Roze",
+    "rarity": "Mythic",
+    "type": "Defense",
+    "spin_direction": "Right",
+    "burst_height": "Low",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541405667586478120/1785516907259.png?ex=6a8d7965&is=6a8c27e5&hm=af8ba92b991c766d02af6d6160aad74399a0dacadf8a86b19197e83fe070fbb8&",
+    "description": "Each attack she survives adds another crystalline petal to her silken mantle, until she has enough to either turn them into an unbreakable ward or let them all go at once.",
+    "stats": {
+      "attack": 105,
+      "defense": 150,
+      "stamina": 120,
+      "special": 155,
+      "hp": 165
+    },
+    "ability": {
+      "name": "Prismatic Rebirth",
+      "trigger": "on_defend",
+      "description": "Every time the opponent attacks, gain a Petal Layer (max 5). Each layer grants +8% Defense and turns 5% of damage dealt into healing. Reaching 5 layers cleanses one negative status.",
+      "rules": [
+        {
+          "when": "on_defend",
+          "do": [
+            {
+              "op": "cleanse",
+              "count": 1,
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "petal_layer",
+                  "value": 4
+                },
+                {
+                  "cond": "counter_below",
+                  "name": "petal_layer",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "op": "stacking_buff",
+              "name": "petal_layer",
+              "max": 5,
+              "stat": "defense",
+              "per_stack_pct": 8
+            },
+            {
+              "op": "stack_scaled_lifesteal_pct",
+              "name": "petal_layer",
+              "per_stack": 5,
+              "bonus_in_mode": "blooming",
+              "mode_bonus": 40
+            }
+          ]
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Prismatic Rebirth",
+        "trigger": "on_defend",
+        "description": "Every time the opponent attacks, gain a Petal Layer (max 5). Each layer grants +8% Defense and turns 5% of damage dealt into healing. Reaching 5 layers cleanses one negative status.",
+        "rules": [
+          {
+            "when": "on_defend",
+            "do": [
+              {
+                "op": "cleanse",
+                "count": 1,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "petal_layer",
+                    "value": 4
+                  },
+                  {
+                    "cond": "counter_below",
+                    "name": "petal_layer",
+                    "value": 5
+                  }
+                ]
+              },
+              {
+                "op": "stacking_buff",
+                "name": "petal_layer",
+                "max": 5,
+                "stat": "defense",
+                "per_stack_pct": 8
+              },
+              {
+                "op": "stack_scaled_lifesteal_pct",
+                "name": "petal_layer",
+                "per_stack": 5,
+                "bonus_in_mode": "blooming",
+                "mode_bonus": 40
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Ribbon Entangle",
+        "trigger": "on_attack_hit",
+        "description": "When her Attack lands (2-turn cooldown): binds the target, cutting their Attack and Stamina by 30% for 2 turns. Consumes every Petal Layer for +15% damage each — except during Blooming State, where the layers are saved for the finale instead — and hits 50% harder if the target is already Bound.",
+        "rules": [
+          {
+            "when": "on_attack_hit",
+            "if": [
+              {
+                "cond": "not_on_cooldown",
+                "name": "ribbon"
+              }
+            ],
+            "do": [
+              {
+                "op": "start_cooldown",
+                "name": "ribbon",
+                "turns": 2
+              },
+              {
+                "op": "bonus_damage_pct",
+                "value": 50,
+                "_if": [
+                  {
+                    "cond": "enemy_debuffed_stat",
+                    "stat": "attack"
+                  }
+                ]
+              },
+              {
+                "op": "consume_stack_damage_pct",
+                "name": "petal_layer",
+                "per_stack": 15,
+                "_if": [
+                  {
+                    "cond": "mode_is_not",
+                    "value": "blooming"
+                  }
+                ]
+              },
+              {
+                "op": "enemy_debuff_pct",
+                "stat": "attack",
+                "value": 30,
+                "turns": 2
+              },
+              {
+                "op": "enemy_debuff_pct",
+                "stat": "stamina",
+                "value": 30,
+                "turns": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Flowering Metamorphosis",
+        "trigger": "on_special",
+        "description": "Transforms into Blooming State for 3 turns: every hit heals 40% of the damage dealt on top of her Petal Layer sustain, each opponent attack grants 2 Petal Layers instead of 1, and her own Attack hits roughly twice as hard. When Blooming State ends, every remaining Petal Layer bursts for 20% of the opponent's CURRENT hp each, then resets.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "set_mode",
+                "name": "blooming",
+                "turns": 3,
+                "revert_to": "",
+                "on_expire": [
+                  {
+                    "op": "consume_stack_burst_enemy_hp_pct",
+                    "name": "petal_layer",
+                    "per_stack": 20
+                  }
+                ]
+              },
+              {
+                "op": "stack_scaled_lifesteal_pct",
+                "name": "petal_layer",
+                "per_stack": 5,
+                "bonus_in_mode": "blooming",
+                "mode_bonus": 40
+              }
+            ]
+          },
+          {
+            "when": "on_defend",
+            "if": [
+              {
+                "cond": "mode_is",
+                "value": "blooming"
+              }
+            ],
+            "do": [
+              {
+                "op": "stacking_buff",
+                "name": "petal_layer",
+                "max": 5,
+                "stat": "defense",
+                "per_stack_pct": 8
+              },
+              {
+                "op": "stack_scaled_lifesteal_pct",
+                "name": "petal_layer",
+                "per_stack": 5,
+                "bonus_in_mode": "blooming",
+                "mode_bonus": 40
+              }
+            ]
+          },
+          {
+            "when": "on_attack_hit",
+            "if": [
+              {
+                "cond": "mode_is",
+                "value": "blooming"
+              }
+            ],
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 100
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "special_move": {
+      "name": "Flowering Metamorphosis",
+      "description": "Artemis blooms into her Blooming State, then strikes twice as ribbon and petal lash out together.",
+      "hits": 2,
+      "damage_per_hit": 85,
+      "total_damage": 170,
+      "flavour_texts": [
+        "🌸 **Flowering Metamorphosis** — crystalline petals bloom into a living gown!",
+        "🎀 **Hit 2** — ribbon and petal strike as one!"
+      ]
+    }
   }
 }
