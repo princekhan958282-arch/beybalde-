@@ -55,9 +55,15 @@ class FakeStatus:
         self.dmg_amp_stacks = {}
         self.crit_bonus = {}
 
-    def add_buff(self, key, stat, amount, rounds):
+    def add_buff(self, key, stat, amount, rounds, source=""):
+        # `source` mirrors the real StatusManager, which tags a buff so
+        # `spend_stacks` can revoke exactly what it granted without
+        # touching a part's or an avatar's bonus on the same stat.
         self.active_buffs.setdefault(key, []).append(
             {"stat": stat, "amount": amount, "rounds_left": rounds})
+
+    def clear_source(self, key, source):
+        return 0
 
     def get_buff_bonus(self, key, stat):
         return sum(b["amount"] for b in self.active_buffs.get(key, [])

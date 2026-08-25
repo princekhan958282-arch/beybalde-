@@ -345,11 +345,38 @@ class AbilityEngine:
     def _check(self, cond: dict, key: str, okey: str, move: str, matchup: str) -> bool:
         c = cond.get("cond")
         v = cond.get("value")
-        if c == "hp_below_pct":        return self._hp_pct(key)  <  float(v)
-        if c == "hp_above_pct":        return self._hp_pct(key)  >= float(v)
-        if c == "enemy_hp_below_pct":  return self._hp_pct(okey) <  float(v)
-        if c == "enemy_hp_above_pct":  return self._hp_pct(okey) >= float(v)
+        # `_hp_pct` returns a FRACTION (0.0-1.0) despite these names, and the
+        # roster authors them as fractions (0.5, 0.4286). Writing the obvious
+        # `40` for "below 40%" therefore asked "is my HP below 4000%" — always
+        # true, so the ability fired at full health and read as simply broken.
+        # Nothing errored and nothing logged. Values above 1 are meaningless as
+        # a fraction, so they can only have been meant as a percentage.
+        if c in ("hp_below_pct", "hp_above_pct",
+                 "enemy_hp_below_pct", "enemy_hp_above_pct"):
+            cut = float(v)
+            if cut > 1:
+                cut /= 100.0
+            pct = self._hp_pct(key if c.startswith("hp_") else okey)
+            return pct < cut if "below" in c else pct >= cut
         if c == "move_is":             return move == v
+        if c == "my_move_is":
+            # THIS side's own choice this round, not the phase's move.
+            #
+            # `move_is` reads whatever move the current phase is resolving,
+            # and `_fire_defensive` passes the ATTACKER's move — so a defender
+            # rule guarded by `move_is: defense` asks "did my opponent press
+            # Defense", which is not a question any defensive ability wants
+            # answered. "I chose Defense, so soften what lands on me" had no
+            # way to be expressed at all: the reduction has to happen during
+            # the attacker's phase, which is exactly the phase where `move`
+            # stops meaning ours.
+            #
+            # Falls back to the phase move when the session has no `moves`
+            # table, so the older harnesses keep working.
+            mine = getattr(self.session, "moves", None)
+            if not isinstance(mine, dict):
+                return move == v
+            return mine.get(key) == v
         if c == "incoming_move_is":
             # The same read as `move_is`, named for the defender's phase.
             #
@@ -878,15 +905,29 @@ class AbilityEngine:
 
             # ── buffs / debuffs (via StatusManager => visible in embeds) ─────
             elif kind == "buff":
-                self.st.add_buff(key, op.get("stat", "attack"), int(op.get("amount", val)),
-                                 int(op.get("turns", 2)))
-                _t   = int(op.get("turns", 2))
-                _amt = int(op.get("amount", val))
+                _stat = op.get("stat", "attack")
+                # A buff can be a PERCENTAGE of the blade's own base stat
+                # ("+20% Attack"), the same way `stacking_buff` already takes
+                # `per_stack_pct`. Without this, `{"op": "buff", "pct": 20}`
+                # fell through to `op.get("amount", val)` — val defaults to 0 —
+                # and granted +0 silently: no error, no log worth reading, an
+                # ability that simply did nothing. Percentages are how these
+                # kits are written, so the op has to speak them.
+                _pct = op.get("pct")
+                if _pct is not None:
+                    _p = float(_pct)
+                    _p = _p if _p <= 1 else _p / 100
+                    _base = (self.session.blades.get(key) or {}).get("stats") or {}
+                    _amt = int(round(float(_base.get(_stat, 0)) * _p))
+                else:
+                    _amt = int(op.get("amount", val))
+                _t = int(op.get("turns", 2))
+                self.st.add_buff(key, _stat, _amt, _t)
                 # Debuffs are real (Penta Sword Mode trades DEF and STA for
                 # ATK), so sign the number instead of always prefixing "+" —
                 # that printed "Defense +-20".
                 logs.append(f"{'📈' if _amt >= 0 else '📉'} **{ab_name}** — "
-                            f"{op.get('stat','attack').title()} {_amt:+d} "
+                            f"{_stat.title()} {_amt:+d} "
                             + ("(permanent)!" if _t >= 99 else f"for {_t} turns!"))
             elif kind == "enemy_debuff":
                 if self.debuff_immune.get(okey):
@@ -957,7 +998,11 @@ class AbilityEngine:
                         per = int(op.get("per_stack", val))
                     self.counters[(key, cname)] = cur + 1
                     if per:
-                        self.st.add_buff(key, stat, per, 99)
+                        # Tagged with the counter's own name so `spend_stacks`
+                        # can revoke exactly these and nothing else. A stack
+                        # that can be spent has to be able to be un-granted.
+                        self.st.add_buff(key, stat, per, 99,
+                                         source=f"stack:{cname}")
                     logs.append(f"🔺 **{ab_name}** — stack {cur+1}/{mx} "
                                 f"(+{per} {stat})!")
             elif kind == "stack_scaled_lifesteal_pct":
@@ -1309,6 +1354,26 @@ class AbilityEngine:
                                 f"(+{per*take} damage)!")
             elif kind == "reset_counter":
                 self.counters[(key, op.get("name", "stacks"))] = 0
+            elif kind == "spend_stacks":
+                # Cash in a `stacking_buff` counter: zero it AND take back the
+                # stat it was granting.
+                #
+                # `reset_counter` alone is not enough and the difference is
+                # invisible in the data file. `stacking_buff` grants its
+                # per-stack bonus as a permanent buff (99 rounds), so a blade
+                # that "consumes its stacks" for a bigger Special would keep
+                # every point of the stat those stacks were worth — the stacks
+                # read as spent while costing nothing at all. Aegis Valorian's
+                # Guard Stacks are the first kit where banking or burning is
+                # meant to be a real decision, and it only is if burning hurts.
+                cname = op.get("name", "stacks")
+                spent = self.counters.get((key, cname), 0)
+                self.counters[(key, cname)] = 0
+                self.st.clear_source(key, f"stack:{cname}")
+                if spent:
+                    logs.append(f"💥 **{ab_name}** — spent {spent} "
+                                f"{op.get('label', 'stack')}"
+                                f"{'s' if spent != 1 else ''}!")
             elif kind == "status_apply":            # doc alias: routes to burn/buff
                 stype = op.get("status", "burn")
                 if stype == "burn":

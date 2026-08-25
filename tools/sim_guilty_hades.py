@@ -90,8 +90,14 @@ class FakeStatus:
     def add_shield(self, key, amount):
         self.shields[key] = self.shields.get(key, 0) + amount
 
-    def add_buff(self, key, stat, amount, rounds):
+    def add_buff(self, key, stat, amount, rounds, source=""):
+        # `source` mirrors the real StatusManager, which tags a buff so
+        # `spend_stacks` can revoke exactly what it granted. A stand-in that
+        # does not accept it raises the moment stacking_buff runs.
         self.buffs.setdefault(key, []).append((stat, amount, rounds))
+
+    def clear_source(self, key, source):
+        return 0
 
     def get_buff_bonus(self, key, stat):
         return sum(a for s, a, _ in self.buffs.get(key, []) if s == stat)

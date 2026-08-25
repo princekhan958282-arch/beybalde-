@@ -9362,5 +9362,253 @@
       "glow": "#8a0f35",
       "tint": "#180810"
     }
+  },
+  "Aegis Valorian": {
+    "id": "BB108",
+    "name": "Aegis Valorian",
+    "rarity": "Ultimate",
+    "type": "Balance",
+    "spin_direction": "Right",
+    "burst_height": "Low",
+    "dual_spin": true,
+    "limited": true,
+    "available_until": "2026-01-01T00:00:00Z",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541620473287286875/Aegis_Valorian.png?ex=6a8e4172&is=6a8ceff2&hm=dc303dcad1e7e30b155785dca92336abf8adf9458a5cc384e916a82c3d74cc0d&",
+    "description": "Ancient champion's armour worn as a blade. It does not chase — it stands, and every blow it turns aside is folded into the next judgement it passes. Mount it as the even-handed Guardian, or lock it down into the Bulwark and dare the stadium to move it.",
+    "stats": {
+      "attack": 124,
+      "defense": 124,
+      "stamina": 116,
+      "special": 118,
+      "hp": 118
+    },
+    "special_move": {
+      "name": "👑 Valorian Judgment",
+      "description": "Aegis Valorian brings the full weight of its guard down in one ruling blow. Every Guard Stack it has banked is spent to make the sentence heavier.",
+      "hits": 1,
+      "damage_per_hit": 223,
+      "total_damage": 223,
+      "flavour_texts": [
+        "👑 **Valorian Judgment** — the Guardian passes sentence!",
+        "👑 **Valorian Judgment** — the guard becomes the hammer!"
+      ]
+    },
+    "ability": {
+      "name": "Royal Guard",
+      "trigger": "on_defend",
+      "description": "Choosing Defense cuts incoming damage by 15% for the turn. Every Attack it successfully blocks banks a Guard Stack (max 3), and each stack is worth +5% Defense.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reduce_damage_pct",
+              "value": 15
+            }
+          ],
+          "_name": "Royal Guard",
+          "if": [
+            {
+              "cond": "my_move_is",
+              "value": "defense"
+            }
+          ]
+        },
+        {
+          "when": "on_defense_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "guard_stack",
+              "max": 3,
+              "stat": "defense",
+              "per_stack_pct": 5
+            }
+          ],
+          "_name": "Royal Guard"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Royal Guard",
+        "trigger": "on_defend",
+        "description": "Choosing Defense cuts incoming damage by 15% for the turn. Every Attack it successfully blocks banks a Guard Stack (max 3), and each stack is worth +5% Defense.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "reduce_damage_pct",
+                "value": 15
+              }
+            ],
+            "_name": "Royal Guard",
+            "if": [
+              {
+                "cond": "my_move_is",
+                "value": "defense"
+              }
+            ]
+          },
+          {
+            "when": "on_defense_win",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "name": "guard_stack",
+                "max": 3,
+                "stat": "defense",
+                "per_stack_pct": 5
+              }
+            ],
+            "_name": "Royal Guard"
+          }
+        ]
+      },
+      {
+        "name": "Champion's Resolve",
+        "trigger": "on_low_hp",
+        "description": "Below 40% HP, Aegis Valorian steels itself: +20% Attack and 20% less stamina spent, for the rest of the battle. Once per battle.",
+        "rules": [
+          {
+            "when": "on_low_hp",
+            "once": "battle",
+            "do": [
+              {
+                "op": "buff",
+                "stat": "attack",
+                "pct": 20,
+                "turns": 99
+              },
+              {
+                "op": "stamina_cost_reduction",
+                "value": 20
+              },
+              {
+                "op": "log",
+                "text": "👑 **Champion's Resolve** — the champion refuses to fall!"
+              }
+            ],
+            "_name": "Champion's Resolve",
+            "if": [
+              {
+                "cond": "hp_below_pct",
+                "value": 0.4
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Valorian Judgment",
+        "trigger": "on_special",
+        "description": "The Special hits harder for every Guard Stack banked — 180% / 210% / 240% / 280% of Attack at 0 / 1 / 2 / 3 stacks — then spends them all, giving up the Defense they were granting.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 56,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "guard_stack",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "op": "bonus_damage_pct",
+                "value": 33,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "guard_stack",
+                    "value": 2
+                  },
+                  {
+                    "cond": "counter_below",
+                    "name": "guard_stack",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "op": "bonus_damage_pct",
+                "value": 17,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "guard_stack",
+                    "value": 1
+                  },
+                  {
+                    "cond": "counter_below",
+                    "name": "guard_stack",
+                    "value": 2
+                  }
+                ]
+              },
+              {
+                "op": "spend_stacks",
+                "name": "guard_stack",
+                "label": "Guard Stack"
+              }
+            ],
+            "_name": "Valorian Judgment"
+          }
+        ]
+      }
+    ],
+    "spin_modes": {
+      "Balance": {
+        "label": "⚖️ Guardian Form",
+        "spin_direction": "Right",
+        "type": "Balance",
+        "stats": {
+          "attack": 124,
+          "defense": 124,
+          "stamina": 116,
+          "special": 118,
+          "hp": 118
+        },
+        "special_move": {
+          "name": "👑 Valorian Judgment",
+          "description": "Aegis Valorian brings the full weight of its guard down in one ruling blow. Every Guard Stack it has banked is spent to make the sentence heavier.",
+          "hits": 1,
+          "damage_per_hit": 223,
+          "total_damage": 223,
+          "flavour_texts": [
+            "👑 **Valorian Judgment** — the Guardian passes sentence!",
+            "👑 **Valorian Judgment** — the guard becomes the hammer!"
+          ]
+        }
+      },
+      "Defense": {
+        "label": "🛡️ Bulwark Form",
+        "spin_direction": "Right",
+        "type": "Defense",
+        "stats": {
+          "attack": 100,
+          "defense": 148,
+          "stamina": 122,
+          "special": 112,
+          "hp": 126
+        },
+        "special_move": {
+          "name": "👑 Valorian Judgment",
+          "description": "Aegis Valorian brings the full weight of its guard down in one ruling blow. Every Guard Stack it has banked is spent to make the sentence heavier.",
+          "hits": 1,
+          "damage_per_hit": 180,
+          "total_damage": 180,
+          "flavour_texts": [
+            "👑 **Valorian Judgment** — the Bulwark passes sentence!",
+            "👑 **Valorian Judgment** — the guard becomes the hammer!"
+          ]
+        }
+      }
+    }
   }
 }
