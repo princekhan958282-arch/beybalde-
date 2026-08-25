@@ -443,7 +443,15 @@ class StatusManager:
         if self.silenced_turns.get(key, 0) > 0:
             self.silenced_turns[key] = 0
             return "silence"
-        negatives = [b for b in self.active_buffs.get(key, []) if b["amount"] < 0]
+        # `rounds_left >= 99` is this codebase's existing "permanent" sentinel
+        # (the `buff` op's own log line already calls it that). A permanent
+        # negative buff is a chosen trade-off baked into the blade's current
+        # form — Breaker Excalibur's Penta Sword Mode (-20 DEF/-20 STA) and
+        # Astral Shift's -15% Defense both are — not an inflicted status
+        # ailment, so "cleanse every negative status" should not be able to
+        # erase the cost of a blade's own transformation.
+        negatives = [b for b in self.active_buffs.get(key, [])
+                    if b["amount"] < 0 and b.get("rounds_left", 0) < 99]
         if negatives:
             worst = min(negatives, key=lambda b: b["amount"])
             self.active_buffs[key].remove(worst)
