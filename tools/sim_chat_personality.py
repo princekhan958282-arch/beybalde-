@@ -471,6 +471,101 @@ check("the prompt carries who they are without leaking raw scores",
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+print("\n── 9b. talking WITH it, not just AT it ───────────────────────────")
+# Before this, every addressed reply was answered from nothing — the prompt
+# carried who the player is, but not one word of what had just been said. A
+# reply to the bot's own joke got no acknowledgment that there was one. This
+# section is written to fail against that build: a second addressed message
+# must change what the THIRD prompt contains.
+
+C.put(C.K_PERSONALITY, "FRIENDLY")
+C.invalidate()
+
+convo = MEM.Conversation()
+check("a fresh (channel, user) pair has no history",
+      convo.recall(CHAN, USER) == [])
+
+e = engine()
+e.conversation = convo
+first = msg(mentions_bot=True, content="do you remember beys from 2015?")
+p1 = e.prompt_for(first, "mentioned", now=1000.0)
+check("the FIRST message in a thread carries no history — nothing has "
+      "happened yet", "Earlier in this conversation" not in p1, p1[:120])
+
+reply1 = run(e.compose(first, "mentioned", now=1000.0))
+check("composing an addressed reply records the turn",
+      convo.recall(CHAN, USER, now=1000.0) != [])
+check("...both halves of it — what they said and what it answered",
+      convo.recall(CHAN, USER, now=1000.0)
+      == [("them", first.content), ("you", reply1)],
+      convo.recall(CHAN, USER, now=1000.0))
+
+second = msg(mentions_bot=False, replies_to_bot=True, content="no way, really?")
+p2 = e.prompt_for(second, "mentioned", now=1005.0)
+check("the SECOND message's prompt carries the first exchange",
+      "Earlier in this conversation" in p2 and first.content in p2
+      and reply1 in p2, p2)
+
+check("a DIFFERENT user in the same channel never sees this thread",
+      convo.recall(CHAN, 999_999, now=1005.0) == [])
+other = msg(user_id=999_999, mentions_bot=True, content="hi")
+p_other = e.prompt_for(other, "mentioned", now=1005.0)
+check("...not even in their own prompt",
+      "Earlier in this conversation" not in p_other
+      and first.content not in p_other, p_other)
+
+check("a DIFFERENT channel for the SAME user is a different thread",
+      convo.recall(55555, USER, now=1005.0) == [])
+
+banter_msg = msg(mentions_bot=False, replies_to_bot=False, content="just vibing")
+p_banter = e.prompt_for(banter_msg, "banter", now=1005.0)
+check("unprompted banter never carries conversation history — there is no "
+      "conversation to be part of",
+      "Earlier in this conversation" not in p_banter, p_banter)
+run(e.compose(banter_msg, "banter", now=1005.0))
+check("...and composing a banter line never records one either",
+      convo.recall(CHAN, USER, now=1005.0)
+      == [("them", first.content), ("you", reply1)],
+      convo.recall(CHAN, USER, now=1005.0))
+
+check("a thread that has gone quiet for the window is treated as over",
+      convo.recall(CHAN, USER, now=1000.0 + MEM.CONVO_WINDOW + 1) == [])
+e2 = engine()
+e2.conversation = convo
+stale = msg(mentions_bot=True, content="hello again")
+p_stale = e2.prompt_for(stale, "mentioned",
+                        now=1000.0 + MEM.CONVO_WINDOW + 1)
+check("...so a prompt sent after that long a silence opens cold, not with a "
+      "conversation from an hour ago",
+      "Earlier in this conversation" not in p_stale, p_stale)
+
+c4 = MEM.Conversation()
+for i in range(MEM.CONVO_MAX_KEEP + 200):
+    c4.remember(i, USER, said="hi", replied="hey", now=1000.0)
+check("the number of distinct threads never grows without bound",
+      len(c4._threads) <= MEM.CONVO_MAX_KEEP, len(c4._threads))
+
+c3 = MEM.Conversation(turns=2)
+for i in range(6):
+    c3.remember(CHAN, USER, said=f"m{i}", replied=f"r{i}", now=2000.0 + i)
+check("history is capped at `turns` exchanges even after many more than that",
+      len(c3.recall(CHAN, USER, now=2005.0)) == 4,
+      c3.recall(CHAN, USER, now=2005.0))
+
+# Even when the transport is dead, a canned reply is still a real turn — the
+# NEXT message should know what the player was just told.
+e3 = engine()
+e3.client = _Dead()
+e3.conversation = MEM.Conversation()
+first_dead = msg(mentions_bot=True, content="are you even listening")
+canned_reply = run(e3.compose(first_dead, "mentioned", now=1000.0))
+check("a canned fallback line is recorded exactly like a generated one",
+      e3.conversation.recall(CHAN, USER, now=1000.0)
+      == [("them", first_dead.content), ("you", canned_reply)],
+      e3.conversation.recall(CHAN, USER, now=1000.0))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 print("\n── 10. it is actually wired in ──────────────────────────────────")
 # A feature only the test calls is not shipped. sim_community.py's own sweep
 # makes the same argument.
@@ -491,6 +586,13 @@ check("the exchange is written with touch=False, so chatting does not count "
       "as playing", "touch=False" in cog_src)
 check("';chat' exists so a player can opt out themselves",
       'name="chat"' in cog_src)
+
+chat_src = open(os.path.join(ROOT, "cogs/community/chat.py"),
+                encoding="utf-8").read()
+check("ChatEngine actually threads conversation memory through the prompt, "
+      "not just constructs it and never reads it back",
+      "self.conversation.recall" in chat_src
+      and "self.conversation.remember" in chat_src)
 
 check("the /server panel reaches the banter page",
       "BanterView" in panel_src and "banter_embed" in panel_src)

@@ -308,3 +308,90 @@ class Room:
     def clear(self) -> None:
         with self._lock:
             self._seen.clear()
+
+
+# ── Conversation ─────────────────────────────────────────────────────────────
+# Every addressed reply used to be answered in isolation — the prompt carried
+# who the player is, but nothing about what either side had just said. That
+# makes "chat with the bot" a series of unrelated one-liners rather than a
+# conversation: reply to its own joke and it has no idea there was one.
+#
+# In memory, per `cooldowns.py`'s own rule: losing a conversation thread to a
+# restart costs nothing a player would notice, unlike rapport. A THREAD is
+# also scoped to (channel, user) rather than to the user alone, because the
+# same two people talking in #general and in #bot-spam are not continuing one
+# conversation just because the same player is on both ends of it.
+
+CONVO_TURNS   = 3        # exchanges kept — 3 of each side, 6 lines total
+CONVO_WINDOW  = 900.0    # 15 minutes of silence ends a thread
+CONVO_MAX_KEEP = 4000    # distinct (channel, user) threads across the process
+
+
+class Conversation:
+    """A short, bounded memory of the last few things said back and forth.
+
+    Nothing here is a transcript of the whole channel — only of one player's
+    exchanges with the bot, and only the recent ones. A model handed the
+    entire channel history would be answering everyone at once; a model handed
+    nothing has no idea it already made this joke twice.
+    """
+
+    def __init__(self, turns: int = CONVO_TURNS,
+                 window: float = CONVO_WINDOW) -> None:
+        self.turns = int(turns)
+        self.window = float(window)
+        self._threads: dict = {}    # (channel_id, user_id) -> [(who, text, ts), ...]
+        self._lock = threading.Lock()
+
+    def _key(self, channel_id, user_id):
+        return (channel_id, user_id)
+
+    def recall(self, channel_id, user_id,
+              now: Optional[float] = None) -> list[tuple[str, str]]:
+        """`[(who, text), ...]` oldest first, or [] once the thread has gone
+        quiet for `window` seconds — a conversation from an hour ago is not
+        this one."""
+        ts = time.time() if now is None else now
+        key = self._key(channel_id, user_id)
+        with self._lock:
+            turns = self._threads.get(key, ())
+            if not turns or ts - turns[-1][2] > self.window:
+                return []
+            return [(who, text) for who, text, _ in turns]
+
+    def remember(self, channel_id, user_id, *, said: str, replied: str,
+                now: Optional[float] = None) -> None:
+        """Record one exchange. Mutates nothing the caller passed in.
+
+        Stale turns are dropped here rather than only at read time, so a
+        conversation that has gone quiet starts genuinely fresh instead of
+        the old thread quietly resuming the moment two entries fall back
+        inside the window by coincidence.
+        """
+        ts = time.time() if now is None else now
+        key = self._key(channel_id, user_id)
+        with self._lock:
+            turns = list(self._threads.get(key, ()))
+            if turns and ts - turns[-1][2] > self.window:
+                turns = []
+            turns.append(("them", said, ts))
+            turns.append(("you", replied, ts))
+            # 2 lines per turn (them + you), so the cap is doubled.
+            self._threads[key] = turns[-(self.turns * 2):]
+            if len(self._threads) > CONVO_MAX_KEEP:
+                # Drop the stalest half rather than growing without bound —
+                # the same trade `cooldowns.Bucket` makes, for the same
+                # reason: forgetting an idle thread is harmless.
+                by_age = sorted(self._threads.items(),
+                                key=lambda kv: kv[1][-1][2] if kv[1] else 0)
+                for stale_key, _ in by_age[:len(by_age) // 2]:
+                    self._threads.pop(stale_key, None)
+
+    def active(self, channel_id, user_id, now: Optional[float] = None) -> bool:
+        """Is there a live thread right now — used to pick the opening
+        moment ("mentioned" vs a mid-conversation reply)."""
+        return bool(self.recall(channel_id, user_id, now))
+
+    def clear(self) -> None:
+        with self._lock:
+            self._threads.clear()
