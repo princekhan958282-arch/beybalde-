@@ -33,6 +33,7 @@ from .constants import (
     GAUGE_PER_CHARGE,
 )
 from cogs.abilities.type_system import TypeModifiers
+from . import special_gate
 from .attrition import AttritionSystem
 from .stamina_manager import StaminaManager, STAMINA_MAX
 from .stability_manager import StabilityManager
@@ -120,10 +121,21 @@ class _InChannelControlPanel(discord.ui.View):
         super().__init__(timeout=BATTLE_TIMEOUT)
         self.session = session
 
+    def _special_block(self, user_id: str) -> Optional[str]:
+        """Why this player's Special is unavailable, or None if it is ready.
+
+        A sentence rather than a bool: a blade can now be locked out by a
+        second resource of its own (Kirindael's Purifier Charge), and "the
+        button did nothing" is not something a player can act on.
+        """
+        return special_gate.blocked_reason(
+            self.session, user_id, self.session.blades.get(user_id),
+            self.session.stamina_manager.gauge.get(user_id, 0),
+            SPECIAL_GAUGE_MAX)
+
     def _special_disabled(self, user_id: str) -> bool:
-        """Return True if the special gauge is not full for this player."""
-        gauge = self.session.stamina_manager.gauge.get(user_id, 0)
-        return gauge < SPECIAL_GAUGE_MAX
+        """Return True if the Special cannot be used by this player."""
+        return self._special_block(user_id) is not None
 
     async def _handle(self, interaction: discord.Interaction, move: str) -> None:
         if not self.session.is_player(interaction.user):
@@ -152,12 +164,9 @@ class _InChannelControlPanel(discord.ui.View):
     @discord.ui.button(label="🌟 SPECIAL", style=discord.ButtonStyle.secondary, row=1)
     async def btn_special(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         uid = str(interaction.user.id)
-        if self._special_disabled(uid):
-            await interaction.response.send_message(
-                f"❌ Special gauge not full! "
-                f"({self.session.stamina_manager.gauge.get(uid, 0)}/{SPECIAL_GAUGE_MAX})",
-                ephemeral=True,
-            )
+        block = self._special_block(uid)
+        if block is not None:
+            await interaction.response.send_message(block, ephemeral=True)
             return
         await self._handle(interaction, MOVE_SPECIAL)
 
@@ -768,6 +777,16 @@ class BattleSession:
             _sta_max  = sm.cap_for(key)
             sta_line  = f"`{sta_bar(sta_now, _sta_max, length=5)}` {sta_now:g}/{_sta_max:g}"
             gauge_line= f"`{gauge_bar(g_now, length=5)}` {int(g_now)}/{SPECIAL_GAUGE_MAX}"
+            # A blade with a SECOND Special resource has to show it, or the
+            # player sees a full gauge and a button that refuses to fire with
+            # no way to find out why. Appended to the gauge line rather than
+            # given a row of its own — only one blade in the roster has one,
+            # and an always-present empty row costs every other card space.
+            _extra = special_gate.progress(self, key, self.blades.get(key))
+            if _extra:
+                gauge_line += (f"\n`{'▰' * min(5, round(5 * _extra['have'] / _extra['need']))}"
+                               f"{'▱' * (5 - min(5, round(5 * _extra['have'] / _extra['need'])))}` "
+                               f"{_extra['emoji']} {_extra['have']}/{_extra['need']}")
             stab_line = f"`{stability_bar(stab_now, stab_max, length=5)}` {stab_now}/{stab_max}"
 
             # Effects: max 2 tags per row to stay narrow

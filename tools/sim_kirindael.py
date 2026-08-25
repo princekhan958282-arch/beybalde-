@@ -1,0 +1,415 @@
+#!/usr/bin/env python3
+"""
+tools/sim_kirindael.py — Kirindael, and the second Special resource.
+
+What is genuinely new here
+--------------------------
+Every other blade in the roster fires its Special on one condition: the gauge
+is full. Kirindael needs a full gauge AND 100 Purifier Charge, a resource its
+own abilities build. That is not a bigger number, it is a second gate, and it
+had to be added to every place that asks "can this side use its Special" —
+the SPECIAL button, the League opponent's move search, and the battle card
+that has to explain why a full gauge still will not fire.
+
+Three mechanics had no representation at all before this blade:
+
+  * `debuff_ward` — `debuff_immune` is a permanent on/off flag. Horn of Purity
+    is dormant, wakes on the FIRST debuff, covers for 2 rounds, pays out, and
+    goes dormant again. A boolean cannot hold that.
+  * `create_zone` — a field that stands for 8 rounds and lands 4 strikes in
+    that time. `burn` ticks every round; `timed_dmg_amps` only scales other
+    people's damage. Neither is a zone.
+  * `gain_counter` — a plain numeric resource. `stacking_buff` always steps by
+    one and grants a stat with it; Purifier Charge moves in twenties and
+    grants nothing directly.
+
+The suite drives a REAL AbilityEngine, StatusManager and DamageFilter, and
+takes the real damage resolver's word for what a clash is.
+
+Run:  python3 tools/sim_kirindael.py
+"""
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+PASS = FAIL = 0
+
+
+def check(label, cond, detail=""):
+    global PASS, FAIL
+    if cond:
+        PASS += 1
+        print(f"  ok   {label}")
+    else:
+        FAIL += 1
+        print(f"  FAIL {label}   {detail}")
+
+
+from cogs.abilities.ability_engine import AbilityEngine       # noqa: E402
+from cogs.battle import special_gate as SG                    # noqa: E402
+from cogs.battle.damage_filter import DamageFilter            # noqa: E402
+from cogs.battle.damage_rules import calc_damage, resolve_special  # noqa: E402
+from cogs.battle.status_manager import StatusManager          # noqa: E402
+from cogs.core.constants import (MOVE_ATTACK, SPECIAL_GAUGE_MAX)  # noqa: E402
+from utils.database import get_beyblade, load_beyblades       # noqa: E402
+from utils import bey_levels as BL                            # noqa: E402
+
+NAME = "Kirindael"
+K = get_beyblade(NAME)
+ALL = load_beyblades()
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PLAIN = get_beyblade("Dead Phoenix")      # a blade with no second resource
+
+
+class _Chain:
+    def resolve(self, *a, **k):
+        return []
+
+
+class _Stamina:
+    def __init__(self):
+        self.gauge = {"p": 0, "e": 0}
+        self.stamina = {"p": 15.0, "e": 15.0}
+        self.max_stamina = {"p": 15.0, "e": 15.0}
+
+
+class FakeSession:
+    def __init__(self, blade, hp=1000, ehp=1000):
+        self.blades = {"p": blade, "e": blade}
+        self.hp = {"p": hp, "e": ehp}
+        self.max_hp_per_player = {"p": 1000, "e": 1000}
+        self.max_hp = 1000
+        self.last_moves = {}
+        self.moves = {}
+        self.round = 1
+        self.status = StatusManager(self)
+        self.status_manager = self.status
+        self.chain_handler = _Chain()
+        self.stamina_manager = _Stamina()
+        self.ability = None
+
+
+def engine(blade=K, hp=1000, ehp=1000):
+    s = FakeSession(blade, hp, ehp)
+    e = AbilityEngine.__new__(AbilityEngine)
+    e.session = s
+    e.st = s.status
+    e._compiled = {}
+    e.once_fired = set()
+    e.modes = {}
+    e.counters = {}
+    e.ability_2_disabled = {}
+    e.debuff_immune = {}
+    e.primed_bonus = {}
+    e.crit_chance_bonus = {}
+    e.crit_damage_mult = {}
+    e.special_boost_flat = s.status.special_boost_flat
+    e.special_amp_stack = {}
+    e.timed_dmg_amps = []
+    e.undodgeable_turns = {}
+    e.last_hit_was_crit = False
+    e.lifesteal_pct = {}
+    e.timed_modes = []
+    e.cooldowns = {}
+    e.ward_cfg = {}
+    e.ward_turns = {}
+    e.zones = []
+    e.damage_filter = DamageFilter(s)
+    s.ability = e
+    return e, s
+
+
+def armed():
+    """An engine with Kirindael's setup rule already fired, as a battle would."""
+    e, s = engine()
+    e._fire("setup", "p", "e", K, "passive", "", 0, 0, [])
+    return e, s
+
+
+def curse(e, stat="attack", amount=20):
+    """The opponent aims a debuff at Kirindael."""
+    logs = []
+    e._run_ops({"do": [{"op": "enemy_debuff", "stat": stat,
+                        "amount": amount, "turns": 3}]},
+               "Enemy Curse", "e", "p", MOVE_ATTACK, 0, 0, logs)
+    return logs
+
+
+def charge(e):
+    return e.counters.get(("p", "purifier_charge"), 0)
+
+
+def main() -> int:
+    # ── 1. the card ─────────────────────────────────────────────────────────
+    print("\n── 1. the card matches the spec ─────────────────────────────────")
+    check("Kirindael is in the roster", K is not None)
+    check("rarity Exclusive", K["rarity"] == "Exclusive", K.get("rarity"))
+    check("Balance type", K["type"] == "Balance", K.get("type"))
+    check("Dual Spin", K["spin_direction"] == "Dual", K.get("spin_direction"))
+    check("its id is unique",
+          sum(1 for b in ALL.values() if b.get("id") == K["id"]) == 1, K["id"])
+    check("the supplied art is stored whole, query string included",
+          "1541737368514732062/IMG_1439.jpg" in K["image_url"]
+          and "hm=" in K["image_url"])
+
+    st = K["stats"]
+    check("ATK 123, DEF 103, STA 113, HP 123 exactly as supplied",
+          (st["attack"], st["defense"], st["stamina"], st["hp"])
+          == (123, 103, 113, 123), st)
+    check("those four total 462, the number on the card",
+          st["attack"] + st["defense"] + st["stamina"] + st["hp"] == 462)
+    # `special` was NOT in the supplied spec. The game requires all five and it
+    # drives Special scaling, so it is an authored assumption — checked here so
+    # it is visible rather than buried.
+    check("special is 160 — the fifth stat the spec omitted, chosen to land "
+          "the blade inside the Exclusive band",
+          st["special"] == 160, st.get("special"))
+    others = [sum(b["stats"].values()) for n, b in ALL.items()
+              if b.get("rarity") == "Exclusive" and n != NAME]
+    check("...and the resulting total sits with the other Exclusives",
+          min(others) - 30 <= sum(st.values()) <= max(others) + 10,
+          (sum(st.values()), min(others), max(others)))
+
+    at100 = BL.stats_at(K, 100, {})
+    check("no stat is pinned to the level-100 cap",
+          all(v < BL.STAT_CAP for v in at100.values()), at100)
+
+    names = [a["name"] for a in K["abilities"]]
+    check("all three abilities are on the plural list the engine reads",
+          names == ["Horn of Purity", "Spark Rush", "Lightning Purifier"],
+          names)
+    check("the singular mirrors the first of them",
+          K["ability"]["name"] == K["abilities"][0]["name"])
+    e, _ = engine()
+    check("its rules compile", len(e._rules_for(K, "p")) == 3)
+
+    # ── 2. the second Special gate ──────────────────────────────────────────
+    print("\n── 2. two resources, not one bigger number ──────────────────────")
+    check("the blade declares a second requirement",
+          SG.requirement(K) == {"counter": "purifier_charge", "value": 100,
+                                "label": "Purifier Charge", "emoji": "⚡"},
+          SG.requirement(K))
+    check("every other blade declares none", SG.requirement(PLAIN) is None)
+
+    e, s = engine()
+    check("an empty gauge is refused first, and says so",
+          "gauge" in (SG.blocked_reason(s, "p", K, 0, SPECIAL_GAUGE_MAX) or ""))
+    msg = SG.blocked_reason(s, "p", K, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX)
+    check("a FULL gauge with no charge is still refused — the second gate is "
+          "real", msg is not None, msg)
+    check("...and the refusal names the resource, so a locked button explains "
+          "itself", "Purifier Charge" in (msg or ""), msg)
+    e.counters[("p", "purifier_charge")] = 99
+    check("99 of 100 is still not enough",
+          SG.blocked_reason(s, "p", K, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX))
+    e.counters[("p", "purifier_charge")] = 100
+    check("both full unlocks it",
+          SG.ready(s, "p", K, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX))
+    check("an ordinary blade is never held back by a gate it never declared",
+          SG.ready(s, "p", PLAIN, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX))
+    check("a malformed requirement fails OPEN, not into an unusable Special",
+          SG.requirement({"special_requires": {"counter": "", "value": "x"}})
+          is None)
+
+    # ── 3. Horn of Purity ───────────────────────────────────────────────────
+    print("\n── 3. Horn of Purity — purify, bank, cover, repeat ──────────────")
+    e, s = engine()
+    check("the ward is dormant until setup runs", not e.ward_cfg)
+    e, s = armed()
+    check("setup arms it before the first debuff can arrive", bool(e.ward_cfg))
+
+    logs = curse(e)
+    check("the first debuff is purified rather than applied",
+          s.status.get_buff_bonus("p", "attack") == 0,
+          s.status.get_buff_bonus("p", "attack"))
+    check("...and it says so", any("purified" in ln for ln in logs), logs)
+    check("purifying banks +20 Purifier Charge", charge(e) == 20, charge(e))
+    check("cover stands for 2 rounds", e.ward_turns.get("p") == 2)
+
+    logs = curse(e, "defense")
+    check("a second debuff inside the window is also blocked",
+          s.status.get_buff_bonus("p", "defense") == 0)
+    check("...but does NOT pay out again — the charge cannot be farmed by "
+          "spamming debuffs", charge(e) == 20, charge(e))
+
+    t1 = e.tick_extras()
+    check("after one round the cover is still up",
+          e.ward_turns.get("p") == 1 and not any("fades" in x for x in t1))
+    t2 = e.tick_extras()
+    check("after two it lapses, and announces that it can purify again",
+          "p" not in e.ward_turns and any("purify again" in x for x in t2), t2)
+
+    curse(e)
+    check("the next debuff re-arms it and pays out again",
+          charge(e) == 40 and e.ward_turns.get("p") == 2, charge(e))
+
+    # A blade with no ward must be unaffected by any of this.
+    e2, s2 = engine(PLAIN)
+    curse(e2)
+    check("a blade with no ward still takes its debuffs normally",
+          s2.status.get_buff_bonus("p", "attack") < 0,
+          s2.status.get_buff_bonus("p", "attack"))
+
+    # ── 4. Spark Rush ───────────────────────────────────────────────────────
+    print("\n── 4. Spark Rush — the clash, because there is no clash winner ──")
+    _, _, matchup, _ = calc_damage(MOVE_ATTACK, K["stats"], K["stats"],
+                                   K, MOVE_ATTACK)
+    check("the REAL resolver calls Attack-vs-Attack a MIRROR for both sides — "
+          "no winner exists to trigger on", matchup == "mirror", matchup)
+
+    e, s = armed()
+    dmg, _, logs = e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0)
+    check("a clash sparks: +20% damage (100 -> 120)", dmg == 120, dmg)
+    check("...and banks +20 Purifier Charge", charge(e) == 20, charge(e))
+    e, s = armed()
+    e.apply("p", "e", K, K, MOVE_ATTACK, "win", 100, 0)
+    check("winning an ordinary exchange is NOT a clash and banks nothing",
+          charge(e) == 0, charge(e))
+
+    # ── 5. reaching 100 the way the blade actually does ─────────────────────
+    print("\n── 5. the two charge sources meet in the middle ─────────────────")
+    e, s = armed()
+    for _ in range(3):
+        curse(e)
+        e.tick_extras()
+        e.tick_extras()
+    check("three purifications bank 60", charge(e) == 60, charge(e))
+    for _ in range(2):
+        e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0)
+    check("two clashes finish the job at exactly 100", charge(e) == 100, charge(e))
+    check("the charge is capped and cannot overshoot",
+          (e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0),
+           charge(e) == 100)[1], charge(e))
+    s.stamina_manager.gauge["p"] = SPECIAL_GAUGE_MAX
+    check("with both resources full the Special is finally available",
+          SG.ready(s, "p", K, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX))
+
+    # ── 6. Lightning Purifier ───────────────────────────────────────────────
+    print("\n── 6. Lightning Purifier — 0 on cast, 225 over the zone ─────────")
+    hits, dph, flav, _ = resolve_special(K, K["stats"]["special"])
+    check("the cast itself is declared non-damage, so scaling cannot floor it "
+          "back up to 1", K["special_move"].get("non_damage") is True)
+    check("...and the resolver agrees it deals nothing", dph == 0, dph)
+    check("it has flavour to print", bool(flav))
+
+    e, s = armed()
+    e.counters[("p", "purifier_charge")] = 100
+    dmg, _, logs = e.apply("p", "e", K, K, "special", "win", 0, 0)
+    check("casting deals 0 damage", dmg == 0 and s.hp["e"] == 1000, s.hp["e"])
+    check("the zone opens", len(e.zones) == 1)
+    check("...for 8 rounds", e.zones[0]["turns"] == 8, e.zones[0]["turns"])
+    check("casting spends every point of Purifier Charge",
+          charge(e) == 0, charge(e))
+
+    strikes = []
+    for r in range(1, 9):
+        for ln in e.tick_extras():
+            if "strikes" in ln:
+                strikes.append(r)
+    dealt = 1000 - s.hp["e"]
+    check("the zone strikes exactly 4 times", len(strikes) == 4, strikes)
+    check("...spread across its life rather than front-loaded",
+          strikes == [2, 4, 6, 8], strikes)
+    check("...for exactly 225 total, the number on the card",
+          dealt == 225, dealt)
+    check("the zone closes when its 8 rounds are up", not e.zones)
+
+    # ── 7. the primitives on their own ──────────────────────────────────────
+    print("\n── 7. the new primitives, in isolation ──────────────────────────")
+    e, s = engine()
+    e._run_ops({"do": [{"op": "gain_counter", "name": "c", "amount": 30,
+                        "max": 50}]}, "T", "p", "e", "attack", 0, 0, [])
+    e._run_ops({"do": [{"op": "gain_counter", "name": "c", "amount": 30,
+                        "max": 50}]}, "T", "p", "e", "attack", 0, 0, [])
+    check("gain_counter accumulates and respects its cap",
+          e.counters[("p", "c")] == 50, e.counters[("p", "c")])
+    e._run_ops({"do": [{"op": "gain_counter", "name": "c", "amount": -70,
+                        "max": 50}]}, "T", "p", "e", "attack", 0, 0, [])
+    check("...and never goes negative", e.counters[("p", "c")] == 0)
+
+    e, s = engine()
+    e._run_ops({"do": [{"op": "create_zone", "turns": 3, "hits": 3,
+                        "dmg": 10, "mult": 1.0}]},
+               "Z", "p", "e", "special", 0, 0, [])
+    for _ in range(3):
+        e.tick_extras()
+    check("a zone with hits == turns strikes every round and totals right",
+          1000 - s.hp["e"] == 30, 1000 - s.hp["e"])
+
+    e, s = engine()
+    e._run_ops({"do": [{"op": "create_zone", "turns": 5, "hits": 2,
+                        "dmg": 33, "mult": 1.0}]},
+               "Z", "p", "e", "special", 0, 0, [])
+    for _ in range(5):
+        e.tick_extras()
+    check("an awkward split still sums to the stated total (2 x 33 = 66)",
+          1000 - s.hp["e"] == 66, 1000 - s.hp["e"])
+    check("...and the zone is gone afterwards", not e.zones)
+
+    # Plain permanent immunity has to keep working exactly as it did.
+    e, s = engine(PLAIN)
+    e._run_ops({"do": [{"op": "debuff_immune"}]}, "T", "p", "e",
+               "attack", 0, 0, [])
+    curse(e)
+    check("the original permanent debuff_immune is untouched by the ward",
+          s.status.get_buff_bonus("p", "attack") == 0)
+
+    # ── 8. it is actually wired in ──────────────────────────────────────────
+    print("\n── 8. every gate consults the same rule ─────────────────────────")
+    sess_src = open(os.path.join(ROOT, "cogs/battle/session.py"),
+                    encoding="utf-8").read()
+    check("the SPECIAL button asks special_gate, not its own gauge check",
+          "special_gate.blocked_reason" in sess_src
+          and "gauge < SPECIAL_GAUGE_MAX" not in sess_src)
+    check("the button surfaces the reason instead of a bare refusal",
+          "_special_block" in sess_src)
+    check("the battle card shows the second resource, so a locked Special is "
+          "explainable", "special_gate.progress" in sess_src)
+    story_src = open(os.path.join(ROOT, "cogs/story/story_ai.py"),
+                     encoding="utf-8").read()
+    check("the League opponent is held to the same gate as the player",
+          "special_gate.ready" in story_src)
+    eng_src = open(os.path.join(ROOT, "cogs/abilities/ability_engine.py"),
+                   encoding="utf-8").read()
+    for op in ("debuff_ward", "create_zone", "gain_counter"):
+        check(f'"{op}" is an op the engine dispatches',
+              f'kind == "{op}"' in eng_src)
+    # The colon matters: the docstring on _debuff_blocked quotes the old
+    # pattern to explain why it was replaced, so a bare substring search finds
+    # its own explanation and reports a bug that is not there.
+    check("all three debuff paths go through ONE ward check",
+          eng_src.count("_debuff_blocked(") >= 4
+          and "if self.debuff_immune.get(okey):" not in eng_src
+          and "not self.debuff_immune.get(okey):" not in eng_src)
+    check("zones are ticked every round, not merely created",
+          "_tick_zones()" in eng_src and "def _tick_zones" in eng_src)
+
+    blob = json.dumps(K)
+    for token in ("debuff_ward", "create_zone", "gain_counter",
+                  "special_requires", "on_attack_mirror", "reset_counter"):
+        check(f'"{token}" is used in Kirindael\'s own record',
+              f'"{token}"' in blob)
+
+    # ── 9. the roster still compiles ────────────────────────────────────────
+    print("\n── 9. the roster still compiles ─────────────────────────────────")
+    e, _ = engine()
+    broken = []
+    for n, b in ALL.items():
+        try:
+            e._rules_for(b, "p")
+        except Exception as exc:                                 # noqa: BLE001
+            broken.append((n, str(exc)[:60]))
+    check("every blade in the roster still compiles its abilities",
+          not broken, broken[:3])
+    check("no OTHER blade accidentally picked up a second Special gate",
+          [n for n, b in ALL.items() if SG.requirement(b)] == [NAME],
+          [n for n, b in ALL.items() if SG.requirement(b)])
+
+    print(f"\n{'='*66}\n  {PASS} passed, {FAIL} failed\n{'='*66}")
+    return 1 if FAIL else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

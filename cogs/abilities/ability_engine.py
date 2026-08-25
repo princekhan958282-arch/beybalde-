@@ -134,6 +134,26 @@ class AbilityEngine:
         self.extra_special_hits: dict[str, int]     = {}   # key -> bonus hits on MOVE_SPECIAL
         self.debuff_immune: dict[str, bool]         = {}   # key -> ignores enemy debuffs
 
+        # ── The debuff ward ──────────────────────────────────────────────────
+        # `debuff_immune` is a permanent on/off flag: once set, that side
+        # ignores debuffs for the rest of the battle. Kirindael's Horn of
+        # Purity is the opposite shape — it lies dormant, wakes on the FIRST
+        # debuff aimed at it, protects for a couple of rounds, pays out a
+        # resource for having done so, and then goes dormant again. A boolean
+        # cannot hold "dormant / active for N more rounds", and the payout has
+        # nowhere to hang off, so the ward gets its own two dicts.
+        self.ward_cfg:   dict[str, dict] = {}   # key -> how its ward behaves
+        self.ward_turns: dict[str, int]  = {}   # key -> rounds of cover left
+
+        # ── Zones ────────────────────────────────────────────────────────────
+        # A field that persists for N rounds and discharges a fixed number of
+        # times across that window. `timed_dmg_amps` is the closest existing
+        # thing and it only scales OTHER damage; `burn` ticks every round for
+        # its whole duration and belongs to StatusManager. Neither can express
+        # "stand for 8 rounds and land 4 strikes in that time", which is what
+        # Kirindael's Lightning Purifier is.
+        self.zones: list[dict] = []
+
         # ── Compiled rules cache: blade name -> list[(rule_id, rule)] ────────
         self._compiled: dict[str, list[tuple[int, dict]]] = {}
 
@@ -297,6 +317,58 @@ class AbilityEngine:
     # =========================================================================
     #  Condition evaluation
     # =========================================================================
+
+    def _debuff_blocked(self, key: str, ab_name: str,
+                        logs: list[str]) -> bool:
+        """Does a debuff aimed at `key` land, or is it turned away?
+
+        One answer for both mechanisms, because there were three separate
+        `if self.debuff_immune.get(okey)` checks and a fourth kind of
+        protection would otherwise have had to be added to each of them —
+        which is exactly how one debuff path ends up honouring a ward the
+        other two ignore.
+        """
+        if self.debuff_immune.get(key):
+            logs.append(f"🛡️ **{ab_name}** — enemy is immune to debuffs!")
+            return True
+
+        # getattr, not attribute access: several sim harnesses build the engine
+        # with __new__ and set only the attributes they know about, and this
+        # runs on EVERY debuff in the game. tick_extras already reads
+        # `cooldowns` and `timed_modes` this way for the same reason.
+        cfg = getattr(self, "ward_cfg", {}).get(key)
+        if not cfg:
+            return False
+
+        left = int(getattr(self, "ward_turns", {}).get(key, 0))
+        if left > 0:
+            # Already under cover. Blocked, but NOT a fresh activation — the
+            # payout is per activation, so a wall of debuffs inside one window
+            # cannot farm the resource it charges.
+            logs.append(f"✨ **{cfg['name']}** — purified! "
+                        f"(protected for {left} more round"
+                        f"{'s' if left != 1 else ''})")
+            return True
+
+        # Dormant, so this debuff is the one that wakes it.
+        self.ward_turns[key] = int(cfg.get("turns", 2))
+        logs.append(f"✨ **{cfg['name']}** — the debuff is purified! "
+                    f"Protection for {self.ward_turns[key]} rounds.")
+        counter = cfg.get("counter")
+        if counter:
+            amount = int(cfg.get("amount", 0))
+            cap = cfg.get("max")
+            cur = int(self.counters.get((key, counter), 0))
+            new_c = cur + amount
+            if cap is not None:
+                new_c = min(int(cap), new_c)
+            self.counters[(key, counter)] = new_c
+            if new_c != cur:
+                suffix = f"/{int(cap)}" if cap is not None else ""
+                logs.append(f"{cfg.get('emoji', '⚡')} **{cfg['name']}** — "
+                            f"{cfg.get('label', counter)} +{new_c - cur} "
+                            f"({new_c}{suffix})!")
+        return True
 
     def _hp_pct(self, key: str) -> float:
         max_hp = self.session.max_hp_per_player.get(key) or self.session.max_hp or 1
@@ -930,8 +1002,8 @@ class AbilityEngine:
                             f"{_stat.title()} {_amt:+d} "
                             + ("(permanent)!" if _t >= 99 else f"for {_t} turns!"))
             elif kind == "enemy_debuff":
-                if self.debuff_immune.get(okey):
-                    logs.append(f"🛡️ **{ab_name}** — enemy is immune to debuffs!")
+                if self._debuff_blocked(okey, ab_name, logs):
+                    pass
                 else:
                     self.st.add_buff(okey, op.get("stat", "attack"),
                                      -abs(int(op.get("amount", val))), int(op.get("turns", 2)))
@@ -963,8 +1035,8 @@ class AbilityEngine:
                 # of a levelled 250-defence one, so the ability would quietly
                 # weaken as the game went on. Mirrors buff_all_pct, on the
                 # other side and with the sign flipped.
-                if self.debuff_immune.get(okey):
-                    logs.append(f"🛡️ **{ab_name}** — enemy is immune to debuffs!")
+                if self._debuff_blocked(okey, ab_name, logs):
+                    pass
                 else:
                     try:
                         pct = float(val)
@@ -1330,6 +1402,72 @@ class AbilityEngine:
                         logs.append(f"🌟 **{ab_name}** — +{gained:g} Special gauge!")
                 except Exception:                        # noqa: BLE001
                     pass
+            elif kind == "create_zone":
+                # A field that stands for `turns` rounds and lands `hits`
+                # strikes spread evenly across them. Deals nothing on the
+                # round it is cast — the Special that opens it is a
+                # declaration, and the damage is what the field does while it
+                # stands.
+                turns = max(1, int(op.get("turns", 8)))
+                hits = max(1, int(op.get("hits", 4)))
+                if not hasattr(self, "zones"):
+                    self.zones = []
+                self.zones.append({
+                    "key":    key,
+                    "target": okey,
+                    "name":   op.get("label", ab_name),
+                    "turns":  turns,
+                    "left":   turns,
+                    "hits":   hits,
+                    "fired":  0,
+                    # The TOTAL is authoritative and the strikes are carved out
+                    # of it, rather than each strike being rounded on its own
+                    # and the total being whatever falls out. 4 x 45 x 1.25 is
+                    # 225; rounding 56.25 per hit and multiplying gives 224,
+                    # so the card would promise a number the zone never deals.
+                    "total":  int(round(float(op.get("dmg", 45)) * hits
+                                        * float(op.get("mult", 1.0)))),
+                    "emoji":  op.get("emoji", "🌩️"),
+                })
+                logs.append(f"{op.get('emoji', '🌩️')} **{ab_name}** — the zone "
+                            f"opens for {turns} rounds!")
+            elif kind == "debuff_ward":
+                # Arm the ward. Fired from a `setup` rule, so it is standing
+                # before the first debuff can arrive rather than needing the
+                # blade to have already been hit once to start working.
+                if not hasattr(self, "ward_cfg"):
+                    self.ward_cfg, self.ward_turns = {}, {}
+                self.ward_cfg[key] = {
+                    "name":    op.get("label", ab_name),
+                    "turns":   int(op.get("turns", 2)),
+                    "counter": op.get("counter"),
+                    "amount":  int(op.get("amount", 0) or 0),
+                    "max":     op.get("max"),
+                    "label":   op.get("counter_label", "Charge"),
+                    "emoji":   op.get("emoji", "⚡"),
+                }
+                logs.append(f"✨ **{ab_name}** — the horn stands ready.")
+            elif kind == "gain_counter":
+                # A plain numeric counter, unlike `stacking_buff` which always
+                # steps by one and grants a stat with it. Kirindael's Purifier
+                # Charge moves in twenties and grants nothing directly — it is
+                # a second Special resource — so neither existing op could
+                # express it. Capped, because a resource with no ceiling is a
+                # resource that overflows into meaninglessness.
+                cname = str(op.get("name", "counter"))
+                amount = int(op.get("amount", val) or 0)
+                cap = op.get("max")
+                cur = int(self.counters.get((key, cname), 0))
+                new_c = cur + amount
+                if cap is not None:
+                    new_c = min(int(cap), new_c)
+                new_c = max(0, new_c)
+                self.counters[(key, cname)] = new_c
+                if new_c != cur:
+                    label = op.get("label", cname.replace("_", " ").title())
+                    suffix = f"/{int(cap)}" if cap is not None else ""
+                    logs.append(f"{op.get('emoji', '✨')} **{ab_name}** — "
+                                f"{label} {new_c - cur:+d} ({new_c}{suffix})!")
             elif kind == "steal_hp":
                 take = min(int(val), max(0, self.session.hp.get(okey, 0)))
                 self.session.hp[okey] = self.session.hp.get(okey, 0) - take
@@ -1383,7 +1521,7 @@ class AbilityEngine:
                         "burn_duration": int(op.get("turns", 2)),
                         "max_burn_stacks": int(op.get("max_stacks", 3)),
                     }))
-                elif not self.debuff_immune.get(okey):
+                elif not self._debuff_blocked(okey, ab_name, logs):
                     self.st.add_buff(okey, stype, -abs(int(op.get("amount", val))),
                                      int(op.get("turns", 2)))
             elif kind == "set_mode":
@@ -1669,6 +1807,50 @@ class AbilityEngine:
         self.timed_dmg_amps = still
         return logs
 
+    def _tick_zones(self) -> list[str]:
+        """Advance every open zone one round, discharging when it is due.
+
+        The strikes are spread across the window rather than fired every
+        round: a zone that stands for 8 rounds and hits 4 times should land
+        on rounds 2, 4, 6 and 8, not exhaust itself in the first four and
+        then sit there doing nothing for the rest of its life.
+
+        Damage is applied straight to the target's HP rather than routed
+        through `apply()`. A zone tick has no attacker move, no matchup and
+        no defender phase — pushing it through the move pipeline would fire
+        every on-hit trigger in the game for something nobody swung.
+        """
+        logs: list[str] = []
+        if not getattr(self, "zones", None):
+            return logs
+
+        still: list[dict] = []
+        for z in self.zones:
+            z["left"] -= 1
+            elapsed = z["turns"] - z["left"]
+            # How many strikes SHOULD have landed by now, given how far
+            # through the window we are. Firing on the difference keeps the
+            # spacing even for any turns/hits pair without a schedule table.
+            due = (elapsed * z["hits"]) // z["turns"]
+            while z["fired"] < due:
+                before = (z["total"] * z["fired"]) // z["hits"]
+                z["fired"] += 1
+                # Carved out of the running total, so the strikes always sum
+                # to exactly `total` however awkwardly it divides.
+                dmg = (z["total"] * z["fired"]) // z["hits"] - before
+                tgt = z["target"]
+                if tgt in self.session.hp:
+                    self.session.hp[tgt] = max(0, self.session.hp[tgt] - dmg)
+                    logs.append(f"{z['emoji']} **{z['name']}** — the zone "
+                                f"strikes for {dmg}! "
+                                f"({z['fired']}/{z['hits']})")
+            if z["left"] > 0:
+                still.append(z)
+            else:
+                logs.append(f"{z['emoji']} **{z['name']}** — the zone fades.")
+        self.zones = still
+        return logs
+
     def tick_extras(self) -> list[str]:
         """Expire timed_modes (transforms) and decrement cooldowns.
 
@@ -1687,6 +1869,21 @@ class AbilityEngine:
                     cooldowns[ck] = left
                 else:
                     cooldowns.pop(ck, None)
+
+        # Purification cover running out. Announced, because the window
+        # closing is the moment the ward can trigger again — the player needs
+        # to know they are exposed and that the next debuff pays out.
+        for wk, left in list(getattr(self, "ward_turns", {}).items()):
+            left = int(left) - 1
+            if left > 0:
+                self.ward_turns[wk] = left
+            else:
+                self.ward_turns.pop(wk, None)
+                cfg = self.ward_cfg.get(wk) or {}
+                logs.append(f"✨ **{cfg.get('name', 'Ward')}** — protection "
+                            f"fades. It can purify again.")
+
+        logs.extend(self._tick_zones())
 
         if not getattr(self, "timed_modes", None):
             return logs
