@@ -178,6 +178,20 @@ def main() -> int:
     check("revival is marked used", s.status.revival_used.get("p") is True)
     check("the log announces the revival", any("REFUSES to fall" in l for l in logs), logs)
 
+    # The +25% ATK/DEF buffs must last EXACTLY 2 turns — still up after 1
+    # tick, gone after 2 (StatusManager.tick_buffs decrements rounds_left and
+    # drops the buff once it hits 0).
+    s.status.tick_buffs("p", [])
+    check("the ATK/DEF buffs are still up after 1 tick (not a 1-turn buff)",
+          s.ability._get_buf_bonus("p", "attack") > 0
+          and s.ability._get_buf_bonus("p", "defense") > 0)
+    s.status.tick_buffs("p", [])
+    check("...and gone after the 2nd tick (not a 3+-turn buff)",
+          s.ability._get_buf_bonus("p", "attack") == 0
+          and s.ability._get_buf_bonus("p", "defense") == 0,
+          (s.ability._get_buf_bonus("p", "attack"),
+           s.ability._get_buf_bonus("p", "defense")))
+
     hp_after_first = s.hp["p"]
     out2, logs2 = attack(s, dmg=hp_after_first + 500)
     check("it does NOT fire a second time on a later lethal hit",
@@ -232,6 +246,42 @@ def main() -> int:
     total2, logs2b = special(s3, "p", "e")
     check("Astral Shift does NOT fire a second time",
           sum(1 for l in logs1 + logs2b if "ascends into Astral Phoenix" in l) == 1)
+
+    # ── 4b. the transform's cost survives the blade's OWN cleanse ────────────
+    print("\n── 4b. Astral Shift's -15% Defense survives Cosmic Rebirth's cleanse ──")
+    # Order matters: Phoenix Nova used FIRST (transform, -15% DEF applied),
+    # THEN a later burst brings Cosmic Rebirth's on_would_burst — its own
+    # "cleanse every negative status" must not erase the transform's own
+    # trade-off. Caught by exactly this scenario: cleanse_one originally
+    # treated ANY negative buff as cleansable regardless of duration, so
+    # surviving a burst AFTER transforming would have silently refunded the
+    # Defense penalty for free.
+    def _permanent_def_penalty(sess):
+        """The specific permanent (rounds_left >= 99), negative Defense buff
+        entry Astral Shift granted — isolated from any OTHER Defense buff
+        (e.g. Cosmic Rebirth's own +25% for 2 turns) that might also be
+        active, since `_get_buf_bonus` sums every Defense buff together."""
+        return [b for b in sess.status.active_buffs.get("p", [])
+               if b["stat"] == "defense" and b["amount"] < 0
+               and b["rounds_left"] >= 99]
+
+    s4b = FakeSession(CP, DUMMY)
+    special(s4b, "p", "e")
+    permanent_before = _permanent_def_penalty(s4b)
+    check("the transform's -15% Defense is in place before the burst, as a "
+          "permanent (rounds_left >= 99) entry",
+          len(permanent_before) == 1, permanent_before)
+    # Plant a genuine TEMPORARY negative buff too (a stand-in for an
+    # opponent's debuff), to prove the fix is scoped to PERMANENT self-buffs
+    # and a real inflicted debuff still gets cleared.
+    s4b.status.add_buff("p", "stamina", -5, 2)
+    s4b.hp["p"] = 50
+    attack(s4b, dmg=200)
+    check("the permanent -15% Defense trade-off is UNTOUCHED by the burst's cleanse",
+          _permanent_def_penalty(s4b) == permanent_before, _permanent_def_penalty(s4b))
+    check("...while the genuine temporary debuff WAS cleansed",
+          s4b.ability._get_buf_bonus("p", "stamina") >= 0,
+          s4b.ability._get_buf_bonus("p", "stamina"))
 
     # ── 5. Phoenix Nova's own damage shape ────────────────────────────────────
     print("\n── 5. Phoenix Nova — 130% ATK, 5% pierce, +15% current HP, floor 1 ──")
