@@ -135,6 +135,7 @@ class ChatEngine:
     def __init__(self, *, client: Optional[llm.Client] = None,
                  mood: Optional[MEM.Mood] = None,
                  room: Optional[MEM.Room] = None,
+                 conversation: Optional[MEM.Conversation] = None,
                  rng=None) -> None:
         # A modest ceiling. Chat is the consumer that yields when the shared
         # free tier runs low — `gemini.Client("boss", priority=True)` is not
@@ -142,6 +143,7 @@ class ChatEngine:
         self.client = client or llm.Client("chat", hourly_budget=120)
         self.mood = mood or MEM.Mood()
         self.room = room or MEM.Room()
+        self.conversation = conversation or MEM.Conversation()
         self.rng = rng or random
         self._channel_gate = CD.Bucket(0.0)     # gap set per call from config
         self._global_gate = CD.Bucket(GLOBAL_GAP)
@@ -253,14 +255,30 @@ class ChatEngine:
         if who["level"]:
             facts.append(f"They are trainer level {who['level']}.")
 
+        # Recent back-and-forth with THIS player in THIS channel, so a reply
+        # to the bot's own line lands as a continuation rather than as a
+        # second cold open. Only addressed moments carry history — unprompted
+        # banter has no "conversation" to be part of, and folding it in would
+        # let an unrelated aside from ten minutes ago colour a fresh reply.
+        history = ""
+        if msg.addressed:
+            turns = self.conversation.recall(msg.channel_id, msg.user_id, now)
+            if turns:
+                lines = "\n".join(
+                    f"{'Them' if who_said == 'them' else 'You'}: {text[:150]}"
+                    for who_said, text in turns)
+                history = f"Earlier in this conversation:\n{lines}\n\n"
+
         return (
             f"You are Beycord, a Beyblade game bot in a Discord server.\n"
             f"Personality: {spec['voice']}.\n"
             f"Right now your mood is {self.mood.label(msg.guild_id, now)} and "
             f"the channel is {self.room.state(msg.channel_id, now)}.\n"
             f"About {msg.display_name or 'this player'}: {' '.join(facts)}\n"
+            f"{history}"
             f"They said: {msg.content[:300]}\n\n"
             f"Reply with ONE line, under {st.max_words} words, in character. "
+            f"Stay consistent with anything you already said above. "
             f"No quotation marks, no @mentions, no narration, no stage "
             f"directions. Just the line."
         )
@@ -285,24 +303,39 @@ class ChatEngine:
             log.debug("[chat] generation failed, using an authored line",
                       exc_info=True)
 
+        reply = None
         if text:
             cleaned = self.post_filter(text, name, msg.content)
             if cleaned:
-                return cleaned
+                reply = cleaned
 
-        # Authored fallback. Drawn a few times because the filter can legitimately
-        # reject a candidate — if the player happened to quote that exact line,
-        # `_echoes` fires — and a different draw usually passes.
-        for _ in range(4):
-            cleaned = self.post_filter(P.canned(name, moment, self.rng),
-                                       name, msg.content)
-            if cleaned:
-                return cleaned
+        if reply is None:
+            # Authored fallback. Drawn a few times because the filter can
+            # legitimately reject a candidate — if the player happened to
+            # quote that exact line, `_echoes` fires — and a different draw
+            # usually passes.
+            for _ in range(4):
+                cleaned = self.post_filter(P.canned(name, moment, self.rng),
+                                           name, msg.content)
+                if cleaned:
+                    reply = cleaned
+                    break
 
-        # Last resort. Deliberately NOT an unfiltered authored line: nothing
-        # leaves this method without having been through post_filter, or the
-        # filter is only load-bearing on the paths that happen to be tested.
-        return P.signature(name)
+        if reply is None:
+            # Last resort. Deliberately NOT an unfiltered authored line:
+            # nothing leaves this method without having been through
+            # post_filter, or the filter is only load-bearing on the paths
+            # that happen to be tested.
+            reply = P.signature(name)
+
+        # Recorded regardless of which path produced the line — a canned
+        # fallback is still a real turn in the conversation, and the NEXT
+        # message deserves to know what the player was just told even if the
+        # model was unreachable when it was said.
+        if msg.addressed:
+            self.conversation.remember(msg.channel_id, msg.user_id,
+                                       said=msg.content, replied=reply, now=now)
+        return reply
 
     # ── the filter ───────────────────────────────────────────────────────────
     def post_filter(self, text: str, name: Optional[str] = None,
