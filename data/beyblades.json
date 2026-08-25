@@ -9749,5 +9749,225 @@
         ]
       }
     ]
+  },
+  "Cosmic Phoenix": {
+    "id": "BB110",
+    "name": "Cosmic Phoenix",
+    "rarity": "Mythic",
+    "limited": true,
+    "available_until": "2026-01-01T00:00:00Z",
+    "owner_ids": null,
+    "type": "Balance",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541845117776695446/file_0000000050248211bcff2c4d11982a54.png?ex=6a8f12aa&is=6a8dc12a&hm=9bbfe6a819e9770f018f553024c2c3839e4468798fb5d0c8295c1ec1c9b15370&",
+    "description": "It burns out before it dies, and refuses to stay burned. What survives the ashes keeps growing — until enough cosmic fire is banked to shed the old form outright.",
+    "stats": {
+      "attack": 120,
+      "defense": 110,
+      "stamina": 118,
+      "special": 148,
+      "hp": 128
+    },
+    "special_requires": {
+      "cooldown_name": "phoenix_nova_cd",
+      "label": "Phoenix Nova",
+      "emoji": "☄️"
+    },
+    "special_move": {
+      "name": "☄️ Phoenix Nova",
+      "description": "Cosmic Phoenix releases all the cosmic energy it has stored, burning through 5% of the opponent's defense and drawing an extra 15% of their current HP into the blast. Once used, its form is set for the rest of the battle.",
+      "hits": 1,
+      "damage_per_hit": 156,
+      "total_damage": 156,
+      "pierce_defense_pct": 5,
+      "min_hit_damage": 1,
+      "flavour_texts": [
+        "☄️ **Phoenix Nova** — the cosmic fire is unleashed!",
+        "☄️ **Phoenix Nova** — every stored ember, all at once!"
+      ]
+    },
+    "ability": {
+      "name": "Cosmic Rebirth",
+      "trigger": "on_would_burst",
+      "description": "When Cosmic Phoenix would be Burst, it refuses to fall instead: 35% max HP and 6 Stamina restored, every negative status cleared, +25% Attack and +25% Defense for 2 turns, and 1 Cosmic Charge banked. Once per battle.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "revive_pct",
+              "value": 35
+            }
+          ],
+          "_name": "Cosmic Rebirth"
+        },
+        {
+          "when": "on_would_burst",
+          "once": "battle",
+          "do": [
+            {
+              "op": "gain_stamina",
+              "value": 6
+            },
+            {
+              "op": "cleanse",
+              "count": 99
+            },
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 25,
+              "turns": 2
+            },
+            {
+              "op": "buff",
+              "stat": "defense",
+              "pct": 25,
+              "turns": 2
+            },
+            {
+              "op": "gain_counter",
+              "name": "cosmic_charge",
+              "amount": 1,
+              "max": 99,
+              "label": "Cosmic Charge",
+              "emoji": "🌌"
+            },
+            {
+              "op": "log",
+              "text": "🌌 **Cosmic Rebirth** — Cosmic Phoenix REFUSES to fall!"
+            }
+          ],
+          "_name": "Cosmic Rebirth"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Cosmic Rebirth",
+        "trigger": "on_would_burst",
+        "description": "When Cosmic Phoenix would be Burst, it refuses to fall instead: 35% max HP and 6 Stamina restored, every negative status cleared, +25% Attack and +25% Defense for 2 turns, and 1 Cosmic Charge banked. Once per battle.",
+        "rules": [
+          {
+            "when": "setup",
+            "do": [
+              {
+                "op": "revive_pct",
+                "value": 35
+              }
+            ],
+            "_name": "Cosmic Rebirth"
+          },
+          {
+            "when": "on_would_burst",
+            "once": "battle",
+            "do": [
+              {
+                "op": "gain_stamina",
+                "value": 6
+              },
+              {
+                "op": "cleanse",
+                "count": 99
+              },
+              {
+                "op": "buff",
+                "stat": "attack",
+                "pct": 25,
+                "turns": 2
+              },
+              {
+                "op": "buff",
+                "stat": "defense",
+                "pct": 25,
+                "turns": 2
+              },
+              {
+                "op": "gain_counter",
+                "name": "cosmic_charge",
+                "amount": 1,
+                "max": 99,
+                "label": "Cosmic Charge",
+                "emoji": "🌌"
+              },
+              {
+                "op": "log",
+                "text": "🌌 **Cosmic Rebirth** — Cosmic Phoenix REFUSES to fall!"
+              }
+            ],
+            "_name": "Cosmic Rebirth"
+          }
+        ]
+      },
+      {
+        "name": "Phoenix Nova",
+        "trigger": "on_special",
+        "description": "Every cast draws an extra 15% of the opponent's current HP into the blast, then banks a 4-turn cooldown.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "bonus_damage_enemy_hp_pct",
+                "value": 15
+              },
+              {
+                "op": "start_cooldown",
+                "name": "phoenix_nova_cd",
+                "turns": 4
+              }
+            ],
+            "_name": "Phoenix Nova"
+          }
+        ]
+      },
+      {
+        "name": "Astral Shift",
+        "trigger": "on_special",
+        "description": "The first time Phoenix Nova is used, Cosmic Phoenix permanently becomes Astral Phoenix: Balance shifts to Attack, +30% Attack, +20% Stamina, -15% Defense. Once per battle.",
+        "rules": [
+          {
+            "when": "on_special",
+            "once": "battle",
+            "do": [
+              {
+                "op": "evolve_form",
+                "type": "Attack",
+                "name": "Astral Phoenix",
+                "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541845134537130055/file_00000000658c820787374280328d9507.png?ex=6a8f12ae&is=6a8dc12e&hm=87912cab55125c4028f4ce46649ebb6c252517c6a8298f6a31cae59c1ee8240d&"
+              },
+              {
+                "op": "buff",
+                "stat": "attack",
+                "pct": 30,
+                "turns": 99
+              },
+              {
+                "op": "buff",
+                "stat": "stamina",
+                "pct": 20,
+                "turns": 99
+              },
+              {
+                "op": "buff",
+                "stat": "defense",
+                "pct": -15,
+                "turns": 99
+              },
+              {
+                "op": "set_mode",
+                "name": "astral"
+              },
+              {
+                "op": "log",
+                "text": "🌠 **Astral Shift** — Cosmic Phoenix ascends into Astral Phoenix!"
+              }
+            ],
+            "_name": "Astral Shift"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -26,6 +26,22 @@ The counter itself lives on the AbilityEngine (`engine.counters[(key, name)]`),
 where every other ability counter already lives, so the blade's own rules fill
 it with the ordinary `gain_counter` op and nothing new has to persist it.
 
+A second, independent shape covers a plain turn-count cooldown instead of a
+resource threshold — Cosmic Phoenix's Phoenix Nova, which fires freely but
+can't be re-used for 4 rounds after it does:
+
+    "special_requires": {
+        "cooldown_name": "phoenix_nova_cd",
+        "label":         "Phoenix Nova",
+        "emoji":         "☄️"
+    }
+
+The blade's own `on_special` rule arms this with the *existing* `start_cooldown`
+op; `engine.cooldowns` is decremented every round by the *existing*
+`tick_extras()` sweep. No new state and no new decrement logic — this module
+just gained a second way to read a resource that was already there. The two
+shapes can combine (a counter AND a cooldown) or be used alone.
+
 Never raises. A session mid-teardown, an engine that hasn't been built yet, a
 malformed `special_requires` — all of them answer "no extra requirement",
 because a blade that cannot fire its Special because of a KeyError is a worse
@@ -53,14 +69,21 @@ def requirement(blade: Optional[dict]) -> Optional[dict]:
     try:
         need = int(raw.get("value") or 0)
     except (TypeError, ValueError):
+        need = 0
+    has_counter = bool(name) and need > 0
+
+    cd_name = str(raw.get("cooldown_name") or "").strip()
+    has_cooldown = bool(cd_name)
+
+    if not has_counter and not has_cooldown:
         return None
-    if not name or need <= 0:
-        return None
+    label_src = name or cd_name
     return {
-        "counter": name,
-        "value":   need,
-        "label":   str(raw.get("label") or name.replace("_", " ").title()),
-        "emoji":   str(raw.get("emoji") or "✨"),
+        "counter":       name if has_counter else "",
+        "value":         need if has_counter else 0,
+        "cooldown_name": cd_name if has_cooldown else "",
+        "label":         str(raw.get("label") or label_src.replace("_", " ").title()),
+        "emoji":         str(raw.get("emoji") or "✨"),
     }
 
 
@@ -72,11 +95,28 @@ def charge(session: Any, key: str, counter: str) -> int:
         return 0
 
 
+def cooldown_left(session: Any, key: str, cooldown_name: str) -> int:
+    """Rounds left before `cooldown_name` clears, from `engine.cooldowns`."""
+    try:
+        return int(session.ability.cooldowns.get((str(key), cooldown_name), 0))
+    except Exception:                                    # noqa: BLE001
+        return 0
+
+
 def progress(session: Any, key: str, blade: Optional[dict]) -> Optional[dict]:
-    """`{have, need, label, emoji, ready}` for display, or None if not gated."""
+    """`{have, need, label, emoji, ready}` for display, or None if not gated.
+
+    For a cooldown-style requirement `have`/`need` describe rounds remaining
+    (0/0 when off cooldown) rather than a banked resource — still enough for a
+    caller to decide whether to show a "charged" state.
+    """
     req = requirement(blade)
     if not req:
         return None
+    if req["cooldown_name"]:
+        left = cooldown_left(session, key, req["cooldown_name"])
+        return {"have": left, "need": 0, "label": req["label"],
+                "emoji": req["emoji"], "ready": left <= 0}
     have = charge(session, key, req["counter"])
     return {"have": have, "need": req["value"], "label": req["label"],
             "emoji": req["emoji"], "ready": have >= req["value"]}
@@ -92,8 +132,12 @@ def blocked_reason(session: Any, key: str, blade: Optional[dict],
     """
     if gauge < gauge_max:
         return f"❌ Special gauge not full! ({int(gauge)}/{int(gauge_max)})"
+    req = requirement(blade)
     prog = progress(session, key, blade)
     if prog and not prog["ready"]:
+        if req and req["cooldown_name"]:
+            return (f"❌ {prog['emoji']} {prog['label']} recharging! "
+                    f"({prog['have']} turn(s) left)")
         return (f"❌ {prog['emoji']} {prog['label']} not charged! "
                 f"({prog['have']}/{prog['need']})")
     return None

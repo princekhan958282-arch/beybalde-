@@ -120,6 +120,7 @@ class AbilityEngine:
         self.modes:      dict[str, str]             = {}   # key -> mode name
         self.primed_bonus: dict[str, int]           = {}   # one-shot dmg bonus
         self.revive_pool:  dict[str, int]           = {}   # key -> revive HP
+        self.revive_pool_pct: dict[str, float]      = {}   # key -> % of max HP
         self.lifesteal_pct: dict[str, float]        = {}   # key -> pct of dmg healed
         self.regen_per_turn: dict[str, int]         = {}   # key -> stamina/turn
         self.hp_regen_per_turn: dict[str, int]      = {}   # key -> hp/turn
@@ -725,6 +726,16 @@ class AbilityEngine:
                 if add > 0:
                     dmg_dealt += add
                     logs.append(f"⚡ **{ab_name}** — +{add} damage ({val}%)!")
+            elif kind == "bonus_damage_enemy_hp_pct":
+                # Unconditional sibling of `consume_stack_burst_enemy_hp_pct` —
+                # the same percent-of-opponent's-CURRENT-hp math, minus the
+                # stack-gating that op needs and a plain finisher rider doesn't.
+                pct = max(0.0, min(100.0, float(val)))
+                add = math.ceil(self.session.hp.get(okey, 0) * pct / 100)
+                if add > 0:
+                    dmg_dealt += add
+                    logs.append(f"☄️ **{ab_name}** — +{add} damage "
+                                f"({pct:g}% of enemy's current HP)!")
             elif kind == "damage_boost":
                 # Dynamic scaling:  bonus_mult = scale × ratio(based_on)
                 based = op.get("based_on", "missing_hp")
@@ -868,6 +879,12 @@ class AbilityEngine:
                 self.lifesteal_pct[key] = max(self.lifesteal_pct.get(key, 0.0), float(val))
             elif kind == "revive":
                 self.revive_pool[key] = max(self.revive_pool.get(key, 0), int(val))
+            elif kind == "revive_pct":
+                # Percentage-of-max-HP sibling of `revive` — same max-merge
+                # semantics, resolved against max HP at the moment revival
+                # actually fires (not now), so leveling mid-battle can't skew it.
+                self.revive_pool_pct[key] = max(
+                    self.revive_pool_pct.get(key, 0.0), float(val))
             elif kind == "hp_regen":
                 self.hp_regen_per_turn[key] = int(val)
             elif kind == "lose_stability":
@@ -988,7 +1005,13 @@ class AbilityEngine:
                 _pct = op.get("pct")
                 if _pct is not None:
                     _p = float(_pct)
-                    _p = _p if _p <= 1 else _p / 100
+                    # `<= 1` alone treats any negative value as "already a
+                    # fraction" (-15 <= 1 is True), so a debuff spelled as the
+                    # obvious `"pct": -15` read as -1500% instead of -15%.
+                    # Astral Shift's -15% Defense was the first blade in the
+                    # roster to write a negative `pct` at all — magnitude is
+                    # what decides "already a fraction", not sign.
+                    _p = _p if abs(_p) <= 1 else _p / 100
                     _base = (self.session.blades.get(key) or {}).get("stats") or {}
                     _amt = int(round(float(_base.get(_stat, 0)) * _p))
                 else:
@@ -1540,6 +1563,39 @@ class AbilityEngine:
                         "on_expire": op.get("on_expire") or [],
                         "ab_name": ab_name,
                     })
+            elif kind == "evolve_form":
+                # A LIVE, permanent identity change — not `set_mode`, which is
+                # only a lightweight tag for `_if: mode_is` conditions and
+                # touches nothing else. `TypeModifiers` (type_system.py) computes
+                # atk/def/sta multipliers ONCE, at construction, and session.py
+                # builds one instance per player at battle start and never
+                # rebuilds it — so mutating `blade["type"]` alone changes a
+                # string nobody reads for damage math. This mutates the blade
+                # dict every other op already reads/writes through `key`, and
+                # when `type` is part of the transform, rebuilds the cached
+                # TypeModifiers so the new multipliers are actually live from
+                # this point on.
+                bl = self.session.blades.get(key)
+                if bl is not None:
+                    new_type = op.get("type")
+                    new_name = op.get("name")
+                    new_img  = op.get("image_url")
+                    if new_name:
+                        bl["name"] = str(new_name)
+                    if new_img:
+                        bl["image_url"] = str(new_img)
+                    if new_type:
+                        bl["type"] = str(new_type)
+                        try:
+                            from cogs.abilities.type_system import TypeModifiers
+                            type_mods = getattr(self.session, "type_mods", None)
+                            if type_mods is not None:
+                                stats = (getattr(self.session, "battle_stats", None) or {}).get(key)
+                                type_mods[key] = TypeModifiers(bl, stats=stats)
+                        except Exception:                # noqa: BLE001
+                            pass
+                    logs.append(f"🌌 **{ab_name}** — {bl.get('name', '?')} "
+                                f"awakens in a new form!")
             elif kind == "queue_chain":
                 self.session.chain_handler.queue(key, op.get("steps", []))
             elif kind == "disable_ability_2":
@@ -1699,7 +1755,9 @@ class AbilityEngine:
         # Revival check — once, after the full move is projected
         if is_last_hit:
             logs.extend(self._check_revive(other_key, other_blade,
-                                           dmg_dealt + cumulative_dmg))
+                                           dmg_dealt + cumulative_dmg,
+                                           okey=mover_key, move=move,
+                                           matchup=matchup))
 
         return dmg_dealt, dmg_taken, logs
 
@@ -1732,18 +1790,31 @@ class AbilityEngine:
                                               move, matchup, dmg_dealt, dmg_taken, logs)
         return dmg_dealt, dmg_taken
 
-    def _check_revive(self, key: str, blade: dict, incoming: int) -> list[str]:
+    def _check_revive(self, key: str, blade: dict, incoming: int,
+                       okey: str = "", move: str = "",
+                       matchup: str = "") -> list[str]:
         logs: list[str] = []
         if incoming <= 0:
             return logs
-        # Revival is armed by the 'revive' op; fires when HP would hit 0.
+        # Revival is armed by the 'revive'/'revive_pct' ops; fires when HP
+        # would hit 0. Flat and percentage grants stack into one HP total.
         if self.session.hp.get(key, 0) - incoming <= 0 and not self.st.revival_used.get(key):
             hp = self.revive_pool.get(key, 0)
+            pct = self.revive_pool_pct.get(key, 0.0)
+            if pct > 0:
+                max_hp = self.session.max_hp_per_player.get(key) or self.session.max_hp or 0
+                hp += math.ceil(max_hp * pct / 100)
             if hp > 0:
                 self.st.revival_used[key] = True
                 # counteract the lethal blow: restore to `hp` after damage lands
                 self.session.hp[key] = incoming + hp
                 logs.append(f"⚡ **{blade.get('name','?')}** REFUSES to fall — revived with {hp} HP!")
+                # The rest of a revival bundle (stamina, cleanse, buffs,
+                # counters...) is ordinary DSL ops on the blade's own
+                # on_would_burst rule, run through the normal dispatcher —
+                # not more hardcoded logic here.
+                self._fire("on_would_burst", key, okey, blade, move, matchup,
+                          0, 0, logs)
         return logs
 
     def tick_dmg_amps(self) -> list[str]:

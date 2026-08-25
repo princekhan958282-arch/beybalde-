@@ -189,7 +189,8 @@ def main() -> int:
     print("\n── 2. two resources, not one bigger number ──────────────────────")
     check("the blade declares a second requirement",
           SG.requirement(K) == {"counter": "purifier_charge", "value": 100,
-                                "label": "Purifier Charge", "emoji": "⚡"},
+                                "cooldown_name": "", "label": "Purifier Charge",
+                                "emoji": "⚡"},
           SG.requirement(K))
     check("every other blade declares none", SG.requirement(PLAIN) is None)
 
@@ -403,8 +404,12 @@ def main() -> int:
             broken.append((n, str(exc)[:60]))
     check("every blade in the roster still compiles its abilities",
           not broken, broken[:3])
+    # Cosmic Phoenix deliberately reuses `special_requires` too (its
+    # cooldown-style shape rather than Kirindael's counter-threshold one) —
+    # this only needs to catch a blade picking the block up BY ACCIDENT.
     check("no OTHER blade accidentally picked up a second Special gate",
-          [n for n, b in ALL.items() if SG.requirement(b)] == [NAME],
+          set(n for n, b in ALL.items() if SG.requirement(b))
+          == {NAME, "Cosmic Phoenix"},
           [n for n, b in ALL.items() if SG.requirement(b)])
 
     print(f"\n{'='*66}\n  {PASS} passed, {FAIL} failed\n{'='*66}")

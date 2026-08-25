@@ -581,6 +581,14 @@ class AttackManager:
         # The effective special stat scales the authored damage — this is what
         # makes a Special grow with the bey's level. Absent (older sessions,
         # tests) it resolves to the printed damage exactly.
+        # Partial defense-pierce and a per-hit damage floor, both authored on
+        # `special_move` alongside `ignores_defense` — `defense_manager`'s
+        # partial-pierce path (`pierce_pct`) is bypassed for Specials entirely
+        # (see below), so a Special that only wants to shave a few percent off
+        # mitigation, rather than ignore it outright, had no way to say so.
+        _sm_block    = mblade.get("special_move") or {}
+        _pierce_pct  = max(0.0, min(100.0, float(_sm_block.get("pierce_defense_pct", 0) or 0)))
+        _min_hit_dmg = int(_sm_block.get("min_hit_damage", 0) or 0)
         _spc = getattr(self.session, "special_stats", {}).get(mkey)
         hits, per_hit, flavour, ignores_def = resolve_special(mblade, _spc)
         # Abilities can grant extra hits (e.g. a max-stack payoff). Consumed
@@ -785,7 +793,29 @@ class AttackManager:
             # defender's type bonus is not active for this matchup)
             def_sp_mod = self.session.type_mods.get(okey) if _sp_def_active else None
             if def_sp_mod and not ignores_def:
-                hit_dmg = def_sp_mod.apply_defense(hit_dmg)
+                if _pierce_pct > 0:
+                    # Partial pierce: shave the mitigation itself by the pierce
+                    # percentage rather than applying it in full — half a
+                    # pierce should cut half the mitigation, not most of it.
+                    before = hit_dmg
+                    reduction = (def_sp_mod.def_mult - 1.0) * (1.0 - _pierce_pct / 100)
+                    hit_dmg = (max(1, math.ceil(before * (1.0 - reduction)))
+                              if reduction > 0 else before)
+                    if hit_dmg != before:
+                        logs.append(
+                            f"  🗡️ **{mblade['name']}** cuts through "
+                            f"**{_pierce_pct:g}%** of {oblade['name']}'s Defense!")
+                else:
+                    hit_dmg = def_sp_mod.apply_defense(hit_dmg)
+
+            # Authored per-hit floor (`special_move.min_hit_damage`) — nothing
+            # guarantees a Special can't be reduced to 0 by passive reduction
+            # or type mitigation, and "cannot deal less than 1" is sometimes
+            # part of the design rather than an incidental floor. Opt-in and
+            # only applied when a hit was going to land at all — `non_damage`
+            # Specials (0 by design) never set this field.
+            if _min_hit_dmg > 0 and hit_dmg < _min_hit_dmg:
+                hit_dmg = _min_hit_dmg
 
             # Gauge — defender gains from taking damage; attacker does NOT gain
             # gauge from their own Special move (they just consumed the full
