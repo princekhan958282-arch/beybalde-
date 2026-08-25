@@ -22,7 +22,6 @@ from . import prefs as P
 from . import reports as R
 from . import service as SV
 from . import store as S
-from . import targeting as T
 from . import update_panel as UP
 from . import worker as W
 
@@ -318,35 +317,17 @@ class UpdateActions(discord.ui.Select):
                 ephemeral=True)
 
     async def _preview(self, interaction, draft) -> None:
-        upd = S.get_update(draft)
-        res = T.resolve(self.cog.bot, upd.get("audience") or {})
-        reach = T.reachable(self.cog.bot, res["ids"])
-        e = discord.Embed(
-            title="👁️  Preview", colour=COLOUR,
-            description=(f"**{len(res['ids']):,}** targeted · "
-                         f"**{len(reach):,}** reachable right now"))
-        e.add_field(name="Audience",
-                    value=T.describe(upd.get("audience") or {}), inline=False)
-        if res["dropped_no_beys"]:
-            # Said out loud, not swallowed: this filter removes real accounts.
-            e.add_field(
-                name="Filtered out",
-                value=(f"**{res['dropped_no_beys']:,}** of "
-                       f"{res['total_before']:,} own no blades and were "
-                       f"dropped."),
-                inline=False)
-        gap = len(res["ids"]) - len(reach)
-        if gap > 0:
-            e.add_field(
-                name="Unreachable",
-                value=(f"**{gap:,}** share no server with the bot. They stay "
-                       f"queued and will record as BLOCKED."),
-                inline=False)
-        await interaction.followup.send(
-            embeds=[e, W.build_embed(upd)], ephemeral=True)
+        # Shared with the Preview button on the compose screen itself —
+        # see update_panel.preview_embeds — so there is one implementation of
+        # what a preview actually shows, not two that can drift apart.
+        embeds = UP.preview_embeds(self.cog.bot, draft)
+        await interaction.followup.send(embeds=embeds, ephemeral=True)
 
     async def _send(self, interaction, draft) -> None:
-        stats = SV.queue(self.cog.bot, draft)
+        # Shared with the Send button on the compose screen — update_panel.py
+        # is where "queue it" lives now; this is just the phrasing for
+        # reaching it via the Select instead of the compose screen's button.
+        stats = UP.send_stats(self.cog.bot, draft)
         self.cog.wake()
         await interaction.followup.send(
             f"🚀 Queued **{stats['queued']:,}** new deliveries "

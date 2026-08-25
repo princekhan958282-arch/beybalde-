@@ -553,8 +553,15 @@ async def suite() -> None:
     draft = SV.create(event="UPDATE_RELEASED", title="Panel", body="b")
     view = UP.ComposeView(draft["update_id"])
     kinds = [type(c).__name__ for c in view.children]
-    check("the composer offers priority, audience and the no-blades toggle",
-          kinds == ["PrioritySelect", "AudienceSelect", "SkipNoBeysButton"],
+    # The bug this whole section 13 exists for: the compose screen used to
+    # offer priority/audience/no-blades and NOTHING that could send — an
+    # admin could write an update and have no button to finish with. This
+    # assertion is what a fixed panel looks like: Preview and Send are on the
+    # same screen the draft was written on, not a second, disconnected menu.
+    check("the composer offers priority, audience, the no-blades toggle, "
+          "AND a way to preview and send — not a dead end",
+          kinds == ["PrioritySelect", "AudienceSelect", "SkipNoBeysButton",
+                    "PreviewButton", "SendButton"],
           kinds)
     prefs_view = C.PrefsView(3003)
     check("the preferences view has both switches",
@@ -677,6 +684,131 @@ async def suite() -> None:
               and "channel" in act.needs, act)
     finally:
         _DB.get_report_channel, _DB.set_report_channel = _real_get, _real_set
+
+    # ── 14. the compose screen can finish what it starts ────────────────────
+    print("\n── 14. writing an update ends with a way to send it ─────────────")
+    # The reported failure, verbatim: "you can wrote down the update and
+    # everything but you can't send it there is no send button". Confirmed
+    # above (section 11) that ComposeView used to ship with exactly three
+    # controls and none of them queued anything — Send lived only on a
+    # SEPARATE menu (UpdateActions' Select) that the compose screen never
+    # linked to. This section drives the fixed compose screen's own buttons,
+    # not the Select, because the Select already worked and was never the bug.
+
+    class _Resp:
+        def __init__(self):
+            self.deferred = False
+            self.sent = None
+
+        async def defer(self, **kw):
+            self.deferred = True
+
+        async def send_message(self, *a, **kw):
+            self.sent = (a, kw)
+
+    class _Followup:
+        def __init__(self):
+            self.sent = []
+
+        async def send(self, *a, **kw):
+            self.sent.append((a, kw))
+
+    class _Interaction:
+        def __init__(self, uid):
+            self.user = type("U", (), {"id": int(uid)})()
+            self.response = _Resp()
+            self.followup = _Followup()
+
+    class _Cog:
+        """Just enough of NotificationCog for the two buttons to reach."""
+
+        def __init__(self, bot):
+            self.bot = bot
+            self.woke = False
+
+        def wake(self):
+            self.woke = True
+
+    OWNER = A.MASTER_ID
+    seed(9101, blades=1)
+    seed(9102, blades=1)
+    # Targeted at exactly these two, not T.ALL — the DB is shared across every
+    # section in this suite, so "everyone" would mean everyone seeded by
+    # every section that ran before this one, not just the two seeded here.
+    draft2 = SV.create(
+        event="UPDATE_RELEASED", title="Reachable", body="b",
+        audience={"kind": T.USERS, "ids": [9101, 9102], "skip_no_beys": False})
+
+    live_cog = _Cog(FakeClient())
+    live_view = UP.ComposeView(draft2["update_id"], live_cog)
+    send_btn = next(c for c in live_view.children
+                    if type(c).__name__ == "SendButton")
+    preview_btn = next(c for c in live_view.children
+                       if type(c).__name__ == "PreviewButton")
+
+    it_preview = _Interaction(OWNER)
+    await preview_btn.callback(it_preview)
+    check("the Preview button on the COMPOSE screen actually shows the reach",
+          it_preview.response.deferred and len(it_preview.followup.sent) == 1
+          and len(it_preview.followup.sent[0][1].get("embeds", [])) == 2,
+          it_preview.followup.sent)
+
+    it_send = _Interaction(OWNER)
+    await send_btn.callback(it_send)
+    check("the Send button on the COMPOSE screen actually queues deliveries",
+          S.counts(draft2["update_id"]).get("PENDING", 0) == 2,
+          S.counts(draft2["update_id"]))
+    check("...and wakes the worker, the same as the Select's Send action does",
+          live_cog.woke)
+    check("...and tells the admin what happened, right there",
+          it_send.followup.sent and "Queued" in it_send.followup.sent[0][0][0],
+          it_send.followup.sent)
+
+    # A non-owner reaching the button (a stale ephemeral, a copied component)
+    # must be refused exactly like every other action in this panel is.
+    it_intruder = _Interaction(424242)
+    intruder_btn = UP.SendButton(draft2["update_id"], live_cog)
+    await intruder_btn.callback(it_intruder)
+    check("a non-owner cannot send from the compose screen either",
+          it_intruder.response.sent
+          and "isn't yours" in it_intruder.response.sent[0][0],
+          it_intruder.response.sent)
+
+    # A view built with no cog (a bare test double, or a future caller that
+    # forgets to pass one) must degrade to a clear message, never a crash —
+    # `getattr(self.cog, "bot", None)` is what stands between this and an
+    # AttributeError deep inside a button click nobody can see the traceback
+    # for.
+    orphan_view = UP.ComposeView(draft2["update_id"])
+    orphan_send = next(c for c in orphan_view.children
+                       if type(c).__name__ == "SendButton")
+    it_orphan = _Interaction(OWNER)
+    await orphan_send.callback(it_orphan)
+    check("a compose screen with no cog explains itself instead of raising",
+          it_orphan.response.sent
+          and "/update" in it_orphan.response.sent[0][0], it_orphan.response.sent)
+
+    # The two Selects and the toggle must still hand `cog` forward when they
+    # rebuild the view, or three clicks in the Send button silently vanishes
+    # again — the exact shape the original bug had, just delayed.
+    prio = next(c for c in live_view.children if type(c).__name__ == "PrioritySelect")
+    check("PrioritySelect carries the cog forward so Send survives a rebuild",
+          prio.cog is live_cog)
+
+    # And the logic itself is SHARED, not copied — UpdateActions' own
+    # Preview/Send (reachable from the Select) call the exact same functions
+    # this button does, so the two surfaces cannot silently drift apart the
+    # way the compose screen and the Select already had.
+    src = open(os.path.join(ROOT, "cogs/updates/cog.py"), encoding="utf-8").read()
+    check("cog.py's Select-based Preview calls the shared implementation",
+          "UP.preview_embeds(" in src)
+    check("cog.py's Select-based Send calls the shared implementation",
+          "UP.send_stats(" in src)
+    panel_src = open(os.path.join(ROOT, "cogs/updates/update_panel.py"),
+                     encoding="utf-8").read()
+    check("update_panel.py actually defines both — the shared functions "
+          "are not just imagined by the check above",
+          "def preview_embeds(" in panel_src and "def send_stats(" in panel_src)
 
 
 if __name__ == "__main__":
