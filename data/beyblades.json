@@ -9610,5 +9610,144 @@
         }
       }
     }
+  },
+  "Kirindael": {
+    "id": "BB109",
+    "name": "Kirindael",
+    "rarity": "Exclusive",
+    "type": "Balance",
+    "spin_direction": "Dual",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541737368514732062/IMG_1439.jpg?ex=6a8eae50&is=6a8d5cd0&hm=4aff631530e2cf6be9dd2ac6eda8a48b35dbc0187c110e82e9d3c5d1c983cae0&",
+    "description": "A qilin of storm and clean light. It does not shrug off what is thrown at it — it burns the impurity out, and keeps the charge. Enough of that gathered lightning and the ground itself becomes the weapon.",
+    "stats": {
+      "attack": 123,
+      "defense": 103,
+      "stamina": 113,
+      "special": 160,
+      "hp": 123
+    },
+    "special_requires": {
+      "counter": "purifier_charge",
+      "value": 100,
+      "label": "Purifier Charge",
+      "emoji": "⚡"
+    },
+    "special_move": {
+      "name": "🌩️ Lightning Purifier",
+      "description": "Kirindael raises the horn and the air turns white. The zone stands for 8 rounds and answers 4 times.",
+      "non_damage": true,
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "zone_total_damage": 225,
+      "flavour_texts": [
+        "🌩️ **Lightning Purifier** — the zone opens; the storm takes the floor!",
+        "🌩️ **Lightning Purifier** — clean light, and nowhere to stand!"
+      ]
+    },
+    "ability": {
+      "name": "Horn of Purity",
+      "trigger": "setup",
+      "description": "The first debuff aimed at Kirindael is purified outright, and the horn's light lingers: 2 rounds of Purification Protection during which nothing else can stick. Each purification banks +20 Purifier Charge. Once the light fades, the horn can purify again.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "debuff_ward",
+              "label": "Horn of Purity",
+              "turns": 2,
+              "counter": "purifier_charge",
+              "amount": 20,
+              "max": 100,
+              "counter_label": "Purifier Charge",
+              "emoji": "⚡"
+            }
+          ],
+          "_name": "Horn of Purity"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Horn of Purity",
+        "trigger": "setup",
+        "description": "The first debuff aimed at Kirindael is purified outright, and the horn's light lingers: 2 rounds of Purification Protection during which nothing else can stick. Each purification banks +20 Purifier Charge. Once the light fades, the horn can purify again.",
+        "rules": [
+          {
+            "when": "setup",
+            "do": [
+              {
+                "op": "debuff_ward",
+                "label": "Horn of Purity",
+                "turns": 2,
+                "counter": "purifier_charge",
+                "amount": 20,
+                "max": 100,
+                "counter_label": "Purifier Charge",
+                "emoji": "⚡"
+              }
+            ],
+            "_name": "Horn of Purity"
+          }
+        ]
+      },
+      {
+        "name": "Spark Rush",
+        "trigger": "on_attack_mirror",
+        "description": "When both blades commit to Attack, Kirindael's horn discharges into the clash: bonus lightning damage and +20 Purifier Charge.",
+        "rules": [
+          {
+            "when": "on_attack_mirror",
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 20
+              },
+              {
+                "op": "gain_counter",
+                "name": "purifier_charge",
+                "amount": 20,
+                "max": 100,
+                "label": "Purifier Charge",
+                "emoji": "⚡"
+              }
+            ],
+            "_name": "Spark Rush"
+          }
+        ]
+      },
+      {
+        "name": "Lightning Purifier",
+        "trigger": "on_special",
+        "description": "Opens the Lightning Purifier Zone for 8 rounds. The cast itself deals nothing — the zone then strikes 4 times across its life for 225 total. Spends all 100 Purifier Charge.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "create_zone",
+                "label": "Lightning Purifier",
+                "turns": 8,
+                "hits": 4,
+                "dmg": 45,
+                "mult": 1.25,
+                "emoji": "🌩️"
+              },
+              {
+                "op": "reset_counter",
+                "name": "purifier_charge"
+              },
+              {
+                "op": "log",
+                "text": "🌩️ **Lightning Purifier** — the charge is spent; the storm holds."
+              }
+            ],
+            "_name": "Lightning Purifier"
+          }
+        ]
+      }
+    ]
   }
 }
