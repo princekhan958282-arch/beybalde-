@@ -199,13 +199,39 @@ class StatusManager:
     #  Buff management
     # =========================================================================
 
-    def add_buff(self, key: str, stat: str, amount: int, rounds: int) -> None:
-        """Add a timed stat buff for *key*."""
+    def add_buff(self, key: str, stat: str, amount: int, rounds: int,
+                 source: str = "") -> None:
+        """Add a timed stat buff for *key*.
+
+        `source` optionally tags where the buff came from, so it can be
+        removed later WITHOUT taking every other buff on the same stat with
+        it. `clear_buffs` is stat-wide and would strip a part's or an avatar's
+        bonus alongside the one being revoked; a spent stack must only cost
+        what the stacks themselves granted. Absent on every existing caller,
+        which is exactly the point — untagged buffs behave as they always did.
+        """
         if rounds <= 0:
             return  # Reject 0-round buffs
         self.active_buffs.setdefault(key, []).append(
-            {"stat": stat, "amount": amount, "rounds_left": rounds}
+            {"stat": stat, "amount": amount, "rounds_left": rounds,
+             "source": source}
         )
+
+    def clear_source(self, key: str, source: str) -> int:
+        """Remove every buff on *key* tagged with *source*. Returns how many.
+
+        The counterpart to `add_buff(..., source=...)`: "undo exactly what
+        that ability granted", which is what spending a stack has to mean if
+        the stack is to have cost anything.
+        """
+        if not source:
+            return 0
+        current = self.active_buffs.get(key, [])
+        kept = [b for b in current if b.get("source") != source]
+        removed = len(current) - len(kept)
+        if removed:
+            self.active_buffs[key] = kept
+        return removed
 
     def get_buff_bonus(self, key: str, stat: str) -> int:
         """Sum of all active buff amounts for *stat* on *key*."""

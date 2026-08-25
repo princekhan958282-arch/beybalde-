@@ -165,8 +165,13 @@ class FakeStatus:
     def add_shield(self, key, amount):
         self.shields[key] = self.shields.get(key, 0) + amount
 
-    def add_buff(self, key, stat, amount, rounds):
+    def add_buff(self, key, stat, amount, rounds, source=""):
+        # See the real StatusManager: `source` tags a buff so it can be
+        # revoked precisely. Accepted here so the stub keeps its signature.
         self.buffs.setdefault(key, []).append((stat, amount, rounds))
+
+    def clear_source(self, key, source):
+        return 0
 
     def get_buff_bonus(self, key, stat):
         return sum(a for st, a, _ in self.buffs.get(key, []) if st == stat)

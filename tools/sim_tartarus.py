@@ -69,9 +69,19 @@ class FakeStatus:
         self.special_boost_flat = {}
         self.pre_special_amp = {}
 
-    def add_buff(self, key, stat, amount, rounds):
+    def add_buff(self, key, stat, amount, rounds, source=""):
+        # See the real StatusManager: `source` tags a buff so it can be
+        # revoked precisely. Accepted here so the stub keeps its signature.
         self.active_buffs.setdefault(key, []).append(
-            {"stat": stat, "amount": amount, "rounds_left": rounds})
+            {"stat": stat, "amount": amount, "rounds_left": rounds,
+             "source": source})
+
+    def clear_source(self, key, source):
+        keep = [b for b in self.active_buffs.get(key, [])
+                if b.get("source") != source]
+        n = len(self.active_buffs.get(key, [])) - len(keep)
+        self.active_buffs[key] = keep
+        return n
 
     def get_buff_bonus(self, key, stat):
         return sum(b["amount"] for b in self.active_buffs.get(key, [])
