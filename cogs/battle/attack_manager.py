@@ -587,7 +587,7 @@ class AttackManager:
         # (see below), so a Special that only wants to shave a few percent off
         # mitigation, rather than ignore it outright, had no way to say so.
         _sm_block    = mblade.get("special_move") or {}
-        _pierce_pct  = max(0.0, min(100.0, float(_sm_block.get("pierce_defense_pct", 0) or 0)))
+        _static_pierce_pct = max(0.0, float(_sm_block.get("pierce_defense_pct", 0) or 0))
         _min_hit_dmg = int(_sm_block.get("min_hit_damage", 0) or 0)
         _spc = getattr(self.session, "special_stats", {}).get(mkey)
         hits, per_hit, flavour, ignores_def = resolve_special(mblade, _spc)
@@ -788,6 +788,13 @@ class AttackManager:
             # Skipped if the Special explicitly ignores defense
             if not ignores_def:
                 hit_dmg, logs = self._apply_passive_reduction(okey, oblade, hit_dmg, logs)
+
+            # Combined AFTER ability.apply() for this hit, not before the loop
+            # starts — `ability.apply()` is what runs the on_special rules, so
+            # a CONDITIONAL pierce granted by `special_pierce_pct` (e.g. "only
+            # if the enemy is below 40% HP") only exists from this point on.
+            _pierce_pct = max(0.0, min(100.0, _static_pierce_pct
+                                       + ab_eng.special_pierce_pct.pop(mkey, 0.0)))
 
             # Type defense mitigation (skipped if special pierces defense or
             # defender's type bonus is not active for this matchup)

@@ -121,6 +121,7 @@ class AbilityEngine:
         self.primed_bonus: dict[str, int]           = {}   # one-shot dmg bonus
         self.revive_pool:  dict[str, int]           = {}   # key -> revive HP
         self.revive_pool_pct: dict[str, float]      = {}   # key -> % of max HP
+        self.special_pierce_pct: dict[str, float]   = {}   # key -> one-shot % DEF pierce for the next Special hit
         self.lifesteal_pct: dict[str, float]        = {}   # key -> pct of dmg healed
         self.regen_per_turn: dict[str, int]         = {}   # key -> stamina/turn
         self.hp_regen_per_turn: dict[str, int]      = {}   # key -> hp/turn
@@ -1515,6 +1516,18 @@ class AbilityEngine:
                                 f"(+{per*take} damage)!")
             elif kind == "reset_counter":
                 self.counters[(key, op.get("name", "stacks"))] = 0
+            elif kind == "special_pierce_pct":
+                # A CONDITIONAL sibling of `special_move.pierce_defense_pct`
+                # (the static, always-on field Phoenix Nova uses). That field
+                # is read once before a Special's hit loop even starts, so it
+                # cannot express "pierce 25% of DEF, but only when the enemy
+                # is below 40% HP" — an `_if` gate on an authored field has no
+                # engine to evaluate it. This op runs through the normal
+                # `_run_ops`/`_if` pipeline during `on_special`, banks a
+                # one-shot percentage, and attack_manager's hit loop adds it
+                # to the static field's value for that hit, then consumes it.
+                self.special_pierce_pct[key] = (
+                    self.special_pierce_pct.get(key, 0.0) + float(val))
             elif kind == "spend_stacks":
                 # Cash in a `stacking_buff` counter: zero it AND take back the
                 # stat it was granting.

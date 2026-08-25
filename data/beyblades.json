@@ -9969,5 +9969,188 @@
         ]
       }
     ]
+  },
+  "Azure Drakonyx": {
+    "id": "BB111",
+    "name": "Azure Drakonyx",
+    "rarity": "Mythic",
+    "limited": true,
+    "available_until": "2026-01-01T00:00:00Z",
+    "owner_ids": null,
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541882880584843304/image0.png?ex=6a8f35d5&is=6a8de455&hm=ee3df28c3ea0babbdefe10e57c07b31fecc3ba752ebfe385f1530ab3474decd0&",
+    "description": "A wyrm of storm-blue scale that hits harder with every third strike and refuses to go down quietly — and once its prey is wounded enough, the sky itself comes down through its jaws.",
+    "stats": {
+      "attack": 150,
+      "defense": 88,
+      "stamina": 96,
+      "special": 138,
+      "hp": 118
+    },
+    "special_move": {
+      "name": "🐉 Celestial Dragon Breaker",
+      "description": "A devastating dragon strike at 180% Attack. If the opponent is already below 40% HP, it hits harder still and tears through 25% of their Defense.",
+      "hits": 1,
+      "damage_per_hit": 270,
+      "total_damage": 270,
+      "flavour_texts": [
+        "🐉 **Celestial Dragon Breaker** — the sky comes down!",
+        "🐉 **Celestial Dragon Breaker** — a wound becomes an ending!"
+      ]
+    },
+    "ability": {
+      "name": "Dragon's Rampage",
+      "trigger": "on_attack_hit",
+      "description": "Every 3rd Attack lands with +25% damage and cuts the opponent's Defense by 10% for 2 turns.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "gain_counter",
+              "name": "rampage_stack",
+              "amount": 1,
+              "max": 3,
+              "label": "Rampage",
+              "emoji": "🔺"
+            },
+            {
+              "op": "bonus_damage_pct",
+              "value": 25,
+              "_if": [
+                {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+              ]
+            },
+            {
+              "op": "enemy_debuff_pct",
+              "stat": "defense",
+              "value": 10,
+              "turns": 2,
+              "_if": [
+                {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+              ]
+            },
+            {
+              "op": "reset_counter",
+              "name": "rampage_stack",
+              "_if": [
+                {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+              ]
+            }
+          ],
+          "_name": "Dragon's Rampage"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Dragon's Rampage",
+        "trigger": "on_attack_hit",
+        "description": "Every 3rd Attack lands with +25% damage and cuts the opponent's Defense by 10% for 2 turns.",
+        "rules": [
+          {
+            "when": "on_attack_hit",
+            "do": [
+              {
+                "op": "gain_counter",
+                "name": "rampage_stack",
+                "amount": 1,
+                "max": 3,
+                "label": "Rampage",
+                "emoji": "🔺"
+              },
+              {
+                "op": "bonus_damage_pct",
+                "value": 25,
+                "_if": [
+                  {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+                ]
+              },
+              {
+                "op": "enemy_debuff_pct",
+                "stat": "defense",
+                "value": 10,
+                "turns": 2,
+                "_if": [
+                  {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+                ]
+              },
+              {
+                "op": "reset_counter",
+                "name": "rampage_stack",
+                "_if": [
+                  {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+                ]
+              }
+            ],
+            "_name": "Dragon's Rampage"
+          }
+        ]
+      },
+      {
+        "name": "Azure Rebirth",
+        "trigger": "on_low_hp",
+        "description": "Once per battle, when HP falls below 30%, restore 20% max HP, gain +15% Defense for 2 turns, and cleanse negative effects.",
+        "rules": [
+          {
+            "when": "on_low_hp",
+            "once": "battle",
+            "do": [
+              {
+                "op": "heal_pct",
+                "value": 20
+              },
+              {
+                "op": "buff",
+                "stat": "defense",
+                "pct": 15,
+                "turns": 2
+              },
+              {
+                "op": "cleanse",
+                "count": 99
+              },
+              {
+                "op": "log",
+                "text": "🔵 **Azure Rebirth** — Azure Drakonyx draws on reserves it shouldn't have!"
+              }
+            ],
+            "_name": "Azure Rebirth",
+            "if": [
+              {"cond": "hp_below_pct", "value": 0.3}
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Celestial Dragon Breaker",
+        "trigger": "on_special",
+        "description": "If the opponent is below 40% HP when this lands, it deals +30% damage and ignores 25% of their Defense.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 30,
+                "_if": [
+                  {"cond": "enemy_hp_below_pct", "value": 0.4}
+                ]
+              },
+              {
+                "op": "special_pierce_pct",
+                "value": 25,
+                "_if": [
+                  {"cond": "enemy_hp_below_pct", "value": 0.4}
+                ]
+              }
+            ],
+            "_name": "Celestial Dragon Breaker"
+          }
+        ]
+      }
+    ]
   }
 }
