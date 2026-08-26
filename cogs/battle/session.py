@@ -1165,10 +1165,22 @@ class BattleSession:
                 self._mark_finish(key, "ringout")
                 self.hp[key] = 0
 
-        # ── Tick all timed status effects (end-of-round) ──────────────────────
+        # ── Tick remaining end-of-round status effects ────────────────────────
         # Must run AFTER damage resolution so effects granted THIS round don't
         # immediately expire, but BEFORE the next panel is posted so the status
         # embed reflects the updated durations.
+        #
+        # tick_buffs / tick_silence / tick_universal are DELIBERATELY NOT
+        # called here. Each player already gets ticked exactly once per round
+        # via DamageFilter._step1_tick, reached through AbilityEngine.apply()
+        # during that player's own resolve_pair() call above (k1 as mover,
+        # then k2 as mover) — see damage_filter.py's docstring: step 1 "must
+        # run once per round", gated by is_first_hit so a multi-hit Special
+        # doesn't over-tick either. A second call here duplicated every one of
+        # those three ticks, silently halving every "N turns" buff, debuff,
+        # silence, ignore_invuln and true_damage window in the entire roster.
+        # invulnerable_turns (a separate dict from ignore_invuln_turns) has no
+        # other tick site, so decrement_invulnerable still runs here.
         st = self.status
         # Timed dmg_amp grants (Overdrive and friends). Once for the whole
         # session, not per player — the list carries its own owner key.
@@ -1181,9 +1193,6 @@ class BattleSession:
         except Exception:                                # noqa: BLE001
             pass
         for key in (k1, k2):
-            st.tick_buffs(key, round_log)       # ATK/DEF/stamina_regen buffs
-            st.tick_silence(key, round_log)     # Silence counter
-            st.tick_universal(key)              # ignore_invuln, true_damage
             st.decrement_invulnerable(key)      # Invulnerability turns
 
             # ignore_defense_turns is normally decremented inside
