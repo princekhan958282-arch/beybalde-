@@ -269,7 +269,7 @@ def apply_reset(profile: dict, avatar_id: str) -> dict:
 
 # ── Convenience for the battle path ──────────────────────────────────────────
 
-def equipped_card_level(user_id: int, profile: Optional[dict] = None) -> tuple:
+async def equipped_card_level(user_id: int, profile: Optional[dict] = None) -> tuple:
     """(avatar_id, level) for whatever this player has equipped.
 
     Never raises and never writes: a broken or absent avatar block must not
@@ -278,7 +278,7 @@ def equipped_card_level(user_id: int, profile: Optional[dict] = None) -> tuple:
     try:
         if profile is None:
             from utils.database import get_user
-            profile = get_user(user_id)
+            profile = await get_user(user_id)
         avatar_id = profile.get("equipped_avatar")
         if not avatar_id:
             return None, 1

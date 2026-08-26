@@ -442,7 +442,7 @@ print("\n── 11. the ;info form picker ────────────�
 psrc = open(os.path.join(ROOT, "cogs", "economy", "profile.py"),
             encoding="utf-8").read()
 check("`;info` attaches the picker for any two-form blade",
-      "SpinModeView(ctx.author, blade, self) if is_dual(blade)" in psrc)
+      "SpinModeView.create(ctx.author, blade, self) if is_dual(blade)" in psrc)
 check("...built from modes(blade), so it does not hardcode Right/Left",
       "for mode in modes(blade)" in psrc)
 check("...and labels each button from the blade's own data",

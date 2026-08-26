@@ -72,9 +72,9 @@ def _hp_bar(cur: int, mx: int, length: int = 14) -> str:
     return "🟥" * filled + "⬛" * (length - filled)
 
 
-def _player_attack_stat(user_id: int) -> tuple[int, str] | None:
+async def _player_attack_stat(user_id: int) -> tuple[int, str] | None:
     """Return (attack_stat_with_parts, blade_name) for the equipped blade."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     active  = profile.get("active_beyblade")
     if not active:
         return None
@@ -83,7 +83,7 @@ def _player_attack_stat(user_id: int) -> tuple[int, str] | None:
     # nothing equipped. equipped_blade() resolves copies and database blades.
     try:
         from cogs.battle.boss import boss_copy as _bcopy
-        blade, _copy = _bcopy.equipped_blade(user_id)
+        blade, _copy = await _bcopy.equipped_blade(user_id)
     except Exception:
         blade = get_beyblade(active)
     if not blade:
@@ -154,7 +154,7 @@ class RaidCog(commands.Cog, name="Boss Raid"):
             wait = int(ATTACK_COOLDOWN - (now - last))
             return await ctx.send(f"⏳ {ctx.author.mention} your blade is recovering — **{wait}s** left!")
 
-        stat = _player_attack_stat(ctx.author.id)
+        stat = await _player_attack_stat(ctx.author.id)
         if stat is None:
             return await ctx.send("❌ You need an equipped Beyblade! Use `;equip <name>`.")
         atk, blade_name = stat
@@ -191,9 +191,9 @@ class RaidCog(commands.Cog, name="Boss Raid"):
         for i, (uid, dmg) in enumerate(ranked):
             share = int(pool * (dmg / total)) + PARTICIPATION_MIN
             try:
-                prof = get_user(int(uid))
+                prof = await get_user(int(uid))
                 prof["coins"] = prof.get("coins", 0) + share
-                update_user(int(uid), prof)
+                await update_user(int(uid), prof)
             except Exception:
                 continue
             if i < 5:

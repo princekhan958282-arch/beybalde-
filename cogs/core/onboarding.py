@@ -160,13 +160,13 @@ class StarterButton(discord.ui.Button):
         # writes the profile itself, so a snapshot taken earlier would be
         # written back here and erase the blade we just granted. Same bug that
         # ate blades in redeem.grant.
-        profile = get_user(uid)
+        profile = await get_user(uid)
         profile["coins"] = profile.get("coins", 0) + STARTER_COINS
         # The flag goes down here, not in ;start, because this is the line
         # where the player actually HAS something. Setting it when the picker
         # opens would strand anyone who closed it or let it time out.
         profile[K_STARTED] = True
-        update_user(uid, profile)
+        await update_user(uid, profile)
 
         for c in view.children:
             c.disabled = True
@@ -272,7 +272,7 @@ class NextStepsView(discord.ui.View):
     async def build_embed_async(self) -> discord.Embed:
         e = self.build_embed()
         try:
-            beycoins = get_user(self.player.id).get("coins", 0)
+            beycoins = (await get_user(self.player.id)).get("coins", 0)
             casino   = await casino_wallet.get_balance(self.player.id)
             e.add_field(name="🪙 Beycoins",
                         value=f"**{beycoins:,}**", inline=True)
@@ -390,7 +390,7 @@ class OnboardingCog(commands.Cog):
     @commands.command(name="start", aliases=["begin", "newplayer", "getstarted"])
     async def start(self, ctx: commands.Context):
         """🌟 Get your starter Beyblade and learn the basics."""
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
 
         if _has_started(profile):
             casino_bal = await casino_wallet.get_balance(ctx.author.id)
@@ -453,7 +453,7 @@ class OnboardingCog(commands.Cog):
             return
         try:
             if user_exists(ctx.author.id):
-                profile = get_user(ctx.author.id)
+                profile = await get_user(ctx.author.id)
                 if _has_started(profile):
                     return
             await ctx.send(
@@ -577,7 +577,7 @@ def gate_check(bot: commands.Bot):
         try:
             if not user_exists(ctx.author.id):
                 raise NotStarted()
-            if not _has_started(get_user(ctx.author.id)):
+            if not _has_started(await get_user(ctx.author.id)):
                 raise NotStarted()
         except NotStarted:
             raise
@@ -598,7 +598,7 @@ async def has_started_id(bot: commands.Bot, user) -> bool:
     try:
         if not user_exists(user.id):
             return False
-        return _has_started(get_user(user.id))
+        return _has_started(await get_user(user.id))
     except Exception:                                    # noqa: BLE001
         return True                                      # fail open
 

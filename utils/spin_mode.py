@@ -112,7 +112,7 @@ def label(blade: Optional[dict], mode: str) -> str:
     return str(cfg.get("label") or f"{mode} Mode")
 
 
-def set_choice(player_id: int, blade_name: str, mode: str) -> str:
+async def set_choice(player_id: int, blade_name: str, mode: str) -> str:
     """Persist a mode choice. Returns the mode stored.
 
     Swallows database failures: a picker that raises is worse than one that
@@ -131,7 +131,7 @@ def set_choice(player_id: int, blade_name: str, mode: str) -> str:
 
     try:
         from utils.database import mutate_user
-        return mutate_user(int(player_id), _apply) or mode
+        return await mutate_user(int(player_id), _apply) or mode
     except Exception as exc:                             # noqa: BLE001
         log.debug("could not store spin mode for %s: %s", player_id, exc)
         return mode

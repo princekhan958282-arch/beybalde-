@@ -75,23 +75,23 @@ def get_entry(profile: dict, blade_name: str) -> dict:
     return m.get(blade_name) or {"xp": 0, "battles": 0, "wins": 0}
 
 
-def mastery_level(user_id: int, blade_name: Optional[str]) -> int:
+async def mastery_level(user_id: int, blade_name: Optional[str]) -> int:
     if not blade_name:
         return 0
     try:
-        return level_from_xp(get_entry(get_user(user_id), blade_name).get("xp", 0))
+        return level_from_xp(get_entry(await get_user(user_id), blade_name).get("xp", 0))
     except Exception:
         return 0
 
 
-def mastery_bonus(user_id: int, blade_name: Optional[str]) -> float:
+async def mastery_bonus(user_id: int, blade_name: Optional[str]) -> float:
     """Extra stat multiplier from mastery. 0.0 when the blade is unmastered."""
-    return mastery_level(user_id, blade_name) * MASTERY_BONUS_PER_LEVEL
+    return await mastery_level(user_id, blade_name) * MASTERY_BONUS_PER_LEVEL
 
 
-def award(user_id: int, blade_name: str, won: bool) -> tuple[int, int, bool]:
+async def award(user_id: int, blade_name: str, won: bool) -> tuple[int, int, bool]:
     """Grant mastery XP after a battle. Returns (old_level, new_level, leveled)."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     mastery = profile.get("mastery")
     if not isinstance(mastery, dict):
         mastery = {}
@@ -108,7 +108,7 @@ def award(user_id: int, blade_name: str, won: bool) -> tuple[int, int, bool]:
 
     mastery[blade_name] = entry
     profile["mastery"]  = mastery
-    update_user(user_id, profile)
+    await update_user(user_id, profile)
 
     new = level_from_xp(entry["xp"])
     return old, new, new > old
@@ -171,7 +171,7 @@ class MasteryCog(commands.Cog, name="Mastery"):
                 if not blade_name:
                     continue
                 uid = int(uid_str)
-                _old, new, up = award(uid, blade_name, won=(winner == uid))
+                _old, new, up = await award(uid, blade_name, won=(winner == uid))
                 if up:
                     level_ups.append((uid, blade_name, new))
 
@@ -194,7 +194,7 @@ class MasteryCog(commands.Cog, name="Mastery"):
     @commands.command(name="mastery", aliases=["bladelevel", "bl"])
     async def mastery(self, ctx: commands.Context, *, blade: str = None):
         """🔰 See how well you know your blades."""
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         data    = profile.get("mastery") or {}
 
         if not data:

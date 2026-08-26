@@ -241,11 +241,11 @@ def charge(profile: dict, key: Optional[str],
     return price
 
 
-def charge_for(player_id: int, key: Optional[str],
+async def charge_for(player_id: int, key: Optional[str],
                boss_key: Optional[str] = None) -> int:
     """`charge` under the user lock. Raises TierError if they can't pay."""
     from utils.database import mutate_user
-    return mutate_user(int(player_id),
+    return await mutate_user(int(player_id),
                        lambda prof: charge(prof, key, boss_key))
 
 

@@ -157,13 +157,13 @@ class CasinoHub(commands.Cog):
                 return await ctx.send(f"❌ Beycoins must be a multiple of {BEYCOIN_PER_EXCHANGE}. (e.g. 100, 200, 60000)")
 
             casino_gain = (amount // BEYCOIN_PER_EXCHANGE) * CASINO_PER_EXCHANGE
-            profile = database.get_user(uid)
+            profile = await database.get_user(uid)
             if profile.get("coins", 0) < amount:
                 return await ctx.send(
                     f"❌ Not enough Beycoins. Need 🪙 {amount:,} but you have 🪙 {profile.get('coins', 0):,}.")
 
             profile["coins"] -= amount
-            database.update_user(uid, profile)
+            await database.update_user(uid, profile)
             await casino_wallet.credit(uid, casino_gain)
 
             casino_bal = await casino_wallet.get_balance(uid)
@@ -187,9 +187,9 @@ class CasinoHub(commands.Cog):
             beycoin_return = beycoin_gross - tax_taken
 
             await casino_wallet.deduct(uid, amount)
-            profile = database.get_user(uid)
+            profile = await database.get_user(uid)
             profile["coins"] += beycoin_return
-            database.update_user(uid, profile)
+            await database.update_user(uid, profile)
 
             prem = await casino_premium.get_premium(uid)
             tax_label = f"Tax ({tax_rate:.0%})"

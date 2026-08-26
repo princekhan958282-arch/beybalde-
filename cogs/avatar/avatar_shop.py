@@ -343,21 +343,21 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
     # ── Storage helpers (JSON flat-file) ──────────────────────────────────────
 
-    def _get_player_coins(self, player_id: int) -> int:
+    async def _get_player_coins(self, player_id: int) -> int:
         from utils.database import get_user
-        return get_user(player_id).get("coins", 0)
+        return (await get_user(player_id)).get("coins", 0)
 
-    def _deduct_coins(self, player_id: int, amount: int) -> None:
+    async def _deduct_coins(self, player_id: int, amount: int) -> None:
         from utils.database import get_user, update_user
-        profile = get_user(player_id)
+        profile = await get_user(player_id)
         profile["coins"] = max(0, profile.get("coins", 0) - amount)
-        update_user(player_id, profile)
+        await update_user(player_id, profile)
 
-    def _add_coins(self, player_id: int, amount: int) -> None:
+    async def _add_coins(self, player_id: int, amount: int) -> None:
         from utils.database import get_user, update_user
-        profile = get_user(player_id)
+        profile = await get_user(player_id)
         profile["coins"] = profile.get("coins", 0) + amount
-        update_user(player_id, profile)
+        await update_user(player_id, profile)
 
     def _player_owns(self, player_id: int, avatar_id: str) -> bool:
         from utils.database import player_owns_avatar
@@ -371,9 +371,9 @@ class AvatarShop(commands.Cog, name="Avatar"):
         from utils.database import get_avatar_inventory
         return get_avatar_inventory(player_id)
 
-    def _get_equipped_id(self, player_id: int) -> str | None:
+    async def _get_equipped_id(self, player_id: int) -> str | None:
         from utils.database import get_equipped_avatar
-        return get_equipped_avatar(player_id)
+        return await get_equipped_avatar(player_id)
 
     # ── Pack internals ────────────────────────────────────────────────────────
 
@@ -434,7 +434,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
         if already_owned:
             rate = DUPE_REFUND_RATE.get(avatar["rarity"], 0.10)
             refund = int(pack_price * rate)
-            self._add_coins(player_id, refund)
+            await self._add_coins(player_id, refund)
             return (
                 f"{emoji} **{avatar['name']}** *({avatar['rarity']})* — "
                 f"**Duplicate!** +{refund:,} coins refunded",
@@ -453,9 +453,9 @@ class AvatarShop(commands.Cog, name="Avatar"):
     async def avatar_main(self, ctx: commands.Context) -> None:
         """Avatar system overview — quick reference for all avatar commands."""
         player_id   = ctx.author.id
-        equipped_id = self._get_equipped_id(player_id)
+        equipped_id = await self._get_equipped_id(player_id)
         owned_count = len(self._get_owned_avatar_ids(player_id))
-        coins       = self._get_player_coins(player_id)
+        coins       = await self._get_player_coins(player_id)
 
         equipped_text = "None"
         if equipped_id:
@@ -582,7 +582,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
             inline=False,
         )
 
-        coins = self._get_player_coins(ctx.author.id)
+        coins = await self._get_player_coins(ctx.author.id)
         embed.set_footer(text=f"Your balance: {coins:,} coins")
         await ctx.send(embed=embed)
 
@@ -608,13 +608,13 @@ class AvatarShop(commands.Cog, name="Avatar"):
         gate = PACK_REQUIRES.get(pack)
         if gate:
             from utils.database import get_user
-            profile = get_user(player_id)
+            profile = await get_user(player_id)
             allowed, reason = gate
             if not allowed(profile):
                 await ctx.send(reason(profile))
                 return
 
-        coins     = self._get_player_coins(player_id)
+        coins     = await self._get_player_coins(player_id)
 
         if coins < price:
             shortfall = price - coins
@@ -626,7 +626,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
             return
 
         # Deduct immediately
-        self._deduct_coins(player_id, price)
+        await self._deduct_coins(player_id, price)
 
         pool      = PACK_POOL[pack]
         guarantee = PACK_GUARANTEE[pack]
@@ -640,7 +640,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
         if not slot1 and not slot2:
             # Shouldn't happen but refund gracefully
-            self._add_coins(player_id, price)
+            await self._add_coins(player_id, price)
             await ctx.send(
                 "❌ No avatars are available in this pack's pool right now. "
                 "You have been fully refunded."
@@ -662,7 +662,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
             lines.append(f"**{label}:** {result_line}")
             total_refund += refund
 
-        remaining = self._get_player_coins(player_id)
+        remaining = await self._get_player_coins(player_id)
 
         embed = discord.Embed(
             title=f"{PACK_EMOJI[pack]} {PACK_DISPLAY[pack]} Opened!",
@@ -691,7 +691,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
             return
 
         owned_ids   = self._get_owned_avatar_ids(ctx.author.id)
-        equipped_id = self._get_equipped_id(ctx.author.id)
+        equipped_id = await self._get_equipped_id(ctx.author.id)
 
         owned    = avatar["id"] in owned_ids
         equipped = avatar["id"] == equipped_id
@@ -704,7 +704,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
                 from utils.database import get_user
                 from . import avatar_progress as AP
                 from . import avatar_skills as AS
-                prof = get_user(ctx.author.id)
+                prof = await get_user(ctx.author.id)
                 lvl = AP.card_level(prof, avatar["id"])
                 skill_lvls = AP.card_entry(prof, avatar["id"]).get("skills") or {}
                 # The standing pick, not the in-battle lock: ;ainfo is read
@@ -790,14 +790,14 @@ class AvatarShop(commands.Cog, name="Avatar"):
                 await ctx.send(f"❌ No avatar found matching `{query}`.")
             return
 
-        success, msg = avatar_engine.equip(ctx.author.id, avatar["id"])
+        success, msg = await avatar_engine.equip(ctx.author.id, avatar["id"])
         emoji = "✅" if success else "❌"
         await ctx.send(f"{emoji} {msg}")
 
     @commands.command(name="unequipavatar", aliases=["unequipa"])
     async def unequip_avatar(self, ctx: commands.Context) -> None:
         """Remove your currently equipped avatar."""
-        success, msg = avatar_engine.unequip(ctx.author.id)
+        success, msg = await avatar_engine.unequip(ctx.author.id)
         emoji = "✅" if success else "❌"
         await ctx.send(f"{emoji} {msg}")
 

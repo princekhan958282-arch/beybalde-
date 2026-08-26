@@ -179,7 +179,7 @@ def check_stamina(blades: dict) -> None:
 
 # ── HP reaching PvP ──────────────────────────────────────────────────────────
 
-def check_pvp_hp(blades: dict) -> None:
+async def check_pvp_hp(blades: dict) -> None:
     """PvP clamped the levelled HP stat back into the type band and lost it."""
     print("\n▸ bey level HP reaches PvP")
     from cogs.battle.session import _level_hp_gain, _effective_special
@@ -189,16 +189,16 @@ def check_pvp_hp(blades: dict) -> None:
     blade = blades[name]
     pools, specials = [], []
     for level in (1, 50, 100):
-        profile = get_user(SIM_UID)
+        profile = await get_user(SIM_UID)
         profile["active_beyblade"] = name
         profile["bey_progress"] = {
             name: {"xp": BL.xp_for_level(level), "ivs": {s: 0 for s in BL.STATS}}}
         profile["equipped_parts"] = []
         profile["equipped_avatar"] = None
         profile["active_copy"] = None
-        update_user(SIM_UID, profile)
-        pools.append(max_hp_for_blade(blade) + _level_hp_gain(SIM_UID, blade))
-        specials.append(_effective_special(SIM_UID, blade))
+        await update_user(SIM_UID, profile)
+        pools.append(max_hp_for_blade(blade) + await _level_hp_gain(SIM_UID, blade))
+        specials.append(await _effective_special(SIM_UID, blade))
 
     print(f"     pools {pools}   special stat {specials}")
     check("the HP pool grows with level",
@@ -213,7 +213,8 @@ def main() -> int:
     check_stat_cap(blades)
     check_special(blades)
     check_stamina(blades)
-    check_pvp_hp(blades)
+    import asyncio
+    asyncio.run(check_pvp_hp(blades))
 
     print()
     if FAILURES:

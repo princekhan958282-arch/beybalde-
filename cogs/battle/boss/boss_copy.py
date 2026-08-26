@@ -248,21 +248,21 @@ def _rank(copy: dict) -> int:
         return 0
 
 
-def all_copies(user_id: int) -> list[dict]:
+async def all_copies(user_id: int) -> list[dict]:
     """Best grade first — the SAME order ;copies renders.
 
     These used to differ: the command sorted by grade for display while
     find_copy indexed the raw storage list, so ";copy 1" opened a different
     blade than row 1 of the list. Sorting in one place removes the mismatch.
     """
-    rows = list(get_user(user_id).get("boss_copies") or [])
+    rows = list((await get_user(user_id)).get("boss_copies") or [])
     return sorted(rows, key=lambda c: (-_rank(c), -c.get("rolled_at", 0)))
 
 
 MAX_COPIES = 200
 
 
-def add_copy(user_id: int, copy: dict) -> None:
+async def add_copy(user_id: int, copy: dict) -> None:
     """Store a rolled copy, trimming the WORST when over the cap.
 
     The cap used to be a plain copies[-200:], which drops the oldest. A player
@@ -270,7 +270,7 @@ def add_copy(user_id: int, copy: dict) -> None:
     simply by winning more fights. Now the lowest grade goes first, oldest
     within that grade, so anything rare survives no matter how much you farm.
     """
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     copies = list(profile.get("boss_copies") or [])
     copies.append(copy)
 
@@ -280,12 +280,12 @@ def add_copy(user_id: int, copy: dict) -> None:
         copies = copies[:MAX_COPIES]
 
     profile["boss_copies"] = copies
-    update_user(user_id, profile)
+    await update_user(user_id, profile)
 
 
-def find_copy(user_id: int, ref: str) -> Optional[dict]:
+async def find_copy(user_id: int, ref: str) -> Optional[dict]:
     """Match by short id or by 1-based index as shown in ;copies."""
-    copies = all_copies(user_id)
+    copies = await all_copies(user_id)
     ref = (ref or "").strip().lower()
     if not ref:
         return None
@@ -404,9 +404,9 @@ def _copy_theme(copy: dict, profile_src: dict) -> dict:
 # instance; active_copy empty -> active_beyblade names a database blade. Use
 # equipped_blade() rather than reading either field directly.
 
-def remove_copy(user_id: int, copy_id: str) -> Optional[dict]:
+async def remove_copy(user_id: int, copy_id: str) -> Optional[dict]:
     """Delete one copy by id. Returns the removed instance, or None."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     copies  = list(profile.get("boss_copies") or [])
     for i, c in enumerate(copies):
         if str(c.get("id", "")).lower() == str(copy_id).lower():
@@ -418,14 +418,14 @@ def remove_copy(user_id: int, copy_id: str) -> Optional[dict]:
             if str(profile.get("active_copy") or "").lower() == str(copy_id).lower():
                 profile["active_copy"] = None
                 profile["active_beyblade"] = None
-            update_user(user_id, profile)
+            await update_user(user_id, profile)
             return gone
     return None
 
 
-def equipped_copy(user_id: int) -> Optional[dict]:
+async def equipped_copy(user_id: int) -> Optional[dict]:
     """The copy instance the player currently has equipped, if any."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     cid = profile.get("active_copy")
     if not cid:
         return None
@@ -435,28 +435,28 @@ def equipped_copy(user_id: int) -> Optional[dict]:
     return None
 
 
-def equip(user_id: int, copy_id: str) -> Optional[dict]:
+async def equip(user_id: int, copy_id: str) -> Optional[dict]:
     """Equip a copy by id. Returns the instance, or None if they don't own it."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     for c in (profile.get("boss_copies") or []):
         if str(c.get("id", "")).lower() == str(copy_id).lower():
             profile["active_copy"] = c["id"]
             profile["active_beyblade"] = c["name"]
-            update_user(user_id, profile)
+            await update_user(user_id, profile)
             return c
     return None
 
 
-def unequip(user_id: int) -> None:
+async def unequip(user_id: int) -> None:
     """Drop the equipped copy without touching a database blade selection."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     if profile.get("active_copy"):
         profile["active_copy"] = None
         profile["active_beyblade"] = None
-        update_user(user_id, profile)
+        await update_user(user_id, profile)
 
 
-def has_equipped_blade(user_id: int) -> bool:
+async def has_equipped_blade(user_id: int) -> bool:
     """Does this player have anything to fight with?
 
     Asks `equipped_blade` — the function that actually decides what they fight
@@ -467,19 +467,19 @@ def has_equipped_blade(user_id: int) -> bool:
     handed back their copy. Story and PvP both refused them.
     """
     try:
-        return equipped_blade(user_id)[0] is not None
+        return (await equipped_blade(user_id))[0] is not None
     except Exception:                                    # noqa: BLE001
         return False
 
 
-def equipped_blade(user_id: int) -> tuple[Optional[dict], Optional[dict]]:
+async def equipped_blade(user_id: int) -> tuple[Optional[dict], Optional[dict]]:
     """The blade dict every battle path should fight with, plus its instance.
 
     Returns (blade, copy). `copy` is None for an ordinary database blade, so a
     caller that doesn't care about copies can ignore the second value entirely.
     """
     from utils.database import get_beyblade
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     cid = profile.get("active_copy")
     if cid:
         for c in (profile.get("boss_copies") or []):

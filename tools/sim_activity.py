@@ -393,10 +393,21 @@ check("...at every boundary, not just one",
 # v1.23 (+2% per 10 levels, capped at +20%); unbounded, `(level // 10) * 0.02`
 # at a 9,999 cap is +1998%, and one player would end every battle in the game
 # on the first hit. The cap is gone because the bonus is gone.
-DB.get_user = lambda uid: {"level": uid}
+import asyncio                                            # noqa: E402
+
+
+async def _fake_get_user_level(uid):
+    return {"level": uid}
+DB.get_user = _fake_get_user_level
+
+
+async def _stat_multipliers():
+    return [await DB.get_stat_multiplier(lv) for lv in (1, 10, 50, 100, 9999)]
+
+
+_mults = asyncio.run(_stat_multipliers())
 check("trainer level no longer multiplies any stat, at any level",
-      all(DB.get_stat_multiplier(lv) == 1.0 for lv in (1, 10, 50, 100, 9999)),
-      [DB.get_stat_multiplier(lv) for lv in (1, 10, 50, 100, 9999)])
+      all(m == 1.0 for m in _mults), _mults)
 check("...and the two constants that drove it are gone, not zeroed",
       not hasattr(DB, "STAT_BONUS_PER_10") and not hasattr(DB, "STAT_BONUS_MAX"))
 check("the level cap is therefore free to be anything",

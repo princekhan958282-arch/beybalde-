@@ -19,6 +19,7 @@ with no way out. That is tested at every tab and filter combination.
 
 Run:  python3 tools/sim_inventory_ui.py
 """
+import asyncio
 import os
 import random
 import sys
@@ -77,17 +78,21 @@ def install(uid, n_beys, n_parts=0, n_listed=0, bought=0):
         from cogs.economy.shop import PARTS_CATALOG
         prof["parts"] = [PARTS_CATALOG[i % len(PARTS_CATALOG)]["name"]
                          for i in range(n_parts)]
-    UI.get_user = lambda _uid, _p=prof: _p
+    async def _fake_get_user(_uid, _p=prof):
+        return _p
+    async def _fake_get_equipped_avatar(_uid):
+        return None
+    UI.get_user = _fake_get_user
     DB.get_avatar_inventory = lambda _uid: []
     UI.get_avatar_inventory = lambda _uid: []
-    UI.get_equipped_avatar = lambda _uid: None
+    UI.get_equipped_avatar = _fake_get_equipped_avatar
     return prof
 
 
 def view(uid=1, **kw):
     install(uid, **kw)
     me = FakeMember(uid)
-    return UI.InventoryView(me, me)
+    return asyncio.run(UI.InventoryView.create(me, me))
 
 
 def rows(v):
@@ -273,7 +278,6 @@ check("...and at least one nav control is live",
       or v._pages() == 1)
 
 # The callback resets to page 1 anyway — belt as well as braces.
-import asyncio                                                     # noqa: E402
 
 
 class FakeResponse:

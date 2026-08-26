@@ -22,6 +22,7 @@ on purpose.
 
 Run:  python3 tools/sim_inventory_cap.py
 """
+import asyncio
 import copy
 import os
 import re
@@ -142,7 +143,7 @@ try:
 
     print("\n── 4. buying slots ──────────────────────────────────────────────")
     _fake["5"] = profile(n_inv=200, coins=25_000)
-    res = INV.buy_slots_for(5, 2)
+    res = asyncio.run(INV.buy_slots_for(5, 2))
     check("two slots cost 20,000", res["spent"] == 20_000, res)
     check("...leaving 5,000", _fake["5"]["coins"] == 5_000)
     check("...and a capacity of 202", res["capacity"] == 202)
@@ -152,7 +153,7 @@ try:
     # reason buy_slots runs inside mutate_user: raising abandons the write.
     _fake["6"] = profile(n_inv=0, coins=9_999)
     try:
-        INV.buy_slots_for(6, 1)
+        asyncio.run(INV.buy_slots_for(6, 1))
         check("one coin short is refused", False, "it went through")
     except INV.SlotError as exc:
         check("one coin short is refused", True)
@@ -164,9 +165,9 @@ try:
     # somebody 500 slots and handing them 40 is worse than saying no.
     _fake["7"] = profile(coins=10_000_000, bought=1_760)
     check("at 1,960 capacity, buying 40 more works",
-          INV.buy_slots_for(7, 40)["capacity"] == 2_000)
+          asyncio.run(INV.buy_slots_for(7, 40))["capacity"] == 2_000)
     try:
-        INV.buy_slots_for(7, 1)
+        asyncio.run(INV.buy_slots_for(7, 1))
         check("at the ceiling, buying is refused", False, "it went through")
     except INV.SlotError:
         check("at the ceiling, buying is refused", True)
@@ -176,7 +177,7 @@ try:
 
     _fake["8"] = profile(coins=10_000_000, bought=1_790)
     try:
-        INV.buy_slots_for(8, 50)          # only 10 would fit
+        asyncio.run(INV.buy_slots_for(8, 50))          # only 10 would fit
         check("an order that overshoots the ceiling is refused whole",
               False, "it went through")
     except INV.SlotError as exc:

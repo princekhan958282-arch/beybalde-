@@ -135,7 +135,7 @@ def buy_slots(profile: dict, n: int = 1) -> dict:
             "coins": profile["coins"], "capacity": capacity(profile)}
 
 
-def buy_slots_for(player_id: int, n: int = 1) -> dict:
+async def buy_slots_for(player_id: int, n: int = 1) -> dict:
     """`buy_slots` under the user lock."""
     from utils.database import mutate_user
-    return mutate_user(int(player_id), lambda prof: buy_slots(prof, n))
+    return await mutate_user(int(player_id), lambda prof: buy_slots(prof, n))

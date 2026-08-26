@@ -374,7 +374,7 @@ class JoinButton(discord.ui.Button):
         if view.cog._in_battle(uid):
             return await interaction.response.send_message(
                 "Finish your current battle first.", ephemeral=True)
-        if not (get_user(uid).get("inventory") or []):
+        if not ((await get_user(uid)).get("inventory") or []):
             return await interaction.response.send_message(
                 "You need a blade first — run `;start`.", ephemeral=True)
 
@@ -609,14 +609,14 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         await self._post_bracket(channel, guild, lobby, "Champion", last,
                                  champion=name)
 
-        prize = self._award(lobby)
+        prize = await self._award(lobby)
         if lobby.champion:
             await channel.send(
                 f"🏆 **{name}** takes the tournament — 🪙 **{prize:,}** coins!")
         else:
             await channel.send("The tournament ended without a champion.")
 
-    def _award(self, lobby: Lobby) -> int:
+    async def _award(self, lobby: Lobby) -> int:
         """Pay the champion. Returns what was actually paid.
 
         Through `mutate_user`, not get_user/update_user: that pair is a race
@@ -629,7 +629,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             return 0
         prize = PRIZE_PER_ENTRANT * max(1, len(lobby.entrants))
         try:
-            mutate_user(lobby.champion,
+            await mutate_user(lobby.champion,
                         lambda p: p.__setitem__("coins",
                                                 int(p.get("coins", 0)) + prize))
             return prize
@@ -662,8 +662,8 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             self._finish(lobby, match, b if not raw1 else a)
             return
 
-        blade1 = _apply_parts(raw1, get_user(a))
-        blade2 = _apply_parts(raw2, get_user(b))
+        blade1 = _apply_parts(raw1, await get_user(a))
+        blade2 = _apply_parts(raw2, await get_user(b))
 
         await channel.send(embed=discord.Embed(
             title=f"⚔️  Round {rnd}",
@@ -675,7 +675,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         registry = getattr(bc, "active_battles", None) if bc else None
         winner_id = None
         try:
-            session = BattleSession(bot=self.bot, channel=channel,
+            session = await BattleSession.create(bot=self.bot, channel=channel,
                                     p1=p1, p2=p2, blade1=blade1, blade2=blade2)
             if registry is not None:
                 registry[a] = session

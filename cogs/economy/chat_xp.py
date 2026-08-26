@@ -102,7 +102,7 @@ class ChatXPCog(commands.Cog, name="Chat XP"):
         # the bot, so a busy chat channel read as a busy game.
         grant_xp(uid, random.randint(*TRAINER_XP), boostable=False, touch=False)
 
-        profile = get_user(uid)
+        profile = await get_user(uid)
         blade = profile.get("active_beyblade")
         if not blade:
             return
@@ -111,7 +111,7 @@ class ChatXPCog(commands.Cog, name="Chat XP"):
             return
 
         result = BL.award(profile, blade, random.randint(*BL.XP_CHAT))
-        update_user(uid, profile, touch=False)          # same reason as above
+        await update_user(uid, profile, touch=False)     # same reason as above
 
         if result["milestone"]:
             await self._announce(message.channel, message.author, blade, result)

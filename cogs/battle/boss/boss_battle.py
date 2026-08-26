@@ -128,7 +128,7 @@ def daily_remaining(profile: dict, key: str, now: Optional[float] = None
     return max(0.0, DAILY_LIMIT_H * 3600 - (now - last))
 
 
-def charge_daily(user_id: int, key: str, now: Optional[float] = None) -> None:
+async def charge_daily(user_id: int, key: str, now: Optional[float] = None) -> None:
     """Consume today's attempt at this boss."""
     if key in UNTIMED_BOSSES:
         # Checked here as well as in daily_remaining. Skipping the write means
@@ -136,11 +136,11 @@ def charge_daily(user_id: int, key: str, now: Optional[float] = None) -> None:
         # back on the clock later is a one-line change with no data to clean up.
         return
     now = now if now is not None else time.time()
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     daily = dict(profile.get("boss_daily") or {})
     daily[key] = now
     profile["boss_daily"] = daily
-    update_user(user_id, profile)
+    await update_user(user_id, profile)
 
 
 def _fmt_wait(seconds: float) -> str:
@@ -456,14 +456,14 @@ def _bar(cur: float, mx: float, width: int = 10) -> str:
     return "█" * filled + "░" * (width - filled)
 
 
-def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
+async def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
     """Build a fighter from the player's equipped blade — copy or database."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     # equipped_blade() resolves an equipped boss copy to its rolled stats and
     # falls back to the database blade. Reading active_beyblade directly here
     # would look the copy's display name up in beyblades.json, miss, and drop
     # the player to the 90/90/90 default.
-    blade, copy = bcopy.equipped_blade(user_id)
+    blade, copy = await bcopy.equipped_blade(user_id)
     # Fold in equipped parts and avatar bonuses. Boss fights previously used
     # the raw blade, so equipping either changed nothing here — a player could
     # kit out completely and see no difference against a boss.
@@ -473,7 +473,7 @@ def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
     _breakdown: dict = {}
     if blade:
         from utils.loadout import effective_blade
-        blade, _breakdown, av = effective_blade(
+        blade, _breakdown, av = await effective_blade(
             user_id, profile, blade,
             # A copy is a fixed roll; parts on top would make a farmed copy
             # stronger than the boss it came from.
@@ -489,7 +489,7 @@ def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
     # A copy has no mastery row of its own — it rides the trainer level only.
     try:
         from utils.database import get_stat_multiplier
-        mult = get_stat_multiplier(user_id, None if copy else name)
+        mult = await get_stat_multiplier(user_id, None if copy else name)
     except Exception:
         mult = 1.0
 
@@ -507,7 +507,7 @@ def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
             hp += hp_gain * mult
     if av is not None:
         from utils.loadout import effective_hp
-        hp = effective_hp(user_id, hp, av)
+        hp = await effective_hp(user_id, hp, av)
 
     # Specials scale with the bey's `special` stat — see boss_ai._raw_damage.
     # _breakdown carries both the printed and the levelled value already.
@@ -531,8 +531,27 @@ def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
 
 
 class BossFight:
+    @classmethod
+    async def create(cls, player: discord.Member, key: str, party: list = None,
+                     tier: str = None) -> "BossFight":
+        """Async factory — `_player_fighter` awaits the DB now (BUG-02), and
+        `__init__` can't await, so every party member's fighter/kit/blade is
+        resolved here first."""
+        _party = list(party or [player])
+        fighters: dict[int, ai.Fighter] = {}
+        kits: dict[int, bk.BladeKit] = {}
+        blades: dict[int, dict] = {}
+        for m in _party:
+            f, blade = await _player_fighter(m.id)
+            fighters[m.id] = f
+            kits[m.id] = bk.kit_for(blade)
+            blades[m.id] = blade
+        return cls(player, key, party=_party, tier=tier,
+                   _fighters=fighters, _kits=kits, _blades=blades)
+
     def __init__(self, player: discord.Member, key: str, party: list = None,
-                 tier: str = None):
+                 tier: str = None, _fighters: Optional[dict] = None,
+                 _kits: Optional[dict] = None, _blades: Optional[dict] = None):
         cfg = BOSSES[key]
         self.key    = key
         self.cfg    = cfg
@@ -545,14 +564,11 @@ class BossFight:
         self.tier_cfg = btiers.get(tier)
 
         # Every member gets their own fighter built from their own blade, and
-        # their own ability kit.
-        self.fighters: dict[int, ai.Fighter] = {}
-        self.kits: dict[int, bk.BladeKit] = {}
-        for m in self.party:
-            f, blade = _player_fighter(m.id)
-            self.fighters[m.id] = f
-            self.kits[m.id] = bk.kit_for(blade)
-        self.foe, self.blade = _player_fighter(player.id)
+        # their own ability kit. Resolved by `create()` — see its docstring.
+        self.fighters: dict[int, ai.Fighter] = dict(_fighters or {})
+        self.kits: dict[int, bk.BladeKit] = dict(_kits or {})
+        _blades = _blades or {}
+        self.blade = _blades.get(player.id, {})
         self.foe = self.fighters[player.id]
         self.kit = self.kits[player.id]
         self.turn_index = 0
@@ -1350,13 +1366,13 @@ class BossLobbyView(discord.ui.View):
         # Joiners go through the SAME gate as the host. Without this a player
         # who had already used today's attempt (or hadn't unlocked the boss)
         # could still join someone else's lobby and take the rewards.
-        ok, msg = self.cog._can_fight(interaction.user.id, self.key)
+        ok, msg = await self.cog._can_fight(interaction.user.id, self.key)
         if not ok:
             return await interaction.response.send_message(msg, ephemeral=True)
         # Everybody pays their own entry, so refuse the join rather than let
         # someone sit in the lobby and get dropped at launch. This is a quote,
         # not the charge — the balance is re-read under the lock later.
-        if not btiers.can_afford(get_user(interaction.user.id), self.tier,
+        if not btiers.can_afford(await get_user(interaction.user.id), self.tier,
                                  self.key):
             t = btiers.get(self.tier)
             _p = btiers.price_of(self.tier, self.key)
@@ -1398,13 +1414,13 @@ class BossLobbyView(discord.ui.View):
         broke: list[discord.Member] = []
         if btiers.price_of(tier, self.key) > 0:
             try:
-                btiers.charge_for(self.host.id, tier, self.key)
+                await btiers.charge_for(self.host.id, tier, self.key)
             except btiers.TierError:
                 tier = btiers.DEFAULT_TIER
             else:
                 for member in self.party[1:]:
                     try:
-                        btiers.charge_for(member.id, tier, self.key)
+                        await btiers.charge_for(member.id, tier, self.key)
                     except btiers.TierError:
                         broke.append(member)
                     except Exception as e:           # noqa: BLE001
@@ -1414,13 +1430,13 @@ class BossLobbyView(discord.ui.View):
             self.party.remove(m)
             self.cog._active.discard(m.id)
 
-        fight = BossFight(self.host, self.key, party=self.party, tier=tier)
+        fight = await BossFight.create(self.host, self.key, party=self.party, tier=tier)
         # Charge the daily attempt for EVERY member, at launch. Charging only
         # the host would let three friends farm a boss by taking turns hosting,
         # and charging on the result would make a loss free.
         for member in self.party:
             try:
-                charge_daily(member.id, self.key)
+                await charge_daily(member.id, self.key)
             except Exception as e:                   # noqa: BLE001
                 log.warning("couldn't charge daily for %s: %s", member.id, e)
         view  = BossView(self.cog, fight)
@@ -1530,13 +1546,13 @@ class _SellCopyConfirm(discord.ui.View):
     @discord.ui.button(label="Sell", emoji="\U0001f4b0",
                        style=discord.ButtonStyle.danger)
     async def confirm(self, interaction: discord.Interaction, _btn):
-        gone = bcopy.remove_copy(self.owner.id, self.copy["id"])
+        gone = await bcopy.remove_copy(self.owner.id, self.copy["id"])
         if gone is None:
             return await interaction.response.edit_message(
                 content="\u274c That copy is already gone.", view=None)
-        prof = get_user(self.owner.id)
+        prof = await get_user(self.owner.id)
         prof["coins"] = prof.get("coins", 0) + self.value
-        update_user(self.owner.id, prof)
+        await update_user(self.owner.id, prof)
         self.stop()
         await interaction.response.edit_message(
             content=(f"\U0001f4b0 Sold **{gone['name']}** "
@@ -1654,7 +1670,7 @@ class BossCog(commands.Cog, name="Boss"):
         t_casino = btiers.scale_reward(reward["casino"], fight.tier)
 
         for member in fight.party:
-            profile = get_user(member.id)
+            profile = await get_user(member.id)
             first   = fight.key not in set(profile.get("bosses_cleared") or [])
             first_any = first_any or first
 
@@ -1682,7 +1698,7 @@ class BossCog(commands.Cog, name="Boss"):
                         btiers.scale_reward(BOSS_BEY_XP, fight.tier))
                 except Exception:                    # noqa: BLE001
                     log.warning("boss bey XP failed for %s", member.id)
-            update_user(member.id, profile)
+            await update_user(member.id, profile)
             try:
                 grant_xp(member.id,
                          btiers.scale_reward(BOSS_TRAINER_XP, fight.tier))
@@ -1701,7 +1717,7 @@ class BossCog(commands.Cog, name="Boss"):
                                          bands=tcfg["bands"])
                 # add_copy re-reads the profile, so it must run AFTER the
                 # update_user above or the coin write would clobber the copy.
-                bcopy.add_copy(member.id, rolled)
+                await bcopy.add_copy(member.id, rolled)
             drops.append((member, rolled))
 
         # Headline numbers reflect a first clear if it was one for anybody.
@@ -1766,7 +1782,7 @@ class BossCog(commands.Cog, name="Boss"):
                                     colour=0x4E5058),
                 ephemeral=True)
         player = interaction.user
-        ok, msg = self._can_fight(player.id, key)
+        ok, msg = await self._can_fight(player.id, key)
         if not ok:
             return await interaction.response.send_message(msg, ephemeral=True)
 
@@ -1778,10 +1794,10 @@ class BossCog(commands.Cog, name="Boss"):
         except Exception:
             pass
 
-    def _can_fight(self, user_id: int, key: str) -> tuple[bool, str]:
+    async def _can_fight(self, user_id: int, key: str) -> tuple[bool, str]:
         if user_id in self._active:
             return False, "❌ You're already in a boss fight!"
-        profile = get_user(user_id)
+        profile = await get_user(user_id)
         if not profile.get("active_beyblade"):
             return False, "❌ Equip a blade first — `;equip <name>` (or `;start`)."
 
@@ -1811,7 +1827,7 @@ class BossCog(commands.Cog, name="Boss"):
     @commands.command(name="boss", aliases=["bossfight", "raidboss"])
     async def boss(self, ctx: commands.Context, *, name: str = None):
         """👹 Fight a boss. `;boss` to pick one."""
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         cleared = set(profile.get("bosses_cleared") or [])
 
         if name:
@@ -1821,7 +1837,7 @@ class BossCog(commands.Cog, name="Boss"):
             if key is None:
                 return await ctx.send(
                     "❌ No such boss. `;bosses` to see the roster.")
-            ok, msg = self._can_fight(ctx.author.id, key)
+            ok, msg = await self._can_fight(ctx.author.id, key)
             if not ok:
                 return await ctx.send(msg)
 
@@ -1907,7 +1923,7 @@ class BossCog(commands.Cog, name="Boss"):
     @commands.command(name="copies", aliases=["bosscopies", "mycopies"])
     async def copies(self, ctx: commands.Context):
         """🧬 The boss copies you've collected."""
-        rows = bcopy.all_copies(ctx.author.id)
+        rows = await bcopy.all_copies(ctx.author.id)
         if not rows:
             return await ctx.send(
                 "🧬 No boss copies yet. Beat a boss with `;boss` — every clear "
@@ -1949,10 +1965,10 @@ class BossCog(commands.Cog, name="Boss"):
         if not ref:
             return await ctx.send(
                 "🧬 Usage: `;equipcopy <number|id>` — `;copies` to list them.")
-        c = bcopy.find_copy(ctx.author.id, ref)
+        c = await bcopy.find_copy(ctx.author.id, ref)
         if c is None:
             return await ctx.send(f"❌ No copy matching **{ref}**. Try `;copies`.")
-        bcopy.equip(ctx.author.id, c["id"])
+        await bcopy.equip(ctx.author.id, c["id"])
         src = binfo.REGISTRY.get(c["source"])
         d   = bcopy.describe(c, src) if src else {"emoji": "🧬", "pct": 0}
         await ctx.send(
@@ -1966,7 +1982,7 @@ class BossCog(commands.Cog, name="Boss"):
         if not ref:
             return await ctx.send(
                 "💰 Usage: `;sellcopy <number|id>` — `;copies` to list them.")
-        c = bcopy.find_copy(ctx.author.id, ref)
+        c = await bcopy.find_copy(ctx.author.id, ref)
         if c is None:
             return await ctx.send(f"❌ No copy matching **{ref}**. Try `;copies`.")
         src   = binfo.REGISTRY.get(c["source"])
@@ -1982,7 +1998,7 @@ class BossCog(commands.Cog, name="Boss"):
         """🧬 Card for one of your copies. Usage: ;copy <number|id>"""
         if not ref:
             return await ctx.send("🧬 Usage: `;copy <number|id>` — `;copies` to list them.")
-        c = bcopy.find_copy(ctx.author.id, ref)
+        c = await bcopy.find_copy(ctx.author.id, ref)
         if c is None:
             return await ctx.send(f"❌ No copy matching **{ref}**. Try `;copies`.")
         prof = binfo.REGISTRY.get(c["source"])
@@ -2008,7 +2024,7 @@ class BossCog(commands.Cog, name="Boss"):
     @commands.command(name="bosstiers", aliases=["bossdifficulty", "btiers"])
     async def bosstiers(self, ctx: commands.Context):
         """⚔️ The five boss difficulties, what they cost and what they pay."""
-        coins = int(get_user(ctx.author.id).get("coins", 0) or 0)
+        coins = int((await get_user(ctx.author.id)).get("coins", 0) or 0)
         e = discord.Embed(
             title="⚔️  Boss difficulty",
             description=(
@@ -2041,7 +2057,7 @@ class BossCog(commands.Cog, name="Boss"):
     @commands.command(name="bosses", aliases=["bosslist"])
     async def bosses(self, ctx: commands.Context):
         """👹 The boss roster and your clears."""
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         cleared = set(profile.get("bosses_cleared") or [])
         e = discord.Embed(
             title="👹  Boss Roster",

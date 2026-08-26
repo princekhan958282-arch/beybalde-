@@ -128,13 +128,20 @@ class InventoryView(discord.ui.View):
         self._cache: dict[str, list[dict]] = {}
         self._view_cache: dict[tuple, list[dict]] = {}
         self._slots: tuple[int, int] | None = None   # (used, capacity)
-        self._load_cache()
-        self._rebuild()
+        # `_load_cache` now awaits the profile fetch (BUG-02) and `__init__`
+        # can't await — call `InventoryView.create(...)` instead.
+
+    @classmethod
+    async def create(cls, owner: discord.Member, target: discord.Member) -> "InventoryView":
+        view = cls(owner, target)
+        await view._load_cache()
+        view._rebuild()
+        return view
 
     # ── Data layer (cached snapshot) ─────────────────────────────────────────
 
-    def _load_cache(self) -> None:
-        prof   = get_user(self.target.id)
+    async def _load_cache(self) -> None:
+        prof   = await get_user(self.target.id)
         # Read once, here, off the profile this method already loaded — the
         # footer must not put a store read on every re-render.
         from utils.inventory import capacity as _cap, used as _used
@@ -174,7 +181,7 @@ class InventoryView(discord.ui.View):
         try:
             from cogs.battle.boss import boss_copy as _bc, boss_info as _bi
             active_copy = str(prof.get("active_copy") or "").lower()
-            for c in _bc.all_copies(self.target.id):
+            for c in await _bc.all_copies(self.target.id):
                 src = _bi.REGISTRY.get(c.get("source"))
                 if src is None:
                     continue
@@ -197,7 +204,7 @@ class InventoryView(discord.ui.View):
         except Exception:
             copies = []
 
-        eq_av   = get_equipped_avatar(self.target.id)
+        eq_av   = await get_equipped_avatar(self.target.id)
         avatars = []
         for aid in get_avatar_inventory(self.target.id):
             av = _avatar_lookup().get(aid, {})
@@ -642,7 +649,7 @@ class InventoryView(discord.ui.View):
 
     async def _back_from_parts_cb(self, interaction: discord.Interaction):
         self.parts_mode = False
-        self._load_cache()  # parts may have changed
+        await self._load_cache()  # parts may have changed
         # keep detail fresh
         self.detail = self._find_refreshed(self.detail)
         await self._refresh(interaction)
@@ -694,21 +701,21 @@ class InventoryView(discord.ui.View):
         if not (it and self.can_edit):
             return await self._refresh(interaction)
         if it["kind"] == "bey":
-            prof = get_user(self.owner.id)
+            prof = await get_user(self.owner.id)
             prof["active_beyblade"] = it["name"]
             # Clearing the copy pointer is what actually swaps back to a
             # database blade — leaving it set would keep the copy equipped
             # while the panel showed the bey's name.
             prof["active_copy"] = None
-            update_user(self.owner.id, prof)
+            await update_user(self.owner.id, prof)
         elif it["kind"] == "copy":
             from cogs.battle.boss import boss_copy as _bc
-            _bc.equip(self.owner.id, it["id"])
+            await _bc.equip(self.owner.id, it["id"])
         elif it["kind"] == "avatar":
-            set_equipped_avatar(self.owner.id, it.get("id"))
+            await set_equipped_avatar(self.owner.id, it.get("id"))
         else:
-            self._toggle_part(it["name"])
-        self._load_cache()
+            await self._toggle_part(it["name"])
+        await self._load_cache()
         self.detail = self._find_refreshed(it)
         await self._refresh(interaction)
 
@@ -718,14 +725,14 @@ class InventoryView(discord.ui.View):
             return await self._refresh(interaction)
         from cogs.battle.boss import boss_copy as _bc
         value = _bc.sell_value(it["copy"], it.get("src"))
-        gone  = _bc.remove_copy(self.owner.id, it["id"])
+        gone  = await _bc.remove_copy(self.owner.id, it["id"])
         if gone is None:
             return await interaction.response.send_message(
                 "That copy is already gone.", ephemeral=True)
-        prof = get_user(self.owner.id)
+        prof = await get_user(self.owner.id)
         prof["coins"] = prof.get("coins", 0) + value
-        update_user(self.owner.id, prof)
-        self._load_cache()
+        await update_user(self.owner.id, prof)
+        await self._load_cache()
         self.detail = None
         self._rebuild()
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
@@ -733,9 +740,9 @@ class InventoryView(discord.ui.View):
             f"🧬 Sold **{gone['name']}** ({gone['grade']} · `#{gone['id']}`) "
             f"for 🪙 **{value:,}**.", ephemeral=True)
 
-    def _toggle_part(self, part_name: str) -> None:
+    async def _toggle_part(self, part_name: str) -> None:
         """Equip a part (replacing any same-type part) or unequip if already on."""
-        prof     = get_user(self.owner.id)
+        prof     = await get_user(self.owner.id)
         equipped = prof.get("equipped_parts", [])
         cat      = _part_lookup(part_name) or {}
         ptype    = cat.get("type")
@@ -747,14 +754,14 @@ class InventoryView(discord.ui.View):
                         if (_part_lookup(p) or {}).get("type") != ptype]
             equipped.append(part_name)
         prof["equipped_parts"] = equipped
-        update_user(self.owner.id, prof)
+        await update_user(self.owner.id, prof)
 
     async def _part_toggle_cb(self, interaction: discord.Interaction):
         idx   = int(interaction.data["values"][0])
         owned = self._cache.get("part", [])
         if 0 <= idx < len(owned):
-            self._toggle_part(owned[idx]["name"])
-            self._load_cache()
+            await self._toggle_part(owned[idx]["name"])
+            await self._load_cache()
         await self._refresh(interaction)
 
     async def on_timeout(self) -> None:
@@ -779,7 +786,7 @@ class InventoryUICog(commands.Cog, name="Inventory"):
     async def inventory(self, ctx: commands.Context,
                         member: discord.Member | None = None) -> None:
         target = member or ctx.author
-        view   = InventoryView(ctx.author, target)
+        view   = await InventoryView.create(ctx.author, target)
         msg    = await ctx.send(embed=view.build_embed(), view=view)
         view.message = msg
 

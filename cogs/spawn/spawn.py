@@ -686,7 +686,7 @@ class SpawnCog(commands.Cog):
             log.warning(f"[spawn] clear_active_spawn() on claim failed: {exc}")
 
         # Check ownership BEFORE adding so we never read stale DB data
-        pre_profile   = get_user(user.id)
+        pre_profile   = await get_user(user.id)
         already_owned = any(
             b.lower() == spawned["name"].lower()
             for b in pre_profile.get("inventory", [])
@@ -701,7 +701,7 @@ class SpawnCog(commands.Cog):
             try:
                 await channel.send(
                     f"{user.mention} "
-                    + full_message(get_user(user.id), spawned["name"]))
+                    + full_message(await get_user(user.id), spawned["name"]))
             except Exception:                            # noqa: BLE001
                 log.warning("[spawn] could not report a full inventory")
             return
@@ -714,7 +714,7 @@ class SpawnCog(commands.Cog):
         try:
             from utils.database import mutate_user
             from utils import ranked as RK
-            mutate_user(user.id, RK.record_catch)
+            await mutate_user(user.id, RK.record_catch)
         except Exception as exc:                         # noqa: BLE001
             log.warning(f"[spawn] catch counter failed for {user.id}: {exc}")
 
@@ -940,7 +940,7 @@ class SpawnCog(commands.Cog):
 
         if view.sell_duplicate:
             # Re-fetch fresh profile after add_beyblade_to_inventory was called
-            user_profile = get_user(user.id)
+            user_profile = await get_user(user.id)
             inventory: list[str] = user_profile.get("inventory", [])
 
             # Remove the LAST matching copy — that's the one just claimed (the duplicate).
@@ -952,7 +952,7 @@ class SpawnCog(commands.Cog):
 
             user_profile["inventory"] = inventory
             user_profile["coins"] = user_profile.get("coins", 0) + refund
-            update_user(user.id, user_profile)
+            await update_user(user.id, user_profile)
 
             embed = discord.Embed(
                 title="💸 Duplicate Auto-Sold!",
@@ -982,7 +982,7 @@ class SpawnCog(commands.Cog):
 
         Usage:  ;duplicatesell
         """
-        user_profile = get_user(ctx.author.id)
+        user_profile = await get_user(ctx.author.id)
         inventory: list[str] = user_profile.get("inventory", [])
 
         if not inventory:
@@ -1084,7 +1084,7 @@ class SpawnCog(commands.Cog):
 
         # ── Execute the sale ──────────────────────────────────────────────────
         # Re-fetch fresh profile right before mutating to avoid race conditions
-        user_profile = get_user(ctx.author.id)
+        user_profile = await get_user(ctx.author.id)
         inventory    = user_profile.get("inventory", [])
 
         # ONE pass, not one per duplicate group. This rebuilt the whole
@@ -1104,7 +1104,7 @@ class SpawnCog(commands.Cog):
 
         user_profile["inventory"] = kept
         user_profile["coins"]     = user_profile.get("coins", 0) + total_coins
-        update_user(ctx.author.id, user_profile)
+        await update_user(ctx.author.id, user_profile)
 
         # ── Result embed ──────────────────────────────────────────────────────
         sold_count = sum(extras for _, _, extras, _, _ in to_sell)

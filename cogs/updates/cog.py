@@ -167,10 +167,11 @@ class NotificationCog(commands.Cog, name="Notifications"):
                       brief="Choose which DMs you get 🔔")
     async def notifications(self, ctx: commands.Context) -> None:
         from utils.database import get_user
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         await ctx.send(embed=discord.Embed(
             title="🔔  Your notifications", colour=COLOUR,
-            description=P.summary(profile)), view=PrefsView(ctx.author.id))
+            description=P.summary(profile)),
+            view=await PrefsView.create(ctx.author.id))
 
 
 def reports_embed(bot) -> discord.Embed:
@@ -234,9 +235,11 @@ class ReportsView(discord.ui.View):
 
 
 class PrefsToggle(discord.ui.Button):
-    def __init__(self, user_id: int, key: str, label: str, emoji: str) -> None:
-        from utils.database import get_user
-        on = P.get(get_user(user_id), key)
+    def __init__(self, user_id: int, key: str, label: str, emoji: str,
+                on: bool) -> None:
+        # `on` is passed in rather than read here: `get_user` is `async def`
+        # now (BUG-02) and a Button `__init__` cannot await — see
+        # `PrefsView.create`, the async factory that resolves it up front.
         super().__init__(label=f"{label}: {'on' if on else 'off'}",
                          emoji=emoji,
                          style=(discord.ButtonStyle.success if on
@@ -250,20 +253,31 @@ class PrefsToggle(discord.ui.Button):
                 "Those aren't your settings — run `;notifications` yourself.",
                 ephemeral=True)
         from utils.database import get_user, update_user
-        profile = get_user(self.user_id)
+        profile = await get_user(self.user_id)
         P.set_switch(profile, self.key, not P.get(profile, self.key))
-        update_user(self.user_id, profile)
+        await update_user(self.user_id, profile)
         await interaction.response.edit_message(
-            embed=discord.Embed(title="🔔  Your notifications", colour=COLOUR,
-                                description=P.summary(get_user(self.user_id))),
-            view=PrefsView(self.user_id))
+            embed=discord.Embed(
+                title="🔔  Your notifications", colour=COLOUR,
+                description=P.summary(await get_user(self.user_id))),
+            view=await PrefsView.create(self.user_id))
 
 
 class PrefsView(discord.ui.View):
     def __init__(self, user_id: int) -> None:
         super().__init__(timeout=180)
-        self.add_item(PrefsToggle(user_id, P.K_UPDATES, "Update DMs", "📣"))
-        self.add_item(PrefsToggle(user_id, P.K_EVENTS, "Event DMs", "🎉"))
+        self.user_id = int(user_id)
+
+    @classmethod
+    async def create(cls, user_id: int) -> "PrefsView":
+        from utils.database import get_user
+        profile = await get_user(user_id)
+        view = cls(user_id)
+        view.add_item(PrefsToggle(user_id, P.K_UPDATES, "Update DMs", "📣",
+                                  P.get(profile, P.K_UPDATES)))
+        view.add_item(PrefsToggle(user_id, P.K_EVENTS, "Event DMs", "🎉",
+                                  P.get(profile, P.K_EVENTS)))
+        return view
 
 
 class UpdateMenu(discord.ui.View):

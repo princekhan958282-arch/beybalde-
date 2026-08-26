@@ -563,7 +563,7 @@ async def suite() -> None:
           kinds == ["PrioritySelect", "AudienceSelect", "SkipNoBeysButton",
                     "PreviewButton", "SendButton"],
           kinds)
-    prefs_view = C.PrefsView(3003)
+    prefs_view = await C.PrefsView.create(3003)
     check("the preferences view has both switches",
           len(prefs_view.children) == 2)
 

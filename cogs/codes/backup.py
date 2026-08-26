@@ -74,7 +74,7 @@ def _pretty(key: str) -> str:
 
 async def _snapshot(user_id: int) -> dict:
     """Everything that makes up a player, in one blob."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     casino  = await casino_wallet.get_balance(user_id)
     prem = None
     try:
@@ -104,7 +104,7 @@ async def _apply(snap: dict, target_id: int) -> None:
     # The schema carries user_id inside the blob; re-point it or the restored
     # profile still claims to belong to the old account.
     profile["user_id"] = str(target_id)
-    update_user(target_id, profile)
+    await update_user(target_id, profile)
 
     async with casino_wallet._lock:
         data = casino_wallet._load()
@@ -360,7 +360,7 @@ class BackupCog(commands.Cog, name="Backup"):
                 f"nothing to restore. Run `;backup` to refresh the snapshot.")
 
         # ── Overwriting real progress needs explicit consent ─────────────────
-        mine = get_user(ctx.author.id)
+        mine = await get_user(ctx.author.id)
         has_progress = bool(mine.get("inventory")) or mine.get("xp", 0) > 0 \
             or mine.get("coins", 0) > 0
         if has_progress:

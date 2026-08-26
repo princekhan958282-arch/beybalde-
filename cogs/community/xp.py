@@ -151,7 +151,7 @@ class XPManager:
         self._reacted_day: str = CD.utc_day()
 
     # ── The one write path ───────────────────────────────────────────────────
-    def grant(self, guild_id: Any, user_id: Any, amount: int, *,
+    async def grant(self, guild_id: Any, user_id: Any, amount: int, *,
               source: str = "message", now: Optional[float] = None,
               touch: bool = False) -> dict:
         """Add XP, honour the daily cap, return what happened.
@@ -187,7 +187,7 @@ class XPManager:
                            from_level=from_level, capped=give < amount,
                            refused="" if give else "daily cap")
 
-        return mutate_user(int(user_id), _apply, touch=touch)
+        return await mutate_user(int(user_id), _apply, touch=touch)
 
     # ── Sources ──────────────────────────────────────────────────────────────
     def may_award_message(self, guild_id: Any, profile: dict, content: str,
@@ -214,7 +214,7 @@ class XPManager:
             return False, "daily cap"
         return True, ""
 
-    def award_message(self, guild_id: Any, user_id: Any, content: str,
+    async def award_message(self, guild_id: Any, user_id: Any, content: str,
                       now: Optional[float] = None) -> dict:
         """Pay for one message, or refuse and say why."""
         require_main(guild_id)
@@ -231,7 +231,7 @@ class XPManager:
         # version still took `_users_lock`, re-serialised the whole profile
         # JSON and upserted it for each one, and created a profile row for
         # anyone who merely talked. A read is cheap and takes no lock.
-        peek = get_user(int(user_id))
+        peek = await get_user(int(user_id))
         ok, why = self.may_award_message(guild_id, peek, text, now)
         if not ok:
             return outcome(xp=int(peek.get(K_XP) or 0),
@@ -267,9 +267,9 @@ class XPManager:
                            from_level=from_level, capped=give < amount)
 
         # touch=False: this is a message, not a command. See mutate_user.
-        return mutate_user(int(user_id), _apply, touch=False)
+        return await mutate_user(int(user_id), _apply, touch=False)
 
-    def award_reaction(self, guild_id: Any, user_id: Any, message_id: Any,
+    async def award_reaction(self, guild_id: Any, user_id: Any, message_id: Any,
                        author_id: Any = None,
                        now: Optional[float] = None) -> dict:
         """Pay for reacting to somebody ELSE's message, once per message."""
@@ -288,11 +288,11 @@ class XPManager:
             return outcome(refused="already reacted")
 
         from utils.database import get_user
-        profile = get_user(int(user_id))
+        profile = await get_user(int(user_id))
         if CD.day_total(profile, K_DAY, "reaction", now) >= DAILY_REACT_CAP:
             return outcome(refused="daily reaction cap")
 
-        result = self.grant(guild_id, user_id, XP_REACTION, source="reaction",
+        result = await self.grant(guild_id, user_id, XP_REACTION, source="reaction",
                             now=now)
         # Marked consumed only if it actually paid. Burning the key first meant
         # a capped-out day permanently ate the message: the cap lifts at
@@ -303,25 +303,25 @@ class XPManager:
                 self._reacted = set(list(self._reacted)[-50_000:])
         return result
 
-    def award_poll_vote(self, guild_id: Any, user_id: Any,
+    async def award_poll_vote(self, guild_id: Any, user_id: Any,
                         now: Optional[float] = None) -> dict:
         """Duplicate-proof because the vote ROW is, not because of a set here."""
         require_main(guild_id)
-        return self.grant(guild_id, user_id, XP_POLL_VOTE, source="poll",
+        return await self.grant(guild_id, user_id, XP_POLL_VOTE, source="poll",
                           now=now, touch=True)
 
-    def award_giveaway_entry(self, guild_id: Any, user_id: Any,
+    async def award_giveaway_entry(self, guild_id: Any, user_id: Any,
                              now: Optional[float] = None) -> dict:
         require_main(guild_id)
-        return self.grant(guild_id, user_id, XP_GIVEAWAY, source="giveaway",
+        return await self.grant(guild_id, user_id, XP_GIVEAWAY, source="giveaway",
                           now=now, touch=True)
 
     # ── Reads ────────────────────────────────────────────────────────────────
-    def card(self, guild_id: Any, user_id: Any) -> dict:
+    async def card(self, guild_id: Any, user_id: Any) -> dict:
         """What `/level` renders."""
         require_main(guild_id)
         from utils.database import get_user
-        profile = get_user(int(user_id))
+        profile = await get_user(int(user_id))
         xp = int(profile.get(K_XP) or 0)
         level, span, into = progress(xp)
         return {"xp": xp, "level": level, "span": span, "into": into,

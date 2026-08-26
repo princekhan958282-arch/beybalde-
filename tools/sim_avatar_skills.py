@@ -23,6 +23,7 @@ mechanical binding that can actually fire.
 
 Run:  python3 tools/sim_avatar_skills.py
 """
+import asyncio
 import json
 import os
 import sys
@@ -516,17 +517,22 @@ import utils.database as DB                                     # noqa: E402
 
 _real_get_user = DB.get_user
 _fake: dict = {}
-DB.get_user = lambda uid: _fake                                 # noqa: E731
+async def _fake_get_user_13(uid):
+    return _fake
+DB.get_user = _fake_get_user_13
 _real_equipped = avatar_engine.get_equipped_avatar_id
-avatar_engine.get_equipped_avatar_id = lambda uid: "avatar_x002"
+async def _fake_equipped_x002(uid):
+    return "avatar_x002"
+avatar_engine.get_equipped_avatar_id = _fake_equipped_x002
 
-try:
+
+async def _run_section_13():
     for slot, field, value in ((1, "attack_percent", 0.30),
                                (2, "crit_percent", 0.40),
                                (3, "immortal_rounds", 2)):
         _fake.clear()
         _fake.update({"avatar_skill": {"avatar_x002": slot}})
-        got = avatar_engine.get_battle_bonuses(1)
+        got = await avatar_engine.get_battle_bonuses(1)
         check(f"slot {slot}: {field} arrives at the engine",
               getattr(got, field) == value, getattr(got, field))
         others = [f for f in ("attack_percent", "crit_percent", "immortal_rounds")
@@ -538,12 +544,16 @@ try:
     _fake.clear()
     _fake.update({"avatar_skill": {"avatar_x002": 3},
                   AS.K_LOCKED: 0, AS.K_ENERGY: 10})
-    drained = avatar_engine.get_battle_bonuses(1)
+    drained = await avatar_engine.get_battle_bonuses(1)
     check("a drained player gets no skill",
           not drained.attack_percent and not drained.crit_percent
           and not drained.immortal_rounds, drained)
     check("...and the fight can still start (a real bonuses object)",
           isinstance(drained, AvatarBonuses))
+
+
+try:
+    asyncio.run(_run_section_13())
 finally:
     DB.get_user = _real_get_user
     avatar_engine.get_equipped_avatar_id = _real_equipped
@@ -563,38 +573,45 @@ class _FakeMember:
 
 _equipped_by_id: dict = {}
 _real_equipped2 = avatar_engine.get_equipped_avatar_id
-avatar_engine.get_equipped_avatar_id = lambda uid: _equipped_by_id.get(int(uid))
+async def _fake_equipped_by_id(uid):
+    return _equipped_by_id.get(int(uid))
+avatar_engine.get_equipped_avatar_id = _fake_equipped_by_id
 
-try:
+
+async def _run_section_13b():
     a, b = _FakeMember(1, "A"), _FakeMember(2, "B")
 
     _equipped_by_id.clear()
     check("nobody with an avatar -> nobody is asked",
-          SP.participants((a, b)) == [])
+          await SP.participants((a, b)) == [])
 
     # A plain card (no skills) must not summon the prompt either — this is the
     # 27-of-36 case, i.e. almost every battle.
     plain = next(x for x in ALL if not x.get("skills"))
     _equipped_by_id.update({1: plain["id"], 2: plain["id"]})
-    check("two skill-less avatars -> still nobody",
-          SP.participants((a, b)) == [], SP.participants((a, b)))
+    got0 = await SP.participants((a, b))
+    check("two skill-less avatars -> still nobody", got0 == [], got0)
 
     _equipped_by_id.update({1: "avatar_x002", 2: plain["id"]})
-    got = SP.participants((a, b))
+    got = await SP.participants((a, b))
     check("one signature avatar -> exactly one participant", len(got) == 1, got)
     check("...and it is the right player and card",
           got[0][0].id == 1 and got[0][1]["id"] == "avatar_x002")
 
     _equipped_by_id.update({1: "avatar_x002", 2: "avatar_mlbb001"})
-    check("both on signature cards -> both asked",
-          len(SP.participants((a, b))) == 2)
+    got2 = await SP.participants((a, b))
+    check("both on signature cards -> both asked", len(got2) == 2)
 
     # An id that no longer resolves (a card removed from the data) must drop
     # that player rather than raise — a battle must still start.
     _equipped_by_id.update({1: "avatar_does_not_exist", 2: "avatar_x002"})
-    got = SP.participants((a, b))
+    got = await SP.participants((a, b))
     check("a dangling avatar id drops that player, does not raise",
           len(got) == 1 and got[0][0].id == 2, got)
+
+
+try:
+    asyncio.run(_run_section_13b())
 finally:
     avatar_engine.get_equipped_avatar_id = _real_equipped2
 
@@ -626,18 +643,28 @@ check(f"the skill dropdown builds for every card ({built} combinations)",
 # And the public prompt itself, with the profile lookups stubbed.
 _real_get_user3 = DB.get_user
 _real_eq3 = avatar_engine.get_equipped_avatar_id
-DB.get_user = lambda uid: {}
-try:
+async def _fake_get_user_empty(uid):
+    return {}
+DB.get_user = _fake_get_user_empty
+
+
+async def _run_public_prompt_checks():
     for av in SIGNATURE:
-        avatar_engine.get_equipped_avatar_id = lambda uid, _a=av: _a["id"]
+        async def _fake_equipped_av(uid, _a=av):
+            return _a["id"]
+        avatar_engine.get_equipped_avatar_id = _fake_equipped_av
         try:
-            v = SP.SkillPromptView([(_FakeMember(1, "A"), av)], False)
-            v._status()
+            v = await SP.SkillPromptView.create([(_FakeMember(1, "A"), av)], False)
+            await v._status()
             v._card_embed(_FakeMember(1, "A"), av)
         except Exception as exc:                     # noqa: BLE001
             broke.append((av["name"], "prompt", repr(exc)[:80]))
     check("the public prompt and its embeds build for every card",
           not broke, broke[:3])
+
+
+try:
+    asyncio.run(_run_public_prompt_checks())
 finally:
     DB.get_user = _real_get_user3
     avatar_engine.get_equipped_avatar_id = _real_eq3

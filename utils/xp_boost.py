@@ -127,7 +127,7 @@ def buy(profile: dict, now: float | None = None) -> dict:
     }
 
 
-def buy_for(player_id: int) -> dict:
+async def buy_for(player_id: int) -> dict:
     """`buy` under the user lock."""
     from utils.database import mutate_user
-    return mutate_user(int(player_id), buy)
+    return await mutate_user(int(player_id), buy)

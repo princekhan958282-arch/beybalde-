@@ -68,7 +68,7 @@ def _bey_xp(profile: dict, blade: Optional[dict], won: bool) -> Optional[dict]:
         return None
 
 
-def _level_hp_gain(user_id, blade: Optional[dict]) -> int:
+async def _level_hp_gain(user_id, blade: Optional[dict]) -> int:
     """Extra HP this bey has earned from its level.
 
     The implementation moved to `utils.loadout.level_hp_gain` so the CARD can
@@ -78,10 +78,10 @@ def _level_hp_gain(user_id, blade: Optional[dict]) -> int:
     calls.
     """
     from utils.loadout import level_hp_gain
-    return level_hp_gain(user_id, blade)
+    return await level_hp_gain(user_id, blade)
 
 
-def _effective_special(user_id, blade: Optional[dict]) -> int:
+async def _effective_special(user_id, blade: Optional[dict]) -> int:
     """This player's SPECIAL stat with level, parts and avatar folded in.
 
     Falls back to the blade's printed value, which makes resolve_special's
@@ -91,7 +91,7 @@ def _effective_special(user_id, blade: Optional[dict]) -> int:
     printed = int(((blade or {}).get("stats") or {}).get("special", 0) or 0)
     try:
         from utils.loadout import effective_blade
-        eff, _breakdown, _av = effective_blade(int(user_id), blade=blade)
+        eff, _breakdown, _av = await effective_blade(int(user_id), blade=blade)
         return int((eff.get("stats") or {}).get("special", printed) or printed)
     except Exception:                                # noqa: BLE001
         return printed
@@ -225,6 +225,85 @@ def _streak_bonus(streak: int) -> int:
 
 
 class BattleSession:
+    @classmethod
+    async def create(
+        cls,
+        bot:     commands.Bot,
+        channel: discord.TextChannel,
+        p1:      discord.Member,
+        p2:      discord.Member,
+        blade1:  dict,
+        blade2:  dict,
+        ranked:  bool = False,
+        npc_controller=None,
+        payout:  bool = True,
+        spend_energy: Optional[bool] = None,
+        victory_points: Optional[dict] = None,
+    ) -> "BattleSession":
+        """Async factory — the only correct way to build a BattleSession now.
+
+        `__init__` cannot `await` (Python has no `async def __init__`), and it
+        needs several profile-backed values — the player's profile, levelled
+        HP gain, avatar id/bonuses, blade mastery multiplier, and effective
+        Special stat — all of which now go through `utils.database.get_user`
+        and friends, which are `async def` (BUG-02: they hop to a worker
+        thread so a MySQL round-trip never blocks the event loop). This
+        method resolves all of that up front, once per real (non-NPC) player,
+        then hands the result to the plain, fully-synchronous `__init__` as
+        `_prefetch` — every `self._xxx_for(player_id)` helper below reads
+        from that cache instead of calling the database directly.
+
+        Every construction site in the codebase must call
+        `await BattleSession.create(...)` instead of `BattleSession(...)`.
+        """
+        def _is_npc(pid) -> bool:
+            return npc_controller is not None and str(pid) == str(getattr(npc_controller, "key", ""))
+
+        _spend_energy = bool(ranked if spend_energy is None else spend_energy)
+
+        from utils.database import get_user, get_stat_multiplier
+        from cogs.avatar import avatar_engine as _AE
+
+        prefetch: dict[str, dict] = {}
+        for pid, blade in ((p1.id, blade1), (p2.id, blade2)):
+            key = str(pid)
+            if _is_npc(pid):
+                continue
+
+            profile   = await get_user(pid)
+            hp_gain   = await _level_hp_gain(pid, blade)
+            avatar_id = await _AE.get_equipped_avatar_id(int(pid))
+            avatar    = _AE.get_avatar(avatar_id or "") if avatar_id else None
+            bonuses   = await _AE.get_battle_bonuses(pid)
+            stat_mult = await get_stat_multiplier(pid, blade.get("name"))
+            eff_spec  = await _effective_special(pid, blade)
+
+            skill_commit: dict = {}
+            try:
+                from cogs.avatar import avatar_skills as AS
+                skill_commit = await AS.begin_battle_for(
+                    int(pid), avatar, ranked=_spend_energy) or {}
+            except Exception:                                # noqa: BLE001
+                skill_commit = {}
+
+            prefetch[key] = {
+                "profile":           profile,
+                "hp_gain":           hp_gain,
+                "avatar_id":         avatar_id,
+                "avatar_card":       avatar or {},
+                "bonuses":           bonuses,
+                "stat_mult":         stat_mult,
+                "effective_special": eff_spec,
+                "skill_commit":      skill_commit,
+            }
+
+        return cls(
+            bot, channel, p1, p2, blade1, blade2,
+            ranked=ranked, npc_controller=npc_controller, payout=payout,
+            spend_energy=spend_energy, victory_points=victory_points,
+            _prefetch=prefetch,
+        )
+
     def __init__(
         self,
         bot:     commands.Bot,
@@ -238,7 +317,15 @@ class BattleSession:
         payout:  bool = True,
         spend_energy: Optional[bool] = None,
         victory_points: Optional[dict] = None,
+        _prefetch: Optional[dict] = None,
     ):
+        # Populated by `create()` (the async factory) with every real
+        # player's profile-backed data, keyed by str(player_id). Empty for a
+        # direct `BattleSession(...)` call — which now only works when both
+        # players are NPCs (nothing to prefetch), and is otherwise a bug.
+        # Every `self._xxx_for(player_id)` helper below reads from this
+        # instead of calling the (now async) database layer directly.
+        self._prefetch: dict[str, dict] = _prefetch or {}
         # ── PvE hooks (Story Mode) ────────────────────────────────────────────
         # Three optional parameters, all defaulting to exactly what every
         # existing caller already gets. They exist so Story Mode can run a real
@@ -400,9 +487,17 @@ class BattleSession:
         # That blade is ALREADY levelled by the League before the session is
         # built, so the number is right — and `_effective_special` would go to
         # `effective_blade`, which reads a profile and would create one.
+        def _special_for(p, b) -> int:
+            printed = int((b.get("stats") or {}).get("special", 0) or 0)
+            if self._is_npc(p):
+                return printed
+            # Resolved in `create()` — see `_prefetch`'s docstring on
+            # `__init__`. `_effective_special` is `async def` now.
+            return int(self._prefetch.get(str(p), {})
+                       .get("effective_special", printed) or printed)
+
         self.special_stats: dict[str, int] = {
-            str(p): (int((b.get("stats") or {}).get("special", 0) or 0)
-                     if self._is_npc(p) else _effective_special(p, b))
+            str(p): _special_for(p, b)
             for p, b in ((p1.id, blade1), (p2.id, blade2))
         }
 
@@ -528,16 +623,11 @@ class BattleSession:
         # it would create a profile row for a player who does not exist.
         if self._is_npc(player_id):
             return {}
-        try:
-            from cogs.avatar import avatar_skills as AS
-            avatar = avatar_engine.get_avatar(
-                avatar_engine.get_equipped_avatar_id(int(player_id)) or "")
-            # `spend_energy`, not `ranked`: Story spends from the pool without
-            # being a ranked match. Defaults to `ranked`, so PvP is unchanged.
-            return AS.begin_battle_for(int(player_id), avatar,
-                                       ranked=self.spend_energy) or {}
-        except Exception:                                # noqa: BLE001
-            return {}
+        # Resolved in `create()` (the async factory) — see `_prefetch`'s
+        # docstring on `__init__`. `AS.begin_battle_for` is `async def` now
+        # (it does a profile read-modify-write), so it cannot be called from
+        # here, a plain synchronous method.
+        return self._prefetch.get(str(player_id), {}).get("skill_commit") or {}
 
     async def _prime_npc_move(self) -> None:
         """Lock the NPC's move in for the round that is about to open.
@@ -597,7 +687,11 @@ class BattleSession:
             stub = copy.deepcopy(self._NPC_PROFILE)
             stub.update(getattr(self.npc_controller, "profile", None) or {})
             return stub
-        return get_user(player_id)
+        # Resolved in `create()` — see `_prefetch`'s docstring on `__init__`.
+        # `get_user` is `async def` now and cannot be called from a plain
+        # synchronous method.
+        cached = self._prefetch.get(str(player_id), {}).get("profile")
+        return copy.deepcopy(cached) if cached is not None else {}
 
     def _hp_gain(self, player_id, blade: Optional[dict]) -> int:
         """Levelled HP on top of the type-band-clamped printed stat."""
@@ -605,7 +699,7 @@ class BattleSession:
             # Supplied rather than derived: the opponent's level is the
             # League's to decide, not a profile's to remember.
             return int(getattr(self.npc_controller, "hp_gain", 0) or 0)
-        return _level_hp_gain(player_id, blade)
+        return int(self._prefetch.get(str(player_id), {}).get("hp_gain", 0) or 0)
 
     def _avatar_card_for(self, player_id) -> dict:
         """The avatar card this side is wearing, or {}.
@@ -617,9 +711,8 @@ class BattleSession:
         try:
             if self._is_npc(player_id):
                 aid = getattr(self.npc_controller, "avatar_id", None)
-            else:
-                aid = avatar_engine.get_equipped_avatar_id(int(player_id))
-            return (avatar_engine.get_avatar(aid or "") or {}) if aid else {}
+                return (avatar_engine.get_avatar(aid or "") or {}) if aid else {}
+            return self._prefetch.get(str(player_id), {}).get("avatar_card") or {}
         except Exception:                                # noqa: BLE001
             return {}
 
@@ -636,7 +729,7 @@ class BattleSession:
                 return avatar_engine.bonuses_from_block(card.get("bonuses"))
             except Exception:                            # noqa: BLE001
                 return NULL_BONUSES
-        return avatar_engine.get_battle_bonuses(player_id)
+        return self._prefetch.get(str(player_id), {}).get("bonuses") or NULL_BONUSES
 
     def _stat_mult_for(self, player_id) -> float:
         # Blade mastery is player progression — the trainer-level half of this
@@ -644,10 +737,9 @@ class BattleSession:
         # mastery either.
         if self._is_npc(player_id):
             return 1.0
-        return get_stat_multiplier(
-            player_id, self.blades.get(str(player_id), {}).get("name"))
+        return float(self._prefetch.get(str(player_id), {}).get("stat_mult", 1.0) or 1.0)
 
-    def _release_skills(self) -> None:
+    async def _release_skills(self) -> None:
         """Drop the per-battle lock for both players once the fight is over.
 
         Casual refills the pool here. A ranked ROUND deliberately does not —
@@ -659,7 +751,7 @@ class BattleSession:
             for player in self.players:
                 if self._is_npc(player.id):
                     continue
-                AS.end_battle_for(int(player.id), ranked=self.spend_energy)
+                await AS.end_battle_for(int(player.id), ranked=self.spend_energy)
         except Exception:                                # noqa: BLE001
             pass
 
@@ -1377,7 +1469,7 @@ class BattleSession:
             return
         self.finished = True
         self._done_event.set()
-        self._release_skills()
+        await self._release_skills()
 
         p1, p2 = self.players
         k1, k2 = str(p1.id), str(p2.id)
@@ -1443,7 +1535,7 @@ class BattleSession:
             # to `grant_xp`'s three-tuple.
             if self.payout:
                 _w_before = level_from_xp(w_profile.get("xp", 0))
-                update_user(winner.id, w_profile)
+                await update_user(winner.id, w_profile)
                 wlvl, _, w_up = grant_xp(winner.id, XP_WIN)
                 w_coins = level_up_payout(_w_before, wlvl)
             else:
@@ -1457,7 +1549,7 @@ class BattleSession:
             _bey_xp(l_profile, self.blades.get(str(loser.id)), won=False)
             if self.payout:
                 _l_before = level_from_xp(l_profile.get("xp", 0))
-                update_user(loser.id, l_profile)
+                await update_user(loser.id, l_profile)
                 llvl, _, l_up = grant_xp(loser.id, XP_LOSS)
                 l_coins = level_up_payout(_l_before, llvl)
             else:
@@ -1511,9 +1603,9 @@ class BattleSession:
                 if not self.payout or self._is_npc(pid):
                     continue
                 grant_xp(pid, XP_LOSS)
-                draw_profile = get_user(pid)
+                draw_profile = await get_user(pid)
                 draw_profile["coins"] = draw_profile.get("coins", 0) + COINS_LOSS
-                update_user(pid, draw_profile)
+                await update_user(pid, draw_profile)
             embed = discord.Embed(
                 title="🤝 DRAW!",
                 description="Both blades stopped spinning simultaneously!",

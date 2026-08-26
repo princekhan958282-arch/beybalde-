@@ -124,7 +124,7 @@ class DeliveryWorker:
         # receiving it — the queue can be minutes long.
         try:
             from utils.database import get_user
-            ok, why = P.wants(get_user(uid), event=upd.get("event"),
+            ok, why = P.wants(await get_user(uid), event=upd.get("event"),
                               priority=upd.get("priority"))
             if not ok:
                 return BLOCKED, why

@@ -70,15 +70,15 @@ def _ensure_periods(profile: dict) -> dict:
     return profile
 
 
-def _bump(user_id: int, event_key: str, n: int = 1) -> None:
+async def _bump(user_id: int, event_key: str, n: int = 1) -> None:
     """Increment quest progress for one user for one event type."""
     try:
-        profile = get_user(user_id)
+        profile = await get_user(user_id)
         profile = _ensure_periods(profile)
         for period in ("daily", "weekly"):
             prog = profile["quests"][period]["progress"]
             prog[event_key] = prog.get(event_key, 0) + n
-        update_user(user_id, profile)
+        await update_user(user_id, profile)
     except Exception:
         pass  # quests must never break the parent flow
 
@@ -99,25 +99,25 @@ class QuestsCog(commands.Cog, name="Quests"):
     @commands.Cog.listener()
     async def on_beycord_battle_end(self, winner_id, participant_ids, guild_id) -> None:
         for pid in participant_ids or []:
-            _bump(pid, "battle_play")
+            await _bump(pid, "battle_play")
         if winner_id:
-            _bump(winner_id, "battle_win")
+            await _bump(winner_id, "battle_win")
 
     @commands.Cog.listener()
     async def on_beycord_stamina_move(self, user_id: int) -> None:
-        _bump(user_id, "stamina_move")
+        await _bump(user_id, "stamina_move")
 
     @commands.Cog.listener()
     async def on_beycord_spawn_catch(self, user_id: int) -> None:
-        _bump(user_id, "spawn_catch")
+        await _bump(user_id, "spawn_catch")
 
     # ── Commands ──────────────────────────────────────────────────────────────
 
     # Prefix-only; the slash entry is `/player quests`.
     @commands.command(name="quests", aliases=["quest", "missions"])
     async def quests(self, ctx: commands.Context) -> None:
-        profile = _ensure_periods(get_user(ctx.author.id))
-        update_user(ctx.author.id, profile)
+        profile = _ensure_periods(await get_user(ctx.author.id))
+        await update_user(ctx.author.id, profile)
         q = profile["quests"]
 
         def block(defs, period_key: str) -> str:
@@ -150,7 +150,7 @@ class QuestsCog(commands.Cog, name="Quests"):
     # Prefix-only; the slash entry is `/player claim`.
     @commands.command(name="questclaim", aliases=["qclaim", "claimquests"])
     async def questclaim(self, ctx: commands.Context) -> None:
-        profile = _ensure_periods(get_user(ctx.author.id))
+        profile = _ensure_periods(await get_user(ctx.author.id))
         q = profile["quests"]
         total, claimed_names = 0, []
         for defs, period_key in ((DAILY_QUESTS, "daily"), (WEEKLY_QUESTS, "weekly")):
@@ -165,7 +165,7 @@ class QuestsCog(commands.Cog, name="Quests"):
         if not total:
             return await ctx.send("📋 No completed quests to claim yet. Check `;quests`!")
         profile["coins"] = profile.get("coins", 0) + total
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
         await ctx.send(embed=discord.Embed(
             title="🎁 Quests Claimed!",
             description="\n".join(claimed_names) + f"\n\n**Total: +{total}** 💰",

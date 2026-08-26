@@ -32,6 +32,7 @@ grants without a blade ever changing hands. Five live accounts were stuck.
 
 Run:  python3 tools/sim_v108_content.py
 """
+import asyncio
 import os
 import sys
 import types as _t
@@ -393,21 +394,26 @@ class _Member:
         self.id, self.display_name, self.mention = i, f"p{i}", f"<@{i}>"
 
 
-crashes, fired, fights = [], 0, 0
-for seed in range(8):
-    m = _Member(7000 + seed)
-    try:
-        f = BB.BossFight(m, "lionheart", party=[m], tier="standard")
-        for _ in range(60):
-            if f.finished:
-                break
-            f.boss.gauge = AI.SPECIAL_GAUGE_MAX
-            mv = MOVE_ATTACK if f.foe.can(AI.MOVE_ATTACK) else AI.MOVE_CHARGE
-            fired += bool(f.step(AI.MOVE_ATTACK if f.foe.can(AI.MOVE_ATTACK)
-                                 else AI.MOVE_CHARGE).get("god_special"))
-        fights += 1
-    except Exception as exc:                                 # noqa: BLE001
-        crashes.append((seed, repr(exc)[:140]))
+async def _run_full_fights():
+    crashes, fired, fights = [], 0, 0
+    for seed in range(8):
+        m = _Member(7000 + seed)
+        try:
+            f = await BB.BossFight.create(m, "lionheart", party=[m], tier="standard")
+            for _ in range(60):
+                if f.finished:
+                    break
+                f.boss.gauge = AI.SPECIAL_GAUGE_MAX
+                mv = MOVE_ATTACK if f.foe.can(AI.MOVE_ATTACK) else AI.MOVE_CHARGE
+                fired += bool(f.step(AI.MOVE_ATTACK if f.foe.can(AI.MOVE_ATTACK)
+                                     else AI.MOVE_CHARGE).get("god_special"))
+            fights += 1
+        except Exception as exc:                                 # noqa: BLE001
+            crashes.append((seed, repr(exc)[:140]))
+    return crashes, fired, fights
+
+
+crashes, fired, fights = asyncio.run(_run_full_fights())
 check(f"{fights}/8 full fights, {fired} boss Specials, no exception escapes",
       not crashes and fights == 8, crashes[:2])
 

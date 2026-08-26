@@ -448,14 +448,26 @@ check("...while a just-fought Drakos still has hours to run",
 # means nothing and would silently re-arm if the exemption were ever lifted.
 # Asserted by watching for the write rather than by reading the source: the
 # point is that no profile is touched at all, and only a call can show that.
+import asyncio                                                      # noqa: E402
+
 _writes = []
 _real_get, _real_upd = BB.get_user, BB.update_user
-BB.get_user = lambda uid: {"boss_daily": {}}
-BB.update_user = lambda uid, prof: _writes.append((uid, prof))
+
+
+async def _fake_get_boss_daily(uid):
+    return {"boss_daily": {}}
+
+
+async def _fake_update_boss_daily(uid, prof):
+    _writes.append((uid, prof))
+
+
+BB.get_user = _fake_get_boss_daily
+BB.update_user = _fake_update_boss_daily
 try:
-    BB.charge_daily(1, "argus")
+    asyncio.run(BB.charge_daily(1, "argus"))
     check("charging an untimed boss writes nothing", _writes == [], _writes)
-    BB.charge_daily(1, "drakos")
+    asyncio.run(BB.charge_daily(1, "drakos"))
     check("...while a timed one still records the attempt",
           len(_writes) == 1 and "drakos" in _writes[0][1]["boss_daily"], _writes)
 finally:
@@ -541,23 +553,28 @@ class _Member:
         self.id, self.display_name, self.mention = i, f"p{i}", f"<@{i}>"
 
 
-_crashes, _fired, _fights = [], 0, 0
-for _key in BB.BOSSES:
-    for _seed in range(6):
-        _rnd = random.Random(_seed)
-        _m = _Member(9000 + _seed)
-        try:
-            _f = BB.BossFight(_m, _key, party=[_m], tier="standard")
-            for _ in range(60):
-                if _f.finished:
-                    break
-                _f.boss.gauge = AI.SPECIAL_GAUGE_MAX      # force the Special
-                _mv = AI.MOVE_ATTACK if _f.foe.can(AI.MOVE_ATTACK) \
-                    else AI.MOVE_CHARGE
-                _fired += bool(_f.step(_mv).get("god_special"))
-            _fights += 1
-        except Exception as _exc:                                # noqa: BLE001
-            _crashes.append((_key, _seed, repr(_exc)[:120]))
+async def _run_full_boss_fights():
+    _crashes, _fired, _fights = [], 0, 0
+    for _key in BB.BOSSES:
+        for _seed in range(6):
+            _rnd = random.Random(_seed)
+            _m = _Member(9000 + _seed)
+            try:
+                _f = await BB.BossFight.create(_m, _key, party=[_m], tier="standard")
+                for _ in range(60):
+                    if _f.finished:
+                        break
+                    _f.boss.gauge = AI.SPECIAL_GAUGE_MAX      # force the Special
+                    _mv = AI.MOVE_ATTACK if _f.foe.can(AI.MOVE_ATTACK) \
+                        else AI.MOVE_CHARGE
+                    _fired += bool(_f.step(_mv).get("god_special"))
+                _fights += 1
+            except Exception as _exc:                                # noqa: BLE001
+                _crashes.append((_key, _seed, repr(_exc)[:120]))
+    return _crashes, _fired, _fights
+
+
+_crashes, _fired, _fights = asyncio.run(_run_full_boss_fights())
 check(f"{_fights} full fights, {_fired} boss Specials, no exception escapes "
       f"BossFight.step()", not _crashes, _crashes[:3])
 check("...and every boss got through it, Argus included",

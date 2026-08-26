@@ -12,6 +12,7 @@ Level System
   The curve itself lives in utils/trainer_levels.py and is re-exported here.
 """
 
+import asyncio
 import copy
 import json
 import logging
@@ -319,7 +320,7 @@ def _default_profile(user_id: str) -> dict:
     }
 
 
-def get_user(user_id: int) -> dict:
+def _get_user_sync(user_id: int) -> dict:
     """
     Fetch a user profile by Discord ID (int).
     Auto-creates a blank profile if the user doesn't exist yet.
@@ -368,7 +369,19 @@ def get_user(user_id: int) -> dict:
         return copy.deepcopy(prof)
 
 
-def update_user(user_id: int, profile: dict, touch: bool = True) -> None:
+async def get_user(user_id: int) -> dict:
+    """Async front door for `_get_user_sync` — see that docstring for behavior.
+
+    Runs the (possibly network-blocking, when `BACKEND == "mysql"`) read on a
+    worker thread via `asyncio.to_thread` so it never stalls the event loop.
+    `_users_lock` is a real `threading.Lock`, safe to hold from a worker
+    thread. The read-modify-write body is otherwise byte-for-byte unchanged;
+    only the calling convention (now `await`-only) changed.
+    """
+    return await asyncio.to_thread(_get_user_sync, user_id)
+
+
+def _update_user_sync(user_id: int, profile: dict, touch: bool = True) -> None:
     """Write a single user's profile back to disk (single-row upsert).
 
     `touch=False` writes the profile WITHOUT stamping `last_seen`. That field
@@ -382,7 +395,13 @@ def update_user(user_id: int, profile: dict, touch: bool = True) -> None:
         USER_STORE.put_one(str(user_id), profile, touch=touch)
 
 
-def mutate_user(user_id: int, fn, touch: bool = True):
+async def update_user(user_id: int, profile: dict, touch: bool = True) -> None:
+    """Async front door for `_update_user_sync` — see `asyncio.to_thread` note
+    on `get_user` above; same reasoning applies here."""
+    await asyncio.to_thread(_update_user_sync, user_id, profile, touch)
+
+
+def _mutate_user_sync(user_id: int, fn, touch: bool = True):
     """Read-modify-write one profile atomically. Returns whatever `fn` returns.
 
     `get_user()` then `update_user()` is a race: the profile can change between
@@ -410,6 +429,15 @@ def mutate_user(user_id: int, fn, touch: bool = True):
         result = fn(prof)
         USER_STORE.put_one(uid, prof, touch=touch)
         return result
+
+
+async def mutate_user(user_id: int, fn, touch: bool = True):
+    """Async front door for `_mutate_user_sync` — see `asyncio.to_thread` note
+    on `get_user` above; same reasoning applies here. `fn` itself still runs
+    synchronously on the worker thread — it must remain a plain callable that
+    does not call get_user/update_user/mutate_user itself (see the sync
+    docstring: `_users_lock` would deadlock on a nested acquire regardless)."""
+    return await asyncio.to_thread(_mutate_user_sync, user_id, fn, touch)
 
 
 def touch_user(user_id: int) -> None:
@@ -518,12 +546,12 @@ def release_claim(user_id: int, key: str) -> None:
         USER_STORE.put_one(uid, profile)
 
 
-def has_claimed(user_id: int, key: str) -> bool:
+async def has_claimed(user_id: int, key: str) -> bool:
     """Read a claim flag without touching it."""
-    return bool(get_user(user_id).get(key))
+    return bool((await get_user(user_id)).get(key))
 
 
-def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) -> float:
+async def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) -> float:
     """
     A damage/stat multiplier from BLADE MASTERY, and nothing else.
 
@@ -547,7 +575,7 @@ def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) -> float
         # point of the call and is now the one case that costs nothing.
         return 1.0
 
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     bonus   = 0.0
     try:
         from cogs.extras.mastery import MASTERY_BONUS_PER_LEVEL, level_from_xp
@@ -835,16 +863,20 @@ def player_owns_avatar(user_id: int, avatar_id: str) -> bool:
     return avatar_id in get_avatar_inventory(user_id)
 
 
-def get_equipped_avatar(user_id: int) -> Optional[str]:
+async def get_equipped_avatar(user_id: int) -> Optional[str]:
     """Return the equipped avatar ID for a user, or None."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     return profile.get("equipped_avatar")
 
 
-def set_equipped_avatar(user_id: int, avatar_id: Optional[str]) -> None:
-    """Set or clear the equipped avatar for a user."""
+def _set_equipped_avatar_sync(user_id: int, avatar_id: Optional[str]) -> None:
     with _users_lock:
         uid     = str(user_id)
         profile = USER_STORE.get_one(uid) or _default_profile(uid)
         profile["equipped_avatar"] = avatar_id
         USER_STORE.put_one(uid, profile)
+
+
+async def set_equipped_avatar(user_id: int, avatar_id: Optional[str]) -> None:
+    """Set or clear the equipped avatar for a user."""
+    await asyncio.to_thread(_set_equipped_avatar_sync, user_id, avatar_id)

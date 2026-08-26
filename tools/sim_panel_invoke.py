@@ -759,8 +759,12 @@ PROFILES = {
     TARGET_ID: {"inventory": [{"name": "Valkyrie"}], "active_beyblade": None},
 }
 TRADE_LOG = []
-T.get_user = lambda uid: PROFILES[int(uid)]
-T.update_user = lambda uid, prof: PROFILES.__setitem__(int(uid), prof)
+async def _fake_get_user(uid):
+    return PROFILES[int(uid)]
+async def _fake_update_user(uid, prof):
+    PROFILES.__setitem__(int(uid), prof)
+T.get_user = _fake_get_user
+T.update_user = _fake_update_user
 T._log_trade = lambda entry: TRADE_LOG.append(entry)
 
 TARGET_MEMBER = interaction(3, {"custom_id": "q", "component_type": 2},

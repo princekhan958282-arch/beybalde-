@@ -257,7 +257,7 @@ class CommunityCog(commands.Cog, name="Community"):
             if not out.get("ok"):
                 return await interaction.followup.send(
                     out.get("why", "That didn't work."), ephemeral=True)
-            award = self.xp.award_poll_vote(gid, interaction.user.id)
+            award = await self.xp.award_poll_vote(gid, interaction.user.id)
             extra = f" · +{award['awarded']} XP" if award.get("awarded") else ""
             await interaction.followup.send(
                 f"✅ Voted for **{out['label']}**.{extra}", ephemeral=True)
@@ -286,7 +286,7 @@ class CommunityCog(commands.Cog, name="Community"):
             if not out.get("ok"):
                 return await interaction.followup.send(
                     out.get("why", "That didn't work."), ephemeral=True)
-            award = self.xp.award_giveaway_entry(gid, interaction.user.id)
+            award = await self.xp.award_giveaway_entry(gid, interaction.user.id)
             extra = f" · +{award['awarded']} XP" if award.get("awarded") else ""
             await interaction.followup.send(
                 f"🎉 You're in — entry #{out['count']}.{extra}", ephemeral=True)
@@ -381,7 +381,7 @@ class CommunityCog(commands.Cog, name="Community"):
             ctx = await self.bot.get_context(message)
             if ctx.valid:
                 return
-            award = self.xp.award_message(message.guild.id, message.author.id,
+            award = await self.xp.award_message(message.guild.id, message.author.id,
                                           message.content)
             if award.get("levelled"):
                 await self._after_award(message, award, message.author)
@@ -422,7 +422,7 @@ class CommunityCog(commands.Cog, name="Community"):
         profile = {}
         try:
             from utils.database import get_user
-            profile = get_user(message.author.id) or {}
+            profile = await get_user(message.author.id) or {}
         except Exception:                                # noqa: BLE001
             log.debug("[community] no profile for chat", exc_info=True)
 
@@ -461,8 +461,8 @@ class CommunityCog(commands.Cog, name="Community"):
                 # this is driven by a MESSAGE, and stamping last_seen here
                 # would make every chatter count as an active player in the
                 # "who played today" numbers.
-                mutate_user(int(message.author.id), MEM.note_exchange,
-                            touch=False)
+                await mutate_user(int(message.author.id), MEM.note_exchange,
+                                  touch=False)
             except Exception:                            # noqa: BLE001
                 log.debug("[community] could not record the exchange",
                           exc_info=True)
@@ -485,7 +485,7 @@ class CommunityCog(commands.Cog, name="Community"):
                     getattr(self.bot, "cached_messages", []) or [],
                     id=payload.message_id)
                 author_id = cached.author.id if cached else None
-            award = self.xp.award_reaction(payload.guild_id, payload.user_id,
+            award = await self.xp.award_reaction(payload.guild_id, payload.user_id,
                                            payload.message_id, author_id)
             # The result was thrown away here, so a level-up earned by
             # reacting announced nothing and granted no role — and since the
@@ -570,7 +570,7 @@ class CommunityCog(commands.Cog, name="Community"):
         if not await guard.gate(interaction):
             return
         target = user or interaction.user
-        card = self.xp.card(guard.main_guild_id(), target.id)
+        card = await self.xp.card(guard.main_guild_id(), target.id)
         filled = 0 if not card["span"] else round(
             12 * card["into"] / card["span"])
         e = discord.Embed(
@@ -598,7 +598,7 @@ class CommunityCog(commands.Cog, name="Community"):
         want = str(mode or "").strip().lower()
         if want not in ("on", "off"):
             state = "off" if MEM.opted_out(
-                self._profile_of(ctx.author.id)) else "on"
+                await self._profile_of(ctx.author.id)) else "on"
             return await ctx.reply(
                 f"Chat is **{state}** for you. Use `;chat off` to stop me "
                 f"replying to you, or `;chat on` to allow it again.",
@@ -611,7 +611,7 @@ class CommunityCog(commands.Cog, name="Community"):
                 profile[MEM.K_OPTOUT] = (want == "off")
                 return profile
 
-            mutate_user(int(ctx.author.id), _apply, touch=False)
+            await mutate_user(int(ctx.author.id), _apply, touch=False)
         except Exception:                                # noqa: BLE001
             log.exception("[community] could not save the chat preference")
             return await ctx.reply("Couldn't save that — try again in a moment.",
@@ -622,10 +622,10 @@ class CommunityCog(commands.Cog, name="Community"):
             if want == "off" else "Good to have you back. I'll reply again.",
             mention_author=False)
 
-    def _profile_of(self, user_id) -> dict:
+    async def _profile_of(self, user_id) -> dict:
         try:
             from utils.database import get_user
-            return get_user(user_id) or {}
+            return await get_user(user_id) or {}
         except Exception:                                # noqa: BLE001
             return {}
 

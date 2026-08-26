@@ -84,7 +84,7 @@ class LevelUpCog(commands.Cog, name="LevelUp"):
         # and the balance can only ever agree.
         levels_gained = new_level - old_level
         coin_reward   = level_up_payout(old_level, new_level)
-        profile       = get_user(user_id)
+        profile       = await get_user(user_id)
 
         # ── Build embed data ──────────────────────────────────────────────────
         at_max    = new_level >= MAX_LEVEL
