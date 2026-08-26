@@ -24,6 +24,7 @@ Run:  python3 tools/sim_snapshots.py
 
 from __future__ import annotations
 
+import asyncio
 import gzip
 import json
 import logging
@@ -77,7 +78,7 @@ def seed(uid, **fields):
     return prof
 
 
-def main() -> int:
+async def main() -> int:
     # ── 1. a full round trip ────────────────────────────────────────────────
     print("\n── 1. everything comes back ────────────────────────────────────")
     for i in range(1, 51):
@@ -112,7 +113,7 @@ def main() -> int:
     check("the wipe really emptied them",
           all(not (STORE.get_one(u) or {}).get("inventory") for u in before))
 
-    out = SN.restore(SN.read(path))
+    out = await SN.restore(SN.read(path))
     after = STORE.load_all()
     check(f"the restore reports {out['profiles']} profiles",
           out["profiles"] == 50, out)
@@ -128,7 +129,7 @@ def main() -> int:
           DB.AVATARS_PATH)
     os.remove(AVATARS)
     check("...and are gone once that file is", not os.path.exists(AVATARS))
-    SN.restore(SN.read(path))
+    await SN.restore(SN.read(path))
     check("a restore brings the avatars back",
           os.path.exists(AVATARS), AVATARS)
     recovered = json.load(open(AVATARS))
@@ -142,7 +143,7 @@ def main() -> int:
     print("\n── 3. restoring beys must not roll back coins ──────────────────")
     STORE.put_one("1001", dict(STORE.get_one("1001"), coins=999_999,
                                inventory=[], bey_progress={}))
-    out = SN.restore(SN.read(path), ["beys"])
+    out = await SN.restore(SN.read(path), ["beys"])
     p = STORE.get_one("1001")
     check("the collection comes back",
           p["inventory"] == ["Blade1", "Valkyrie"], p["inventory"])
@@ -153,7 +154,7 @@ def main() -> int:
 
     STORE.put_one("1002", dict(STORE.get_one("1002"), com_level=0,
                                community_xp=0, coins=555))
-    SN.restore(SN.read(path), ["community"])
+    await SN.restore(SN.read(path), ["community"])
     p2 = STORE.get_one("1002")
     check("restoring `community` brings the level back",
           p2["com_level"] == 2 and p2["community_xp"] == 50,
@@ -161,10 +162,10 @@ def main() -> int:
     check("...and leaves coins alone", p2["coins"] == 555, p2["coins"])
 
     os.remove(AVATARS)
-    SN.restore(SN.read(path), ["community"])
+    await SN.restore(SN.read(path), ["community"])
     check("a section that does not own the avatars file does not write it",
           not os.path.exists(AVATARS))
-    SN.restore(SN.read(path), ["avatars"])
+    await SN.restore(SN.read(path), ["avatars"])
     check("...and the one that does, does", os.path.exists(AVATARS))
 
     # ── 4. the timer survives restarts ──────────────────────────────────────
@@ -378,7 +379,7 @@ def main() -> int:
         check("Download sends the .gz as an attachment — the only copy that "
               "survives a container rebuild", sent, it4.sent[:1])
 
-    asyncio.run(drive())
+    await drive()
 
     # ── 10. nothing here is unreachable ─────────────────────────────────────
     print("\n── 10. every public entry point has a caller ───────────────────")
@@ -439,15 +440,15 @@ def main() -> int:
 
     def concurrent_writer():
         time.sleep(0.05)
-        DB.mutate_user(2001, lambda p: p.__setitem__("coins", 999))
+        asyncio.run(DB.mutate_user(2001, lambda p: p.__setitem__("coins", 999)))
         concurrent_done.set()
 
     STORE.save_all = gated_save_all
     try:
         t = threading.Thread(target=concurrent_writer)
         t.start()
-        SN.restore({"profiles": {"2001": {"inventory": ["NewBey"]}}},
-                    sections=["beys"])
+        await SN.restore({"profiles": {"2001": {"inventory": ["NewBey"]}}},
+                          sections=["beys"])
         t.join(timeout=3)
     finally:
         STORE.save_all = real_save_all
@@ -467,4 +468,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(asyncio.run(main()))

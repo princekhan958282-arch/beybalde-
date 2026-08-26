@@ -64,7 +64,7 @@ from cogs.economy import shop as SHOP                             # noqa: E402
 UID = 90001
 
 
-def main() -> int:
+async def main() -> int:
     blades = DB.load_beyblades()
     name = next(iter(blades))
     blade = blades[name]
@@ -78,8 +78,8 @@ def main() -> int:
 
     print("\n── 1. the card prints the pool the fight uses ──────────────────")
     printed_clamped = max_hp_for_blade(blade)
-    real_pool = LO.battle_pool(UID, blade)
-    gain = LO.level_hp_gain(UID, blade)
+    real_pool = await LO.battle_pool(UID, blade)
+    gain = await LO.level_hp_gain(UID, blade)
     print(f"       {name} at level 100: clamped {printed_clamped}, "
           f"gain {gain}, real pool {real_pool}")
     check("a levelled bey really does fight with more HP than the clamped "
@@ -87,19 +87,20 @@ def main() -> int:
     check("...and `battle_pool` is exactly clamped + gain",
           real_pool == printed_clamped + gain, (real_pool, printed_clamped))
 
-    line = PF._hp_stat_line(blade, UID)
+    line = await PF._hp_stat_line(blade, UID)
     check("the ;profile HP line prints the real pool",
           f"{real_pool} pool" in line, line)
     check("...and not the clamped one",
           f"{printed_clamped} pool" not in line, line)
+    fallback_line = await PF._hp_stat_line(blade)
     check("with no viewer, the card falls back to the printed pool rather "
-          "than guessing", f"{printed_clamped} pool" in PF._hp_stat_line(blade))
+          "than guessing", f"{printed_clamped} pool" in fallback_line)
 
     # The battle path and the card path must be the same function.
     from cogs.battle import session as SS
+    battle_gain = await SS._level_hp_gain(UID, blade)
     check("the battle asks the same helper the card does",
-          SS._level_hp_gain(UID, blade) == gain,
-          (SS._level_hp_gain(UID, blade), gain))
+          battle_gain == gain, (battle_gain, gain))
 
     print("\n── 2. one stat ceiling, not three ──────────────────────────────")
     from utils import profile_card as PC
@@ -171,4 +172,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    import asyncio
+    sys.exit(asyncio.run(main()))

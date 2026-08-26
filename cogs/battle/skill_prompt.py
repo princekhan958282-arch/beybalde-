@@ -58,10 +58,10 @@ log = logging.getLogger("beyblade_bot.skill_prompt")
 
 # ── Who actually needs asking ────────────────────────────────────────────────
 
-def participants(players) -> list[tuple[object, dict]]:
+async def participants(players) -> list[tuple[object, dict]]:
     """(member, avatar) for every player holding a card with skills.
 
-    Pure and side-effect free so it can be tested without a gateway. Everything
+    Side-effect free so it can be tested without a gateway. Everything
     that can go wrong per player — no avatar equipped, an id that no longer
     resolves, an unreadable profile — drops that player from the prompt rather
     than raising, because the alternative is a battle that will not start.
@@ -69,7 +69,7 @@ def participants(players) -> list[tuple[object, dict]]:
     out: list[tuple[object, dict]] = []
     for member in players:
         try:
-            avatar_id = avatar_engine.get_equipped_avatar_id(int(member.id))
+            avatar_id = await avatar_engine.get_equipped_avatar_id(int(member.id))
             if not avatar_id:
                 continue
             avatar = avatar_engine.get_avatar(avatar_id)
@@ -117,7 +117,7 @@ class _SkillSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction) -> None:
         slot = int(self.values[0])
         try:
-            AS.set_choice(self.member.id, self.avatar["id"], slot)
+            await AS.set_choice(self.member.id, self.avatar["id"], slot)
         except Exception as exc:                         # noqa: BLE001
             log.exception("could not store skill pick: %s", exc)
             return await interaction.response.send_message(
@@ -145,21 +145,32 @@ class _SkillSelectView(discord.ui.View):
 class SkillPromptView(discord.ui.View):
     """One public message, one button per player, each opening their own list."""
 
-    def __init__(self, entries: list[tuple[object, dict]], ranked: bool) -> None:
+    def __init__(self, entries: list[tuple[object, dict]], ranked: bool,
+                 _energy: Optional[dict[int, int]] = None) -> None:
         super().__init__(timeout=SKILL_PROMPT_SECONDS)
         self.entries = entries
         self.ranked = ranked
         self.picked: dict[int, int] = {}
         self.message: Optional[discord.Message] = None
-        self.energy: dict[int, int] = {}
+        # Resolved by `create()` — see its docstring. `AS.accrue_for`/
+        # `state_for` are async now (BUG-02) and `__init__` can't await.
+        self.energy: dict[int, int] = dict(_energy or {})
 
         for member, avatar in entries:
-            try:
-                AS.accrue_for(int(member.id))
-                self.energy[member.id] = AS.state_for(int(member.id))["energy"]
-            except Exception:                            # noqa: BLE001
-                self.energy[member.id] = AS.MAX_ENERGY
+            self.energy.setdefault(member.id, AS.MAX_ENERGY)
             self.add_item(self._button(member, avatar))
+
+    @classmethod
+    async def create(cls, entries: list[tuple[object, dict]],
+                     ranked: bool) -> "SkillPromptView":
+        energy: dict[int, int] = {}
+        for member, _avatar in entries:
+            try:
+                await AS.accrue_for(int(member.id))
+                energy[member.id] = (await AS.state_for(int(member.id)))["energy"]
+            except Exception:                            # noqa: BLE001
+                energy[member.id] = AS.MAX_ENERGY
+        return cls(entries, ranked, _energy=energy)
 
     def _button(self, member, avatar: dict) -> discord.ui.Button:
         button = discord.ui.Button(
@@ -202,7 +213,7 @@ class SkillPromptView(discord.ui.View):
                   "Casual battle — your skill is free, whatever your energy says."))
         return e
 
-    def _status(self) -> discord.Embed:
+    async def _status(self) -> discord.Embed:
         e = discord.Embed(
             title="✨ Choose your avatar skill",
             description=(
@@ -222,7 +233,7 @@ class SkillPromptView(discord.ui.View):
                 cur = AS.chosen_slot({"avatar_skill": {}}, avatar["id"])
                 try:
                     from utils.database import get_user
-                    cur = AS.chosen_slot(get_user(int(member.id)), avatar["id"])
+                    cur = AS.chosen_slot(await get_user(int(member.id)), avatar["id"])
                 except Exception:                        # noqa: BLE001
                     pass
                 cur = max(1, min(cur, len(avatar.get("skills") or [])))
@@ -246,7 +257,7 @@ class SkillPromptView(discord.ui.View):
                 c.disabled = True
         if self.message:
             try:
-                await self.message.edit(embed=self._status(), view=self)
+                await self.message.edit(embed=await self._status(), view=self)
             except Exception:                            # noqa: BLE001
                 pass
         if done:
@@ -275,11 +286,11 @@ async def resolve_avatar_skills(ctx, p1, p2, ranked: bool = False) -> None:
     behaviour that shipped before it.
     """
     try:
-        entries = participants((p1, p2))
+        entries = await participants((p1, p2))
         if not entries:
             return
-        view = SkillPromptView(entries, ranked)
-        view.message = await ctx.send(embed=view._status(), view=view)
+        view = await SkillPromptView.create(entries, ranked)
+        view.message = await ctx.send(embed=await view._status(), view=view)
         await view.wait()
         try:
             await view.message.edit(view=None)
@@ -310,11 +321,11 @@ async def resolve_avatar_skills_solo(channel, member, ranked: bool = False
     default.
     """
     try:
-        entries = participants((member,))
+        entries = await participants((member,))
         if not entries:
             return
-        view = SkillPromptView(entries, ranked)
-        view.message = await channel.send(embed=view._status(), view=view)
+        view = await SkillPromptView.create(entries, ranked)
+        view.message = await channel.send(embed=await view._status(), view=view)
         await view.wait()
         try:
             await view.message.edit(view=None)

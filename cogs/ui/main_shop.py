@@ -456,7 +456,7 @@ class MainShopView(ui.View):
         if not self.selected:
             return await i.response.defer()
         try:
-            result = mutate_user(
+            result = await mutate_user(
                 self.author_id,
                 lambda prof, n=self.selected: apply_part_purchase(prof, n))
         except PurchaseError as exc:

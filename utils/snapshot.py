@@ -281,7 +281,7 @@ def _keys_for(sections: Iterable[str]) -> Optional[set]:
     return keys
 
 
-def restore(snap: dict, sections: Iterable[str] = (ALL,)) -> dict:
+async def restore(snap: dict, sections: Iterable[str] = (ALL,)) -> dict:
     """Put a snapshot back. Returns what changed.
 
     With `everything`, each snapshotted profile replaces the live one wholesale.
@@ -312,7 +312,7 @@ def restore(snap: dict, sections: Iterable[str] = (ALL,)) -> dict:
         if not isinstance(saved, dict):
             continue
         if whole:
-            update_user(uid, saved, touch=False)
+            await update_user(uid, saved, touch=False)
             touched += 1
             continue
 
@@ -324,7 +324,7 @@ def restore(snap: dict, sections: Iterable[str] = (ALL,)) -> dict:
             for key in present:
                 profile[key] = saved[key]
 
-        mutate_user(uid, _apply, touch=False)
+        await mutate_user(uid, _apply, touch=False)
         touched += 1
 
     files_written = []

@@ -102,7 +102,7 @@ def bey_level_and_stats(profile: dict, blade: dict) -> tuple[int, dict]:
         return 1, printed
 
 
-def avatar_bonuses(user_id: int):
+async def avatar_bonuses(user_id: int):
     """The player's avatar bonuses, or the null set if anything goes wrong.
 
     Never raises: a broken avatar must not stop a card rendering or a fight
@@ -110,7 +110,7 @@ def avatar_bonuses(user_id: int):
     """
     try:
         from cogs.avatar import avatar_engine, NULL_BONUSES
-        return avatar_engine.get_battle_bonuses(user_id) or NULL_BONUSES
+        return await avatar_engine.get_battle_bonuses(user_id) or NULL_BONUSES
     except Exception as e:                           # noqa: BLE001
         log.debug("avatar bonuses unavailable for %s: %s", user_id, e)
         try:
@@ -120,7 +120,7 @@ def avatar_bonuses(user_id: int):
             return None
 
 
-def effective_blade(user_id: int, profile: Optional[dict] = None,
+async def effective_blade(user_id: int, profile: Optional[dict] = None,
                     blade: Optional[dict] = None,
                     include_parts: bool = True,
                     include_avatar: bool = True) -> tuple[dict, dict, object]:
@@ -136,19 +136,19 @@ def effective_blade(user_id: int, profile: Optional[dict] = None,
     it came from.
     """
     from utils.database import get_user
-    profile = profile if profile is not None else get_user(user_id)
+    profile = profile if profile is not None else await get_user(user_id)
 
     if blade is None:
         try:
             from cogs.battle.boss import boss_copy as bcopy
-            blade, copy = bcopy.equipped_blade(user_id)
+            blade, copy = await bcopy.equipped_blade(user_id)
             if copy is not None:
                 include_parts = False
         except Exception as e:                       # noqa: BLE001
             log.debug("couldn't resolve equipped blade for %s: %s", user_id, e)
             blade = None
     if not blade:
-        return {}, {}, avatar_bonuses(user_id) if include_avatar else None
+        return {}, {}, (await avatar_bonuses(user_id)) if include_avatar else None
 
     # Which way a dual-spin blade is mounted, BEFORE anything reads its stats.
     # Master Diabolos has a different statline, type and Special per mode, so
@@ -167,7 +167,7 @@ def effective_blade(user_id: int, profile: Optional[dict] = None,
         level, base = bey_level_and_stats(profile, blade)
 
     parts = part_bonuses(profile) if include_parts else {}
-    av = avatar_bonuses(user_id) if include_avatar else None
+    av = (await avatar_bonuses(user_id)) if include_avatar else None
 
     stats: dict[str, float] = {}
     breakdown: dict[str, dict] = {}
@@ -203,10 +203,10 @@ def effective_blade(user_id: int, profile: Optional[dict] = None,
     return out, breakdown, av
 
 
-def effective_hp(user_id: int, base_hp: float,
+async def effective_hp(user_id: int, base_hp: float,
                  av=None) -> float:
     """Starting HP including the avatar's HP bonus."""
-    av = av if av is not None else avatar_bonuses(user_id)
+    av = av if av is not None else await avatar_bonuses(user_id)
     if av is None:
         return base_hp
     try:
@@ -242,7 +242,7 @@ def summary_lines(breakdown: dict) -> list[str]:
     return out
 
 
-def level_hp_gain(user_id, blade: Optional[dict]) -> int:
+async def level_hp_gain(user_id, blade: Optional[dict]) -> int:
     """Extra HP a bey has earned from its level, above the printed pool.
 
     `hp_system.max_hp_for_blade` runs the HP stat through `blade_hp_stat`,
@@ -260,7 +260,7 @@ def level_hp_gain(user_id, blade: Optional[dict]) -> int:
     a card.
     """
     try:
-        _eff, breakdown, _av = effective_blade(int(user_id), blade=blade)
+        _eff, breakdown, _av = await effective_blade(int(user_id), blade=blade)
         hp_bd = (breakdown or {}).get("hp") or {}
         gain = float(hp_bd.get("total", 0)) - float(hp_bd.get("base", 0))
         return int(gain) if gain > 0 else 0
@@ -268,7 +268,7 @@ def level_hp_gain(user_id, blade: Optional[dict]) -> int:
         return 0
 
 
-def battle_pool(user_id, blade: Optional[dict]) -> int:
+async def battle_pool(user_id, blade: Optional[dict]) -> int:
     """The HP this bey really fights with. What a card should print."""
     from utils.hp_system import max_hp_for_blade
-    return max_hp_for_blade(blade) + level_hp_gain(user_id, blade)
+    return max_hp_for_blade(blade) + await level_hp_gain(user_id, blade)

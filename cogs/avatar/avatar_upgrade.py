@@ -50,10 +50,10 @@ from utils.mobile_ui import bar as _bar
 log = logging.getLogger("beyblade_bot")
 
 
-def _resolve(query: Optional[str], user_id: int) -> Optional[dict]:
+async def _resolve(query: Optional[str], user_id: int) -> Optional[dict]:
     """Find an avatar by id or name; with no query, use whatever is equipped."""
     if not query:
-        equipped = avatar_engine.get_equipped_avatar_id(user_id)
+        equipped = await avatar_engine.get_equipped_avatar_id(user_id)
         return avatar_engine.get_avatar(equipped) if equipped else None
     q = str(query).strip().lower()
     exact = avatar_engine.get_avatar(q)
@@ -92,7 +92,7 @@ class ConfirmUpgrade(discord.ui.View):
         # Rule 2 + 3: the balance is re-read under the lock, and the deduction
         # and the level land in the same write or neither does.
         try:
-            result = mutate_user(
+            result = await mutate_user(
                 self.buyer_id,
                 lambda prof: AP.apply_card_purchase(prof, avatar_id, self.levels))
         except AP.PurchaseError as exc:
@@ -111,7 +111,7 @@ class ConfirmUpgrade(discord.ui.View):
                     colour=0xED4245),
                 view=None)
 
-        after = int(get_user(self.buyer_id).get("coins", 0) or 0)
+        after = int((await get_user(self.buyer_id)).get("coins", 0) or 0)
         gain = AL.card_stat_bonus(self.avatar.get("type"), result["to"])
         gains = ", ".join(f"+{v} {k[:3].upper()}" for k, v in gain.items() if v)
 
@@ -253,7 +253,7 @@ class EnergyRefill(discord.ui.View):
 
         for c in self.children:
             c.disabled = True
-        prof = get_user(self.buyer_id)
+        prof = await get_user(self.buyer_id)
         e = discord.Embed(
             title="⚡ Energy refilled",
             description=(f"{result['from']} → **{ASK.MAX_ENERGY}**\n"
@@ -286,13 +286,13 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
                              avatar: Optional[str] = None,
                              levels: int = 1) -> None:
         """Buy levels for an avatar card. Defaults to the one you have equipped."""
-        card = _resolve(avatar, ctx.author.id)
+        card = await _resolve(avatar, ctx.author.id)
         if card is None:
             return await ctx.send(
                 "❌ No avatar found. Equip one with `;equipavatar <id>`, or "
                 "name it: `;aup Argus`.")
 
-        prof = get_user(ctx.author.id)
+        prof = await get_user(ctx.author.id)
         from utils.database import player_owns_avatar
         if not player_owns_avatar(ctx.author.id, card["id"]):
             return await ctx.send(f"❌ You don't own **{card['name']}**.")
@@ -337,18 +337,18 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
     async def avatar_reset(self, ctx: commands.Context, *,
                            avatar: Optional[str] = None) -> None:
         """Drop an avatar to Lv1 and refund 70% of what you actually spent."""
-        card = _resolve(avatar, ctx.author.id)
+        card = await _resolve(avatar, ctx.author.id)
         if card is None:
             return await ctx.send("❌ No avatar found. Name it: `;areset Argus`.")
 
-        prof = get_user(ctx.author.id)
+        prof = await get_user(ctx.author.id)
         spent = AP.total_spent(prof, card["id"])
         if spent <= 0:
             return await ctx.send(
                 f"You haven't spent anything on **{card['name']}** — "
                 f"nothing to refund.")
 
-        result = mutate_user(ctx.author.id,
+        result = await mutate_user(ctx.author.id,
                              lambda p: AP.apply_reset(p, card["id"]))
         await ctx.send(embed=discord.Embed(
             title=f"↩️ {card['name']} reset to Lv1",
@@ -367,7 +367,7 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
         currently affords — which is the question that actually matters in a
         ranked match, where the 100 has to last the whole thing.
         """
-        card = _resolve(avatar, ctx.author.id)
+        card = await _resolve(avatar, ctx.author.id)
         if card is None:
             return await ctx.send(
                 "❌ No avatar found. Equip one with `;equipavatar <id>`, or "
@@ -381,8 +381,8 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
 
         # Settle recovery before anything is printed, so the number on the card
         # is the number the next battle will charge against.
-        ASK.accrue_for(ctx.author.id)
-        prof = get_user(ctx.author.id)
+        await ASK.accrue_for(ctx.author.id)
+        prof = await get_user(ctx.author.id)
 
         if slot is not None:
             if not 1 <= int(slot) <= len(skills):
@@ -392,8 +392,8 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
                 return await ctx.send(
                     "❌ You're mid-way through a ranked match — the pick is "
                     "locked until it finishes.")
-            ASK.set_choice(ctx.author.id, card["id"], int(slot))
-            prof = get_user(ctx.author.id)
+            await ASK.set_choice(ctx.author.id, card["id"], int(slot))
+            prof = await get_user(ctx.author.id)
 
         e = build_skill_embed(prof, card)
         view = EnergyRefill(ctx.author.id, card) if _can_refill(prof) else None
@@ -405,8 +405,8 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
     @commands.command(name="energyrefill", aliases=["erefill", "arefill"])
     async def energy_refill(self, ctx: commands.Context) -> None:
         """Top your avatar energy back to full for coins, instead of waiting."""
-        ASK.accrue_for(ctx.author.id)
-        prof = get_user(ctx.author.id)
+        await ASK.accrue_for(ctx.author.id)
+        prof = await get_user(ctx.author.id)
 
         if not _can_refill(prof):
             return await ctx.send(embed=discord.Embed(

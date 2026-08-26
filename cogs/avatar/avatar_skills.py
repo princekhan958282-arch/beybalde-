@@ -466,34 +466,34 @@ def end_match(profile: dict, now: Optional[float] = None) -> None:
 # Every one swallows failures: an unreadable profile must never stop a battle
 # starting, exactly as loadout.avatar_bonuses does.
 
-def _mutate(player_id: int, fn):
+async def _mutate(player_id: int, fn):
     try:
         from utils.database import mutate_user
-        return mutate_user(int(player_id), fn)
+        return await mutate_user(int(player_id), fn)
     except Exception as exc:                             # noqa: BLE001
         log.debug("avatar skill state unavailable for %s: %s", player_id, exc)
         return None
 
 
-def begin_battle_for(player_id: int, avatar: Optional[dict],
+async def begin_battle_for(player_id: int, avatar: Optional[dict],
                      ranked: bool = False) -> Optional[dict]:
-    return _mutate(player_id, lambda p: begin_battle(p, avatar, ranked))
+    return await _mutate(player_id, lambda p: begin_battle(p, avatar, ranked))
 
 
-def end_battle_for(player_id: int, ranked: bool = False) -> None:
-    _mutate(player_id, lambda p: end_battle(p, ranked))
+async def end_battle_for(player_id: int, ranked: bool = False) -> None:
+    await _mutate(player_id, lambda p: end_battle(p, ranked))
 
 
-def end_match_for(player_id: int) -> None:
-    _mutate(player_id, lambda p: end_match(p))
+async def end_match_for(player_id: int) -> None:
+    await _mutate(player_id, lambda p: end_match(p))
 
 
-def accrue_for(player_id: int) -> int:
+async def accrue_for(player_id: int) -> int:
     """Settle recovery and persist it. Returns energy gained."""
-    return _mutate(player_id, lambda p: accrue(p)) or 0
+    return await _mutate(player_id, lambda p: accrue(p)) or 0
 
 
-def buy_refill_for(player_id: int) -> dict:
+async def buy_refill_for(player_id: int) -> dict:
     """Purchase a full pool. Raises RefillError with a player-facing reason.
 
     Not routed through `_mutate`: that swallows exceptions, and this is the one
@@ -502,10 +502,10 @@ def buy_refill_for(player_id: int) -> dict:
     the coins spent.
     """
     from utils.database import mutate_user
-    return mutate_user(int(player_id), buy_refill)
+    return await mutate_user(int(player_id), buy_refill)
 
 
-def set_choice(player_id: int, avatar_id: str, slot: int) -> int:
+async def set_choice(player_id: int, avatar_id: str, slot: int) -> int:
     """Store a standing pick. Returns the slot stored."""
     slot = max(1, min(int(slot), len(SKILL_ENERGY)))
 
@@ -517,10 +517,10 @@ def set_choice(player_id: int, avatar_id: str, slot: int) -> int:
         profile[K_CHOICE] = table
         return slot
 
-    return _mutate(player_id, _apply) or slot
+    return await _mutate(player_id, _apply) or slot
 
 
-def state_for(player_id: int) -> dict:
+async def state_for(player_id: int) -> dict:
     """Read-only snapshot for the UI.
 
     Settles recovery first and PERSISTS it, so what the panel prints is what
@@ -531,10 +531,10 @@ def state_for(player_id: int) -> dict:
     try:
         from utils.database import get_user
         from .avatar_engine import avatar_engine
-        accrue_for(player_id)
-        prof = get_user(int(player_id))
+        await accrue_for(player_id)
+        prof = await get_user(int(player_id))
         avatar = avatar_engine.get_avatar(
-            avatar_engine.get_equipped_avatar_id(int(player_id)) or "")
+            await avatar_engine.get_equipped_avatar_id(int(player_id)) or "")
         return {
             "energy":       energy(prof),
             "slot":         active_slot(prof, avatar),

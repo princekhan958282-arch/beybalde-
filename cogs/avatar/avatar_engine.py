@@ -355,7 +355,7 @@ class AvatarEngine:
 
     # ── Equip management (requires db interaction from caller) ────────────────
 
-    def equip(self, player_id: int, avatar_id: str) -> tuple[bool, str]:
+    async def equip(self, player_id: int, avatar_id: str) -> tuple[bool, str]:
         """
         Equip an avatar for a player.
         Returns (success, message).
@@ -368,30 +368,30 @@ class AvatarEngine:
         if not player_owns_avatar(player_id, avatar_id):
             return False, "You don't own this avatar."
 
-        set_equipped_avatar(player_id, avatar_id)
+        await set_equipped_avatar(player_id, avatar_id)
         avatar = self._avatars[avatar_id]
         return True, f"Equipped **{avatar['name']}**!"
 
-    def unequip(self, player_id: int) -> tuple[bool, str]:
+    async def unequip(self, player_id: int) -> tuple[bool, str]:
         """Remove equipped avatar for a player."""
-        set_equipped_avatar(player_id, None)
+        await set_equipped_avatar(player_id, None)
         return True, "Avatar unequipped."
 
-    def get_equipped_avatar_id(self, player_id: int) -> Optional[str]:
-        return get_equipped_avatar(player_id)
+    async def get_equipped_avatar_id(self, player_id: int) -> Optional[str]:
+        return await get_equipped_avatar(player_id)
 
     # ── Card levels ───────────────────────────────────────────────────────────
 
-    def card_level(self, player_id: int, avatar_id: str) -> int:
+    async def card_level(self, player_id: int, avatar_id: str) -> int:
         """This player's purchased level for one card. 1 when never bought."""
         try:
             from utils.database import get_user
             from . import avatar_progress as AP
-            return AP.card_level(get_user(player_id), avatar_id)
+            return AP.card_level(await get_user(player_id), avatar_id)
         except Exception:                                # noqa: BLE001
             return 1
 
-    def _level_bonus(self, player_id: int, avatar_id: str,
+    async def _level_bonus(self, player_id: int, avatar_id: str,
                      avatar: dict) -> dict:
         """Flat stat lines from the card's level. Zero for an unlevelled card.
 
@@ -401,14 +401,14 @@ class AvatarEngine:
         """
         try:
             from . import avatar_levels as AL
-            level = self.card_level(player_id, avatar_id)
+            level = await self.card_level(player_id, avatar_id)
             if level <= 1:
                 return {"attack": 0, "defense": 0, "stamina": 0}
             return AL.card_stat_bonus(avatar.get("type", "balance"), level)
         except Exception:                                # noqa: BLE001
             return {"attack": 0, "defense": 0, "stamina": 0}
 
-    def _active_bonuses(self, player_id: int, avatar: dict) -> dict:
+    async def _active_bonuses(self, player_id: int, avatar: dict) -> dict:
         """The card's bonus block, narrowed to the skill in play.
 
         Swallows everything and falls back to the whole block: if the skill
@@ -418,14 +418,14 @@ class AvatarEngine:
         try:
             from utils.database import get_user
             from . import avatar_skills as AS
-            prof = get_user(player_id)
+            prof = await get_user(player_id)
             return AS.bonuses_for(avatar, AS.active_slot(prof, avatar))
         except Exception:                                # noqa: BLE001
             return avatar.get("bonuses") or {}
 
     # ── Battle API (the only method session.py needs to call) ─────────────────
 
-    def get_battle_bonuses(self, player_id: int) -> AvatarBonuses:
+    async def get_battle_bonuses(self, player_id: int) -> AvatarBonuses:
         """
         Called ONCE at battle start by session.py.
         Returns an AvatarBonuses snapshot for the entire fight.
@@ -453,7 +453,7 @@ class AvatarEngine:
         were bought with coins and belong to the card, not to a skill, so they
         apply even when the player is out of energy for a skill entirely.
         """
-        avatar_id = self.get_equipped_avatar_id(player_id)
+        avatar_id = await self.get_equipped_avatar_id(player_id)
         if not avatar_id:
             return NULL_BONUSES
 
@@ -461,8 +461,8 @@ class AvatarEngine:
         if not avatar:
             return NULL_BONUSES
 
-        b = self._active_bonuses(player_id, avatar)
-        level_bonus = self._level_bonus(player_id, avatar_id, avatar)
+        b = await self._active_bonuses(player_id, avatar)
+        level_bonus = await self._level_bonus(player_id, avatar_id, avatar)
         return self.bonuses_from_block(b, level_bonus)
 
     def bonuses_from_block(self, block: Optional[dict],

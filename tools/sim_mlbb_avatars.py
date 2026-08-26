@@ -275,17 +275,24 @@ from cogs.avatar.avatar_upgrade import _resolve as AUP_RESOLVE   # noqa: E402
 _shop_self = SHOP.AvatarShop.__new__(SHOP.AvatarShop)
 AINFO_RESOLVE = SHOP.AvatarShop._resolve_avatar_query
 
-for name in MLBB_ROSTER:
-    cid = CARDS[name]["id"]
-    for label, query in (("name", name), ("lowercase", name.lower()), ("id", cid)):
-        got = AUP_RESOLVE(query, 0)
-        check(f";aup finds {name} by {label}",
-              got is not None and got["id"] == cid,
-              got and got["name"])
-        got = AINFO_RESOLVE(_shop_self, query)
-        check(f";ainfo finds {name} by {label}",
-              got is not None and got["id"] == cid,
-              got and got["name"])
+import asyncio                                                    # noqa: E402
+
+
+async def _run_resolve_checks():
+    for name in MLBB_ROSTER:
+        cid = CARDS[name]["id"]
+        for label, query in (("name", name), ("lowercase", name.lower()), ("id", cid)):
+            got = await AUP_RESOLVE(query, 0)
+            check(f";aup finds {name} by {label}",
+                  got is not None and got["id"] == cid,
+                  got and got["name"])
+            got = AINFO_RESOLVE(_shop_self, query)
+            check(f";ainfo finds {name} by {label}",
+                  got is not None and got["id"] == cid,
+                  got and got["name"])
+
+
+asyncio.run(_run_resolve_checks())
 
 # ;ainfo also renders the card, and an MLBB rarity must not blow up the embed
 # builder on a colour/emoji lookup — the two tables it indexes by rarity.

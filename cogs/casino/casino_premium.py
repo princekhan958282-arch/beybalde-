@@ -186,7 +186,7 @@ class CasinoPremiumCog(commands.Cog):
         uid  = ctx.author.id
 
         # Check Beycoin balance
-        profile = database.get_user(uid)
+        profile = await database.get_user(uid)
         bal     = profile.get("coins", 0)
         if bal < p["price"]:
             return await ctx.send(
@@ -207,7 +207,7 @@ class CasinoPremiumCog(commands.Cog):
 
         # Deduct Beycoins
         profile["coins"] -= p["price"]
-        database.update_user(uid, profile)
+        await database.update_user(uid, profile)
 
         # Store premium in wallet data
         expires = int(time.time()) + p["duration"]

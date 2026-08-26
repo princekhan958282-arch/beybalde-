@@ -346,7 +346,7 @@ check("every member is charged, not just the host",
 check("the charge goes through mutate_user, not get_user/update_user",
       "btiers.charge_for(" in src)
 check("Join quotes the price before anyone commits",
-      "btiers.can_afford(get_user(interaction.user.id)" in src)
+      "btiers.can_afford(await get_user(interaction.user.id)" in src)
 check("a member who cannot pay is dropped, not left blocking the launch",
       "self.party.remove(m)" in src and "broke.append(member)" in src)
 check("...and is told, rather than silently vanishing",

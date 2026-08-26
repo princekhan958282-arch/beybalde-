@@ -258,7 +258,7 @@ class BattleCog(commands.Cog, name="Battle"):
             # Checking only the caller's would let them keep starting matches
             # after the opponent's own limit was spent.
             for a, b in ((ctx.author, opponent), (opponent, ctx.author)):
-                why = RK.pair_limit_error(get_user(a.id), b.id, b.display_name)
+                why = RK.pair_limit_error(await get_user(a.id), b.id, b.display_name)
                 if why:
                     prefix = ("" if a.id == ctx.author.id
                               else f"{a.display_name}: ")
@@ -271,8 +271,8 @@ class BattleCog(commands.Cog, name="Battle"):
             )
 
         # ── Ensure both players have equipped Beyblades ───────────────────────
-        c_profile = get_user(ctx.author.id)
-        o_profile = get_user(opponent.id)
+        c_profile = await get_user(ctx.author.id)
+        o_profile = await get_user(opponent.id)
 
         # `has_equipped_blade`, not `profile["active_beyblade"]`. A player whose
         # equipped blade is a boss COPY has `active_copy` set and
@@ -280,12 +280,12 @@ class BattleCog(commands.Cog, name="Battle"):
         # about a player `equipped_blade()` would happily arm. The gate now
         # asks the same function the battle does.
         from .boss.boss_copy import has_equipped_blade
-        if not has_equipped_blade(ctx.author.id):
+        if not await has_equipped_blade(ctx.author.id):
             return await ctx.send(
                 f"❌ {ctx.author.mention} you don't have a Beyblade equipped!\n"
                 f"Use `;equip <name>` to equip one from your inventory."
             )
-        if not has_equipped_blade(opponent.id):
+        if not await has_equipped_blade(opponent.id):
             return await ctx.send(
                 f"❌ {opponent.mention} doesn't have a Beyblade equipped!"
             )
@@ -295,8 +295,8 @@ class BattleCog(commands.Cog, name="Battle"):
         # tell the player their own equipped blade "wasn't found". The resolver
         # returns the copy's rolled blade dict when one is equipped.
         from cogs.battle.boss import boss_copy as _bcopy
-        blade1_raw, copy1 = _bcopy.equipped_blade(ctx.author.id)
-        blade2_raw, copy2 = _bcopy.equipped_blade(opponent.id)
+        blade1_raw, copy1 = await _bcopy.equipped_blade(ctx.author.id)
+        blade2_raw, copy2 = await _bcopy.equipped_blade(opponent.id)
 
         if not blade1_raw:
             return await ctx.send(
@@ -381,7 +381,7 @@ class BattleCog(commands.Cog, name="Battle"):
             if ranked:
                 await self._run_ranked_match(ctx, opponent, blade1, blade2)
             else:
-                session = BattleSession(
+                session = await BattleSession.create(
                     bot=self.bot, channel=ctx.channel,
                     p1=ctx.author, p2=opponent,
                     blade1=blade1, blade2=blade2, ranked=False,
@@ -424,7 +424,7 @@ class BattleCog(commands.Cog, name="Battle"):
             # decide the match and turn the point system into decoration.
             # Avatar ENERGY is the deliberate exception — it is the one thing
             # that carries, which is what makes the skill pick a budget.
-            session = BattleSession(
+            session = await BattleSession.create(
                 bot=self.bot, channel=ctx.channel, p1=me, p2=them,
                 blade1=blade1, blade2=blade2, ranked=True,
             )
@@ -479,7 +479,7 @@ class BattleCog(commands.Cog, name="Battle"):
                                       pts, history, MAX_ROUNDS)
         finally:
             for _p in (me, them):
-                AS.end_match_for(int(_p.id))
+                await AS.end_match_for(int(_p.id))
 
         # ── Match result ──────────────────────────────────────────────────────
         if pts[me.id] == pts[them.id]:
@@ -500,8 +500,8 @@ class BattleCog(commands.Cog, name="Battle"):
         if winner is not None:
             # The ladder moves ONCE, here, for the match — not once per round.
             # Rounds are scored; matches are recorded.
-            w_streak = mutate_user(winner.id, RK.apply_ranked_win)
-            mutate_user(loser.id, RK.apply_ranked_loss)
+            w_streak = await mutate_user(winner.id, RK.apply_ranked_win)
+            await mutate_user(loser.id, RK.apply_ranked_loss)
             from utils.ranks import WIN_SCORE, LOSS_SCORE
             e.add_field(name="Ladder",
                         value=f"**{winner.display_name}** +{WIN_SCORE} rank "
@@ -514,10 +514,10 @@ class BattleCog(commands.Cog, name="Battle"):
         # other by always being the one who calls it.
         for a, b in ((me, them), (them, me)):
             try:
-                mutate_user(a.id, lambda p, _b=b: RK.record_pair_match(p, _b.id))
+                await mutate_user(a.id, lambda p, _b=b: RK.record_pair_match(p, _b.id))
             except Exception:                            # noqa: BLE001
                 pass
-        left = RK.pair_remaining(get_user(me.id), them.id)
+        left = RK.pair_remaining(await get_user(me.id), them.id)
         e.set_footer(text=f"{left} ranked match(es) left against "
                           f"{them.display_name} today.")
         await ctx.send(embed=e)
@@ -563,7 +563,7 @@ class BattleCog(commands.Cog, name="Battle"):
         self, ctx: commands.Context, member: discord.Member = None
     ) -> None:
         target  = member or ctx.author
-        profile = get_user(target.id)
+        profile = await get_user(target.id)
         # Safely unpack xp_to_next_level return value
         try:
             lvl_xp_result = xp_to_next_level(profile.get("xp", 0))

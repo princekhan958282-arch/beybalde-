@@ -203,7 +203,7 @@ def main() -> int:
 
         await R.grant(uid, [{"kind": "bossbey", "value": "argus",
                             "grade": "Perfect"}])
-        copies = bcopy.all_copies(uid)
+        copies = await bcopy.all_copies(uid)
         check("granting a boss bey adds a real copy to boss_copies",
               len(copies) == 1 and copies[0]["grade"] == "Perfect", copies)
         check("...built from the SAME roll_copy the boss-fight victory path "

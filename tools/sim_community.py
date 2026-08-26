@@ -218,13 +218,17 @@ async def suite() -> None:
     xpm, lvm = XP.XPManager(), XP.LevelManager()
     pm, gm = PL.PollManager(), GV.GiveawayManager()
     refused = 0
+    import inspect as _inspect
+
     for gid in (MAIN, OTHER, None, "123"):
         for call in (lambda: xpm.grant(gid, 1, 5),
                      lambda: pm.create(gid, 1, "q", ["a", "b"]),
                      lambda: gm.create(gid, 1, "prize"),
                      lambda: lvm.roles_for(gid, 5)):
             try:
-                call()
+                res = call()
+                if _inspect.iscoroutine(res):
+                    await res
             except guard.NotMainServer:
                 refused += 1
     check("every entry point refuses in every guild while it is unset",
@@ -311,16 +315,16 @@ async def suite() -> None:
     # ── 4. the event layer ──────────────────────────────────────────────────
     print("\n── 4. the event layer never awards outside the main server ─────")
     seed(6001)
-    before = DB.get_user(6001).get(XP.K_XP, 0)
+    before = (await DB.get_user(6001)).get(XP.K_XP, 0)
     check("listener_ok says no for another guild",
           not guard.listener_ok(FakeGuild(OTHER)))
     check("...and yes for the main one", guard.listener_ok(FakeGuild(MAIN)))
     try:
-        xpm.award_message(OTHER, 6001, "a long enough message to count")
+        await xpm.award_message(OTHER, 6001, "a long enough message to count")
     except guard.NotMainServer:
         pass
     check("a message from another server earns nothing",
-          DB.get_user(6001).get(XP.K_XP, 0) == before)
+          (await DB.get_user(6001)).get(XP.K_XP, 0) == before)
 
     # ── 5. duplicate prevention is the database's job ───────────────────────
     print("\n── 5. one vote, one entry, whatever the client does ────────────")
@@ -417,8 +421,8 @@ async def suite() -> None:
     t0 = time.time()
     earned = paid = 0
     for i in range(200):                       # 200 messages over 200 seconds
-        res = xpm.award_message(MAIN, 7300, f"message number {i} about blades",
-                                now=t0 + i)
+        res = await xpm.award_message(MAIN, 7300, f"message number {i} about blades",
+                                      now=t0 + i)
         earned += res["awarded"]
         paid += 1 if res["awarded"] else 0
     check(f"200 messages over 200s pay {paid} times, not 200",
@@ -427,16 +431,16 @@ async def suite() -> None:
     print(f"       community XP earned: {earned} over 200 messages")
 
     seed(7301)
-    res = xpm.award_message(MAIN, 7301, "hi", now=t0)
+    res = await xpm.award_message(MAIN, 7301, "hi", now=t0)
     check("a message under the minimum length earns nothing",
           res["awarded"] == 0 and res["refused"] == "too short", res)
-    xpm.award_message(MAIN, 7301, "the same sentence exactly", now=t0)
-    dup = xpm.award_message(MAIN, 7301, "the same sentence exactly",
-                            now=t0 + 120)
+    await xpm.award_message(MAIN, 7301, "the same sentence exactly", now=t0)
+    dup = await xpm.award_message(MAIN, 7301, "the same sentence exactly",
+                                  now=t0 + 120)
     check("repeating yourself earns nothing even after the cooldown",
           dup["awarded"] == 0 and dup["refused"] == "same message again", dup)
-    fresh_text = xpm.award_message(MAIN, 7301, "something else entirely now",
-                                   now=t0 + 180)
+    fresh_text = await xpm.award_message(MAIN, 7301, "something else entirely now",
+                                         now=t0 + 180)
     check("...but a different sentence does", fresh_text["awarded"] > 0)
 
     seed(7302)
@@ -448,21 +452,22 @@ async def suite() -> None:
         hour=0, minute=0, second=0, microsecond=0).timestamp()
     total = 0
     for i in range(300):                       # 5 hours of talking, one day
-        total += xpm.award_message(MAIN, 7302, f"unique sentence {i} here",
-                                   now=midnight + 60 + i * 61)["awarded"]
+        r = await xpm.award_message(MAIN, 7302, f"unique sentence {i} here",
+                                    now=midnight + 60 + i * 61)
+        total += r["awarded"]
     check(f"the daily cap holds at {XP.DAILY_XP_CAP}",
           total == XP.DAILY_XP_CAP, total)
-    tomorrow = xpm.award_message(MAIN, 7302, "first thing the next morning",
-                                 now=midnight + 86400 + 60)
+    tomorrow = await xpm.award_message(MAIN, 7302, "first thing the next morning",
+                                       now=midnight + 86400 + 60)
     check("...and resets on the UTC day boundary rather than locking the "
           "player out forever", tomorrow["awarded"] > 0, tomorrow)
 
     seed(7303)
-    own = xpm.award_reaction(MAIN, 7303, 900, author_id=7303)
+    own = await xpm.award_reaction(MAIN, 7303, 900, author_id=7303)
     check("reacting to your own message earns nothing",
           own["awarded"] == 0 and own["refused"] == "own message", own)
-    first = xpm.award_reaction(MAIN, 7303, 901, author_id=99)
-    second = xpm.award_reaction(MAIN, 7303, 901, author_id=99)
+    first = await xpm.award_reaction(MAIN, 7303, 901, author_id=99)
+    second = await xpm.award_reaction(MAIN, 7303, 901, author_id=99)
     check("reacting twice to the same message pays once",
           first["awarded"] > 0 and second["awarded"] == 0,
           (first["awarded"], second.get("refused")))
@@ -492,23 +497,23 @@ async def suite() -> None:
     # ── 9. the two tracks never touch ───────────────────────────────────────
     print("\n── 9. community XP is not trainer XP ───────────────────────────")
     seed(7500)
-    before = DB.get_user(7500)
+    before = await DB.get_user(7500)
     for i in range(30):
-        xpm.award_message(MAIN, 7500, f"a distinct sentence {i}",
-                          now=t0 + i * 61)
-    after = DB.get_user(7500)
+        await xpm.award_message(MAIN, 7500, f"a distinct sentence {i}",
+                                now=t0 + i * 61)
+    after = await DB.get_user(7500)
     check("trainer xp did not move", after["xp"] == before["xp"],
           (before["xp"], after["xp"]))
     check("trainer level did not move", after["level"] == before["level"])
     check("community xp did", after[XP.K_XP] > 0, after[XP.K_XP])
     check("the community level is NOT stored under `level`, which get_user "
           "recomputes", XP.K_LEVEL != "level")
-    check("...and survives a re-read", DB.get_user(7500)[XP.K_LEVEL]
-          == after[XP.K_LEVEL])
+    reread = await DB.get_user(7500)
+    check("...and survives a re-read", reread[XP.K_LEVEL] == after[XP.K_LEVEL])
 
     seed(7501)
-    xpm.grant(MAIN, 7501, XP.xp_for_level(3))
-    card = xpm.card(MAIN, 7501)
+    await xpm.grant(MAIN, 7501, XP.xp_for_level(3))
+    card = await xpm.card(MAIN, 7501)
     check("the curve puts the right XP at the right level",
           card["level"] == 3, card)
     check("level 0 needs nothing and level 1 needs the constant",
@@ -615,7 +620,8 @@ async def suite() -> None:
           {"chatxp", "commlevel"} <= set(RK.CATEGORIES), list(RK.CATEGORIES))
     check("...and are declared main-server only",
           RK.MAIN_ONLY == frozenset({"chatxp", "commlevel"}), RK.MAIN_ONLY)
-    rows = RK.build_board([DB.get_user(7500), DB.get_user(7302)], "chatxp", 10)
+    rows = RK.build_board([await DB.get_user(7500), await DB.get_user(7302)],
+                          "chatxp", 10)
     check("the board sorts by community xp",
           rows and rows[0][1] >= rows[-1][1], [r[1] for r in rows])
     check("a player with no community xp is not on it",
@@ -814,16 +820,16 @@ async def suite() -> None:
     # -- A level-up earned by REACTING announces and grants, like any other.
     seed(7900, community_xp=XP.xp_for_level(2) - 1)
     C.put(C.K_LEVEL_ROLES, {})
-    react_award = xpm.award_reaction(MAIN, 7900, 5555, author_id=4242)
+    react_award = await xpm.award_reaction(MAIN, 7900, 5555, author_id=4242)
     check("a reaction that crosses a level boundary reports the level-up",
           react_award["levelled"], react_award)
     check("...and the listener acts on it rather than discarding it",
           "_after_award"
           in CG.CommunityCog.community_reaction_xp.__code__.co_names,
           CG.CommunityCog.community_reaction_xp.__code__.co_names)
+    unknown_author = await xpm.award_reaction(MAIN, 7900, 5556, author_id=None)
     check("reacting with an unknown author earns nothing, instead of paying "
-          "for your own message",
-          xpm.award_reaction(MAIN, 7900, 5556, author_id=None)["awarded"] == 0)
+          "for your own message", unknown_author["awarded"] == 0)
 
     # -- Alternating two sentences no longer defeats the duplicate guard.
     seed(7901)
@@ -831,19 +837,20 @@ async def suite() -> None:
     got = 0
     for i in range(6):
         text = "good game everyone" if i % 2 == 0 else "nice one there"
-        got += xpm.award_message(MAIN, 7901, text, now=base + i * 61)["awarded"]
+        r = await xpm.award_message(MAIN, 7901, text, now=base + i * 61)
+        got += r["awarded"]
     check("alternating two sentences is still caught as repetition",
           got == 0 or got <= XP.XP_MESSAGE_MAX * 2, got)
-    check("...while genuinely new sentences still pay",
-          xpm.award_message(MAIN, 7901, "a completely fresh thought",
-                            now=base + 700)["awarded"] > 0)
+    fresh = await xpm.award_message(MAIN, 7901, "a completely fresh thought",
+                                    now=base + 700)
+    check("...while genuinely new sentences still pay", fresh["awarded"] > 0)
 
     # -- One shape out of every award path.
     shapes = [
-        xpm.grant(MAIN, 7902, 0),
-        xpm.award_message(MAIN, 7902, "hi"),
-        xpm.award_reaction(MAIN, 7902, 1, author_id=7902),
-        xpm.award_poll_vote(MAIN, 7902),
+        await xpm.grant(MAIN, 7902, 0),
+        await xpm.award_message(MAIN, 7902, "hi"),
+        await xpm.award_reaction(MAIN, 7902, 1, author_id=7902),
+        await xpm.award_poll_vote(MAIN, 7902),
     ]
     check("every award path returns the same keys, so `award['refused']` "
           "cannot KeyError depending on the branch",
@@ -864,7 +871,8 @@ async def suite() -> None:
 
     # ── 17. the leaks v1.28 opened into every other server ──────────────────
     print("\n── 17. main-server data stays in the main server ───────────────")
-    board_pool = [DB.get_user(7500), DB.get_user(7302), DB.get_user(7300)]
+    board_pool = [await DB.get_user(7500), await DB.get_user(7302),
+                 await DB.get_user(7300)]
     public = RK.placings(board_pool, 7500)
     check("/rank shows NO community placing by default — the card is rendered "
           "in every server", not (set(public) & RK.MAIN_ONLY), public)

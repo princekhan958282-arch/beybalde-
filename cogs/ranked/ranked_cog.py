@@ -158,7 +158,7 @@ class RankedCog(commands.Cog, name="Ranked"):
                    member: Optional[discord.Member] = None) -> None:
         """Ranked card: tier, score, ranked record and board positions."""
         target = member or ctx.author
-        prof = get_user(target.id)
+        prof = await get_user(target.id)
 
         # The read and all seven board placings on one worker thread. Each
         # placing sorts the whole registry, and the read parses every profile

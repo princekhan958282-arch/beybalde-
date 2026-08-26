@@ -64,7 +64,7 @@ def _opponent_blade(name: str) -> Optional[tuple[dict, int]]:
     return blade, max(0, gain)
 
 
-def player_blade(user_id: int) -> Optional[tuple[dict, Optional[dict]]]:
+async def player_blade(user_id: int) -> Optional[tuple[dict, Optional[dict]]]:
     """The blade this player fights the League with, plus its copy instance.
 
     Returns `(blade, copy)`, or None when they have nothing equipped.
@@ -102,13 +102,13 @@ def player_blade(user_id: int) -> Optional[tuple[dict, Optional[dict]]]:
     from cogs.battle.battle import _apply_parts
     from cogs.battle.boss import boss_copy as bcopy
 
-    blade_raw, copy = bcopy.equipped_blade(user_id)
+    blade_raw, copy = await bcopy.equipped_blade(user_id)
     if not blade_raw:
         return None
     # A boss copy arrives already resolved and levelled — levelling it a second
     # time would double its growth. Same arm as `battle.py:307`.
     blade = dict(blade_raw) if copy else _apply_parts(dict(blade_raw),
-                                                      get_user(user_id))
+                                                      await get_user(user_id))
     return blade, copy
 
 
@@ -149,7 +149,7 @@ class ChapterSelect(discord.ui.Select):
         # update: it acknowledges without showing a spinner and leaves the
         # message editable for as long as the work takes.
         await interaction.response.defer()
-        view = LeagueView(self.cog, self.user)
+        view = await LeagueView.create(self.cog, self.user)
         await interaction.edit_original_response(embed=view.embed(), view=view)
 
 
@@ -171,7 +171,7 @@ class DifficultyButton(discord.ui.Button):
                 "That isn't your menu.", ephemeral=True)
         await interaction.response.defer()          # ack before the store read
         self.panel.difficulty = self.difficulty
-        self.panel.refresh()
+        await self.panel.refresh()
         await interaction.edit_original_response(
             embed=self.panel.embed(), view=self.panel)
 
@@ -212,12 +212,25 @@ class LeagueView(discord.ui.View):
         # One profile read per render, held here. `build()` and `embed()` both
         # need it, and fetching it twice doubled the store latency on the exact
         # path that was blowing the interaction deadline.
-        self.profile: dict = get_user(user.id)
+        #
+        # `get_user` is `async def` now (BUG-02) and `__init__` cannot await —
+        # so construction starts with an EMPTY profile (built once here so
+        # `self.children` is never left unset) and every real call site must
+        # use `await LeagueView.create(...)` instead of `LeagueView(...)`,
+        # which immediately calls `refresh()` to populate the real profile.
+        self.profile: dict = {}
         self.build()
 
-    def refresh(self) -> None:
+    @classmethod
+    async def create(cls, cog: "StoryCog", user: discord.Member,
+                     difficulty: str = SD.NORMAL) -> "LeagueView":
+        view = cls(cog, user, difficulty)
+        await view.refresh()
+        return view
+
+    async def refresh(self) -> None:
         """Re-read the profile and rebuild the components."""
-        self.profile = get_user(self.user.id)
+        self.profile = await get_user(self.user.id)
         self.build()
 
     def build(self) -> None:
@@ -277,14 +290,14 @@ class StoryCog(commands.Cog, name="Story Mode"):
         return ChapterPickView(self, user)
 
     # ── gate ─────────────────────────────────────────────────────────────────
-    def _can_fight(self, user_id: int, n: int, difficulty: str) -> tuple[bool, str]:
+    async def _can_fight(self, user_id: int, n: int, difficulty: str) -> tuple[bool, str]:
         if int(user_id) in self._active:
             return False, "You're already in a School League battle."
-        profile = get_user(user_id)
+        profile = await get_user(user_id)
         if not SD.is_unlocked(profile, n, difficulty):
             return False, SD.lock_reason(profile, n, difficulty)
         from cogs.battle.boss.boss_copy import has_equipped_blade
-        if not has_equipped_blade(user_id):
+        if not await has_equipped_blade(user_id):
             return False, ("You need a Beyblade equipped — `;equip <name>`.")
         return True, ""
 
@@ -294,7 +307,7 @@ class StoryCog(commands.Cog, name="Story Mode"):
         # Ack first: `_can_fight` reads the profile, and the deadline is three
         # seconds from the click, not from the first await.
         await interaction.response.defer()
-        ok, why = self._can_fight(player.id, n, difficulty)
+        ok, why = await self._can_fight(player.id, n, difficulty)
         if not ok:
             return await interaction.followup.send(why, ephemeral=True)
         # The battle is minutes long. Run it as its own task so this component
@@ -314,7 +327,7 @@ class StoryCog(commands.Cog, name="Story Mode"):
             return
         opponent_blade, hp_gain = built
 
-        built_blade = player_blade(player.id)
+        built_blade = await player_blade(player.id)
         if built_blade is None:
             await channel.send("❌ You need a Beyblade equipped.")
             return
@@ -395,7 +408,7 @@ class StoryCog(commands.Cog, name="Story Mode"):
         first = False
         card: Optional[dict] = None
         if won:
-            profile = get_user(player.id)
+            profile = await get_user(player.id)
             first = SD.record_clear(profile, difficulty, match.battle_no)
             if first:
                 coins = SD.reward_for(match.battle_no, difficulty)
@@ -409,7 +422,7 @@ class StoryCog(commands.Cog, name="Story Mode"):
                              LEAGUE_BEY_XP.get(difficulty, 0))
                 except Exception:                        # noqa: BLE001
                     pass
-            update_user(player.id, profile)
+            await update_user(player.id, profile)
             try:
                 grant_xp(player.id, LEAGUE_XP.get(difficulty, 0))
             except Exception:                            # noqa: BLE001
@@ -421,7 +434,7 @@ class StoryCog(commands.Cog, name="Story Mode"):
             # would erase the flag, which is the bug `onboarding.py` records as
             # "the same bug that ate blades in redeem.grant".
             if difficulty == SD.NORMAL and SD.normal_complete(
-                    get_user(player.id)):
+                    await get_user(player.id)):
                 try:
                     card = self._award_blader(player.id)
                 except Exception:                        # noqa: BLE001
@@ -455,7 +468,7 @@ class StoryCog(commands.Cog, name="Story Mode"):
                 f"Pick a battle number, 1–{SD.total_battles()} — "
                 f"`;story 3` or `;story 3 nightmare`.")
 
-        ok, why = self._can_fight(ctx.author.id, n, difficulty)
+        ok, why = await self._can_fight(ctx.author.id, n, difficulty)
         if not ok:
             return await ctx.send(why)
         await self._fight(ctx.channel, ctx.author, n, difficulty)
@@ -463,7 +476,7 @@ class StoryCog(commands.Cog, name="Story Mode"):
     @commands.command(name="storymap", aliases=["leaguemap", "storylist"],
                       brief="Your School League progress 🗺️")
     async def storymap(self, ctx: commands.Context) -> None:
-        view = LeagueView(self, ctx.author)
+        view = await LeagueView.create(self, ctx.author)
         await ctx.send(embed=view.embed(), view=view)
 
     @commands.command(name="storyinfo", aliases=["battleinfo"],
@@ -482,7 +495,7 @@ class StoryCog(commands.Cog, name="Story Mode"):
                 f"`;storyinfo 3` or `;storyinfo 3 nightmare`.")
         n = int(entry["n"])
         built = _opponent_blade(entry["blade"])
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         emoji, label = SD.DIFFICULTY_LABEL[difficulty]
         e = discord.Embed(
             title=f"🏫 Battle {n} — {entry['blade']}",
@@ -514,7 +527,7 @@ class StoryCog(commands.Cog, name="Story Mode"):
     async def storystats(self, ctx: commands.Context,
                          member: Optional[discord.Member] = None) -> None:
         target = member or ctx.author
-        profile = get_user(target.id)
+        profile = await get_user(target.id)
         e = discord.Embed(title=f"🏫 {target.display_name} — School League",
                           colour=0x3498DB)
         for d in SD.DIFFICULTIES:

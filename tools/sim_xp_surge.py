@@ -23,6 +23,7 @@ by driving the exact sequence.
 
 Run:  python3 tools/sim_xp_surge.py
 """
+import asyncio
 import copy
 import os
 import sys
@@ -193,7 +194,9 @@ _fake = {}
 DB.USER_STORE.get_one = lambda u, **kw: copy.deepcopy(_fake.get(str(u)))
 DB.USER_STORE.put_one = (lambda u, p, **kw:
                          _fake.__setitem__(str(u), copy.deepcopy(p)))
-try:
+
+
+async def _run_live_store_checks():
     _fake[str(uid)] = {"user_id": str(uid), "xp": 0, "level": 0, "coins": 0}
     DB.grant_xp(uid, 100)
     check("no Surge: a battle win grants the flat 100",
@@ -216,9 +219,9 @@ try:
     _fake[str(uid)] = {"user_id": str(uid), "xp": 0, "level": 0, "coins": 0,
                        "bey_progress": {},
                        XB.K_SURGE_UNTIL: int(time.time() + 600)}
-    prof = DB.get_user(uid)
+    prof = await DB.get_user(uid)
     gain = BL.award(prof, "Test", 300)
-    DB.update_user(uid, prof)
+    await DB.update_user(uid, prof)
     lvl, total, _up = DB.grant_xp(uid, 100)
     stored = _fake[str(uid)]
     check("award -> update_user -> grant_xp: bey xp survives the re-read",
@@ -236,15 +239,19 @@ try:
                        "bey_progress": {},
                        XB.K_SURGE_UNTIL: int(time.time() + 600)}
     for _ in range(10):
-        prof = DB.get_user(uid)
+        prof = await DB.get_user(uid)
         BL.award(prof, "Test", 300)
-        DB.update_user(uid, prof)
+        await DB.update_user(uid, prof)
         DB.grant_xp(uid, 100)
     check("ten battles: bey xp is exactly 10 x 3,000",
           _fake[str(uid)]["bey_progress"]["Test"]["xp"] == 30_000,
           _fake[str(uid)]["bey_progress"]["Test"]["xp"])
     check("...and trainer xp exactly 10 x 1,000",
           _fake[str(uid)]["xp"] == 10_000, _fake[str(uid)]["xp"])
+
+
+try:
+    asyncio.run(_run_live_store_checks())
 finally:
     DB.USER_STORE.get_one, DB.USER_STORE.put_one = real_get, real_put
 

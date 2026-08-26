@@ -183,9 +183,9 @@ def _augment(user_id: int, profile: dict) -> dict:
     return p
 
 
-def evaluate(user_id: int) -> list[Achievement]:
+async def evaluate(user_id: int) -> list[Achievement]:
     """Unlock anything newly earned. Returns the achievements just unlocked."""
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     earned  = profile.get("achievements")
     if not isinstance(earned, dict):
         earned = {}
@@ -211,7 +211,7 @@ def evaluate(user_id: int) -> list[Achievement]:
             pay = int(pay * FIRST_PASS_SCALE)
         profile["achievements"] = earned
         profile["coins"] = profile.get("coins", 0) + pay
-        update_user(user_id, profile)
+        await update_user(user_id, profile)
     return newly
 
 
@@ -249,7 +249,7 @@ class AchievementsCog(commands.Cog, name="Achievements"):
         channel = result.get("channel")
         for uid in result.get("participants", []):
             try:
-                newly = evaluate(int(uid))
+                newly = await evaluate(int(uid))
                 await self._announce(channel, int(uid), newly)
             except Exception:
                 continue
@@ -257,7 +257,7 @@ class AchievementsCog(commands.Cog, name="Achievements"):
     @commands.Cog.listener()
     async def on_beycord_spawn_catch(self, user_id: int):
         try:
-            evaluate(int(user_id))
+            await evaluate(int(user_id))
         except Exception:
             pass
 
@@ -265,7 +265,7 @@ class AchievementsCog(commands.Cog, name="Achievements"):
     async def on_level_up(self, user_id: int, old_level: int,
                           new_level: int, channel=None):
         try:
-            newly = evaluate(int(user_id))
+            newly = await evaluate(int(user_id))
             await self._announce(channel, int(user_id), newly)
         except Exception:
             pass
@@ -287,10 +287,10 @@ class AchievementsCog(commands.Cog, name="Achievements"):
                     "❌ Unknown category. Options: "
                     + " · ".join(f"`{c}`" for c in CATEGORIES))
 
-        newly = evaluate(target.id)          # retroactive catch-up
+        newly = await evaluate(target.id)          # retroactive catch-up
 
         view = AchievementHub(ctx.author, target, category)
-        view.message = await ctx.send(embed=view.embed(), view=view)
+        view.message = await ctx.send(embed=await view.embed(), view=view)
 
         if newly:
             await self._announce(ctx.channel, target.id, newly)
@@ -318,7 +318,7 @@ class CategorySelect(discord.ui.Select):
         view.category = None if self.values[0] == "__all__" else self.values[0]
         view.page = 0
         view.rebuild()
-        await interaction.response.edit_message(embed=view.embed(), view=view)
+        await interaction.response.edit_message(embed=await view.embed(), view=view)
 
 
 class AchievementHub(discord.ui.View):
@@ -339,8 +339,8 @@ class AchievementHub(discord.ui.View):
         self.rebuild()
 
     # ── Data ─────────────────────────────────────────────────────────────────
-    def _state(self):
-        profile = get_user(self.target.id)
+    async def _state(self):
+        profile = await get_user(self.target.id)
         earned  = profile.get("achievements") or {}
         return earned, _augment(self.target.id, profile)
 
@@ -362,8 +362,8 @@ class AchievementHub(discord.ui.View):
             self.add_item(_AchLabel(self.page + 1, self._pages()))
             self.add_item(_AchNext(self.page >= self._pages() - 1))
 
-    def embed(self) -> discord.Embed:
-        earned, view = self._state()
+    async def embed(self) -> discord.Embed:
+        earned, view = await self._state()
 
         if self.category is None:
             # One field with six short lines beats six inline fields — Discord
@@ -456,7 +456,7 @@ class _AchPrev(discord.ui.Button):
             return await interaction.response.send_message("Not your list.",
                                                            ephemeral=True)
         v.page = max(0, v.page - 1); v.rebuild()
-        await interaction.response.edit_message(embed=v.embed(), view=v)
+        await interaction.response.edit_message(embed=await v.embed(), view=v)
 
 
 class _AchNext(discord.ui.Button):
@@ -470,7 +470,7 @@ class _AchNext(discord.ui.Button):
             return await interaction.response.send_message("Not your list.",
                                                            ephemeral=True)
         v.page = min(v._pages() - 1, v.page + 1); v.rebuild()
-        await interaction.response.edit_message(embed=v.embed(), view=v)
+        await interaction.response.edit_message(embed=await v.embed(), view=v)
 
 
 class _AchLabel(discord.ui.Button):

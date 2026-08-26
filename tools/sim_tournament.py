@@ -185,7 +185,9 @@ def press(view, cls, member):
 
 # Every player in this suite holds a blade, so the "run ;start first" refusal
 # does not mask the guard actually under test.
-T.get_user = lambda uid: {"inventory": ["Victory Valkyrie"], "coins": 0}
+async def _fake_get_user_has_blade(uid):
+    return {"inventory": ["Victory Valkyrie"], "coins": 0}
+T.get_user = _fake_get_user_has_blade
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -287,11 +289,13 @@ check("filling the bracket starts it automatically",
 
 _cogN, _lobN, _vN = panel()
 _lobN.entrants[:] = []
-T.get_user = lambda uid: {"inventory": [], "coins": 0}
+async def _fake_get_user_no_blade(uid):
+    return {"inventory": [], "coins": 0}
+T.get_user = _fake_get_user_no_blade
 i = press(_vN, T.JoinButton, Member(21))
 check("a player with no blade is told to run ;start",
       21 not in _lobN.entrants and "start" in (i.response.sent[0]["content"] or ""))
-T.get_user = lambda uid: {"inventory": ["Victory Valkyrie"], "coins": 0}
+T.get_user = _fake_get_user_has_blade
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -469,26 +473,28 @@ check("a broken payload returns None rather than raising — a failed card is "
                              0, 0, 0) is not None or True)
 
 _paid = {}
-T.mutate_user = lambda uid, fn: fn(_paid.setdefault(uid, {"coins": 0}))
+async def _fake_mutate_user_pay(uid, fn):
+    return fn(_paid.setdefault(uid, {"coins": 0}))
+T.mutate_user = _fake_mutate_user_pay
 cog = T.TournamentCog.__new__(T.TournamentCog)
 lob = T.Lobby(host_id=1, channel_id=1, guild_id=1, entrants=[1, 2, 3, 4])
 lob.champion = 3
-prize = cog._award(lob)
+prize = asyncio.run(cog._award(lob))
 check(f"the champion is paid {prize:,} for a 4-player bracket",
       prize == T.PRIZE_PER_ENTRANT * 4 and _paid[3]["coins"] == prize,
       (prize, _paid))
 lob.champion = None
-check("no champion means no payout", cog._award(lob) == 0)
+check("no champion means no payout", asyncio.run(cog._award(lob)) == 0)
 
 
-def _boom(*a, **k):
+async def _boom(*a, **k):
     raise RuntimeError("db down")
 
 
 T.mutate_user = _boom
 lob.champion = 3
 check("a failed payout returns 0 rather than killing the trophy message",
-      cog._award(lob) == 0)
+      asyncio.run(cog._award(lob)) == 0)
 
 _src_award = _src[_src.index("def _award"):][:1200]
 check("the payout is atomic — get_user/update_user is the race that erased "

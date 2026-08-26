@@ -61,7 +61,7 @@ async def _casino_daily_ready(user_id: int) -> bool:
 
 async def build_wallet_embed(target: discord.abc.User) -> discord.Embed:
     """The card itself. Two inline fields so a phone lays them out side by side."""
-    profile   = get_user(target.id)
+    profile   = await get_user(target.id)
     beycoins  = profile.get("coins", 0)
     casino    = await casino_wallet.get_balance(target.id)
     tax       = await casino_premium.get_exchange_tax(target.id)
@@ -131,7 +131,7 @@ class WalletView(discord.ui.View):
 
         # ── Beycoin daily: reuse the shop cog so the reward roll and the
         #    cooldown stay defined in exactly one place ─────────────────────
-        profile = get_user(self.owner.id)
+        profile = await get_user(self.owner.id)
         ready, _at = _beycoin_daily_ready(profile)
         if ready:
             shop = interaction.client.get_cog("Shop") or interaction.client.get_cog("ShopCog")

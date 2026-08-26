@@ -383,7 +383,7 @@ async def _givecoins(ctx: ActionCtx) -> Result:
     def apply(p):
         p["coins"] = max(0, int(p.get("coins", 0)) + int(ctx.amount))
         return p["coins"]
-    bal = mutate_user(ctx.target_id, apply)
+    bal = await mutate_user(ctx.target_id, apply)
     return Result(message=f"✅ Gave 🪙 **{ctx.amount:,}** to {ctx.target_mention()}. "
                           f"Balance: **{bal:,}**.")
 
@@ -394,7 +394,7 @@ async def _removecoin(ctx: ActionCtx) -> Result:
     def apply(p):
         p["coins"] = max(0, int(p.get("coins", 0)) - int(ctx.amount))
         return p["coins"]
-    bal = mutate_user(ctx.target_id, apply)
+    bal = await mutate_user(ctx.target_id, apply)
     return Result(message=f"✅ Took 🪙 **{ctx.amount:,}** from {ctx.target_mention()}. "
                           f"Balance: **{bal:,}**.")
 
@@ -405,7 +405,7 @@ async def _setcoins(ctx: ActionCtx) -> Result:
     def apply(p):
         p["coins"] = max(0, int(ctx.amount))
         return p["coins"]
-    bal = mutate_user(ctx.target_id, apply)
+    bal = await mutate_user(ctx.target_id, apply)
     return Result(message=f"✅ {ctx.target_mention()}'s balance is now 🪙 **{bal:,}**.")
 
 
@@ -415,7 +415,7 @@ async def _givexp(ctx: ActionCtx) -> Result:
     def apply(p):
         p["xp"] = max(0, int(p.get("xp", 0)) + int(ctx.amount))
         return p["xp"]
-    xp = mutate_user(ctx.target_id, apply)
+    xp = await mutate_user(ctx.target_id, apply)
     return Result(message=f"✅ {ctx.target_mention()} now has **{xp:,} XP**.")
 
 
@@ -506,7 +506,7 @@ async def _removebey(ctx: ActionCtx) -> Result:
         p["inventory"] = inv
         return True
 
-    if not mutate_user(ctx.target_id, apply):
+    if not await mutate_user(ctx.target_id, apply):
         return Result.fail(f"❌ **{name}** is not in {ctx.target_mention()}'s inventory.")
     return Result(message=f"✅ Removed **{name}** from {ctx.target_mention()}.")
 
@@ -560,7 +560,7 @@ async def _addpart(ctx: ActionCtx) -> Result:
         parts.append(part)
         return True
 
-    added = mutate_user(ctx.target_id, apply)
+    added = await mutate_user(ctx.target_id, apply)
     return Result(message=(f"✅ Added part **{part}** to {ctx.target_mention()}."
                            if added else
                            f"ℹ️ {ctx.target_mention()} already has **{part}**."))
@@ -667,7 +667,7 @@ async def _spawnloop_stop(ctx: ActionCtx) -> Result:
           "players", needs=("user",))
 async def _inspect(ctx: ActionCtx) -> Result:
     from cogs.core.onboarding import _has_started
-    p = get_user(ctx.target_id)
+    p = await get_user(ctx.target_id)
     e = _embed(f"🔍  {ctx.target_name()}", 0x9B59B6)
     e.add_field(name="Coins", value=f"🪙 {p.get('coins', 0):,}", inline=True)
     e.add_field(name="Level", value=str(p.get("level", 1)), inline=True)
@@ -749,7 +749,7 @@ async def _resetplayer(ctx: ActionCtx) -> Result:
         # the `;start` gate with a profile that already exists — which is the
         # exact lockout v1.08 fixed.
         return True
-    mutate_user(ctx.target_id, apply)
+    await mutate_user(ctx.target_id, apply)
     return Result(message=f"✅ **{ctx.target_name()}**'s profile has been reset.")
 
 
@@ -759,7 +759,7 @@ async def _setrank(ctx: ActionCtx) -> Result:
     from utils.ranks import rank_name_for
     def apply(p):
         p["rank_override"] = int(ctx.amount)
-    mutate_user(ctx.target_id, apply)
+    await mutate_user(ctx.target_id, apply)
     return Result(message=f"✅ {ctx.target_mention()} is now rank **#{ctx.amount}** "
                           f"({rank_name_for(int(ctx.amount))}).")
 

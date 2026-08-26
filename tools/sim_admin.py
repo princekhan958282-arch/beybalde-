@@ -715,18 +715,29 @@ _fake: dict[str, dict] = {}
 _real_get, _real_mutate = DB.get_user, DB.mutate_user
 
 
-def _fake_get(uid):
+def _fake_get_sync(uid):
     return _fake.setdefault(str(uid), {"user_id": str(uid), "coins": 0,
                                        "inventory": [], "xp": 0, "level": 1,
                                        "wins": 0, "losses": 0})
 
 
-def _fake_mutate(uid, fn):
-    return fn(_fake_get(uid))
+def _fake_get(uid):
+    # Sync helper for direct in-test reads/asserts; production callers now
+    # await `get_user` (BUG-02), so the async wrapper below is what gets
+    # installed in its place.
+    return _fake_get_sync(uid)
 
 
-DB.get_user, DB.mutate_user = _fake_get, _fake_mutate
-A.get_user, A.mutate_user = _fake_get, _fake_mutate
+async def _fake_get_async(uid):
+    return _fake_get_sync(uid)
+
+
+async def _fake_mutate(uid, fn):
+    return fn(_fake_get_sync(uid))
+
+
+DB.get_user, DB.mutate_user = _fake_get_async, _fake_mutate
+A.get_user, A.mutate_user = _fake_get_async, _fake_mutate
 try:
     ctx = owner_ctx(target=PLAYER, target_id=PLAYER.id, amount=500)
     r = loop.run_until_complete(A.run("givecoins", ctx))

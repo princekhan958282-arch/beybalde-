@@ -256,7 +256,7 @@ class Brain:
         return mv
 
 
-def build_session(player, pblade, npc_blade, hp_gain, rung, *,
+async def build_session(player, pblade, npc_blade, hp_gain, rung, *,
                   payout=False, spend_energy=True, seed=0, battle_no=1,
                   victory_points=None):
     """A League round, built the way `LeagueMatch._rounds` builds one.
@@ -272,11 +272,11 @@ def build_session(player, pblade, npc_blade, hp_gain, rung, *,
                           level=SD.OPPONENT_LEVEL, hp_gain=hp_gain,
                           rng=random.Random(seed),
                           avatar_id=entry.get("avatar"))
-    s = BattleSession(bot=None, channel=ch, p1=player, p2=npc,
-                      blade1=pblade, blade2=npc_blade, ranked=False,
-                      npc_controller=ctrl, payout=payout,
-                      spend_energy=spend_energy,
-                      victory_points=victory_points)
+    s = await BattleSession.create(bot=None, channel=ch, p1=player, p2=npc,
+                                   blade1=pblade, blade2=npc_blade, ranked=False,
+                                   npc_controller=ctrl, payout=payout,
+                                   spend_energy=spend_energy,
+                                   victory_points=victory_points)
     return s, ch, npc, ctrl
 
 
@@ -305,7 +305,7 @@ async def play_match(player, pblade, npc_blade, hp_gain, rung, seed=0,
     finishes = []
     while max(pts.values()) < SD.VICTORY_TARGET and rounds < SD.MAX_ROUNDS:
         rounds += 1
-        s, _ch, npc, _c = build_session(player, pblade, npc_blade, hp_gain,
+        s, _ch, npc, _c = await build_session(player, pblade, npc_blade, hp_gain,
                                         rung, seed=seed * 100 + rounds,
                                         battle_no=battle_no)
         pk, nk = str(player.id), str(npc.id)
@@ -345,7 +345,7 @@ async def suite(trials: int) -> None:
     check("the fake store IS what utils.database writes through",
           DB.USER_STORE is STORE)
     STORE.clear_log()
-    DB.get_user(4242)
+    await DB.get_user(4242)
     check("...proved: get_user on an unknown id really does persist a row",
           STORE.has(4242) and "4242" in STORE.writes, STORE.writes[-3:])
     del STORE.data["4242"]
@@ -356,7 +356,7 @@ async def suite(trials: int) -> None:
           SESSION.BattleSession is BattleSession)
     src = inspect.getsource(LeagueMatch._rounds)
     check("the match loop builds one session per Victory-Point round",
-          "BattleSession(" in src)
+          "BattleSession.create(" in src)
     check("...with payout off and energy on",
           "payout=False" in src and "spend_energy=True" in src)
 
@@ -441,8 +441,8 @@ async def suite(trials: int) -> None:
     seed_profile(HUMAN_ID + 1, "Storm Spriggan")
     pb, _pg = levelled("Void Longinus", 60)
     ob, _og = levelled("Storm Spriggan", 60)
-    plain = BattleSession(bot=None, channel=FakeChannel(), p1=player,
-                          p2=pvp_other, blade1=pb, blade2=ob)
+    plain = await BattleSession.create(bot=None, channel=FakeChannel(), p1=player,
+                                       p2=pvp_other, blade1=pb, blade2=ob)
     check("a plain PvP session has no NPC and pays",
           plain.npc_controller is None and plain.payout is True)
     check("...and spends no energy, because it is not ranked",
@@ -455,7 +455,7 @@ async def suite(trials: int) -> None:
     seed_profile()
     pblade, pgain = levelled("Void Longinus", SD.OPPONENT_LEVEL)
     nblade, ngain = levelled("Wild Wyvern", SD.OPPONENT_LEVEL)
-    s, ch, npc, ctrl = build_session(player, pblade, nblade, ngain,
+    s, ch, npc, ctrl = await build_session(player, pblade, nblade, ngain,
                                      "nightmare", seed=3, battle_no=5)
     brain = Brain("elite", 7)
     turns = await drive(s, str(player.id), brain)
@@ -495,7 +495,7 @@ async def suite(trials: int) -> None:
     print("\n── 5. the opponent never reaches the store ─────────────────────")
     seed_profile()
     STORE.clear_log()
-    s2, ch2, npc2, _c2 = build_session(player, pblade, nblade, ngain,
+    s2, ch2, npc2, _c2 = await build_session(player, pblade, nblade, ngain,
                                        "elite", seed=11, battle_no=2)
     await drive(s2, str(player.id), Brain("elite", 11))
     check("the NPC id was never written to the store",
@@ -541,7 +541,7 @@ async def suite(trials: int) -> None:
     for who_wins in ("human", "npc"):
         seed_profile(coins=500, xp=1000, wins=3, losses=1)
         before = copy.deepcopy(STORE.data[str(player.id)])
-        s3, _ch3, npc3, _c3 = build_session(player, pblade, nblade, ngain,
+        s3, _ch3, npc3, _c3 = await build_session(player, pblade, nblade, ngain,
                                             "elite", seed=21, battle_no=3)
         loser = npc3 if who_wins == "human" else player
         s3.hp[str(loser.id)] = 0
@@ -564,7 +564,7 @@ async def suite(trials: int) -> None:
     # only thing this section ever exercises
     seed_profile(coins=500, xp=1000)
     before = copy.deepcopy(STORE.data[str(player.id)])
-    s3b, _c3b, npc3b, _cc = build_session(player, pblade, nblade, ngain,
+    s3b, _c3b, npc3b, _cc = await build_session(player, pblade, nblade, ngain,
                                           "elite", seed=22, battle_no=3)
     await drive(s3b, str(player.id), Brain("elite", 22))
     check("a battle played out end to end also paid nothing",
@@ -576,7 +576,7 @@ async def suite(trials: int) -> None:
     # the win path, forced and observed: it is the one an empty NPC profile
     # used to break, and a driven battle may not happen to reach it.
     seed_profile()
-    s3c, ch3c, npc3c, _cc2 = build_session(player, pblade, nblade, ngain,
+    s3c, ch3c, npc3c, _cc2 = await build_session(player, pblade, nblade, ngain,
                                            "elite", seed=23, battle_no=3)
     s3c.hp[str(npc3c.id)] = 0
     await s3c._end_battle()
@@ -600,8 +600,8 @@ async def suite(trials: int) -> None:
     # a PvP session, same code, DOES pay — otherwise the check above is vacuous
     seed_profile(HUMAN_ID + 1, "Storm Spriggan", coins=0)
     seed_profile(coins=0)
-    pvp = BattleSession(bot=None, channel=FakeChannel(), p1=player,
-                        p2=pvp_other, blade1=pblade, blade2=nblade)
+    pvp = await BattleSession.create(bot=None, channel=FakeChannel(), p1=player,
+                                     p2=pvp_other, blade1=pblade, blade2=nblade)
     pvp.hp[str(pvp_other.id)] = 0
     await pvp._end_battle()
     check("...and the same _end_battle with payout=True DOES pay",
@@ -622,7 +622,7 @@ async def suite(trials: int) -> None:
     illegal = []
     for rung in (SD.AI_RUNG[SD.NORMAL], SD.AI_RUNG[SD.NIGHTMARE]):
         for seed in range(3):
-            s4, _c4, npc4, ctrl4 = build_session(
+            s4, _c4, npc4, ctrl4 = await build_session(
                 player, pblade, nblade, ngain, rung, seed=seed, battle_no=4)
             nkey = str(npc4.id)
             await s4._prime_npc_move()
@@ -640,7 +640,7 @@ async def suite(trials: int) -> None:
           "could not pay for", not illegal, illegal[:3])
 
     # the clamp is what makes that true — prove it fires
-    s5, _c5, npc5, ctrl5 = build_session(player, pblade, nblade, ngain,
+    s5, _c5, npc5, ctrl5 = await build_session(player, pblade, nblade, ngain,
                                          "elite", seed=99, battle_no=1)
     nkey5 = str(npc5.id)
     s5.stamina_manager.stamina[nkey5] = 0.0
@@ -663,8 +663,10 @@ async def suite(trials: int) -> None:
           "spend_energy=True" in inspect.getsource(LeagueMatch._rounds)
           and "ranked=False" in inspect.getsource(LeagueMatch._rounds))
     check("the session routes that flag into begin_battle_for",
-          "ranked=self.spend_energy" in
-          inspect.getsource(BattleSession._commit_skill))
+          "ranked=_spend_energy" in
+          inspect.getsource(BattleSession.create)
+          and "_spend_energy = bool(ranked if spend_energy is None "
+              "else spend_energy)" in inspect.getsource(BattleSession.create))
     check("...and into end_battle_for, so casual refills and Story does not",
           "ranked=self.spend_energy" in
           inspect.getsource(BattleSession._release_skills))
@@ -731,8 +733,8 @@ async def suite(trials: int) -> None:
         check(f"...and no `{word}` anywhere in the League data",
               word not in dsrc)
     n_blade, n_gain = levelled(SD.SCHOOL_LEAGUE[0]["blade"])
-    a1, _, _, c1 = build_session(player, pblade, n_blade, n_gain, "elite")
-    a2, _, _, c2 = build_session(player, pblade, n_blade, n_gain, "nightmare")
+    a1, _, _, c1 = await build_session(player, pblade, n_blade, n_gain, "elite")
+    a2, _, _, c2 = await build_session(player, pblade, n_blade, n_gain, "nightmare")
     check("the two rungs produce identical opponent stats",
           a1.battle_stats[str(c1.key)] == a2.battle_stats[str(c2.key)])
     check("...identical HP",
@@ -758,7 +760,7 @@ async def suite(trials: int) -> None:
     # Stamina one — and the inert case is worth asserting in its own right.
     live_blade, live_gain = levelled("Omni Odax")             # Attack
     stam_blade, _sg = levelled("Rising Ragnaruk")             # Stamina
-    g, _cg, gnpc, gctrl = build_session(player, stam_blade, live_blade,
+    g, _cg, gnpc, gctrl = await build_session(player, stam_blade, live_blade,
                                         live_gain, "nightmare", battle_no=6)
     gk = str(gnpc.id)
     ok = str(player.id)
@@ -795,7 +797,7 @@ async def suite(trials: int) -> None:
     for rung in ("elite", "nightmare"):
         chosen, unsafe = [], 0
         for seed in range(20):
-            gs, _gc, gnpc2, gctrl2 = build_session(
+            gs, _gc, gnpc2, gctrl2 = await build_session(
                 player, stam_blade, live_blade, live_gain, rung,
                 seed=seed, battle_no=6)
             gk2 = str(gnpc2.id)
@@ -958,7 +960,7 @@ async def suite(trials: int) -> None:
           first_ack_before_first_read(ev), ev)
 
     async def click_difficulty(rec):
-        view = SCOG.LeagueView(cog_stub, player)
+        view = await SCOG.LeagueView.create(cog_stub, player)
         rec.events.clear()                   # the constructor's read is not a click
         btn = next(c for c in view.children
                    if isinstance(c, SCOG.DifficultyButton)
@@ -972,7 +974,7 @@ async def suite(trials: int) -> None:
     real_launch = SCOG.StoryCog.launch
 
     async def click_battle(rec):
-        view = SCOG.LeagueView(cog_stub, player)
+        view = await SCOG.LeagueView.create(cog_stub, player)
         rec.events.clear()
         sel = next(c for c in view.children
                    if isinstance(c, SCOG.BattleSelect))
@@ -981,7 +983,7 @@ async def suite(trials: int) -> None:
         async def fake_launch(self, interaction, member, n, difficulty):
             # the real gate, without starting a battle
             await interaction.response.defer()
-            SCOG.StoryCog._can_fight(self, member.id, n, difficulty)
+            await SCOG.StoryCog._can_fight(self, member.id, n, difficulty)
 
         view.cog = SCOG.StoryCog.__new__(SCOG.StoryCog)
         view.cog._active = set()
@@ -1009,7 +1011,8 @@ async def suite(trials: int) -> None:
 
     lv_src = inspect.getsource(SCOG.LeagueView)
     check("the League view reads the profile once per render, not twice",
-          lv_src.count("get_user(") == 2          # __init__ and refresh
+          lv_src.count("get_user(") == 1          # refresh() only —
+          # __init__ can't await (BUG-02); construction goes through create()
           and "profile = self.profile" in lv_src, lv_src.count("get_user("))
 
     # ── 13. the blade the player actually fights with ───────────────────────
@@ -1035,7 +1038,7 @@ async def suite(trials: int) -> None:
     prof["inventory"] = [BLADE]
     STORE.data[str(HUMAN_ID)] = copy.deepcopy(prof)
 
-    built, _copy = SC13.player_blade(HUMAN_ID)
+    built, _copy = await SC13.player_blade(HUMAN_ID)
     check("a player's blade is built at THEIR level, not its printed stats",
           built is not None
           and all(built["stats"][k] == want[k]
@@ -1054,7 +1057,7 @@ async def suite(trials: int) -> None:
 
     # …and it has to survive into the session, which is where it was invisible
     nb13, ng13 = levelled("Rising Ragnaruk", 100)
-    s13, _c13, npc13, _x13 = build_session(player, built, nb13, ng13, "elite",
+    s13, _c13, npc13, _x13 = await build_session(player, built, nb13, ng13, "elite",
                                            seed=1, battle_no=1)
     pk13 = str(player.id)
     check("the levelled stats reach the battle itself",
@@ -1080,7 +1083,7 @@ async def suite(trials: int) -> None:
         dprof = seed_profile(blade=dname)
         dprof["inventory"] = [dname]
         STORE.data[str(HUMAN_ID)] = copy.deepcopy(dprof)
-        dbuilt, _dc = SC13.player_blade(HUMAN_ID)
+        dbuilt, _dc = await SC13.player_blade(HUMAN_ID)
         check(f"{dname} reaches Story with its spin mode resolved",
               (dbuilt or {}).get("active_spin_mode"),
               (dbuilt or {}).get("active_spin_mode"))
@@ -1110,7 +1113,7 @@ async def suite(trials: int) -> None:
     # the prompt must never touch the opponent's id
     seed_profile()
     STORE.clear_log()
-    entries = SP13.participants((player,))
+    entries = await SP13.participants((player,))
     check("asking for the human's card reads the human and nobody else",
           all(r == str(player.id) for r in STORE.reads), STORE.reads)
     check("a player with no avatar gets no prompt at all — silence is the "
@@ -1127,9 +1130,9 @@ async def suite(trials: int) -> None:
     STORE.data["7770000000000002"] = {"user_id": "7770000000000002",
                                       "active_beyblade": None}
     check("a player with a blade passes the gate",
-          has_equipped_blade(7770000000000001))
+          await has_equipped_blade(7770000000000001))
     check("...and a player with nothing at all still does not",
-          not has_equipped_blade(7770000000000002))
+          not await has_equipped_blade(7770000000000002))
 
     seed_profile()          # leave the store as section 14 expects it
 

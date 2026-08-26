@@ -274,7 +274,7 @@ async def suite() -> None:
         spy = Spy()
         with spy:
             for seed in range(tries):
-                s, _ch, npc, _c = H.build_session(
+                s, _ch, npc, _c = await H.build_session(
                     player, pblade, nb, ng, "elite", seed=seed,
                     battle_no=bno)
                 nk, pk = str(npc.id), str(player.id)
@@ -302,7 +302,7 @@ async def suite() -> None:
         for e in SD.SCHOOL_LEAGUE:
             nb, ng = H.levelled(e["blade"], 100)
             for seed in range(6):
-                s, _ch, npc, _c = H.build_session(
+                s, _ch, npc, _c = await H.build_session(
                     player, pblade, nb, ng, "elite", seed=seed,
                     battle_no=e["n"],
                     victory_points={str(player.id): 2, str(e["n"]): 0})
@@ -329,7 +329,7 @@ async def suite() -> None:
         return _real_apply(mgr, key, delta)
 
     nb, ng = H.levelled("King Kerbeus", 100)
-    s, _ch, npc, _c = H.build_session(player, pblade, nb, ng, "elite",
+    s, _ch, npc, _c = await H.build_session(player, pblade, nb, ng, "elite",
                                       seed=3, battle_no=2)
     nkey, pkey = str(npc.id), str(player.id)
     s.stability_manager.stability[nkey] = 40        # room to gain
@@ -349,7 +349,7 @@ async def suite() -> None:
     # ── 4. bosses run all three; a player runs the one they paid for ─────────
     print("\n── 4. three skills for a boss, one for a player ────────────────")
     nb, ng = H.levelled("Storm Spriggan", 100)
-    s, _ch, npc, ctrl = H.build_session(player, pblade, nb, ng, "elite",
+    s, _ch, npc, ctrl = await H.build_session(player, pblade, nb, ng, "elite",
                                         seed=1, battle_no=8)
     nkey, pkey = str(npc.id), str(player.id)
     check("the boss's slot is None — it has no energy pool to spend",
@@ -376,7 +376,7 @@ async def suite() -> None:
     bars = {}
     for e in SD.SCHOOL_LEAGUE:
         nb, ng = H.levelled(e["blade"], 100)
-        s, _ch, npc, _c = H.build_session(player, pblade, nb, ng, "elite",
+        s, _ch, npc, _c = await H.build_session(player, pblade, nb, ng, "elite",
                                           seed=1, battle_no=e["n"])
         bars[e["n"]] = s.stability_manager.max[str(npc.id)]
     check("every boss's bar is above the 100/150 the type table alone gives",
@@ -394,7 +394,7 @@ async def suite() -> None:
         nb, ng = H.levelled(e["blade"], 100)
         moves = collections.Counter()
         for seed in range(4):
-            s, _ch, npc, _c = H.build_session(player, pblade, nb, ng, "elite",
+            s, _ch, npc, _c = await H.build_session(player, pblade, nb, ng, "elite",
                                               seed=seed, battle_no=e["n"])
             await H.drive(s, str(player.id), H.Brain("elite", seed), cap=60)
             for mv, n in (s.move_counts.get(str(npc.id)) or {}).items():
@@ -458,7 +458,7 @@ async def suite() -> None:
     check("...and a later claim still loses",
           DB.claim_once(UID, SD.K_AVATAR_CLAIM) is False)
     check("the flag is readable without touching it",
-          DB.has_claimed(UID, SD.K_AVATAR_CLAIM))
+          await DB.has_claimed(UID, SD.K_AVATAR_CLAIM))
     DB.release_claim(UID, SD.K_AVATAR_CLAIM)
     check("a released claim can be won again — the undelivered-reward path",
           DB.claim_once(UID, SD.K_AVATAR_CLAIM) is True)
@@ -516,7 +516,7 @@ async def suite() -> None:
         fresh(W, cleared=8)
         check("a player who cleared the League before this existed owns "
               "nothing until they win again",
-              not inv.get(str(W)) and not DB.has_claimed(
+              not inv.get(str(W)) and not await DB.has_claimed(
                   W, SD.K_AVATAR_CLAIM))
     finally:
         DB.add_avatar_to_inventory = _real_add

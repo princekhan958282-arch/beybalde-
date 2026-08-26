@@ -122,8 +122,8 @@ class TradeCog(commands.Cog, name="Trading"):
             return await ctx.send("⚠️ One of you already has a pending trade.")
 
         # Preliminary ownership check (re-verified at accept time)
-        a_prof = get_user(ctx.author.id)
-        b_prof = get_user(target.id)
+        a_prof = await get_user(ctx.author.id)
+        b_prof = await get_user(target.id)
         a_item = _find_blade(a_prof.get("inventory", []), my_blade)
         b_item = _find_blade(b_prof.get("inventory", []), their_blade)
         if a_item is None:
@@ -164,8 +164,8 @@ class TradeCog(commands.Cog, name="Trading"):
                 return await ctx.send("❌ Trade declined or timed out.")
 
             # ── Re-verify + execute atomically-ish (sequential profile writes) ─
-            a_prof = get_user(ctx.author.id)
-            b_prof = get_user(target.id)
+            a_prof = await get_user(ctx.author.id)
+            b_prof = await get_user(target.id)
             a_item = _find_blade(a_prof.get("inventory", []), a_name)
             b_item = _find_blade(b_prof.get("inventory", []), b_name)
             if a_item is None or b_item is None:
@@ -185,8 +185,8 @@ class TradeCog(commands.Cog, name="Trading"):
             if str(b_prof.get("active_beyblade", "")).lower() == str(b_name).lower():
                 b_prof["active_beyblade"] = None
 
-            update_user(ctx.author.id, a_prof)
-            update_user(target.id, b_prof)
+            await update_user(ctx.author.id, a_prof)
+            await update_user(target.id, b_prof)
 
             _log_trade({
                 "ts":       int(time.time()),

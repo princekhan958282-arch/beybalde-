@@ -125,7 +125,7 @@ def _stat_line(label: str, emoji: str, value: int,
     return f"{emoji} **{label}** `{bar}` **{value}**"
 
 
-def _battle_pool(blade: dict, user_id=None) -> int:
+async def _battle_pool(blade: dict, user_id=None) -> int:
     """The pool this bey really fights with, for whoever owns it.
 
     `max_hp_for_blade` clamps the HP stat back into the type band, which drops
@@ -137,18 +137,18 @@ def _battle_pool(blade: dict, user_id=None) -> int:
         return max_hp_for_blade(blade)
     try:
         from utils.loadout import battle_pool
-        return battle_pool(user_id, blade)
+        return await battle_pool(user_id, blade)
     except Exception:                                    # noqa: BLE001
         return max_hp_for_blade(blade)
 
 
-def _hp_stat_line(blade: dict, user_id=None) -> str:
+async def _hp_stat_line(blade: dict, user_id=None) -> str:
     """HP bar, normalised over the reachable cross-type HP range."""
     hp     = blade_hp_stat(blade)
     filled = round(hp_display_pct(blade) / 100 * 12)
     bar    = "\u2588" * filled + "\u2591" * (12 - filled)
     return (f"\u2764\ufe0f **HP** `{bar}` **{hp}**  "
-            f"`{_battle_pool(blade, user_id)} pool`")
+            f"`{await _battle_pool(blade, user_id)} pool`")
 
 
 def _beypedia_hp_bar(blade: dict, bar_len: int = 14) -> str:
@@ -163,7 +163,7 @@ def _beypedia_hp_bar(blade: dict, bar_len: int = 14) -> str:
     return f"`{bar}` **{hp}**"
 
 
-def _with_viewer_level(user_id, blade: dict) -> dict:
+async def _with_viewer_level(user_id, blade: dict) -> dict:
     """A copy of `blade` at the level THIS viewer has raised it to.
 
     `;info <name>` used to render the raw species entry, so a bey the player had
@@ -181,7 +181,7 @@ def _with_viewer_level(user_id, blade: dict) -> dict:
         name = blade.get("name")
         if not name:
             return blade
-        profile = get_user(user_id)
+        profile = await get_user(user_id)
         entry = (profile.get("bey_progress") or {}).get(str(name))
         if not entry:
             return blade                      # never raised → no level to show
@@ -196,7 +196,7 @@ def _with_viewer_level(user_id, blade: dict) -> dict:
         return blade
 
 
-def _viewer_parts(user_id) -> dict:
+async def _viewer_parts(user_id) -> dict:
     """The viewer's equipped ratchet/bit for the card's parts strip.
 
     Our parts system uses driver/disk/ring slots; the card speaks Beyblade-X
@@ -204,7 +204,7 @@ def _viewer_parts(user_id) -> dict:
     """
     try:
         from cogs.economy.shop import PARTS_CATALOG
-        equipped = get_user(user_id).get("equipped_parts", []) or []
+        equipped = (await get_user(user_id)).get("equipped_parts", []) or []
         by_type  = {}
         for name in equipped:
             cat = next((p for p in PARTS_CATALOG
@@ -276,7 +276,7 @@ def _abilities_text(blade: dict) -> str:
 #  Profile embed builder
 # ══════════════════════════════════════════════════════════════════════════════
 
-def build_profile_embed(
+async def build_profile_embed(
     target: discord.Member,
     profile_doc: dict,
     active_blade: dict,
@@ -444,7 +444,7 @@ def build_profile_embed(
             f"{_stat_line('DEF', '🛡️', _def)}\n"
             f"{_stat_line('STA', '🌀', _sta)}\n"
             f"{_stat_line('SPC', '✨', _spc)}\n"
-            f"{_hp_stat_line(active_blade, getattr(target, 'id', None))}"
+            f"{await _hp_stat_line(active_blade, getattr(target, 'id', None))}"
         ),
         inline=False,
     )
@@ -499,7 +499,7 @@ def build_profile_embed(
 #  Info embed builder (;info)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def build_info_embed(blade: dict, viewer_id=None) -> discord.Embed:
+async def build_info_embed(blade: dict, viewer_id=None) -> discord.Embed:
     """
     Detailed Beyblade info card — richer than the old beyblade_info_embed.
     """
@@ -543,7 +543,7 @@ def build_info_embed(blade: dict, viewer_id=None) -> discord.Embed:
             f"{_stat_line('DEF', '🛡️', stats.get('defense', 0))}\n"
             f"{_stat_line('STA', '🌀', stats.get('stamina', 0))}\n"
             f"{_stat_line('SPC', '✨', stats.get('special', 0))}\n"
-            f"{_hp_stat_line(blade, viewer_id)}"
+            f"{await _hp_stat_line(blade, viewer_id)}"
         ),
         inline=False,
     )
@@ -604,7 +604,7 @@ def _beypedia_stat_bar(value: int, max_val: int = _BAR_MAX,
     return f"`{value:<3}` `{bar}`"
 
 
-def build_beypedia_embed(blade: dict, viewer_id=None) -> discord.Embed:
+async def build_beypedia_embed(blade: dict, viewer_id=None) -> discord.Embed:
     """
     Beypedia-style card matching the Discord screenshot format:
     Rarity · Type · Stats (with bars) · Ability · Special Move · Image
@@ -679,7 +679,7 @@ def build_beypedia_embed(blade: dict, viewer_id=None) -> discord.Embed:
             f"🌀 **Stamina**\n{_beypedia_stat_bar(sta)}\n"
             f"✨ **Special**\n{_beypedia_stat_bar(spc)}\n"
             f"❤️ **HP**\n{_beypedia_hp_bar(blade)}  "
-            f"`{_battle_pool(blade, viewer_id)} battle pool`"
+            f"`{await _battle_pool(blade, viewer_id)} battle pool`"
         ),
         inline=False,
     )
@@ -798,20 +798,14 @@ class SpinModeView(discord.ui.View):
     what this card says.
     """
 
-    def __init__(self, owner, blade: dict, cog) -> None:
+    def __init__(self, owner, blade: dict, cog, active: str = "") -> None:
         super().__init__(timeout=180)
-        from utils.spin_mode import modes, label, chosen
-        from utils.database import get_user
+        from utils.spin_mode import modes, label
 
         self.owner = owner
         self.blade = blade
         self.cog = cog
         self.message = None
-
-        try:
-            active = chosen(get_user(owner.id), blade)
-        except Exception:                                # noqa: BLE001
-            active = ""
 
         for mode in modes(blade):
             cfg = (blade.get("spin_modes") or {}).get(mode) or {}
@@ -828,6 +822,18 @@ class SpinModeView(discord.ui.View):
             button.callback = self._make_callback(mode, stats)
             self.add_item(button)
 
+    @classmethod
+    async def create(cls, owner, blade: dict, cog) -> "SpinModeView":
+        """Async factory — `__init__` cannot await `get_user` (async now,
+        BUG-02), so the currently-mounted mode is resolved here first."""
+        from utils.spin_mode import chosen
+        from utils.database import get_user
+        try:
+            active = chosen(await get_user(owner.id), blade)
+        except Exception:                                # noqa: BLE001
+            active = ""
+        return cls(owner, blade, cog, active)
+
     def _make_callback(self, mode: str, stats: dict):
         async def callback(interaction: discord.Interaction) -> None:
             if interaction.user.id != self.owner.id:
@@ -835,7 +841,7 @@ class SpinModeView(discord.ui.View):
                     "That's not your Beyblade — run `;info` yourself to pick "
                     "a mode.", ephemeral=True)
             from utils.spin_mode import set_choice, label as _label
-            set_choice(self.owner.id, self.blade.get("name", ""), mode)
+            await set_choice(self.owner.id, self.blade.get("name", ""), mode)
 
             # Acknowledge FIRST, then re-render. The card render goes through
             # a browser and can take seconds; leaving the interaction
@@ -905,12 +911,12 @@ class ProfileCog(commands.Cog, name="Profile"):
     ) -> None:
         """;profile [@user] — Show a player's full Beyblade profile card."""
         target      = member or ctx.author
-        profile_doc = get_user(target.id)
+        profile_doc = await get_user(target.id)
         # Resolve through equipped_blade so a player with a boss copy equipped
         # gets their blade on the profile card instead of a blank slot.
         try:
             from cogs.battle.boss import boss_copy as _bcopy
-            active_blade, _copy = _bcopy.equipped_blade(target.id)
+            active_blade, _copy = await _bcopy.equipped_blade(target.id)
             # Fold in parts and avatar so the CARD shows what the player
             # actually fights with. Previously the card got the raw blade and
             # the avatar bonuses were only computed on the fallback embed path
@@ -918,7 +924,7 @@ class ProfileCog(commands.Cog, name="Profile"):
             # visibly changed nothing.
             if active_blade:
                 from utils.loadout import effective_blade
-                active_blade, _bd, _av = effective_blade(
+                active_blade, _bd, _av = await effective_blade(
                     target.id, profile_doc, active_blade,
                     include_parts=(_copy is None))
         except Exception:
@@ -938,8 +944,8 @@ class ProfileCog(commands.Cog, name="Profile"):
                     f"🌀 **{target.display_name}** has no active Beyblade!\n"
                     f"Catch one during a spawn with `;claim`, then use `;equip <name>`."
                 )
-            avatar_bonuses = avatar_engine.get_battle_bonuses(target.id)
-            embed = build_profile_embed(target, profile_doc, active_blade, avatar_bonuses)
+            avatar_bonuses = await avatar_engine.get_battle_bonuses(target.id)
+            embed = await build_profile_embed(target, profile_doc, active_blade, avatar_bonuses)
             await ctx.send(embed=embed)
 
     async def _profile_card_file(self, target, profile_doc, active_blade):
@@ -1028,7 +1034,7 @@ class ProfileCog(commands.Cog, name="Profile"):
     ) -> None:
         """;inventory [@user] [page] — Browse your full Beyblade collection."""
         target    = member or ctx.author
-        prof      = get_user(target.id)
+        prof      = await get_user(target.id)
         inventory = prof.get("inventory", [])
         active    = prof.get("active_beyblade")
 
@@ -1146,14 +1152,14 @@ class ProfileCog(commands.Cog, name="Profile"):
             # holding a copy. equipped_blade() resolves either kind.
             try:
                 from cogs.battle.boss import boss_copy as _bcopy
-                blade, _copy = _bcopy.equipped_blade(ctx.author.id)
+                blade, _copy = await _bcopy.equipped_blade(ctx.author.id)
                 if blade:
                     from utils.loadout import effective_blade
-                    blade, _bd, _av = effective_blade(
+                    blade, _bd, _av = await effective_blade(
                         ctx.author.id, None, blade,
                         include_parts=(_copy is None))
             except Exception:
-                profile_doc = get_user(ctx.author.id)
+                profile_doc = await get_user(ctx.author.id)
                 active_name = profile_doc.get("active_beyblade")
                 blade = get_beyblade(active_name) if active_name else None
             if blade is None:
@@ -1182,7 +1188,7 @@ class ProfileCog(commands.Cog, name="Profile"):
                 # levelled stats. effective_blade can't be reused here — it
                 # gates levelling behind include_parts, and this blade may not
                 # be the one their parts are equipped to.
-                blade = _with_viewer_level(ctx.author.id, blade)
+                blade = await _with_viewer_level(ctx.author.id, blade)
             if blade is None:
                 # Boss-only blades aren't in beyblades.json — that absence is
                 # what keeps them out of ;list, spawns, the shop, boosters, the
@@ -1218,17 +1224,17 @@ class ProfileCog(commands.Cog, name="Profile"):
         # mine do", not "what could one of these do".
         if is_dual(blade):
             try:
-                blade = resolve_spin(get_user(ctx.author.id), blade)
+                blade = resolve_spin(await get_user(ctx.author.id), blade)
             except Exception:                            # noqa: BLE001
                 blade = resolve_spin(None, blade)
 
-        view = SpinModeView(ctx.author, blade, self) if is_dual(blade) else None
+        view = await SpinModeView.create(ctx.author, blade, self) if is_dual(blade) else None
 
         async with ctx.typing():
             # PNG info card first — falls back to the classic embed if Chromium
             # is missing, the CDN art is dead, or the render times out.
             buf = await info_card.render_info_card(
-                blade, parts=_viewer_parts(ctx.author.id)
+                blade, parts=await _viewer_parts(ctx.author.id)
             )
             if buf is not None:
                 # The extension comes from the buffer, not from here. Playwright
@@ -1240,7 +1246,7 @@ class ProfileCog(commands.Cog, name="Profile"):
                                       view=view)
             else:
                 sent = await ctx.send(
-                    embed=build_beypedia_embed(blade, ctx.author.id),
+                    embed=await build_beypedia_embed(blade, ctx.author.id),
                                       view=view)
             if view is not None:
                 view.message = sent
@@ -1268,7 +1274,7 @@ class ProfileCog(commands.Cog, name="Profile"):
                                  if any(b.get("rarity") == r
                                         for b in beyblades.values())))
 
-        view = BeyListView(ctx.author, beyblades, start)
+        view = await BeyListView.create(ctx.author, beyblades, start)
         view.message = await ctx.send(embed=view.embed(), view=view)
 
 
@@ -1291,9 +1297,9 @@ RARITY_ORDER = [
 LIST_PAGE = 5   # one-line rows — five plus nav fits a phone screen
 
 
-def _owned_names(user_id: int) -> set[str]:
+async def _owned_names(user_id: int) -> set[str]:
     try:
-        return {n.lower() for n in (get_user(user_id).get("inventory") or [])}
+        return {n.lower() for n in ((await get_user(user_id)).get("inventory") or [])}
     except Exception:
         return set()
 
@@ -1353,7 +1359,7 @@ class BladeSelect(discord.ui.Select):
         blade = v.beyblades.get(name) or get_beyblade(name)
         if blade is None:
             return await interaction.response.defer()
-        e = build_beypedia_embed(blade, interaction.user.id)
+        e = await build_beypedia_embed(blade, interaction.user.id)
         if name.lower() in v.owned:
             e.set_footer(text="✅ You own this one")
         else:
@@ -1413,11 +1419,14 @@ class _OwnedToggle(discord.ui.Button):
 
 
 class BeyListView(discord.ui.View):
-    def __init__(self, owner, beyblades: dict, rarity: Optional[str] = None):
+    def __init__(self, owner, beyblades: dict, rarity: Optional[str] = None,
+                owned: Optional[set[str]] = None):
         super().__init__(timeout=180)
         self.owner     = owner
         self.beyblades = beyblades
-        self.owned     = _owned_names(owner.id)
+        # `_owned_names` awaits `get_user` (async now, BUG-02) and `__init__`
+        # cannot await — see `create()`, the async factory that resolves it.
+        self.owned     = owned or set()
         self.rarity    = rarity
         self.page      = 0
         self.missing_only = False
@@ -1430,6 +1439,12 @@ class BeyListView(discord.ui.View):
             names.sort()
 
         self.rebuild()
+
+    @classmethod
+    async def create(cls, owner, beyblades: dict,
+                     rarity: Optional[str] = None) -> "BeyListView":
+        owned = await _owned_names(owner.id)
+        return cls(owner, beyblades, rarity, owned)
 
     # ── Access ───────────────────────────────────────────────────────────────
     def owns(self, interaction) -> bool:
@@ -1585,7 +1600,7 @@ async def award_xp(
     """
     from utils.database import get_user, update_user
 
-    profile = get_user(user_id)
+    profile = await get_user(user_id)
     old_total = profile.get("xp", 0)
     new_total = old_total + amount
 
@@ -1593,7 +1608,7 @@ async def award_xp(
     new_level, _, _ = xp_to_next_level(new_total)
 
     profile["xp"] = new_total
-    update_user(user_id, profile)
+    await update_user(user_id, profile)
 
     if new_level > old_level:
         bot.dispatch("level_up", user_id, old_level, new_level, channel)

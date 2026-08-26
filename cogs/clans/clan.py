@@ -33,8 +33,8 @@ from utils.mobile_ui import MobileListView, bar as ui_bar
 from . import clan_data as cd
 
 
-def _member_power(user_id: int) -> dict:
-    p = get_user(user_id)
+async def _member_power(user_id: int) -> dict:
+    p = await get_user(user_id)
     return {
         "level":      p.get("level", 0),
         "rank_score": p.get("rank_score", 0),
@@ -44,12 +44,12 @@ def _member_power(user_id: int) -> dict:
     }
 
 
-def _clan_power(clan: dict) -> dict:
+async def _clan_power(clan: dict) -> dict:
     """Aggregate stats. Read live so a clan can never hold stale numbers."""
     total = {"level": 0, "rank_score": 0, "wins": 0, "losses": 0, "blades": 0}
     for uid in clan.get("members", []):
         try:
-            m = _member_power(uid)
+            m = await _member_power(uid)
         except Exception:
             continue
         for k in total:
@@ -70,10 +70,10 @@ class ClanCog(commands.Cog, name="Clans"):
             return None
         return clan
 
-    def _clan_embed(self, clan: dict) -> discord.Embed:
+    async def _clan_embed(self, clan: dict) -> discord.Embed:
         """Compact card. Two inline fields per row (three squash on a phone),
         and the roster lives behind a button instead of dumping 15 mentions."""
-        power = _clan_power(clan)
+        power = await _clan_power(clan)
         door = "🟢 Open" if clan.get("open", True) else "🔒 Invite only"
         desc = (clan.get("description") or "").strip()[:120]
 
@@ -104,7 +104,7 @@ class ClanCog(commands.Cog, name="Clans"):
 
     async def _send_clan(self, ctx, clan: dict):
         view = ClanCardView(ctx.author, clan, self)
-        view.message = await ctx.send(embed=self._clan_embed(clan), view=view)
+        view.message = await ctx.send(embed=await self._clan_embed(clan), view=view)
 
     # ── ;clan ────────────────────────────────────────────────────────────────
     @commands.group(name="clan", aliases=["guild", "team"],
@@ -147,23 +147,23 @@ class ClanCog(commands.Cog, name="Clans"):
         if taken:
             return await ctx.send(f"❌ {taken}")
 
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         if profile.get("coins", 0) < cd.CREATE_COST:
             return await ctx.send(
                 f"❌ Founding a clan costs 🪙 **{cd.CREATE_COST:,}** — "
                 f"you have 🪙 {profile.get('coins', 0):,}.")
 
         profile["coins"] -= cd.CREATE_COST
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         try:
             clan = cd.create_clan(ctx.author.id, name, tag)
         except Exception as exc:
             profile["coins"] += cd.CREATE_COST      # refund on failure
-            update_user(ctx.author.id, profile)
+            await update_user(ctx.author.id, profile)
             return await ctx.send(f"❌ Couldn't create the clan: `{exc}`")
 
-        e = self._clan_embed(clan)
+        e = await self._clan_embed(clan)
         e.title = f"🎉  [{clan['tag']}] {clan['name']} founded!"
         view = ClanCardView(ctx.author, clan, self)
         view.message = await ctx.send(
@@ -207,10 +207,11 @@ class ClanCog(commands.Cog, name="Clans"):
                 f"No clans exist yet — be the first!\n"
                 f"`;clan create <tag> <name>` (🪙 {cd.CREATE_COST:,})")
 
-        scored = sorted(
-            ((_clan_power(c)["rank_score"], c) for c in clans),
-            key=lambda x: -x[0],
-        )
+        scored = []
+        for c in clans:
+            power = await _clan_power(c)
+            scored.append((power["rank_score"], c))
+        scored.sort(key=lambda x: -x[0])
         medals = ["🥇", "🥈", "🥉"]
 
         def render(item, idx):
@@ -231,7 +232,7 @@ class ClanCog(commands.Cog, name="Clans"):
             _score, c = item
             fresh = cd.get_clan(c["id"]) or c
             await interaction.response.send_message(
-                embed=self._clan_embed(fresh), ephemeral=True)
+                embed=await self._clan_embed(fresh), ephemeral=True)
 
         view = MobileListView(
             owner=ctx.author,
@@ -276,18 +277,18 @@ class ClanCog(commands.Cog, name="Clans"):
         if clan is None:
             return
 
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         if profile.get("coins", 0) < amount:
             return await ctx.send(
                 f"❌ You only have 🪙 {profile.get('coins', 0):,}.")
 
         profile["coins"] -= amount
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         ok, new_balance = cd.update_treasury(clan["id"], amount)
         if not ok:
             profile["coins"] += amount              # refund on failure
-            update_user(ctx.author.id, profile)
+            await update_user(ctx.author.id, profile)
             return await ctx.send("❌ Couldn't update the treasury — nothing was taken.")
 
         await ctx.send(
@@ -309,9 +310,9 @@ class ClanCog(commands.Cog, name="Clans"):
             return await ctx.send(
                 f"❌ Treasury only has 🪙 {clan.get('treasury', 0):,}.")
 
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         profile["coins"] = profile.get("coins", 0) + amount
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         await ctx.send(
             f"✅ Withdrew 🪙 **{amount:,}** from **[{clan['tag']}]**.\n"
@@ -369,7 +370,7 @@ class ClanCardView(discord.ui.View):
         rows = []
         for uid in members:
             try:
-                stats = _member_power(uid)
+                stats = await _member_power(uid)
             except Exception:
                 stats = {"level": 0, "rank_score": 0, "wins": 0,
                          "losses": 0, "blades": 0}

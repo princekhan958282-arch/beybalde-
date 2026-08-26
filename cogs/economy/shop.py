@@ -322,7 +322,7 @@ class ShopCog(commands.Cog, name="Shop"):
         brief="Claim daily coins 🎁",
     )
     async def daily(self, ctx: commands.Context) -> None:
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         now     = datetime.now(timezone.utc)
         last_s  = profile.get("last_daily")
 
@@ -344,7 +344,7 @@ class ShopCog(commands.Cog, name="Shop"):
         reward = random.randint(DAILY_REWARD_MIN, DAILY_REWARD_MAX)
         profile["coins"]      = profile.get("coins", 0) + reward
         profile["last_daily"] = now.isoformat()
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         embed = discord.Embed(
             title="🎁 Daily Reward!",
@@ -416,7 +416,7 @@ class ShopCog(commands.Cog, name="Shop"):
         part = _parts_by_name().get(item_name.lower())
         if part:
             try:
-                result = mutate_user(
+                result = await mutate_user(
                     ctx.author.id,
                     lambda prof: apply_part_purchase(prof, part["name"]))
             except PurchaseError as exc:
@@ -461,7 +461,7 @@ class ShopCog(commands.Cog, name="Shop"):
         """🎒 Inventory space. `;beyslots` to check, `;beyslots buy [n]`."""
         from utils import inventory as INV
 
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
 
         if str(action or "").lower() not in ("buy", "purchase", "add"):
             listed = len(profile.get("marketplace_listings") or [])
@@ -491,7 +491,7 @@ class ShopCog(commands.Cog, name="Shop"):
             return await ctx.send(embed=e)
 
         try:
-            res = INV.buy_slots_for(ctx.author.id, max(1, int(amount)))
+            res = await INV.buy_slots_for(ctx.author.id, max(1, int(amount)))
         except INV.SlotError as exc:
             return await ctx.send(f"❌ {exc}")
 
@@ -508,7 +508,7 @@ class ShopCog(commands.Cog, name="Shop"):
         """⚡ 10x EXP for an hour. `;surge` to check, `;surge buy` to buy."""
         from utils import xp_boost as XB
 
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         until   = XB.surge_until(profile)
         coins   = int(profile.get("coins", 0) or 0)
 
@@ -537,7 +537,7 @@ class ShopCog(commands.Cog, name="Shop"):
             return await ctx.send(embed=e)
 
         try:
-            res = XB.buy_for(ctx.author.id)
+            res = await XB.buy_for(ctx.author.id)
         except XB.SurgeError as exc:
             return await ctx.send(f"❌ {exc}")
 
@@ -556,7 +556,7 @@ class ShopCog(commands.Cog, name="Shop"):
         brief="Sell a part 💸",
     )
     async def sell(self, ctx: commands.Context, *, part_name: str) -> None:
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         owned_parts: list[str] = profile.get("parts", [])
 
         # Case-insensitive match against owned parts
@@ -588,7 +588,7 @@ class ShopCog(commands.Cog, name="Shop"):
             profile["equipped_parts"] = equipped
 
         profile["coins"] = profile.get("coins", 0) + refund
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         unequip_note = " *(auto-unequipped)*" if was_equipped else ""
         await ctx.send(
@@ -621,7 +621,7 @@ class ShopCog(commands.Cog, name="Shop"):
         brief="Instantly sell a Bey for coins 💨💸",
     )
     async def quicksell(self, ctx: commands.Context, *, bey_name: str) -> None:
-        profile   = get_user(ctx.author.id)
+        profile   = await get_user(ctx.author.id)
         inventory = profile.get("inventory", [])
 
         match = next((b for b in inventory if b.lower() == bey_name.lower()), None)
@@ -687,7 +687,7 @@ class ShopCog(commands.Cog, name="Shop"):
             return await ctx.send(f"↩️ Quick-sell cancelled. **{match}** stays in your inventory.")
 
         # Re-fetch in case of concurrent updates
-        profile   = get_user(ctx.author.id)
+        profile   = await get_user(ctx.author.id)
         inventory = profile.get("inventory", [])
         if match not in inventory:
             return await ctx.send(f"❌ **{match}** is no longer in your inventory.")
@@ -695,7 +695,7 @@ class ShopCog(commands.Cog, name="Shop"):
         inventory.remove(match)
         profile["inventory"] = inventory
         profile["coins"]     = profile.get("coins", 0) + payout
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         embed = discord.Embed(
             title="💨💸 Quick Sell!",
@@ -716,7 +716,7 @@ class ShopCog(commands.Cog, name="Shop"):
         brief="Show your parts inventory ⚙️",
     )
     async def myparts(self, ctx: commands.Context) -> None:
-        profile  = get_user(ctx.author.id)
+        profile  = await get_user(ctx.author.id)
         owned    = profile.get("parts", [])
         equipped = profile.get("equipped_parts", [])
         catalog  = _parts_by_name()
@@ -785,7 +785,7 @@ class ShopCog(commands.Cog, name="Shop"):
         brief="Equip a part ✅",
     )
     async def equippart(self, ctx: commands.Context, *, part_name: str) -> None:
-        profile = get_user(ctx.author.id)
+        profile = await get_user(ctx.author.id)
         owned   = profile.get("parts", [])
         catalog = _parts_by_name()
 
@@ -822,7 +822,7 @@ class ShopCog(commands.Cog, name="Shop"):
 
         equipped.append(match)
         profile["equipped_parts"] = equipped
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         # Through `part_penalties`, not the legacy pair. Reading
         # `penalty_stat`/`penalty` directly missed every part that uses the
@@ -868,7 +868,7 @@ class ShopCog(commands.Cog, name="Shop"):
         brief="Unequip a part ❌",
     )
     async def unequippart(self, ctx: commands.Context, *, part_name: str) -> None:
-        profile  = get_user(ctx.author.id)
+        profile  = await get_user(ctx.author.id)
         equipped: list[str] = profile.get("equipped_parts", [])
 
         match = next((p for p in equipped if p.lower() == part_name.lower()), None)
@@ -880,7 +880,7 @@ class ShopCog(commands.Cog, name="Shop"):
 
         equipped.remove(match)
         profile["equipped_parts"] = equipped
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         catalog = _parts_by_name()
         part    = catalog.get(match.lower())
@@ -1022,7 +1022,7 @@ class BoosterCog(commands.Cog, name="Booster"):
         MAX_PACKS = 50
         amount = max(1, min(amount, MAX_PACKS))
 
-        user  = get_user(ctx.author.id)
+        user  = await get_user(ctx.author.id)
         coins = user.get("coins", 0)
 
         # Capacity BEFORE the charge. Every pack yields exactly one bey, and
@@ -1083,7 +1083,7 @@ class BoosterCog(commands.Cog, name="Booster"):
 
         # Save immediately after opening packs (coins deducted, inventory updated)
         # _handle_duplicate_sale_prompt will re-fetch and do its own save if needed
-        update_user(ctx.author.id, user)
+        await update_user(ctx.author.id, user)
 
         # ── Detect duplicates among pack winnings ──
         won_names = [won["name"] for _, won in pack_results]
@@ -1205,7 +1205,7 @@ class BoosterCog(commands.Cog, name="Booster"):
 
         if view.sell_duplicates:
             # Re-fetch to avoid stomping the pack-open save
-            user_profile = get_user(ctx.author.id)
+            user_profile = await get_user(ctx.author.id)
             inventory: list[str] = user_profile.get("inventory", [])
 
             # Remove exactly (count - 1) extra copies of each duplicate
@@ -1217,7 +1217,7 @@ class BoosterCog(commands.Cog, name="Booster"):
 
             user_profile["inventory"] = inventory
             user_profile["coins"] = user_profile.get("coins", 0) + total_refund
-            update_user(ctx.author.id, user_profile)
+            await update_user(ctx.author.id, user_profile)
 
             embed = discord.Embed(
                 title="💸 Duplicates Auto-Sold!",
@@ -1292,7 +1292,7 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
                 f"❌ Minimum listing price is **{MARKETPLACE_MIN:,} coins**."
             )
 
-        profile   = get_user(ctx.author.id)
+        profile   = await get_user(ctx.author.id)
         inventory = profile.get("inventory", [])
 
         # Case-insensitive match
@@ -1327,7 +1327,7 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
         })
         profile["inventory"]            = inventory
         profile["marketplace_listings"] = listings
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         fee = int(price * MARKETPLACE_FEE)
         await ctx.send(
@@ -1345,7 +1345,7 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
         brief="Cancel a Bey listing ❌",
     )
     async def cancellisting(self, ctx: commands.Context, *, bey_name: str) -> None:
-        profile  = get_user(ctx.author.id)
+        profile  = await get_user(ctx.author.id)
         listings = profile.get("marketplace_listings", [])
 
         match = next((l for l in listings if l["bey_name"].lower() == bey_name.lower()), None)
@@ -1357,7 +1357,7 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
         listings.remove(match)
         profile.setdefault("inventory", []).append(match["bey_name"])
         profile["marketplace_listings"] = listings
-        update_user(ctx.author.id, profile)
+        await update_user(ctx.author.id, profile)
 
         await ctx.send(
             f"↩️ Listing for **{match['bey_name']}** cancelled.\n"
@@ -1383,7 +1383,7 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
         async for member in ctx.guild.fetch_members(limit=None):
             if member.bot:
                 continue
-            profile  = get_user(member.id)
+            profile  = await get_user(member.id)
             listings = profile.get("marketplace_listings")
             if not listings:
                 continue
@@ -1449,7 +1449,7 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
         if seller.bot:
             return await ctx.send("❌ You can't buy from a bot!")
 
-        seller_profile = get_user(seller.id)
+        seller_profile = await get_user(seller.id)
         listings       = seller_profile.get("marketplace_listings", [])
 
         listing = next((l for l in listings if l["bey_name"].lower() == bey_name.lower()), None)
@@ -1460,7 +1460,7 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
             )
 
         price          = listing["price"]
-        buyer_profile  = get_user(ctx.author.id)
+        buyer_profile  = await get_user(ctx.author.id)
         buyer_coins    = buyer_profile.get("coins", 0)
 
         if buyer_coins < price:
@@ -1473,7 +1473,7 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
         seller_payout = price - fee
 
         # Re-fetch seller profile to guard against concurrent purchases of the same listing
-        seller_profile = get_user(seller.id)
+        seller_profile = await get_user(seller.id)
         listings       = seller_profile.get("marketplace_listings", [])
         listing        = next((l for l in listings if l["bey_name"].lower() == bey_name.lower()), None)
         if not listing:
@@ -1493,12 +1493,12 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
         listings.remove(listing)
         seller_profile["marketplace_listings"] = listings
         seller_profile["coins"] = seller_profile.get("coins", 0) + seller_payout
-        update_user(seller.id, seller_profile)
+        await update_user(seller.id, seller_profile)
 
         # Then deduct from buyer and grant Bey
         buyer_profile["coins"] = buyer_coins - price
         buyer_profile.setdefault("inventory", []).append(listing["bey_name"])
-        update_user(ctx.author.id, buyer_profile)
+        await update_user(ctx.author.id, buyer_profile)
 
         bey_data   = load_beyblades().get(listing["bey_name"], {})
         rarity     = bey_data.get("rarity", "Common")

@@ -297,7 +297,7 @@ class SnapshotPanel(discord.ui.View):
             safety = await asyncio.to_thread(
                 SN.write, self.folder, None,
                 **{"kind": SN.PRE_RESTORE_DIR, "also_latest": False})
-            out = await asyncio.to_thread(SN.restore, snap, self.sections)
+            out = await SN.restore(snap, self.sections)
             self.note = (
                 f"♻️ Restored **{out['profiles']:,}** profile(s) "
                 f"({', '.join(out['sections'])})"

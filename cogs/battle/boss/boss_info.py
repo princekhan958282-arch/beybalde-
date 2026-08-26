@@ -453,11 +453,11 @@ async def send_info(ctx, prof: dict, as_copy: bool = False):
     view.message = await ctx.send(embed=build_embed(prof), view=view)
 
 
-def owned_copies(user_id: int, source_key: str) -> list[dict]:
+async def owned_copies(user_id: int, source_key: str) -> list[dict]:
     """This player's rolled copies of one boss, best grade first."""
     try:
         from . import boss_copy as bc
-        return [c for c in bc.all_copies(user_id) if c.get("source") == source_key]
+        return [c for c in await bc.all_copies(user_id) if c.get("source") == source_key]
     except Exception:
         return []
 
@@ -473,7 +473,7 @@ async def send_copy_info(ctx, prof: dict):
 
     import discord as _d
 
-    mine = owned_copies(ctx.author.id, prof["key"])
+    mine = await owned_copies(ctx.author.id, prof["key"])
     if mine:
         from . import boss_copy as bc
         best = mine[0]                      # all_copies() is already best-first

@@ -15,6 +15,7 @@ were missed. Both are checked, in both modes.
 
 Run:  python3 tools/sim_booster_beys.py
 """
+import asyncio
 import json
 import os
 import sys
@@ -197,9 +198,12 @@ for mode in ("Right", "Left"):
     check(f"PvP fights {mode} mode's statline", not bad, bad)
 
     _real = DBASE.get_user
-    DBASE.get_user = lambda uid, _p=prof: _p
+    async def _fake_get_user(uid, _p=prof):
+        return _p
+    DBASE.get_user = _fake_get_user
     try:
-        eff, _bd, _av = effective_blade(1, prof, md, include_avatar=False)
+        eff, _bd, _av = asyncio.run(
+            effective_blade(1, prof, md, include_avatar=False))
     finally:
         DBASE.get_user = _real
     bad = {k: (eff["stats"][k], want[k])
@@ -286,7 +290,7 @@ src = open(os.path.join(ROOT, "cogs", "economy", "profile.py"),
            encoding="utf-8").read()
 check("a SpinModeView exists", "class SpinModeView" in src)
 check("the card path attaches it only for dual blades",
-      "SpinModeView(ctx.author, blade, self) if is_dual(blade) else None" in src)
+      "SpinModeView.create(ctx.author, blade, self) if is_dual(blade) else None" in src)
 check("the button acknowledges BEFORE re-rendering",
       src.index("await interaction.response.send_message")
       < src.index("await self.cog._send_bey_card"))

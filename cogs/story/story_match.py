@@ -109,7 +109,7 @@ class LeagueMatch:
             # lifecycle a ranked match uses. Without this the pool would be
             # charged up to five times for one League battle.
             try:
-                AS.end_match_for(int(self.player.id))
+                await AS.end_match_for(int(self.player.id))
             except Exception:                            # noqa: BLE001
                 pass
 
@@ -128,7 +128,7 @@ class LeagueMatch:
                              f"First to **{SD.VICTORY_TARGET}** points wins."),
                 colour=0xF1C40F))
 
-            session = BattleSession(
+            session = await BattleSession.create(
                 bot=self.bot, channel=self.channel,
                 p1=self.player, p2=npc_member,
                 blade1=self.blade, blade2=opponent_blade,

@@ -9,6 +9,7 @@ worst possible outcome, and it is invisible without a test like this one.
 
 Run:  python3 tools/sim_avatar.py
 """
+import asyncio
 import json
 import os
 import sys
@@ -231,15 +232,24 @@ check("AvatarBonuses still constructs with defaults",
       AvatarBonuses().has_any_bonus is False)
 
 print("\n── 10. equipped_card_level never raises ─────────────────────────")
-check("no profile -> (None, 1)",
-      AP.equipped_card_level(1, {}) == (None, 1))
-check("equipped but unbought -> level 1",
-      AP.equipped_card_level(1, {"equipped_avatar": "avatar_x002"}) == ("avatar_x002", 1))
-check("equipped and bought -> that level",
-      AP.equipped_card_level(1, {"equipped_avatar": "a",
-                                 "avatar": {"cards": {"a": {"level": 4}}}}) == ("a", 4))
-check("a corrupt profile -> (None, 1)",
-      AP.equipped_card_level(1, {"equipped_avatar": "a", "avatar": 7}) == ("a", 1))
+
+
+async def _run_equipped_card_level_checks():
+    check("no profile -> (None, 1)",
+          await AP.equipped_card_level(1, {}) == (None, 1))
+    check("equipped but unbought -> level 1",
+          await AP.equipped_card_level(1, {"equipped_avatar": "avatar_x002"})
+          == ("avatar_x002", 1))
+    check("equipped and bought -> that level",
+          await AP.equipped_card_level(1, {"equipped_avatar": "a",
+                                           "avatar": {"cards": {"a": {"level": 4}}}})
+          == ("a", 4))
+    check("a corrupt profile -> (None, 1)",
+          await AP.equipped_card_level(1, {"equipped_avatar": "a", "avatar": 7})
+          == ("a", 1))
+
+
+asyncio.run(_run_equipped_card_level_checks())
 
 print("\n── 11. the wiring: does a level reach a real fight? ─────────────")
 # The whole point of the migration. Everything above tests arithmetic; this
@@ -263,29 +273,38 @@ CARD_TYPE = [c for c in CARDS if c["id"] == CARD][0]["type"]
 FAKE = {"coins": 0, "equipped_avatar": CARD}
 _real_get_user = DB.get_user
 _real_equipped = ENGINE_MOD.get_equipped_avatar
-DB.get_user = lambda uid: FAKE
-ENGINE_MOD.get_equipped_avatar = lambda uid: FAKE.get("equipped_avatar")
+async def _fake_get_user(uid):
+    return FAKE
+
+
+async def _fake_get_equipped_avatar(uid):
+    return FAKE.get("equipped_avatar")
+
+
+DB.get_user = _fake_get_user
+ENGINE_MOD.get_equipped_avatar = _fake_get_equipped_avatar
 
 BLADE = {"name": "SimBlade",
          "stats": {"hp": 100, "attack": 100, "defense": 100,
                    "stamina": 100, "special": 100}}
-try:
+async def _run_effective_blade_checks():
     from cogs.avatar import avatar_engine as ENGINE
 
     FAKE.pop("avatar", None)
-    b1, brk1, _ = LO.effective_blade(1, profile=FAKE, blade=BLADE,
-                                     include_parts=False)
+    b1, brk1, _ = await LO.effective_blade(1, profile=FAKE, blade=BLADE,
+                                           include_parts=False)
     lvl1_attack = b1["stats"]["attack"]
 
     FAKE["avatar"] = {"cards": {CARD: {"level": 5, "skills": {},
                                        "spent": {"card": 256_000, "skills": {}}}}}
-    b5, brk5, _ = LO.effective_blade(1, profile=FAKE, blade=BLADE,
-                                     include_parts=False)
+    b5, brk5, _ = await LO.effective_blade(1, profile=FAKE, blade=BLADE,
+                                           include_parts=False)
     lvl5_attack = b5["stats"]["attack"]
 
     expected = AL.card_stat_bonus(CARD_TYPE, 5)["attack"]
+    engine_lvl = await ENGINE.card_level(1, CARD)
     check("engine reports the purchased level",
-          ENGINE.card_level(1, CARD) == 5, ENGINE.card_level(1, CARD))
+          engine_lvl == 5, engine_lvl)
     check("a Lv5 card raises attack inside effective_blade()",
           lvl5_attack > lvl1_attack, f"{lvl1_attack} -> {lvl5_attack}")
     check("...by exactly the growth table's amount",
@@ -301,16 +320,20 @@ try:
 
     # And the guarantee, through the real code path this time.
     FAKE["avatar"] = {"cards": {CARD: {"level": 1}}}
-    b_again, _, _ = LO.effective_blade(1, profile=FAKE, blade=BLADE,
-                                       include_parts=False)
+    b_again, _, _ = await LO.effective_blade(1, profile=FAKE, blade=BLADE,
+                                             include_parts=False)
     check("an explicit Lv1 is identical to no avatar block at all",
           b_again["stats"] == b1["stats"], (b1["stats"], b_again["stats"]))
 
     FAKE["avatar"] = {"cards": {CARD: {"level": "corrupt"}}}
-    b_bad, _, _ = LO.effective_blade(1, profile=FAKE, blade=BLADE,
-                                     include_parts=False)
+    b_bad, _, _ = await LO.effective_blade(1, profile=FAKE, blade=BLADE,
+                                           include_parts=False)
     check("corrupt level data degrades to Lv1 rather than breaking the fight",
           b_bad["stats"] == b1["stats"], b_bad["stats"])
+
+
+try:
+    asyncio.run(_run_effective_blade_checks())
 finally:
     DB.get_user = _real_get_user
     ENGINE_MOD.get_equipped_avatar = _real_equipped

@@ -203,11 +203,11 @@ async def grant(user_id: int, rewards: list[dict]) -> list[str]:
                 got.append("👹 boss copy could not be granted — that boss no longer exists")
             else:
                 rolled = bcopy.roll_copy(prof, forced_grade=r.get("grade"))
-                bcopy.add_copy(user_id, rolled)
+                await bcopy.add_copy(user_id, rolled)
                 got.append(f"👹 **{rolled['name']}** ({rolled['grade']}) boss copy added")
 
     if coin_delta:
-        mutate_user(user_id,
+        await mutate_user(user_id,
                     lambda prof: prof.__setitem__(
                         "coins", int(prof.get("coins", 0) or 0) + coin_delta))
     return got
