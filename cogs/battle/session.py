@@ -128,10 +128,11 @@ class _InChannelControlPanel(discord.ui.View):
         second resource of its own (Kirindael's Purifier Charge), and "the
         button did nothing" is not something a player can act on.
         """
+        # gauge_max deliberately omitted: special_gate reads this blade's own
+        # cost, so a blade with a cheaper Special is not greyed out at 149.
         return special_gate.blocked_reason(
             self.session, user_id, self.session.blades.get(user_id),
-            self.session.stamina_manager.gauge.get(user_id, 0),
-            SPECIAL_GAUGE_MAX)
+            self.session.stamina_manager.gauge.get(user_id, 0))
 
     def _special_disabled(self, user_id: str) -> bool:
         """Return True if the Special cannot be used by this player."""
@@ -1305,7 +1306,15 @@ class BattleSession:
         # occurs mid-round (moved from the button handler).
         for key, move in ((k1, m1), (k2, m2)):
             if move == MOVE_SPECIAL:
-                sm.consume_gauge(key)
+                # special_gate.spend() rather than sm.consume_gauge(): it
+                # deducts this blade's OWN gauge cost (so a cheaper Special
+                # leaves change on the bar instead of having it confiscated)
+                # and resets the extra counter in the same call, which is
+                # what stops the two halves of "pay for the Special" drifting.
+                special_gate.spend(self, key, self.blades.get(key))
+                round_log.extend(
+                    special_gate.apply_stability_cost(
+                        self, key, self.blades.get(key)))
 
         # ── Build round summary (via AttackManager) ───────────────────────────
         lines = am.build_round_summary(

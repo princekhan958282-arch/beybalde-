@@ -57,10 +57,39 @@ def check(label, cond, detail=""):
 
 
 from cogs.battle import button_profile as BP                    # noqa: E402
+from cogs.battle import special_gate as SG                      # noqa: E402
 from cogs.core import constants as C                            # noqa: E402
 from utils.database import load_beyblades                       # noqa: E402
 
 ALL = load_beyblades()
+
+
+class _FakeSession:
+    """Only the surface special_gate actually touches.
+
+    Deliberately hand-built rather than a real BattleSession: these checks are
+    about the gate's own arithmetic (what it charges, what it refuses, what it
+    floors), and a real session would drag in blade art, avatars and a Discord
+    channel to prove that 120 - 90 == 30.
+    """
+
+    def __init__(self):
+        self.stamina_manager = type("_SM", (), {"gauge": {"p": 0, "e": 0}})()
+        self.ability = type("_AB", (), {"counters": {}, "cooldowns": {}})()
+        self.stability_manager = _FakeStability()
+
+
+class _FakeStability:
+    """Mirrors StabilityManager's _apply contract: clamp to [0, max]."""
+
+    def __init__(self):
+        self.stability = {"p": 100, "e": 100}
+        self.max = {"p": 100, "e": 100}
+
+    def _apply(self, key, delta):
+        cur = self.stability.get(key, 0)
+        self.stability[key] = max(0, min(self.max.get(key, 100), cur + delta))
+        return []
 
 if MUTATE:
     # Break exactly one neutral default and nothing else. If section 1 still
@@ -176,6 +205,84 @@ def main() -> int:
     tiers = BP.stability_tiers(unordered)
     check("tiers come back sorted high→low regardless of authored order",
           [t[0] for t in tiers] == [0.30, 0.15], tiers)
+
+    # ── 6. per-blade Special cost (Part 5) ──────────────────────────────────
+    print("\n── 6. a Special can now be cheaper or dearer than everyone's ────")
+    plain_blade = plain[0][1] if plain else {}
+    cheap = {"name": "Cheap", "button_profile": {"special": {"gauge_cost": 90}}}
+    dear  = {"name": "Dear",  "button_profile": {"special": {"gauge_cost": 150}}}
+
+    sess = _FakeSession()
+    check("an opted-out blade still needs the full bar",
+          SG.gauge_cost(plain_blade) == C.SPECIAL_GAUGE_MAX)
+    check("a cheap Special is READY at 100 gauge, where the default is not",
+          SG.blocked_reason(sess, "p", cheap, 100) is None
+          and SG.blocked_reason(sess, "p", plain_blade, 100) is not None)
+    check("...and is still blocked below its own cost",
+          SG.blocked_reason(sess, "p", cheap, 89) is not None)
+    check("the block message quotes the blade's OWN cost, not 150 — a player "
+          "told '89/150' when the real bar is 90 cannot act on that",
+          "/90" in (SG.blocked_reason(sess, "p", cheap, 89) or ""),
+          SG.blocked_reason(sess, "p", cheap, 89))
+
+    # The whole point of a cheap Special: the change stays on the bar.
+    # consume_gauge()'s hard zero would confiscate it.
+    sess.stamina_manager.gauge["p"] = 120
+    spent = SG.spend(sess, "p", cheap)
+    check("spend() deducts exactly the blade's cost",
+          spent == 90, spent)
+    check("...leaving the change on the gauge instead of zeroing it",
+          sess.stamina_manager.gauge["p"] == 30,
+          sess.stamina_manager.gauge["p"])
+
+    sess.stamina_manager.gauge["p"] = 150
+    SG.spend(sess, "p", dear)
+    check("a full-cost Special still empties the bar exactly as before",
+          sess.stamina_manager.gauge["p"] == 0)
+
+    sess.stamina_manager.gauge["p"] = 20
+    SG.spend(sess, "p", cheap)
+    check("spending more than is banked floors at 0, never negative",
+          sess.stamina_manager.gauge["p"] == 0)
+
+    # spend() also resets the extra counter — both halves of "pay for the
+    # Special" in one call, so they cannot drift apart.
+    kiri = {"name": "K", "special_requires": {"counter": "purifier_charge",
+                                              "value": 100}}
+    sess.stamina_manager.gauge["p"] = 150
+    sess.ability.counters[("p", "purifier_charge")] = 100
+    SG.spend(sess, "p", kiri)
+    check("...and still zeroes a second resource in the same call",
+          sess.ability.counters[("p", "purifier_charge")] == 0)
+
+    print("\n── 7. a Special can never ring out its own user ─────────────────")
+    # The 0 default is a real fix, not an oversight: Specials used to cost
+    # -10 stability and blades could kill themselves casting.
+    risky = {"name": "Risky",
+             "button_profile": {"special": {"stability_cost": 40}}}
+    sess2 = _FakeSession()
+    sess2.stability_manager.stability["p"] = 100
+    SG.apply_stability_cost(sess2, "p", risky)
+    check("an authored stability cost is really paid",
+          sess2.stability_manager.stability["p"] == 60,
+          sess2.stability_manager.stability["p"])
+
+    sess2.stability_manager.stability["p"] = 25
+    SG.apply_stability_cost(sess2, "p", risky)
+    check("...but is clamped to leave 1 standing — a drawback must not be a "
+          "suicide button",
+          sess2.stability_manager.stability["p"] == 1,
+          sess2.stability_manager.stability["p"])
+
+    sess2.stability_manager.stability["p"] = 1
+    SG.apply_stability_cost(sess2, "p", risky)
+    check("at 1 stability it costs nothing at all rather than ringing out",
+          sess2.stability_manager.stability["p"] == 1)
+
+    sess2.stability_manager.stability["p"] = 100
+    SG.apply_stability_cost(sess2, "p", plain_blade)
+    check("an opted-out blade's Special still costs ZERO stability",
+          sess2.stability_manager.stability["p"] == 100)
 
     print(f"\n{PASS} passed, {FAIL} failed")
     if MUTATE:

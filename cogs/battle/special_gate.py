@@ -53,6 +53,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
+from cogs.battle import button_profile
+
 log = logging.getLogger("beyblade_bot.special_gate")
 
 
@@ -122,16 +124,35 @@ def progress(session: Any, key: str, blade: Optional[dict]) -> Optional[dict]:
             "emoji": req["emoji"], "ready": have >= req["value"]}
 
 
+def gauge_cost(blade: Optional[dict]) -> int:
+    """How much gauge THIS blade's Special costs to fire.
+
+    Was a hardcoded SPECIAL_GAUGE_MAX for all 113 blades, so a Special could
+    be gated by a second resource (Purifier Charge) or a cooldown but never
+    simply be cheaper or dearer than everyone else's. Authored as
+    `button_profile.special.gauge_cost`; absent, this is the full bar and
+    every caller behaves exactly as before.
+    """
+    return button_profile.special_gauge_cost(blade)
+
+
 def blocked_reason(session: Any, key: str, blade: Optional[dict],
-                   gauge: int, gauge_max: int) -> Optional[str]:
+                   gauge: int, gauge_max: Optional[int] = None) -> Optional[str]:
     """Why the Special cannot be used, or None if it can.
 
     Returns a player-facing sentence rather than a bool: "the button is
     greyed out" is not an answer anybody can act on, and a blade with a
     second resource has two different reasons to be locked.
+
+    `gauge_max` is now OPTIONAL and callers should omit it: left None it is
+    read from the blade, which is the only way the button, the League AI and
+    the resolver can be guaranteed to agree. Passing it explicitly overrides
+    the blade's own cost and is kept only so existing callers cannot break —
+    for a blade with no authored cost the two are the same number anyway.
     """
-    if gauge < gauge_max:
-        return f"❌ Special gauge not full! ({int(gauge)}/{int(gauge_max)})"
+    need = gauge_cost(blade) if gauge_max is None else int(gauge_max)
+    if gauge < need:
+        return f"❌ Special gauge not full! ({int(gauge)}/{need})"
     req = requirement(blade)
     prog = progress(session, key, blade)
     if prog and not prog["ready"]:
@@ -144,24 +165,65 @@ def blocked_reason(session: Any, key: str, blade: Optional[dict],
 
 
 def ready(session: Any, key: str, blade: Optional[dict],
-          gauge: int, gauge_max: int) -> bool:
+          gauge: int, gauge_max: Optional[int] = None) -> bool:
     """The whole gate as one boolean, for callers that only need yes/no."""
     return blocked_reason(session, key, blade, gauge, gauge_max) is None
 
 
 def spend(session: Any, key: str, blade: Optional[dict]) -> int:
-    """Zero the extra counter after the Special fires. Returns what was spent.
+    """Pay for a Special that just fired. Returns the gauge deducted.
 
-    Kept here beside the gate rather than in the blade's rules so the reset
-    can never drift from the requirement it pays for.
+    This used to reset only the extra counter, and had ZERO callers anywhere
+    in the repo — the gauge half was done by `stamina_manager.consume_gauge`,
+    which hard-zeroes. That was fine while every Special cost the whole bar
+    and there was nothing else to pay. It stops being fine the moment a blade
+    can have a cheaper Special: zeroing would silently confiscate the change.
+
+    So both halves of "pay for the Special" now live here, together, where
+    they cannot drift from the requirement they pay for:
+      * deduct exactly `gauge_cost(blade)` from the gauge, floored at 0
+      * zero the extra counter (Purifier Charge and friends), as before
     """
-    req = requirement(blade)
-    if not req:
-        return 0
-    spent = charge(session, key, req["counter"])
+    cost = gauge_cost(blade)
     try:
-        session.ability.counters[(str(key), req["counter"])] = 0
+        sm = session.stamina_manager
+        sm.gauge[key] = max(0, int(sm.gauge.get(key, 0)) - cost)
     except Exception:                                    # noqa: BLE001
-        log.debug("could not reset %s for %s", req["counter"], key)
-        return 0
-    return spent
+        log.debug("could not deduct special gauge for %s", key, exc_info=True)
+        cost = 0
+
+    req = requirement(blade)
+    if req and req["counter"]:
+        try:
+            session.ability.counters[(str(key), req["counter"])] = 0
+        except Exception:                                # noqa: BLE001
+            log.debug("could not reset %s for %s", req["counter"], key)
+    return cost
+
+
+def apply_stability_cost(session: Any, key: str,
+                         blade: Optional[dict]) -> list[str]:
+    """Self-inflicted stability for firing a Special. Opt-in, and never lethal.
+
+    Specials cost 0 stability for everyone by default and that is deliberate —
+    the old -10 let a blade ring ITSELF out by unleashing its own Special (see
+    the comment in attack_manager._resolve_special). A blade can now author a
+    cost, but it is clamped to leave at least 1 stability standing, so
+    "my Special is risky" can never become "my Special killed me".
+    """
+    cost = button_profile.special_stability_cost(blade)
+    if cost <= 0:
+        return []
+    try:
+        stm = session.stability_manager
+        current = int(stm.stability.get(key, 0))
+        # Leave 1 behind. A Special that rings its own user out is a bug
+        # wearing a drawback's clothes.
+        applied = min(cost, max(0, current - 1))
+        if applied <= 0:
+            return []
+        return list(stm._apply(key, -applied) or [])
+    except Exception:                                    # noqa: BLE001
+        log.debug("could not apply special stability cost for %s", key,
+                  exc_info=True)
+        return []
