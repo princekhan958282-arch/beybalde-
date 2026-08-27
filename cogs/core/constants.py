@@ -90,12 +90,25 @@ MOVE_STAMINA = "stamina"
 MOVE_SPECIAL = "special"
 MOVE_CHARGE  = "charge"
 
+# Deliberately WITHOUT a stamina cost in the text.
+#
+# These used to read "⚔️ Attack (-1.5 Stamina)" and friends, and every one of
+# those numbers was wrong: they are boss_ai's table, not this game's, so the
+# real prices were already 2.2 / 2.2 / 1.5 / 4.4 when the label said
+# 1.5 / 1.5 / 1 / 3. Attack and Defense now scale with the blade's own stats
+# on top of that, so no constant here CAN be right — the honest answer is per
+# blade and per moment.
+#
+# `session.py` appends the real figure from `StaminaManager.cost_for`, which is
+# the same call that charges it, so what the player is told and what they pay
+# cannot drift. Anything else that shows a move name gets the name alone,
+# which is at least true.
 MOVE_LABELS = {
-    MOVE_ATTACK:  "⚔️ Attack (-1.5 Stamina)",
-    MOVE_DEFENSE: "🛡️ Defense (-1.5 Stamina, Reduce dmg)",
-    MOVE_STAMINA: "⚡ Use Stamina (+3 Stamina, Heal)",
-    MOVE_SPECIAL: "🌟 SPECIAL (-3 Stamina)",
-    MOVE_CHARGE:  "🔋 Charge (+50 Gauge, -1 Stamina)",
+    MOVE_ATTACK:  "⚔️ Attack",
+    MOVE_DEFENSE: "🛡️ Defense (Reduce dmg)",
+    MOVE_STAMINA: "⚡ Use Stamina (Recover, Heal)",
+    MOVE_SPECIAL: "🌟 SPECIAL",
+    MOVE_CHARGE:  "🔋 Charge (+50 Gauge)",
 }
 
 # ── Counter Relationships (rock-paper-scissors) ───────────────────────────────

@@ -34,7 +34,15 @@ The stamina trap
 `stamina_manager.STAMINA_COST` of 2.2 / 2.2 / 0 / 1.5 / 4.4. Left alone, the
 search would happily pick a Special the real session cannot pay for, and
 `deduct_cost` would drive the opponent into a stamina KO it never chose. Every
-move is re-checked against the REAL table before it is used.
+move is re-checked before it is used — by asking
+`stamina_manager.cost_for(key, move)`, NOT by reading a table.
+
+That distinction is the whole guard, and it was briefly lost. This used to
+re-check against `stamina_manager.STAMINA_COST`, which was correct only while
+that table WAS the price. Attack and Defense now scale with the blade's own
+stats, so the table became the base of a curve rather than the answer, and a
+guard that read it cleared moves the session could not pay for — reintroducing
+the exact KO described above. Ask the manager; it is the only thing that knows.
 """
 
 from __future__ import annotations
@@ -44,7 +52,6 @@ from typing import Optional
 
 from cogs.battle import special_gate
 from cogs.battle.boss import boss_ai as ai
-from cogs.battle.stamina_manager import STAMINA_COST as REAL_COST
 from cogs.core.constants import (
     MOVE_ATTACK, MOVE_CHARGE, MOVE_DEFENSE, MOVE_SPECIAL, MOVE_STAMINA,
     STABILITY_ATTACK_HIT, STABILITY_DEF_PASSIVE, STABILITY_STAMINA_RECOVERY,
@@ -119,8 +126,13 @@ def affordable(session, key: str, move: str) -> bool:
                 session, key, session.blades.get(key),
                 session.stamina_manager.gauge.get(key, 0)):
             return False
+    # `stamina_manager.cost_for`, never the STAMINA_COST table. The table is
+    # only the BASE of the curve now — Attack and Defense scale with the
+    # blade's stats — so reading it here cleared moves at the base price that
+    # `deduct_cost` then charged at the scaled one, which is precisely the
+    # stamina KO this function exists to prevent (see the module docstring).
     have = float(session.stamina_manager.stamina.get(key, 0.0))
-    return have >= float(REAL_COST.get(move, 0.0))
+    return have >= float(session.stamina_manager.cost_for(key, move))
 
 
 def legal_moves(session, key: str) -> list[str]:

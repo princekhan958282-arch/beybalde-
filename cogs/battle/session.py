@@ -970,7 +970,19 @@ class BattleSession:
             return
 
         self.moves[key] = move
+        # The REAL price for THIS blade, from the same call that charges it.
+        # The label used to carry a hardcoded number and every one of them was
+        # wrong (they were boss_ai's table); Attack and Defense now scale with
+        # the blade's stats on top of that, so the only honest source is the
+        # manager. Never raises — a confirmation that fails is worse than one
+        # without a number in it.
         label = MOVE_LABELS.get(move, move)
+        try:
+            cost = self.stamina_manager.cost_for(key, move)
+            if cost > 0:
+                label = f"{label} (-{cost:g} Stamina)"
+        except Exception:                                # noqa: BLE001
+            pass
         await interaction.response.send_message(
             f"✅ Move locked: **{label}**", ephemeral=True
         )
