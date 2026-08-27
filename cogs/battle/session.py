@@ -610,6 +610,13 @@ class BattleSession:
         self.panel_msg: Optional[discord.Message] = None
         self._current_view: Optional[_InChannelControlPanel] = None
         self._done_event   = asyncio.Event()
+        # Declared up front, not created in `_end_battle`. Callers read these
+        # with `getattr(session, "winner_id", None)`, which cannot tell "this
+        # battle was a draw" apart from "the attribute does not exist yet" —
+        # so an unfinished battle used to read as a draw. Existing and being
+        # None means undecided; `_end_battle` is the only thing that sets them.
+        self.winner_id: int | None = None
+        self.loser_id:  int | None = None
         self._resolve_lock = asyncio.Lock()
 
     # ── Convenience property so legacy code can read self.stamina[key] ────────
@@ -1507,9 +1514,22 @@ class BattleSession:
         if self.finished:
             return
         self.finished = True
-        self._done_event.set()
-        await self._release_skills()
 
+        # ── Decide the result BEFORE waking anything that waits on it ────────
+        # `_done_event.set()` used to come first, and `winner_id` was assigned
+        # about ten lines further down — with `await self._release_skills()`
+        # in between. That await hands control straight back to whoever is
+        # blocked in `run()`, so the waiter read `winner_id` before it
+        # existed. `getattr(session, "winner_id", None)` then answered None,
+        # which every caller reads as "draw".
+        #
+        # It was not intermittent, which is what made it look like a game-logic
+        # bug rather than a race: the await guarantees the waiter goes first.
+        # A School League battle recorded nine straight "🤝 draw — no points"
+        # and finished 0–0 while the log above it announced a Burst Finish and
+        # a winner for every one of those rounds.
+        #
+        # Nothing between here and the `set()` may await.
         p1, p2 = self.players
         k1, k2 = str(p1.id), str(p2.id)
 
@@ -1520,9 +1540,14 @@ class BattleSession:
         else:
             winner, loser = None, None
 
-        # Expose the result so external systems (tournament mode) can read it
-        self.winner_id: int | None = int(winner.id) if winner else None
-        self.loser_id:  int | None = int(loser.id)  if loser  else None
+        # Expose the result so external systems (tournament mode, the School
+        # League's Victory Points) can read it.
+        self.winner_id = int(winner.id) if winner else None
+        self.loser_id  = int(loser.id)  if loser  else None
+
+        # Only now is it safe for `run()` to return.
+        self._done_event.set()
+        await self._release_skills()
 
         if self.panel_msg:
             try:

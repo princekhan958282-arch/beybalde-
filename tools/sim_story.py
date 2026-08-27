@@ -1168,6 +1168,54 @@ async def suite(trials: int) -> None:
     print("     card statlines are still a wall, which is an open question")
     print("     for the owner, not a regression.")
 
+    # ── 15. the result is readable the instant run() returns ────────────────
+    print("\n── 15. a finished battle knows who won BEFORE run() returns ────")
+    # The bug this pins: `_end_battle` set `_done_event` first and assigned
+    # `winner_id` about ten lines later, with an `await` in between. That
+    # await handed control straight to whoever was blocked in `run()`, so the
+    # waiter read `winner_id` before it existed — and
+    # `getattr(session, "winner_id", None)` cannot tell a missing attribute
+    # apart from a draw. Every League round scored "🤝 draw — no points" while
+    # the log above it announced a Burst Finish and a winner, and the match
+    # finished 0–0 after all nine rounds.
+    #
+    # Ordering, not arithmetic, so it is asserted on the ordering.
+    src = open(os.path.join(ROOT, "cogs/battle/session.py"),
+               encoding="utf-8").read()
+    body = src[src.index("async def _end_battle"):]
+    body = body[:body.index("\n    async def ", 10)]
+    check("winner_id is assigned BEFORE the done-event is set — a waiter that "
+          "wakes must never read the result before it is written",
+          body.index("self.winner_id =") < body.index("self._done_event.set()"))
+    check("...and nothing awaits between deciding and publishing it",
+          "await" not in body[body.index("p1, p2 = self.players")
+                              :body.index("self._done_event.set()")])
+    check("both ids exist from construction, so 'not finished yet' cannot "
+          "masquerade as 'draw'",
+          "self.winner_id: int | None = None" in src
+          and "self.loser_id:  int | None = None" in src)
+
+    # And driven, because the ordering checks above are static: a real
+    # session, run to a real finish, must report a real winner.
+    _pl = FakePlayer(HUMAN_ID, "Tester")
+    seed_profile()
+    _pb, _ = await SC13.player_blade(HUMAN_ID)
+    _nb, _hp = levelled(SD.battle(1)["blade"], SD.OPPONENT_LEVEL)
+    sess, _ch, _npc, _ctrl = await build_session(
+        _pl, _pb, _nb, _hp, "elite", seed=7)
+    await drive(sess, str(HUMAN_ID), lambda s, k: MOVE_ATTACK)
+    check("a driven battle actually finished", sess.finished)
+    check("a real battle that ended with one side on more HP reports a winner",
+          sess.winner_id is not None, (sess.winner_id, sess.hp))
+    check("...and it is the side that actually had more HP left",
+          str(sess.winner_id) == max(sess.hp, key=lambda k: sess.hp[k]),
+          (sess.winner_id, sess.hp))
+    check("the loser is the other one",
+          sess.loser_id is not None and sess.loser_id != sess.winner_id)
+    # This is exactly what LeagueMatch._rounds does with it.
+    check("the School League reads a real winner off it, not a draw",
+          bool(getattr(sess, "winner_id", None)))
+
 
 async def win_rate_table(trials: int) -> tuple[float, float]:
     """Play the whole League on both difficulties and print what happened."""
