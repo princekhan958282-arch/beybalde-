@@ -94,6 +94,8 @@ from typing import TYPE_CHECKING, Optional
 
 from cogs.abilities.type_system import resolve_active_bonuses
 
+from . import button_profile
+
 from .constants import (
     STABILITY_START_DEFAULT,
     STABILITY_ATTACK_HIT,
@@ -272,6 +274,49 @@ class StabilityManager:
     def check_ring_out(self, key: str) -> bool:
         """Return True if this Bey's stability has reached zero (ring-out)."""
         return self.stability.get(key, 1) <= 0
+
+    def pct(self, key: str) -> float:
+        """Stability as a fraction of this blade's own bar.
+
+        Starting stability doubles as the ceiling and differs by type (150 for
+        Defense, 100 for everyone else), so an absolute number means two
+        different things depending on who holds it — only the fraction is
+        comparable. AbilityEngine._stability_pct now delegates here so the
+        engine's conditions and the damage gradient read one definition.
+        """
+        try:
+            mx = self.max.get(key) or STABILITY_DEFAULT
+            return self.stability.get(key, 0) / mx
+        except (TypeError, ZeroDivisionError):
+            return 1.0
+
+    def strain(self, key: str, blade: Optional[dict] = None) -> dict:
+        """The active stability tier's effects, or {} when steady.
+
+        Stability used to be a pure cliff: nothing at all happened as it fell,
+        and then at exactly 0 the blade was instantly out. 99/100 and 1/100
+        played identically, which made the whole bar invisible until the
+        moment it ended the fight. Tiers give the descent itself meaning — and
+        make the Stamina button's +25 a real defensive play rather than a heal
+        with a number attached.
+
+        Empty unless tiers are authored (`button_profile.stability.tiers`) or
+        enabled globally (`STABILITY_TIERS`), so by default this changes
+        nothing for anybody.
+        """
+        tiers = button_profile.stability_tiers(
+            blade if blade is not None else self._blades.get(key))
+        if not tiers:
+            return {}
+        frac = self.pct(key)
+        # Walk LOW threshold first and take the first match, so the harshest
+        # applicable band wins. Walking high-first returns the softest tier
+        # the blade qualifies for — at 15% with tiers at 30% and 15% that is
+        # the 30% band, which would make every lower tier unreachable.
+        for threshold, effects in reversed(tiers):   # tiers are sorted high→low
+            if frac <= threshold:
+                return effects
+        return {}
 
     # =========================================================================
     #  Private helpers

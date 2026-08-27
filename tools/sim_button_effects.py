@@ -482,6 +482,51 @@ def main() -> int:
     check("...and a blade with no such rule still rings out normally",
           s7._ring_out_guard("p", []))
 
+    # ── 10. the stability gradient (Part 3) ─────────────────────────────────
+    print("\n── 10. stability is a slope now, not just a cliff at 0 ──────────")
+    WOBBLER = {
+        "name": "Wobbler", "type": "Attack", "spin_direction": "Right",
+        "stats": {"attack": 100, "defense": 100, "stamina": 100, "hp": 100},
+        "button_profile": {"stability": {"tiers": [
+            [0.30, {"incoming_mult": 1.15}],
+            [0.15, {"incoming_mult": 1.30}]]}},
+    }
+    s8 = _RealSession(DUMMY, WOBBLER)      # the WOBBLER is the defender
+    stm = s8.stability_manager
+    df = s8.ability.damage_filter
+
+    def _incoming(stability_value, raw=100):
+        stm.stability["e"] = stability_value
+        return df._step4c_stability_strain("e", s8.blades["e"], raw, [])
+
+    check("above every threshold: damage is untouched",
+          _incoming(100) == 100 and _incoming(31) == 100,
+          (_incoming(100), _incoming(31)))
+    check("at exactly the 30% threshold the first tier engages "
+          "(inclusive, as authored)",
+          _incoming(30) == 115, _incoming(30))
+    check("...and stays in that band just above the next one",
+          _incoming(16) == 115, _incoming(16))
+    check("crossing 15% moves to the harsher tier, not back to the softer "
+          "one — tiers are matched high→low",
+          _incoming(15) == 130, _incoming(15))
+    check("...and it holds all the way down to 1",
+          _incoming(1) == 130, _incoming(1))
+
+    check("the fraction has ONE definition — the engine's condition and the "
+          "gradient both read StabilityManager.pct",
+          abs(s8.ability._stability_pct("e") - stm.pct("e")) < 1e-9)
+
+    # And the whole gradient stays off for everyone who did not ask for it.
+    s9 = _RealSession(DUMMY, dict(DUMMY, name="Steady"))
+    s9.stability_manager.stability["e"] = 1     # as low as it goes
+    check("an opted-out blade at 1 stability takes NORMAL damage — the cliff "
+          "behaviour the other 113 blades still have",
+          s9.ability.damage_filter._step4c_stability_strain(
+              "e", s9.blades["e"], 100, []) == 100)
+    check("...and strain() reports nothing for it",
+          s9.stability_manager.strain("e") == {})
+
     print(f"\n{PASS} passed, {FAIL} failed")
     if MUTATE:
         # Inverted on purpose: with a broken default, a red run is the pass.

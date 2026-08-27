@@ -167,7 +167,14 @@ class DamageFilter:
         if dmg_dealt > 0:
             dmg_dealt = self._step4b_knockout_resist(other_key, other_blade, dmg_dealt, logs)
 
-        # ── Step 4c: a hit knocks the DEFENDER's charge off ────────────────────
+        # ── Step 4c: a wobbling defender takes more ───────────────────────────
+        # The stability gradient. Sits with the other per-defender damage
+        # modifiers, and reads `other_key` because it is the side being hit.
+        if dmg_dealt > 0:
+            dmg_dealt = self._step4c_stability_strain(
+                other_key, other_blade, dmg_dealt, logs)
+
+        # ── Step 4d: a hit knocks the DEFENDER's charge off ────────────────────
         # `other_key` is the side taking the damage here. Charging is meant to
         # be a gamble — banking power while standing still — so connecting with
         # someone mid-charge is what makes it one.
@@ -175,6 +182,32 @@ class DamageFilter:
             self._break_charge_stacks(other_key, other_blade, logs)
 
         return dmg_dealt, dmg_taken, logs, mover_silenced
+
+    def _step4c_stability_strain(self, key: str, blade: dict,
+                                 dmg_dealt: int, logs: list[str]) -> int:
+        """A defender low on stability takes more damage. Inert unless tiered.
+
+        This is what turns stability from a cliff into a resource: before it,
+        nothing whatsoever happened as the bar fell and then 0 killed you
+        instantly, so there was no reason to spend a turn on Stamina until it
+        was already too late.
+        """
+        try:
+            eff = self.session.stability_manager.strain(key, blade)
+        except Exception:                                # noqa: BLE001
+            return dmg_dealt
+        mult = float(eff.get("incoming_mult", 1.0) or 1.0)
+        if mult <= 1.0:
+            return dmg_dealt
+        before = dmg_dealt
+        dmg_dealt = math.ceil(dmg_dealt * mult)
+        if dmg_dealt != before:
+            logs.append(
+                f"  🌀 **Unsteady** — {blade.get('name', '?')} is wobbling: "
+                f"+{int((mult - 1) * 100)}% damage taken "
+                f"({before} → **{dmg_dealt}**)!"
+            )
+        return dmg_dealt
 
     def _break_charge_stacks(self, key: str, blade: dict,
                              logs: list[str]) -> None:

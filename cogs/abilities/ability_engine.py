@@ -407,6 +407,13 @@ class AbilityEngine:
         """
         try:
             sm = self.session.stability_manager
+            # Delegate: StabilityManager.pct is the one definition of this
+            # fraction, so the engine's conditions and the damage gradient
+            # cannot disagree about what "below 30% stability" means. The
+            # fallback keeps older/stub managers working.
+            pct = getattr(sm, "pct", None)
+            if callable(pct):
+                return pct(key)
             cur = sm.stability.get(key, 0)
             mx = (getattr(sm, "max", {}) or {}).get(key) or 100
             return cur / mx
