@@ -185,5 +185,49 @@ check("it is only set for a MISSING binary, not for a crash",
 check("the Pillow fallback runs off the event loop",
       "asyncio.to_thread(render_info_card_pillow" in ics)
 
+print("\n── 7. art_scale — zooming CDN art that has no local crop ────────")
+# CDN-sourced art (no local file in assets/beys, which is the ONLY case that
+# actually happens today — see git history) renders via CSS `object-fit:
+# cover`, which fills the disc with the whole source image but never zooms
+# into a subject that has generous padding baked into the file itself. A
+# blade can opt into a CSS zoom via `art_scale` instead of needing a
+# server-side crop that would require fetching the CDN image (which this
+# environment's network policy blocks for Discord's CDN).
+NO_SCALE = dict(DB[SAMPLE[0]])
+NO_SCALE.pop("art_scale", None)
+html_default = IC.build_html(NO_SCALE)
+check("a blade with no art_scale gets no transform at all (byte-identical "
+      "to before this feature existed)",
+      "transform: scale" not in html_default)
+
+SCALED = dict(NO_SCALE)
+SCALED["art_scale"] = 1.5
+html_scaled = IC.build_html(SCALED)
+check("art_scale renders as a CSS transform on the art image",
+      'style="transform: scale(1.5)"' in html_scaled, html_scaled[:2000])
+
+check("Radiant Valkyrie is actually authored with a zoom "
+      "(the CDN art has no local crop to shrink its padding)",
+      DB.get("Radiant Valkyrie", {}).get("art_scale", 1.0) > 1.0,
+      DB.get("Radiant Valkyrie", {}).get("art_scale"))
+
+TOO_BIG = dict(NO_SCALE)
+TOO_BIG["art_scale"] = 50
+check("an absurd art_scale is clamped, not applied verbatim "
+      "(a bad value must not blow the art out of the disc entirely)",
+      'style="transform: scale(3)"' in IC.build_html(TOO_BIG))
+
+TOO_SMALL = dict(NO_SCALE)
+TOO_SMALL["art_scale"] = 0.2
+check("a sub-1.0 art_scale is clamped up to 1.0 — this field only zooms IN, "
+      "it can't shrink art below its normal size",
+      "transform: scale" not in IC.build_html(TOO_SMALL),
+      IC.build_html(TOO_SMALL)[:2000])
+
+BAD = dict(NO_SCALE)
+BAD["art_scale"] = "not-a-number"
+check("a garbage art_scale value doesn't raise — falls back to no zoom",
+      "transform: scale" not in IC.build_html(BAD))
+
 print(f"\n{PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)

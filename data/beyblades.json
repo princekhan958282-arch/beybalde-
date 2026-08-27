@@ -10371,6 +10371,7 @@
     "spin_direction": "Right",
     "burst_height": "Mid",
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542361648273166406/image_be3c1d1c.png?ex=6a90f3b8&is=6a8fa238&hm=4f66ce45a71273f953c7408693e4e8e7ced2f171cbd7484d737bb43d113a2154&",
+    "art_scale": 1.5,
     "description": "A radiant blade that strikes in bursts of gathered light — and once its Special unleashes Silver Radiance, its form ignites into Silver Flame, burning hotter and hitting harder for three fleeting turns.",
     "stats": {
       "attack": 158,
