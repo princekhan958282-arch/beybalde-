@@ -10359,5 +10359,163 @@
         ]
       }
     ]
+  },
+  "Radiant Valkyrie": {
+    "id": "BB113",
+    "name": "Radiant Valkyrie",
+    "rarity": "Mythic",
+    "limited": true,
+    "available_until": "2026-01-01T00:00:00Z",
+    "owner_ids": null,
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542361648273166406/image_be3c1d1c.png?ex=6a90f3b8&is=6a8fa238&hm=4f66ce45a71273f953c7408693e4e8e7ced2f171cbd7484d737bb43d113a2154&",
+    "description": "A radiant blade that strikes in bursts of gathered light — and once its Special unleashes Silver Radiance, its form ignites into Silver Flame, burning hotter and hitting harder for three fleeting turns.",
+    "stats": {
+      "attack": 158,
+      "defense": 66,
+      "stamina": 114,
+      "special": 145,
+      "hp": 143
+    },
+    "special_move": {
+      "name": "Silver Radiance",
+      "description": "190 base damage, plus a rider worth 180% of Attack. On resolution, Radiant Valkyrie ignites into Silver Flame for 3 turns.",
+      "hits": 1,
+      "damage_per_hit": 190,
+      "total_damage": 190,
+      "flavour_texts": [
+        "⚡⚪🔥 **Silver Radiance** — light becomes flame!",
+        "⚪🔥 **Silver Radiance** — Radiant Valkyrie awakens in Silver Flame!"
+      ]
+    },
+    "ability": {
+      "name": "Radiant Rush",
+      "trigger": "on_attack_hit",
+      "description": "Every Attack that lands off cooldown gets +180% damage and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "if": [
+            {"cond": "not_on_cooldown", "name": "radiant_rush"},
+            {"cond": "mode_is_not", "value": "silverflame"}
+          ],
+          "do": [
+            {"op": "bonus_damage_pct", "value": 180},
+            {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
+            {"op": "start_cooldown", "name": "radiant_rush", "turns": 2},
+            {"op": "log", "text": "⚡ **Radiant Rush** — Radiant Valkyrie surges!"}
+          ],
+          "_name": "Radiant Rush"
+        },
+        {
+          "when": "on_attack_hit",
+          "if": [
+            {"cond": "not_on_cooldown", "name": "radiant_rush"},
+            {"cond": "mode_is", "value": "silverflame"}
+          ],
+          "do": [
+            {"op": "bonus_damage_pct", "value": 180},
+            {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
+            {"op": "start_cooldown", "name": "radiant_rush", "turns": 1},
+            {"op": "log", "text": "⚡🔥 **Radiant Rush** — blazing every round in Silver Flame!"}
+          ],
+          "_name": "Radiant Rush (Silver Flame)"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Radiant Rush",
+        "trigger": "on_attack_hit",
+        "description": "Every Attack that lands off cooldown gets +180% damage and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
+        "rules": [
+          {
+            "when": "on_attack_hit",
+            "if": [
+              {"cond": "not_on_cooldown", "name": "radiant_rush"},
+              {"cond": "mode_is_not", "value": "silverflame"}
+            ],
+            "do": [
+              {"op": "bonus_damage_pct", "value": 180},
+              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
+              {"op": "start_cooldown", "name": "radiant_rush", "turns": 2},
+              {"op": "log", "text": "⚡ **Radiant Rush** — Radiant Valkyrie surges!"}
+            ],
+            "_name": "Radiant Rush"
+          },
+          {
+            "when": "on_attack_hit",
+            "if": [
+              {"cond": "not_on_cooldown", "name": "radiant_rush"},
+              {"cond": "mode_is", "value": "silverflame"}
+            ],
+            "do": [
+              {"op": "bonus_damage_pct", "value": 180},
+              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
+              {"op": "start_cooldown", "name": "radiant_rush", "turns": 1},
+              {"op": "log", "text": "⚡🔥 **Radiant Rush** — blazing every round in Silver Flame!"}
+            ],
+            "_name": "Radiant Rush (Silver Flame)"
+          }
+        ]
+      },
+      {
+        "name": "Silver Flame Awakening",
+        "trigger": "on_special",
+        "description": "Silver Radiance always adds 180% Attack in bonus damage. If Radiant Valkyrie isn't already transformed, resolving the Special also ignites Silver Flame: +25% Attack and +10% damage for 3 turns, and Attacks can apply Silver Burn while it lasts. After 3 turns, Radiant Valkyrie reverts to its normal form and image.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {"op": "bonus_damage_stat", "stat": "attack", "scale": 1.80}
+            ],
+            "_name": "Silver Radiance (ATK scaling)"
+          },
+          {
+            "when": "on_special",
+            "if": [
+              {"cond": "mode_is_not", "value": "silverflame"}
+            ],
+            "do": [
+              {
+                "op": "evolve_form",
+                "name": "Radiant Valkyrie: Silver Flame",
+                "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542361664182296656/image_19e6d538.png?ex=6a90f3bc&is=6a8fa23c&hm=fbdb7e956b553e19a5b4c5463cd2ddeb720876fc7e563ee96fbec74a75374aba&"
+              },
+              {"op": "buff", "stat": "attack", "pct": 25, "turns": 3},
+              {"op": "dmg_amp", "value": 0.10, "turns": 3},
+              {
+                "op": "set_mode",
+                "name": "silverflame",
+                "turns": 3,
+                "revert_to": "",
+                "on_expire": [
+                  {
+                    "op": "evolve_form",
+                    "name": "Radiant Valkyrie",
+                    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542361648273166406/image_be3c1d1c.png?ex=6a90f3b8&is=6a8fa238&hm=4f66ce45a71273f953c7408693e4e8e7ced2f171cbd7484d737bb43d113a2154&"
+                  },
+                  {"op": "log", "text": "⚪ **Silver Flame** fades — Radiant Valkyrie returns to its normal form."}
+                ]
+              },
+              {"op": "log", "text": "⚪🔥 **Silver Flame Awakening** — Radiant Valkyrie ignites!"}
+            ],
+            "_name": "Silver Flame Awakening"
+          },
+          {
+            "when": "on_attack_hit",
+            "if": [
+              {"cond": "mode_is", "value": "silverflame"}
+            ],
+            "do": [
+              {"op": "status_apply", "status": "burn", "dmg": 10, "turns": 2, "max_stacks": 2}
+            ],
+            "_name": "Silver Burn"
+          }
+        ]
+      }
+    ]
   }
 }
