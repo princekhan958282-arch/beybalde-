@@ -451,8 +451,23 @@ def build_html(blade: dict, parts: Optional[dict] = None) -> str:
       </section>"""
 
     art = _art_src(blade)
+    # Optional per-blade zoom. Source art comes straight from a CDN link with
+    # no server-side crop (there is no local file to trim padding from), so
+    # generated art with a lot of empty canvas around the subject renders
+    # small inside the disc even though the <img> itself fills it — `cover`
+    # only crops overflow, it doesn't zoom into the subject. `.disc` already
+    # clips overflow, so scaling the image up here crops that empty margin
+    # away visually without touching the source file. Clamped so a bad value
+    # can't shrink the art below its normal size or blow it up absurdly.
+    _art_scale = blade.get("art_scale")
+    try:
+        _art_scale = max(1.0, min(3.0, float(_art_scale))) if _art_scale else 1.0
+    except (TypeError, ValueError):
+        _art_scale = 1.0
+    _art_style = (f' style="transform: scale({_art_scale:g})"'
+                 if _art_scale != 1.0 else '')
     art_html = (f'<img class="art-img" src="{_esc(art)}" alt="" '
-                f'onerror="this.remove()">' if art else "")
+                f'onerror="this.remove()"{_art_style}>' if art else "")
 
     from utils.availability import is_limited, is_owner_bound
     _badges = []
