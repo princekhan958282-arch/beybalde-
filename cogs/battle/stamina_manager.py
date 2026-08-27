@@ -34,6 +34,7 @@ from .constants import (
     BASE_HP,
     MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_SPECIAL, MOVE_CHARGE,
     SPECIAL_GAUGE_MAX,
+    STAMINA_COST_MAX, STAMINA_COST_MIN, STAMINA_COST_STAT_WEIGHT,
 )
 
 
@@ -187,9 +188,50 @@ class StaminaManager:
 
     # ── Public: cost deduction ────────────────────────────────────────────────
 
+    def _scaled_cost(self, key: str, move: str, base: float) -> float:
+        """Attack/Defense cost scaled by the stat that button actually uses.
+
+        Attack and Defense both cost a flat 2.2 for every blade in the game,
+        so a 500-Attack monster paid exactly what a 47-Attack starter paid and
+        stacking a stat cost nothing anywhere in the economy.
+
+        The scaling is a RATIO against the blade's own stamina stat, not an
+        absolute curve, and that is the load-bearing choice. A flat per-point
+        version (`2.2 + (stat - median) * 0.012`) was measured against the
+        real roster and rejected: by level 100 every maxed blade pins the
+        ceiling and converges on one clamped cost — the same "the stat stops
+        paying partway up the curve" failure the STAMINA_MAX_* block above
+        already had to fix once. Because both stats grow together the ratio is
+        level-invariant, so Blood Dragon pays 3.25 at level 1 and 3.38 at 100.
+
+        It also says something the flat version cannot: stamina is the stat
+        that lets you USE your other stats. Dead Phoenix and Drakoryn have all
+        but identical Defense (189 vs 190), but Dead Phoenix's much larger
+        stamina stat lets it defend for 2.45 where Drakoryn pays 3.48.
+        """
+        if move not in (MOVE_ATTACK, MOVE_DEFENSE) or base <= 0:
+            return base
+        if STAMINA_COST_STAT_WEIGHT <= 0:
+            return base
+        stats = (self._blades.get(key) or {}).get("stats") or {}
+        stat = float(stats.get(
+            "attack" if move == MOVE_ATTACK else "defense", 0) or 0)
+        sta = float(stats.get("stamina", 0) or 0)
+        if stat <= 0 or sta <= 0:
+            # A blade with no stamina stat would divide by zero; one with no
+            # attack/defense stat has nothing to scale. Both keep the flat cost.
+            return base
+        scaled = base * (1 + STAMINA_COST_STAT_WEIGHT * (stat / sta - 1))
+        return round(min(STAMINA_COST_MAX, max(STAMINA_COST_MIN, scaled)), 2)
+
     def deduct_cost(self, key: str, move: str) -> list[str]:
         """Deduct the stamina cost for the given move. Returns log lines."""
-        cost = STAMINA_COST.get(move, 0.0)
+        # Scale FIRST, so the surcharge/discount pipeline below composes on top
+        # of the real cost and the ordering guarantee in its comment holds.
+        cost = self._scaled_cost(key, move,
+                                 button_profile.stamina_cost(
+                                     self._blades.get(key), move,
+                                     STAMINA_COST.get(move, 0.0)))
         if cost <= 0:
             return []
         note = ""

@@ -32,7 +32,12 @@ opponent picked that round (`damage_rules.py: calc_damage`):
 | Stamina | Attacker deals **1.2×** damage (a clean win) |
 | Charge | Attacker deals **1.5×** damage (a clean win) |
 
-**Stamina cost:** `2.2` per use.
+**Stamina cost:** scales with the blade's **Attack stat measured against its
+own Stamina stat** — `2.2 × (1 + 0.5 × (attack ÷ stamina − 1))`, clamped to
+1.2–4.5. A balanced blade still pays about the old flat `2.2`; a heavy hitter
+on a small stamina bar pays more (Blood Dragon, 158 ATK / 81 STA, pays
+**3.25**), and a blade with stamina to spare pays less. Because it is a ratio
+of two stats that grow together, the cost barely moves with level.
 
 **Stability cost:**
 - Hit landed: **-10**
@@ -99,7 +104,11 @@ round** from them for a duration based on the defender's Defense stat
 If Defense mirrors another Defense, both sides just trade a flat **32**
 chip damage.
 
-**Stamina cost:** `2.2` per use.
+**Stamina cost:** scales with the blade's **Defense stat against its own
+Stamina stat** — `2.2 × (1 + 0.5 × (defense ÷ stamina − 1))`, clamped to
+1.2–4.5. Drakoryn (190 DEF / 88 STA) pays **3.48** to block; Dead Phoenix has
+near-identical Defense (189) but far more Stamina (154), so it blocks for
+**2.45**. Stamina is the stat that lets a blade actually use its Defense.
 
 **Stability cost/effect:**
 - Passive / hit by an advantaged Attack that got through: **-6**
@@ -159,23 +168,37 @@ also attacked that same round, the amount is **halved to +12**.
 
 **Stamina cost:** `1.5` per use.
 
-**Stability interaction:** **None.** Charge is not wired into the
-Stability system at all — using it never costs or restores Stability.
+**Charge stacks (opt-in per blade):** a blade whose data authors
+`button_profile.charge` banks a **stack** each time it charges, up to its own
+cap. Stacks add a percentage to the damage of the **next** Attack or Special
+and are then spent. A multi-hit Special spends the whole bank once, on its
+first hit — not once per hit.
 
-**Limits:** Gauge is capped at **150**, which is also the amount
-required to use Special.
+**Stability interaction:** none by default. A blade that authors
+`stability_per_stack` steadies itself slightly for each stack banked.
 
-**Other effects/triggers:** None beyond the gauge gain — Charge deals
-no damage and doesn't trigger ability hooks the way the other moves
-do. For matchup/trigger purposes, an opponent Attacking into a Charge
-counts as the Attacker's clean-win case (1.5× damage, see §1).
+**The gamble:** if the charging blade is **hit** before it cashes in, the
+whole bank is knocked loose. Charging is still the move an opponent most
+wants to catch you on (see the 1.5× below), so the stacks are what the
+exposure buys — if it survives.
+
+**Limits:** Gauge is capped at **150**. Stack caps are per blade.
+
+**Other effects/triggers:** fires the `on_charge` ability trigger. Note the
+move × result matrix nominally spells `on_charge_win`/`on_charge_loss`, but
+`calc_damage` classifies **every** Charge as `mirror`, so those two can never
+fire — `on_charge` is the hook that actually works. For matchup purposes, an
+opponent Attacking into a Charge still counts as the attacker's clean-win case
+(1.5× damage, see §1).
 
 ---
 
 ## 5. ⭐ Special Button
 
-**Charge required:** The gauge must be **full (150)** to unlock
-Special. Some blades layer an additional authored requirement on top
+**Charge required:** The gauge must reach the blade's own **gauge cost**,
+which is the full **150** unless its data authors
+`button_profile.special.gauge_cost`. A cheaper Special fires sooner and leaves
+the change on the bar rather than zeroing it. Some blades layer an additional authored requirement on top
 (checked in `special_gate.py`):
 - A **counter** requirement (e.g. a blade's own charge-up mechanic must
   reach a set value), or
@@ -187,10 +210,11 @@ After Special is used, the gauge is consumed back to 0.
 
 **Stamina cost:** `4.4` per use.
 
-**Stability cost/effect:** **Explicitly zero** — using Special never
-costs or restores Stability. (The code notes this was a deliberate
-design choice so a blade can't ring itself out just by using its own
-Special.)
+**Stability cost/effect:** **zero by default** — a deliberate choice, since
+Specials once cost -10 and a blade could ring *itself* out casting its own
+move. A blade may author `button_profile.special.stability_cost`, and it is
+clamped to always leave at least 1 Stability: a drawback must never become a
+suicide button.
 
 **Damage/effects:** Each blade authors its own Special (hit count,
 per-hit damage, and whether it ignores Defense). On top of the
@@ -242,7 +266,7 @@ these base numbers.)
 | ⚔️ Attack | **-10** hit / **-4** miss (extra **-5** if countered) | Attack-vs-Attack clash is **-10 to both** instead, replacing hit/miss |
 | 🛡️ Defense | **-6** passive/hit, **-3** mirror, **0** vs Stamina, **+5** if fully blocked | |
 | 🌀 Stamina | **+25** (restores) | Halved to **+12** if the user was attacked that round |
-| ⚡ Charge | **0** | Not wired into the system at all |
+| ⚡ Charge | **0** (or a small gain, if the blade authors `stability_per_stack`) | |
 | ⭐ Special | **0** | Explicit design decision — Special never touches Stability |
 
 Attack and Defense costs only apply while type-advantage effects are
@@ -259,9 +283,15 @@ regeneration outside of using these moves.
 points every round. The moment a blade's Stability drops to 0 or below,
 **that blade's HP is immediately forced to 0 and the battle ends** on
 the spot as a ring-out loss — regardless of how much HP it actually had
-left. There is no partial penalty, damage amplification, or forced-move
-effect at low-but-nonzero Stability; it is a hard cliff exactly at 0,
-not a gradual debuff as Stability drops.
+left.
+
+**The gradient (opt-in).** By default that cliff is the *whole* story: a blade
+at 1 Stability plays exactly like one at full, and then 0 ends the fight. A
+blade whose data authors `button_profile.stability.tiers` (or a global
+`STABILITY_TIERS`) instead takes **more damage as its bar falls**, in bands —
+so the descent itself matters and spending a turn on Stamina becomes a real
+defensive play rather than something you only regret not doing. When several
+bands apply, the harshest one wins.
 
 **How Stability affects each move:**
 - **Attack:** Costs Stability to use (when advantaged); doesn't change

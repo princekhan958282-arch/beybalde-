@@ -66,6 +66,7 @@ from cogs.battle import special_gate as SG                      # noqa: E402
 from cogs.battle.attack_manager import AttackManager             # noqa: E402
 from cogs.battle.session import BattleSession                    # noqa: E402
 from cogs.battle.stability_manager import StabilityManager       # noqa: E402
+from cogs.battle.stamina_manager import STAMINA_COST as C_STAMINA_COST  # noqa: E402
 from cogs.battle.stamina_manager import StaminaManager           # noqa: E402
 from cogs.battle.status_manager import StatusManager             # noqa: E402
 from cogs.core import constants as C                            # noqa: E402
@@ -526,6 +527,82 @@ def main() -> int:
               "e", s9.blades["e"], 100, []) == 100)
     check("...and strain() reports nothing for it",
           s9.stability_manager.strain("e") == {})
+
+    # ── 11. stat-scaled Attack/Defense stamina (Part 6, ROSTER-WIDE) ────────
+    print("\n── 11. heavier hitters tire faster — the one roster-wide change ─")
+    from utils.database import get_beyblade
+    from utils import bey_levels as _BL
+
+    def _cost(blade, move):
+        return StaminaManager({"p": blade})._scaled_cost(
+            "p", move, C_STAMINA_COST[move])
+
+    # The exact numbers this design was chosen on, asserted against the real
+    # roster rather than a fixture — if a blade's stats are retuned later,
+    # this is meant to notice.
+    for name, want_atk, want_def in (
+        ("Storm Spriggan", 2.14, 2.20),
+        ("Blood Dragon",   3.25, 1.49),
+        ("Drakoryn",       2.34, 3.48),
+        ("Dead Phoenix",   1.96, 2.45),
+    ):
+        b = get_beyblade(name)
+        got_a, got_d = _cost(b, C.MOVE_ATTACK), _cost(b, C.MOVE_DEFENSE)
+        check(f"{name}: attack {want_atk}, defense {want_def}",
+              abs(got_a - want_atk) < 0.01 and abs(got_d - want_def) < 0.01,
+              (got_a, got_d))
+
+    dp, dk = get_beyblade("Dead Phoenix"), get_beyblade("Drakoryn")
+    check("the design in one line: Dead Phoenix and Drakoryn have all but "
+          "the same Defense (189 vs 190), but Dead Phoenix's bigger stamina "
+          "stat lets it actually use it",
+          _cost(dp, C.MOVE_DEFENSE) < _cost(dk, C.MOVE_DEFENSE),
+          (_cost(dp, C.MOVE_DEFENSE), _cost(dk, C.MOVE_DEFENSE)))
+
+    # Level-invariance — the property the rejected flat-pivot formula lacked,
+    # and the reason this check exists at all.
+    import copy as _copy
+    bd = get_beyblade("Blood Dragon")
+    bd100 = _copy.deepcopy(bd)
+    bd100["stats"] = _BL.stats_at(bd, 100, {})
+    l1, l100 = _cost(bd, C.MOVE_ATTACK), _cost(bd100, C.MOVE_ATTACK)
+    check("cost barely moves from level 1 to level 100 — a flat per-point "
+          "curve would pin the ceiling here and make every maxed blade "
+          "identical, which is exactly why it was rejected",
+          abs(l100 - l1) < 0.25, (l1, l100))
+
+    # Clamps and division-by-zero.
+    glass = {"name": "Glass", "stats": {"attack": 500, "defense": 1,
+                                        "stamina": 1, "hp": 100}}
+    check("an extreme ratio is clamped to the ceiling, not left to run away",
+          _cost(glass, C.MOVE_ATTACK) == C.STAMINA_COST_MAX,
+          _cost(glass, C.MOVE_ATTACK))
+    wall = {"name": "Wall", "stats": {"attack": 1, "defense": 1,
+                                      "stamina": 500, "hp": 100}}
+    check("...and the floor binds at the other end, so a blade can still act",
+          _cost(wall, C.MOVE_ATTACK) == C.STAMINA_COST_MIN,
+          _cost(wall, C.MOVE_ATTACK))
+    nosta = {"name": "NoSta", "stats": {"attack": 100, "defense": 100,
+                                        "stamina": 0, "hp": 100}}
+    check("a 0 stamina stat does not divide by zero — it keeps the flat cost",
+          _cost(nosta, C.MOVE_ATTACK) == C_STAMINA_COST[C.MOVE_ATTACK])
+
+    check("Stamina, Charge and Special are NOT scaled — Part 6 covers the two "
+          "buttons asked for, and a third curve would make its effect "
+          "unreadable",
+          _cost(glass, C.MOVE_CHARGE) == C_STAMINA_COST[C.MOVE_CHARGE]
+          and _cost(glass, C.MOVE_SPECIAL) == C_STAMINA_COST[C.MOVE_SPECIAL])
+
+    # The surcharge/discount ops must still compose ON TOP of the scaled base.
+    sm_c = StaminaManager({"p": get_beyblade("Blood Dragon")})
+    sm_c.stamina["p"] = 30.0
+    sm_c.cost_increase_moves["p"] = (C.MOVE_ATTACK,)
+    sm_c.cost_increase["p"] = 0.5          # +50%
+    sm_c.deduct_cost("p", C.MOVE_ATTACK)
+    spent = round(30.0 - sm_c.stamina["p"], 2)
+    check("a +50% surcharge applies to the SCALED cost (3.25), not the old "
+          "flat 2.2 — the documented ordering still holds",
+          abs(spent - 4.88) < 0.02, spent)
 
     print(f"\n{PASS} passed, {FAIL} failed")
     if MUTATE:
