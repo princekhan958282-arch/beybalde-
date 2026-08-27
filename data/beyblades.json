@@ -10394,7 +10394,7 @@
     "ability": {
       "name": "Radiant Rush",
       "trigger": "on_attack_hit",
-      "description": "Every Attack that lands off cooldown gets +180% damage and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
+      "description": "Every Attack that lands off cooldown gets +20% Attack scaling and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
       "rules": [
         {
           "when": "on_attack_hit",
@@ -10430,7 +10430,7 @@
       {
         "name": "Radiant Rush",
         "trigger": "on_attack_hit",
-        "description": "Every Attack that lands off cooldown gets +180% damage and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
+        "description": "Every Attack that lands off cooldown gets +20% Attack scaling and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
         "rules": [
           {
             "when": "on_attack_hit",
@@ -10439,7 +10439,7 @@
               {"cond": "mode_is_not", "value": "silverflame"}
             ],
             "do": [
-              {"op": "bonus_damage_pct", "value": 180},
+              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.20},
               {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
               {"op": "start_cooldown", "name": "radiant_rush", "turns": 2},
               {"op": "log", "text": "⚡ **Radiant Rush** — Radiant Valkyrie surges!"}
@@ -10453,7 +10453,7 @@
               {"cond": "mode_is", "value": "silverflame"}
             ],
             "do": [
-              {"op": "bonus_damage_pct", "value": 180},
+              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.20},
               {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
               {"op": "start_cooldown", "name": "radiant_rush", "turns": 1},
               {"op": "log", "text": "⚡🔥 **Radiant Rush** — blazing every round in Silver Flame!"}
