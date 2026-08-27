@@ -123,3 +123,51 @@ STABILITY_DEF_VS_STAMINA  =   0   # no effect
 STABILITY_DEF_BLOCKED     =  +5   # absorbed all damage
 
 STABILITY_STAMINA_RECOVERY = +25  # reward for using Stamina move
+
+# ── Button rework ─────────────────────────────────────────────────────────────
+# The five buttons were thin: Charge was a skip-turn that no blade in the
+# roster reacted to, Stability was a cliff at exactly 0 rather than a resource,
+# and Special cost the same 150 gauge for everybody. The rework adds real
+# mechanics to all of them WITHOUT moving any existing blade: every new
+# mechanic below is neutral by default and a blade only gets it by authoring a
+# `button_profile` block in beyblades.json (see cogs/battle/button_profile.py).
+#
+# This switch is the one lever that would apply the new baseline to the whole
+# roster at once. It stays False deliberately: flipping it rebalances every
+# existing matchup and re-tunes every sim, which is its own task and its own
+# decision, not a side effect of shipping the capability.
+BUTTON_REWORK_GLOBAL = False
+
+# Stability tiers — the gradient that makes the whole bar matter instead of
+# only its last point. Each entry is (fraction_of_max, effects) and the FIRST
+# entry whose fraction the defender is at or below applies, so they must be
+# ordered high to low.
+#
+# Empty by default: with no tiers, stability behaves exactly as it always has
+# (invisible until it hits 0, then an instant ring-out). Populate this, or set
+# a per-blade `button_profile.stability.tiers`, to switch the gradient on.
+#
+#   e.g. ((0.30, {"incoming_mult": 1.15}), (0.15, {"incoming_mult": 1.30}))
+STABILITY_TIERS: tuple = ()
+
+# ── Stat-scaled action cost ───────────────────────────────────────────────────
+# Attack and Defense used to cost a flat 2.2 stamina each, so a 500-Attack
+# monster paid exactly what a 47-Attack starter paid and stacking a stat cost
+# nothing anywhere in the economy. Cost now scales with the stat the button
+# actually uses, measured against the blade's OWN stamina stat:
+#
+#   cost = STAMINA_COST[move] * (1 + K * (stat / stamina_stat - 1))
+#
+# The ratio is the load-bearing part. A flat per-point curve
+# (`2.2 + (stat - median) * 0.012`) was tried against real roster numbers and
+# rejected: by level 100 every maxed blade pins the ceiling and converges on
+# one clamped cost — the same "the stat stops paying partway up the curve"
+# failure the STAMINA_MAX_* block below already had to fix once. Because both
+# stats grow together, the ratio is level-invariant: Blood Dragon pays 3.25 at
+# level 1 and 3.38 at level 100.
+#
+# Unlike everything else in this block, this one IS roster-wide — a cost curve
+# only half the roster obeys is not a cost curve.
+STAMINA_COST_STAT_WEIGHT = 0.5    # K: 0 disables scaling entirely
+STAMINA_COST_MIN         = 1.2    # floor, so a glass cannon still pays something
+STAMINA_COST_MAX         = 4.5    # ceiling, so a wall can still act

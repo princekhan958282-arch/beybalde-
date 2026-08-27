@@ -74,8 +74,20 @@ TRIGGERS = frozenset({
     "on_mirror",        # both picked the same move (any move)
     # threshold triggers (fire while the condition holds, once per move)
     "on_low_hp", "on_high_hp", "on_low_stamina", "on_high_stamina",
+    "on_low_stability",  # stability's sibling of on_low_hp — the bar had no
+                         # threshold hook at all, so nothing could react to
+                         # wobbling, only to the ring-out that ends the fight
     "turn_start", "turn_end",
     "setup",
+    # ── Button-rework hooks ──────────────────────────────────────────────
+    # The move x result matrix technically spells on_charge_win/_loss, but
+    # calc_damage returns "mirror" for EVERY charge, so those two can never
+    # fire and only on_charge_mirror is reachable. A plain on_charge is the
+    # honest hook, and its absence is a large part of why zero blades in the
+    # roster react to Charge at all.
+    "on_charge",
+    "on_stability_break",  # last chance before a ring-out is applied
+    "on_gauge_full",       # the Special just became available
 })
 
 # default thresholds for threshold-triggers when the rule carries no own `if`
@@ -395,6 +407,13 @@ class AbilityEngine:
         """
         try:
             sm = self.session.stability_manager
+            # Delegate: StabilityManager.pct is the one definition of this
+            # fraction, so the engine's conditions and the damage gradient
+            # cannot disagree about what "below 30% stability" means. The
+            # fallback keeps older/stub managers working.
+            pct = getattr(sm, "pct", None)
+            if callable(pct):
+                return pct(key)
             cur = sm.stability.get(key, 0)
             mx = (getattr(sm, "max", {}) or {}).get(key) or 100
             return cur / mx
@@ -1730,8 +1749,17 @@ class AbilityEngine:
                                               mover_blade, move, matchup,
                                               dmg_dealt, dmg_taken, logs)
             # threshold triggers (fire while condition holds)
+            # `on_low_stability` and `on_gauge_full` join the threshold family
+            # rather than getting dispatch sites of their own. Both read state
+            # the engine can already see (`stability_below_pct`,
+            # `gauge_at_least` are existing conditions), and both want "fire
+            # while the condition holds", which is exactly what this loop
+            # means. Firing on_gauge_full from StaminaManager.add_gauge — the
+            # obvious-looking spot — is not possible without plumbing a
+            # session backref into a manager built with `blades` only.
             for thr_trg in ("on_low_hp", "on_high_hp",
-                            "on_low_stamina", "on_high_stamina"):
+                            "on_low_stamina", "on_high_stamina",
+                            "on_low_stability", "on_gauge_full"):
                 dmg_dealt, dmg_taken = self._fire(thr_trg, mover_key, other_key,
                                                   mover_blade, move, matchup,
                                                   dmg_dealt, dmg_taken, logs)

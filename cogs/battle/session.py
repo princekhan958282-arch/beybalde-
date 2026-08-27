@@ -128,10 +128,11 @@ class _InChannelControlPanel(discord.ui.View):
         second resource of its own (Kirindael's Purifier Charge), and "the
         button did nothing" is not something a player can act on.
         """
+        # gauge_max deliberately omitted: special_gate reads this blade's own
+        # cost, so a blade with a cheaper Special is not greyed out at 149.
         return special_gate.blocked_reason(
             self.session, user_id, self.session.blades.get(user_id),
-            self.session.stamina_manager.gauge.get(user_id, 0),
-            SPECIAL_GAUGE_MAX)
+            self.session.stamina_manager.gauge.get(user_id, 0))
 
     def _special_disabled(self, user_id: str) -> bool:
         """Return True if the Special cannot be used by this player."""
@@ -1109,9 +1110,8 @@ class BattleSession:
             return
 
         # ── Ring-out check after DoT (stability can't drop from DoT but guard anyway) ─
-        stab = self.stability_manager
         for key in (k1, k2):
-            if stab.check_ring_out(key):
+            if self._ring_out_guard(key, round_log):
                 self.hp[key] = 0
         if self.hp[k1] <= 0 or self.hp[k2] <= 0:
             await self._end_battle()
@@ -1208,9 +1208,8 @@ class BattleSession:
         # stability directly (e.g. Aether Stance, World Rotation).  The existing
         # ring-out check below only runs after apply_stability_costs, so those
         # drops would be missed for a full round.  This catches them immediately.
-        _stab_early = self.stability_manager
         for key in (k1, k2):
-            if _stab_early.check_ring_out(key) and self.hp[key] > 0:
+            if self.hp[key] > 0 and self._ring_out_guard(key, round_log):
                 blade_name = self.blades[key]["name"]
                 round_log.append(
                     f"🌀 **RING OUT!** **{blade_name}** was blasted out of the ring by an ability!"
@@ -1247,9 +1246,8 @@ class BattleSession:
         )
 
         # ── Ring-out check (stability reached zero) ───────────────────────────
-        stab = self.stability_manager
         for key in (k1, k2):
-            if stab.check_ring_out(key) and self.hp[key] > 0:
+            if self.hp[key] > 0 and self._ring_out_guard(key, round_log):
                 blade_name = self.blades[key]["name"]
                 round_log.append(
                     f"🌀 **RING OUT!** **{blade_name}** lost all stability and flew out of the ring!"
@@ -1305,7 +1303,15 @@ class BattleSession:
         # occurs mid-round (moved from the button handler).
         for key, move in ((k1, m1), (k2, m2)):
             if move == MOVE_SPECIAL:
-                sm.consume_gauge(key)
+                # special_gate.spend() rather than sm.consume_gauge(): it
+                # deducts this blade's OWN gauge cost (so a cheaper Special
+                # leaves change on the bar instead of having it confiscated)
+                # and resets the extra counter in the same call, which is
+                # what stops the two halves of "pay for the Special" drifting.
+                special_gate.spend(self, key, self.blades.get(key))
+                round_log.extend(
+                    special_gate.apply_stability_cost(
+                        self, key, self.blades.get(key)))
 
         # ── Build round summary (via AttackManager) ───────────────────────────
         lines = am.build_round_summary(
@@ -1444,6 +1450,39 @@ class BattleSession:
             return None
 
     # ── Battle end ────────────────────────────────────────────────────────────
+
+    def _ring_out_guard(self, key: str, logs: list[str]) -> bool:
+        """Is this blade really rung out — after it has had its last chance?
+
+        `StabilityManager.check_ring_out` is a pure predicate and the manager
+        holds no session or engine reference, so it cannot dispatch anything
+        itself. The three ring-out sites in this file are where the session IS
+        available, so the hook lives here and all three share it.
+
+        The re-check after firing is the entire point: `on_stability_break`
+        rules can respond with `gain_stability`, and a last-chance hook that
+        does not re-read the value it was given a chance to change would be
+        decoration. This mirrors `on_would_burst` inside `_check_revive`.
+
+        Sharing one helper across all three sites also closes the gap the
+        middle site exists to patch — an ability draining stability that only
+        some of the checks knew about.
+        """
+        stab = self.stability_manager
+        if not stab.check_ring_out(key):
+            return False
+        try:
+            blade = self.blades.get(key, {})
+            _, _ = self.ability._fire(
+                "on_stability_break", key, self.ability._other_key(key),
+                blade, "", "", 0, 0, logs)
+        except Exception:                                # noqa: BLE001
+            # Swallowed deliberately: a malformed on_stability_break rule must
+            # not stop the ring-out being applied. This module has no logger
+            # of its own and one debug line does not justify adding one.
+            pass
+        # Re-read: a rule may have just restored the bar.
+        return stab.check_ring_out(key)
 
     def _mark_finish(self, key: str, kind: str) -> None:
         """Record HOW this blade went out. First mark wins.

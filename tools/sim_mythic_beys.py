@@ -252,33 +252,55 @@ def cost_of(mgr, key, move):
     return spent
 
 
+def base_of(mgr, key, move):
+    """This blade's own un-stacked cost for `move`.
+
+    Attack and Defense no longer cost a flat STAMINA_COST[move] for the whole
+    roster — they scale with the stat that button uses, measured against the
+    blade's own stamina stat. Blood Dragon is the extreme case that makes the
+    point: 158 Attack on 81 Stamina, so it pays 3.25 to swing where the table
+    says 2.2, and only 1.49 to defend on its 29 Defense.
+
+    These checks are about the +0.2-a-stack SURCHARGE, so they measure the
+    delta from the blade's real base. Re-typing the post-scaling numbers here
+    would assert the cost curve by accident, in a file about a blade's
+    ability.
+    """
+    return mgr._scaled_cost(key, move, STAMINA_COST[move])
+
+
 sm.stamina["1"] = 100.0
-check("before any hit, an Attack costs the printed 2.2",
-      cost_of(sm, "1", MOVE_ATTACK) == STAMINA_COST[MOVE_ATTACK],
+_bd_atk = base_of(sm, "1", MOVE_ATTACK)
+_bd_spc = base_of(sm, "1", MOVE_SPECIAL)
+check(f"before any hit, an Attack costs Blood Dragon's own base {_bd_atk}",
+      cost_of(sm, "1", MOVE_ATTACK) == _bd_atk,
       cost_of(sm, "1", MOVE_ATTACK))
 
 for n in range(1, 13):          # deliberately past the 10-stack cap
     e.apply("1", "2", s.blades["1"], s.blades["2"], MOVE_ATTACK, "win", 50, 0)
     if n == 1:
         check("one hit adds +0.2 to the Attack cost",
-              cost_of(sm, "1", MOVE_ATTACK) == 2.4,
+              cost_of(sm, "1", MOVE_ATTACK) == round(_bd_atk + 0.2, 2),
               cost_of(sm, "1", MOVE_ATTACK))
     if n == 5:
-        check("five hits: +1.0 (2.2 -> 3.2)",
-              cost_of(sm, "1", MOVE_ATTACK) == 3.2,
+        check(f"five hits: +1.0 ({_bd_atk} -> {round(_bd_atk + 1.0, 2)})",
+              cost_of(sm, "1", MOVE_ATTACK) == round(_bd_atk + 1.0, 2),
               cost_of(sm, "1", MOVE_ATTACK))
 
-check("at 10 stacks an Attack costs 4.2 instead of 2.2",
-      cost_of(sm, "1", MOVE_ATTACK) == 4.2, cost_of(sm, "1", MOVE_ATTACK))
-check("...and a Special 6.4 instead of 4.4",
-      cost_of(sm, "1", MOVE_SPECIAL) == 6.4, cost_of(sm, "1", MOVE_SPECIAL))
+check(f"at 10 stacks an Attack costs {round(_bd_atk + 2.0, 2)} "
+      f"instead of {_bd_atk}",
+      cost_of(sm, "1", MOVE_ATTACK) == round(_bd_atk + 2.0, 2),
+      cost_of(sm, "1", MOVE_ATTACK))
+check(f"...and a Special {round(_bd_spc + 2.0, 2)} instead of {_bd_spc}",
+      cost_of(sm, "1", MOVE_SPECIAL) == round(_bd_spc + 2.0, 2),
+      cost_of(sm, "1", MOVE_SPECIAL))
 check("hits 11 and 12 add nothing — the cap really caps",
       sm.cost_increase_flat["1"] == 2.0, sm.cost_increase_flat["1"])
 check("Defense is not surcharged — the drawback is offensive",
-      cost_of(sm, "1", MOVE_DEFENSE) == STAMINA_COST[MOVE_DEFENSE],
+      cost_of(sm, "1", MOVE_DEFENSE) == base_of(sm, "1", MOVE_DEFENSE),
       cost_of(sm, "1", MOVE_DEFENSE))
 check("the opponent pays nothing for Blood Dragon's stacks",
-      cost_of(sm, "2", MOVE_ATTACK) == STAMINA_COST[MOVE_ATTACK],
+      cost_of(sm, "2", MOVE_ATTACK) == base_of(sm, "2", MOVE_ATTACK),
       cost_of(sm, "2", MOVE_ATTACK))
 check("the Attack buff capped at +100 in the same 10 stacks",
       e.counters.get(("1", "unstable")) == 10,

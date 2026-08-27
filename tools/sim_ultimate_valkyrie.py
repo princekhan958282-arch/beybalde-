@@ -184,28 +184,41 @@ def cost_of(mgr, key, move):
     return spent
 
 
+def base_of(mgr, key, move):
+    """This blade's own un-surcharged cost for `move`.
+
+    Attack and Defense no longer cost a flat STAMINA_COST[move] for everyone —
+    they scale with the stat the button uses, against the blade's own stamina
+    stat. These checks are about the SURCHARGE, so they compare against the
+    real base rather than the table value; hardcoding 2.2 here would be
+    asserting the cost curve by accident and would have to be re-typed every
+    time it is tuned.
+    """
+    return mgr._scaled_cost(key, move, STAMINA_COST[move])
+
+
 check("a fresh manager charges nobody a surcharge",
-      cost_of(sm, "1", MOVE_ATTACK) == STAMINA_COST[MOVE_ATTACK],
+      cost_of(sm, "1", MOVE_ATTACK) == base_of(sm, "1", MOVE_ATTACK),
       cost_of(sm, "1", MOVE_ATTACK))
 
 sm.cost_increase["1"] = 0.35
-want_atk = round(STAMINA_COST[MOVE_ATTACK] * 1.35, 2)
-want_spc = round(STAMINA_COST[MOVE_SPECIAL] * 1.35, 2)
+want_atk = round(base_of(sm, "1", MOVE_ATTACK) * 1.35, 2)
+want_spc = round(base_of(sm, "1", MOVE_SPECIAL) * 1.35, 2)
 check(f"+35% makes Attack cost {want_atk} instead of "
-      f"{STAMINA_COST[MOVE_ATTACK]}",
+      f"{base_of(sm, '1', MOVE_ATTACK)}",
       cost_of(sm, "1", MOVE_ATTACK) == want_atk, cost_of(sm, "1", MOVE_ATTACK))
 check(f"...and Special {want_spc} instead of {STAMINA_COST[MOVE_SPECIAL]}",
       cost_of(sm, "1", MOVE_SPECIAL) == want_spc,
       cost_of(sm, "1", MOVE_SPECIAL))
 check("Defense is NOT surcharged — the drawback is offensive",
-      cost_of(sm, "1", MOVE_DEFENSE) == STAMINA_COST[MOVE_DEFENSE],
+      cost_of(sm, "1", MOVE_DEFENSE) == base_of(sm, "1", MOVE_DEFENSE),
       cost_of(sm, "1", MOVE_DEFENSE))
 check("neither is Charge",
       cost_of(sm, "1", MOVE_CHARGE) == STAMINA_COST[MOVE_CHARGE])
 check("the free Stamina move stays free",
       cost_of(sm, "1", MOVE_STAMINA) == 0.0)
 check("the OPPONENT is untouched by it",
-      cost_of(sm, "2", MOVE_ATTACK) == STAMINA_COST[MOVE_ATTACK],
+      cost_of(sm, "2", MOVE_ATTACK) == base_of(sm, "2", MOVE_ATTACK),
       cost_of(sm, "2", MOVE_ATTACK))
 check("the surcharge really is a cost INCREASE, not a rounding wobble",
       cost_of(sm, "1", MOVE_ATTACK) > cost_of(sm, "2", MOVE_ATTACK))
@@ -214,7 +227,7 @@ check("the surcharge really is a cost INCREASE, not a rounding wobble",
 sm.drain_reduction["1"] = 0.5
 check("a discount applies on top of the surcharge, not instead of it",
       cost_of(sm, "1", MOVE_ATTACK)
-      == round(round(STAMINA_COST[MOVE_ATTACK] * 1.35, 2) * 0.5, 2),
+      == round(round(base_of(sm, "1", MOVE_ATTACK) * 1.35, 2) * 0.5, 2),
       cost_of(sm, "1", MOVE_ATTACK))
 sm.drain_reduction["1"] = 0.0
 
@@ -304,9 +317,12 @@ check(f"Ultimate Blade's crit fires on its own ({crits}/400 swings)",
 # not just the one this file constructed.
 _g, sx, _e = surcharge_at(BASE, 1)
 sx.stamina_manager.stamina["1"] = 50.0
+_want_live = round(
+    sx.stamina_manager._scaled_cost("1", MOVE_ATTACK,
+                                    STAMINA_COST[MOVE_ATTACK]) * 1.35, 2)
 sx.stamina_manager.deduct_cost("1", MOVE_ATTACK)
-check("an unmastered attack really removes 2.97 stamina in a battle",
-      round(50.0 - sx.stamina_manager.stamina["1"], 2) == 2.97,
+check(f"an unmastered attack really removes {_want_live} stamina in a battle",
+      round(50.0 - sx.stamina_manager.stamina["1"], 2) == _want_live,
       round(50.0 - sx.stamina_manager.stamina["1"], 2))
 
 print("\n── 8. the hidden drop is hidden, and unreachable by normal means ─")

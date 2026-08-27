@@ -47,7 +47,6 @@ from cogs.battle.boss import boss_ai as ai
 from cogs.battle.stamina_manager import STAMINA_COST as REAL_COST
 from cogs.core.constants import (
     MOVE_ATTACK, MOVE_CHARGE, MOVE_DEFENSE, MOVE_SPECIAL, MOVE_STAMINA,
-    SPECIAL_GAUGE_MAX,
     STABILITY_ATTACK_HIT, STABILITY_DEF_PASSIVE, STABILITY_STAMINA_RECOVERY,
 )
 
@@ -113,9 +112,12 @@ def affordable(session, key: str, move: str) -> bool:
         # special_gate so the League opponent is held to exactly the rule the
         # SPECIAL button enforces — a fourth private copy of "gauge >= 150"
         # is how an opponent ends up firing a Special the player could not.
+        # gauge_max omitted so the blade's own cost is used — passing the
+        # global constant here is exactly how the opponent ends up held to a
+        # different rule than the player's button.
         if not special_gate.ready(
                 session, key, session.blades.get(key),
-                session.stamina_manager.gauge.get(key, 0), SPECIAL_GAUGE_MAX):
+                session.stamina_manager.gauge.get(key, 0)):
             return False
     have = float(session.stamina_manager.stamina.get(key, 0.0))
     return have >= float(REAL_COST.get(move, 0.0))
