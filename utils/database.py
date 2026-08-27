@@ -506,6 +506,43 @@ def grant_xp(user_id: int, xp_amount: int,
     return new_level, new_xp, (new_level > old_level)
 
 
+def claim_high_water(user_id: int, key: str, value: int) -> bool:
+    """Claim `value` under `key` if it beats what is stored. Atomic.
+
+    `claim_once`'s sibling for things that happen once PER LEVEL rather than
+    once ever: it returns True only for the caller that pushed the mark up,
+    and every later caller at the same or a lower value gets False.
+
+    The read and the write are inside `_users_lock` together for the same
+    reason `claim_once` puts them there — a check here and a set there is the
+    shape that announces one level-up twice, and it is worse than it looks,
+    because two bot processes sharing a store will each pass a split check.
+    Holding the lock does not make a SECOND process safe (nothing in-process
+    can), but it does make the store's value monotonic, so the duplicate is
+    bounded at one per process rather than one per message.
+
+    Non-numeric or missing stored values read as 0, so a profile written
+    before this key existed claims correctly on its first try instead of
+    raising.
+    """
+    with _users_lock:
+        uid = str(user_id)
+        profile = USER_STORE.get_one(uid) or _default_profile(uid)
+        try:
+            seen = int(profile.get(key) or 0)
+        except (TypeError, ValueError):
+            seen = 0
+        try:
+            want = int(value)
+        except (TypeError, ValueError):
+            return False
+        if want <= seen:
+            return False
+        profile[key] = want
+        USER_STORE.put_one(uid, profile)
+    return True
+
+
 def claim_once(user_id: int, key: str) -> bool:
     """Flip a one-time flag on a profile. True ONLY for the caller that flipped it.
 

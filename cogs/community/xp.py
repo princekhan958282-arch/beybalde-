@@ -37,6 +37,11 @@ K_LEVEL     = "com_level"
 K_LAST_MSG  = "com_last_msg"
 K_DAY       = "com_day"
 K_HASHES    = "com_recent_hashes"      # [[digest, when], ...] newest last
+# The highest community level this player has already been ANNOUNCED at.
+# Separate from K_LEVEL, which is what they currently are: the two differ for
+# exactly as long as it takes to say so, and that gap is what stops a level
+# being announced twice. See `claim_level` below.
+K_LEVEL_SAID = "com_level_said"
 
 # ── The curve ────────────────────────────────────────────────────────────────
 # Same family as the trainer curve (utils/trainer_levels.py) so the two feel

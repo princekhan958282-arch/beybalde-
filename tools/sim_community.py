@@ -930,6 +930,46 @@ async def suite() -> None:
               "no cooldown" not in text and "XP_CHAT_COOLDOWN_S = 0" not in text)
     check("...because it has one", float(_BL.XP_CHAT_COOLDOWN_S) > 0)
 
+    # ── a level is announced ONCE ────────────────────────────────────────────
+    print("\n── 18. a community level is announced once, not once a message ──")
+    # The reported bug: one player was congratulated on community level 7
+    # SEVEN times. `levelled` is derived per award from the XP before and
+    # after, so anything that re-crosses the boundary re-announces — and since
+    # XP here only ever goes up, a repeat means the stored total went
+    # backwards, which is what a second bot process does to the first one's
+    # writes. The guard cannot stop that happening; it stops it being visible.
+    from utils.database import claim_high_water
+    from cogs.community.xp import K_LEVEL_SAID
+
+    said_uid = 7911
+    check("the first arrival at a level claims it",
+          claim_high_water(said_uid, K_LEVEL_SAID, 7))
+    check("a second award landing on the SAME level does not — this is the "
+          "duplicate announcement, refused",
+          not claim_high_water(said_uid, K_LEVEL_SAID, 7))
+    check("...and neither does a stale one for a level already passed",
+          not claim_high_water(said_uid, K_LEVEL_SAID, 6))
+    check("a genuinely new level still gets through",
+          claim_high_water(said_uid, K_LEVEL_SAID, 8))
+    check("...once", not claim_high_water(said_uid, K_LEVEL_SAID, 8))
+    check("a garbage value is refused rather than raising mid-announcement",
+          not claim_high_water(said_uid, K_LEVEL_SAID, "eight"))
+    check("the mark is its own key — it does not disturb the live level",
+          (await DB.get_user(said_uid)).get(K_LEVEL_SAID) == 8,
+          (await DB.get_user(said_uid)).get(K_LEVEL_SAID))
+
+    # A player who has never levelled must not be silently blocked at 1.
+    check("a profile with no mark at all claims its first level normally",
+          claim_high_water(7912, K_LEVEL_SAID, 1))
+
+    cog_src = open(os.path.join(ROOT, "cogs/community/cog.py"),
+                   encoding="utf-8").read()
+    check("_after_award gates the announcement on that claim",
+          "claim_high_water" in cog_src and "K_LEVEL_SAID" in cog_src)
+    check("...but NOT the role grant, which must stay free to retry a grant "
+          "that failed the first time",
+          cog_src.index("apply_roles") < cog_src.index("claim_high_water"))
+
 
 def _tick(cx, uid, when) -> bool:
     """One message through chat_xp's gate at time `when`. True = it paid."""
