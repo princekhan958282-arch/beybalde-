@@ -575,6 +575,15 @@ class AbilityEngine:
             return self._stability_pct(key) >= float(v)
         if c == "stability_below_pct":
             return self._stability_pct(key) < float(v)
+        if c in ("enemy_stability_below_pct", "enemy_stability_above_pct"):
+            # Same fraction-vs-percentage trap as hp_below_pct above: authors
+            # write "30" meaning 30%, so anything over 1 is normalised down
+            # rather than read as literal 3000%.
+            cut = float(v)
+            if cut > 1:
+                cut /= 100.0
+            pct = self._stability_pct(okey)
+            return pct < cut if "below" in c else pct >= cut
         if c == "gauge_at_least":
             # The Special gauge, absolute. `SPECIAL_GAUGE_MAX` is the charged
             # value, so "when Special is charged" is written as that number
@@ -762,6 +771,36 @@ class AbilityEngine:
             elif kind == "true_damage":
                 self.session.hp[okey] = self.session.hp.get(okey, 0) - int(val)
                 logs.append(f"💥 **{ab_name}** — {int(val)} TRUE damage!")
+            elif kind == "true_damage_stat_pct":
+                # Like true_damage, but scaled off the WIELDER'S OWN stat
+                # instead of a flat printed number — and, like true_damage,
+                # writes session.hp directly rather than returning through
+                # dmg_dealt. That directness is the point: a rule that must
+                # pay off on a Stamina/Charge round (a delayed proc reacting
+                # to the enemy's move, not this side's own) has its dmg_dealt
+                # silently discarded for those moves — see
+                # attack_manager.py's MOVE_STAMINA/MOVE_CHARGE short-circuit —
+                # so a stat-scaled counter that has to land regardless of what
+                # this blade played needs a direct write, the same way
+                # true_damage already does for a flat number. Stat lookup
+                # mirrors bonus_damage_stat above: the effective, levelled
+                # stat, not the buffed one.
+                try:
+                    stat  = op.get("stat", "attack")
+                    scale = float(op.get("scale", val if val is not None else 1.0))
+                    scale = scale if scale <= 10 else scale / 100
+                    eff   = (getattr(self.session, "battle_stats", {}) or {}).get(key)
+                    base  = (eff or {}).get(stat)
+                    if base is None:
+                        base = ((self.session.blades.get(key) or {})
+                                .get("stats") or {}).get(stat, 0)
+                    amt = max(0, int(round(float(base) * scale)))
+                    if amt > 0:
+                        self.session.hp[okey] = self.session.hp.get(okey, 0) - amt
+                        logs.append(f"💥 **{ab_name}** — {amt} TRUE damage "
+                                    f"({int(scale * 100)}% of {stat.title()})!")
+                except Exception:
+                    pass
             elif kind == "bonus_special_hits":
                 # Extra hit(s) on the next Special. attack_manager reads this
                 # off the engine when it resolves MOVE_SPECIAL.

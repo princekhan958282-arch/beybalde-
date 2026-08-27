@@ -10152,5 +10152,212 @@
         ]
       }
     ]
+  },
+  "Drakoryn": {
+    "id": "BB112",
+    "name": "Drakoryn",
+    "rarity": "Mythic",
+    "limited": true,
+    "available_until": "2026-01-01T00:00:00Z",
+    "owner_ids": null,
+    "type": "Defense",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542209727461851227/file_00000000d51c820883678e0de8ae9ea7.png?ex=6a90663b&is=6a8f14bb&hm=f17a211133c11068f8490c0dca083a5f83fee14b8c5e9792c7fae1f115ecaf92&",
+    "description": "A crimson-scaled bulwark that turns every blocked hit into a trap: a successful Defense doesn't just hold the line, it locks the opponent's next moves under threat of a delayed strike.",
+    "stats": {
+      "attack": 99,
+      "defense": 190,
+      "stamina": 88,
+      "special": 150,
+      "hp": 189
+    },
+    "special_move": {
+      "name": "🔥 Dragon's Ruin",
+      "description": "A crimson blast worth 35% Attack — 45% if the opponent's Stability has already fallen to 30% or below.",
+      "non_damage": true,
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "flavour_texts": [
+        "🔥 **Dragon's Ruin** — the ruin comes down!",
+        "🔥 **Dragon's Ruin** — a wobbling foe meets the full blast!"
+      ]
+    },
+    "ability": {
+      "name": "Crimson Reaver",
+      "trigger": "on_attack_win",
+      "description": "Every successful Attack banks +5% Attack damage, up to 3 stacks (+15%). Using Defense spends the stacks.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "reaver_stack",
+              "max": 3,
+              "stat": "attack",
+              "per_stack_pct": 5,
+              "label": "Reaver Stack",
+              "emoji": "🔺"
+            }
+          ],
+          "_name": "Crimson Reaver"
+        },
+        {
+          "when": "on_defense_win",
+          "do": [
+            {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+          ],
+          "_name": "Crimson Reaver (reset)"
+        },
+        {
+          "when": "on_defense_loss",
+          "do": [
+            {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+          ],
+          "_name": "Crimson Reaver (reset)"
+        },
+        {
+          "when": "on_defense_mirror",
+          "do": [
+            {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+          ],
+          "_name": "Crimson Reaver (reset)"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Crimson Reaver",
+        "trigger": "on_attack_win",
+        "description": "Every successful Attack banks +5% Attack damage, up to 3 stacks (+15%). Using Defense spends the stacks.",
+        "rules": [
+          {
+            "when": "on_attack_win",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "name": "reaver_stack",
+                "max": 3,
+                "stat": "attack",
+                "per_stack_pct": 5,
+                "label": "Reaver Stack",
+                "emoji": "🔺"
+              }
+            ],
+            "_name": "Crimson Reaver"
+          },
+          {
+            "when": "on_defense_win",
+            "do": [
+              {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+            ],
+            "_name": "Crimson Reaver (reset)"
+          },
+          {
+            "when": "on_defense_loss",
+            "do": [
+              {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+            ],
+            "_name": "Crimson Reaver (reset)"
+          },
+          {
+            "when": "on_defense_mirror",
+            "do": [
+              {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+            ],
+            "_name": "Crimson Reaver (reset)"
+          }
+        ]
+      },
+      {
+        "name": "Iron Lock: Counterseal",
+        "trigger": "on_defense_win",
+        "description": "A successful Defense marks the opponent for 2 turns. If they Attack while marked, Drakoryn counters for 20% Attack true damage and clears the mark. If they use Stamina while marked, Drakoryn steals 1 Stability and clears the mark. Defense leaves the mark untouched. 3-turn cooldown to re-arm; only one payoff per mark.",
+        "rules": [
+          {
+            "when": "on_defense_win",
+            "if": [
+              {"cond": "not_on_cooldown", "name": "iron_lock"}
+            ],
+            "do": [
+              {
+                "op": "gain_counter",
+                "name": "iron_lock_mark",
+                "amount": 3,
+                "max": 3,
+                "label": "Mark",
+                "emoji": "🔒"
+              },
+              {
+                "op": "start_cooldown",
+                "name": "iron_lock",
+                "turns": 3
+              },
+              {
+                "op": "log",
+                "text": "🔒 **Iron Lock** — the opponent is marked!"
+              }
+            ],
+            "_name": "Iron Lock (arm)"
+          },
+          {
+            "when": "turn_start",
+            "do": [
+              {"op": "gain_counter", "name": "iron_lock_mark", "amount": -1}
+            ],
+            "_name": "Iron Lock (decay)"
+          },
+          {
+            "when": "passive",
+            "if": [
+              {"cond": "counter_at_least", "name": "iron_lock_mark", "value": 1},
+              {"cond": "enemy_move_is", "value": "attack"}
+            ],
+            "do": [
+              {"op": "true_damage_stat_pct", "stat": "attack", "scale": 0.20},
+              {"op": "reset_counter", "name": "iron_lock_mark"}
+            ],
+            "_name": "Iron Lock: Counterseal"
+          },
+          {
+            "when": "passive",
+            "if": [
+              {"cond": "counter_at_least", "name": "iron_lock_mark", "value": 1},
+              {"cond": "enemy_move_is", "value": "stamina"}
+            ],
+            "do": [
+              {"op": "enemy_lose_stability", "amount": 1},
+              {"op": "gain_stability", "value": 1},
+              {"op": "reset_counter", "name": "iron_lock_mark"}
+            ],
+            "_name": "Iron Lock: Stability Steal"
+          }
+        ]
+      },
+      {
+        "name": "Dragon's Ruin",
+        "trigger": "on_special",
+        "description": "Base damage 35% Attack. If the opponent's Stability is at or below 30%, it hits for 45% Attack instead.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.35},
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.10,
+                "_if": [
+                  {"cond": "enemy_stability_below_pct", "value": 0.3}
+                ]
+              }
+            ],
+            "_name": "Dragon's Ruin"
+          }
+        ]
+      }
+    ]
   }
 }
