@@ -188,46 +188,86 @@ check("the Pillow fallback runs off the event loop",
 print("\n── 7. art_scale — zooming CDN art that has no local crop ────────")
 # CDN-sourced art (no local file in assets/beys, which is the ONLY case that
 # actually happens today — see git history) renders via CSS `object-fit:
-# cover`, which fills the disc with the whole source image but never zooms
-# into a subject that has generous padding baked into the file itself. A
-# blade can opt into a CSS zoom via `art_scale` instead of needing a
-# server-side crop that would require fetching the CDN image (which this
-# environment's network policy blocks for Discord's CDN).
-NO_SCALE = dict(DB[SAMPLE[0]])
-NO_SCALE.pop("art_scale", None)
-html_default = IC.build_html(NO_SCALE)
-check("a blade with no art_scale gets no transform at all (byte-identical "
-      "to before this feature existed)",
-      "transform: scale" not in html_default)
+# cover`, which crops its OVERFLOWING dimension centered on the image's own
+# canvas by default. Two independent knobs exist for it: `art_position`
+# (object-position — recenters the crop window on the actual subject, for a
+# subject that isn't centered in its own canvas) and `art_scale` (transform:
+# scale — zooms in further from wherever that window ends up).
+NO_OVERRIDE = dict(DB[SAMPLE[0]])
+NO_OVERRIDE.pop("art_scale", None)
+NO_OVERRIDE.pop("art_position", None)
+html_default = IC.build_html(NO_OVERRIDE)
+check("a blade with neither override gets no style attribute at all "
+      "(byte-identical to before this feature existed)",
+      "transform: scale" not in html_default
+      and "object-position" not in html_default)
 
-SCALED = dict(NO_SCALE)
+SCALED = dict(NO_OVERRIDE)
 SCALED["art_scale"] = 1.5
 html_scaled = IC.build_html(SCALED)
 check("art_scale renders as a CSS transform on the art image",
-      'style="transform: scale(1.5)"' in html_scaled, html_scaled[:2000])
+      'style="transform: scale(1.5);"' in html_scaled, html_scaled[:2000])
 
-check("Radiant Valkyrie is actually authored with a zoom "
-      "(the CDN art has no local crop to shrink its padding)",
-      DB.get("Radiant Valkyrie", {}).get("art_scale", 1.0) > 1.0,
-      DB.get("Radiant Valkyrie", {}).get("art_scale"))
-
-TOO_BIG = dict(NO_SCALE)
+TOO_BIG = dict(NO_OVERRIDE)
 TOO_BIG["art_scale"] = 50
 check("an absurd art_scale is clamped, not applied verbatim "
       "(a bad value must not blow the art out of the disc entirely)",
-      'style="transform: scale(3)"' in IC.build_html(TOO_BIG))
+      'style="transform: scale(3);"' in IC.build_html(TOO_BIG))
 
-TOO_SMALL = dict(NO_SCALE)
+TOO_SMALL = dict(NO_OVERRIDE)
 TOO_SMALL["art_scale"] = 0.2
 check("a sub-1.0 art_scale is clamped up to 1.0 — this field only zooms IN, "
       "it can't shrink art below its normal size",
       "transform: scale" not in IC.build_html(TOO_SMALL),
       IC.build_html(TOO_SMALL)[:2000])
 
-BAD = dict(NO_SCALE)
+BAD = dict(NO_OVERRIDE)
 BAD["art_scale"] = "not-a-number"
 check("a garbage art_scale value doesn't raise — falls back to no zoom",
       "transform: scale" not in IC.build_html(BAD))
+
+POSITIONED = dict(NO_OVERRIDE)
+POSITIONED["art_position"] = "36% 50%"
+html_pos = IC.build_html(POSITIONED)
+check("art_position renders as a CSS object-position on the art image",
+      'style="object-position: 36% 50%;"' in html_pos, html_pos[:2000])
+
+BOTH = dict(NO_OVERRIDE)
+BOTH["art_position"] = "36% 50%"
+BOTH["art_scale"] = 1.2
+html_both = IC.build_html(BOTH)
+check("art_position and art_scale compose into one style attribute",
+      'style="object-position: 36% 50%; transform: scale(1.2);"' in html_both,
+      html_both[:2000])
+
+BAD_POS = dict(NO_OVERRIDE)
+BAD_POS["art_position"] = "center center"
+check("a non-percentage art_position doesn't raise — falls back to no "
+      "override rather than emitting invalid CSS",
+      "object-position" not in IC.build_html(BAD_POS))
+
+OOB_POS = dict(NO_OVERRIDE)
+OOB_POS["art_position"] = "150% 20%"
+html_oob = IC.build_html(OOB_POS)
+check("an out-of-range art_position percentage is clamped to 100, not "
+      "applied verbatim",
+      'style="object-position: 100% 20%;"' in html_oob, html_oob[:2000])
+
+NEG_POS = dict(NO_OVERRIDE)
+NEG_POS["art_position"] = "-20% 50%"
+check("a negative art_position doesn't match the percentage format at all "
+      "and is rejected outright, rather than risk unclamped CSS",
+      "object-position" not in IC.build_html(NEG_POS))
+
+check("Radiant Valkyrie is actually authored with a reposition "
+      "(its source art's subject isn't centered on its own canvas)",
+      DB.get("Radiant Valkyrie", {}).get("art_position"),
+      DB.get("Radiant Valkyrie", {}))
+check("...and NOT also a scale — a scale with no reposition just crops "
+      "MORE off the wrong side, which is exactly what the first pass "
+      "shipped and got wrong",
+      DB.get("Radiant Valkyrie", {}).get("art_scale") in (None, 1, 1.0),
+      DB.get("Radiant Valkyrie", {}).get("art_scale"))
 
 print(f"\n{PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)

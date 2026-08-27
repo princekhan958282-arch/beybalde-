@@ -64,12 +64,20 @@ import io
 import json
 import logging
 import os
+import re
 from collections import OrderedDict
 from typing import Any, Optional
 
 from utils.hp_system import blade_hp_stat, hp_display_pct
 
 log = logging.getLogger(__name__)
+
+# Validates a per-blade `art_position` value ("36% 50%") before it reaches a
+# raw HTML style attribute — CSS injection isn't the threat model for a value
+# only ever set by whoever authors blade JSON, but a malformed value (a typo,
+# a stray quote) must fail closed to "no override" rather than emit broken
+# style="..." markup that could escape the attribute.
+_ART_POSITION_RE = re.compile(r"^(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%$")
 
 CARD_ENABLED = True
 
@@ -451,23 +459,46 @@ def build_html(blade: dict, parts: Optional[dict] = None) -> str:
       </section>"""
 
     art = _art_src(blade)
-    # Optional per-blade zoom. Source art comes straight from a CDN link with
-    # no server-side crop (there is no local file to trim padding from), so
-    # generated art with a lot of empty canvas around the subject renders
-    # small inside the disc even though the <img> itself fills it — `cover`
-    # only crops overflow, it doesn't zoom into the subject. `.disc` already
-    # clips overflow, so scaling the image up here crops that empty margin
-    # away visually without touching the source file. Clamped so a bad value
-    # can't shrink the art below its normal size or blow it up absurdly.
+    # Optional per-blade CSS crop tuning for CDN-sourced art (no local file
+    # exists to trim padding from — see `_art_src`). `object-fit: cover`
+    # scales the source to fill the disc and crops the OVERFLOWING dimension,
+    # centered on the image's own canvas by default. Two independent problems
+    # follow from that, and each needs its own knob:
+    #
+    #   `art_position` (CSS object-position) — if the subject isn't centered
+    #   in its own canvas (more empty margin on one side than the other, or a
+    #   canvas aspect far from square), the default centered crop can cut
+    #   into the subject on one edge while showing empty canvas on the
+    #   other. This moves the crop window to the subject's actual center.
+    #
+    #   `art_scale` (CSS transform: scale) — zooms in further from wherever
+    #   the crop window ends up. Only useful once the window is centered on
+    #   the subject; applied to a mis-centered window it just crops MORE off
+    #   the wrong side. Radiant Valkyrie's first pass shipped a scale with no
+    #   reposition and made this exact mistake — verified against the real
+    #   source image (1408x768, subject bbox centered at 44%/51% of the
+    #   canvas, already filling ~90% of the canvas height) that `art_scale`
+    #   alone could only crop harder into the wrong window, while
+    #   `art_position` alone already gets ~100% of the subject's height and
+    #   ~92% of its width on screen with no scale needed at all.
+    _art_pos_css = ""
+    _m = _ART_POSITION_RE.match(str(blade.get("art_position") or "").strip())
+    if _m:
+        _px = max(0.0, min(100.0, float(_m.group(1))))
+        _py = max(0.0, min(100.0, float(_m.group(2))))
+        _art_pos_css = f"object-position: {_px:g}% {_py:g}%;"
+
     _art_scale = blade.get("art_scale")
     try:
         _art_scale = max(1.0, min(3.0, float(_art_scale))) if _art_scale else 1.0
     except (TypeError, ValueError):
         _art_scale = 1.0
-    _art_style = (f' style="transform: scale({_art_scale:g})"'
-                 if _art_scale != 1.0 else '')
+    _scale_css = f"transform: scale({_art_scale:g});" if _art_scale != 1.0 else ""
+
+    _art_style = " ".join(s for s in (_art_pos_css, _scale_css) if s)
+    _style_attr = f' style="{_art_style}"' if _art_style else ''
     art_html = (f'<img class="art-img" src="{_esc(art)}" alt="" '
-                f'onerror="this.remove()"{_art_style}>' if art else "")
+                f'onerror="this.remove()"{_style_attr}>' if art else "")
 
     from utils.availability import is_limited, is_owner_bound
     _badges = []
