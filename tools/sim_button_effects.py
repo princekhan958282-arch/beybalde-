@@ -56,8 +56,18 @@ def check(label, cond, detail=""):
         print(f"  FAIL {label}   {detail}")
 
 
+import types as _t                                              # noqa: E402
+
+from cogs.abilities import ability_engine as AE                  # noqa: E402
+from cogs.abilities import type_system as TS                     # noqa: E402
+from cogs.abilities.ability_engine import AbilityEngine          # noqa: E402
 from cogs.battle import button_profile as BP                    # noqa: E402
 from cogs.battle import special_gate as SG                      # noqa: E402
+from cogs.battle.attack_manager import AttackManager             # noqa: E402
+from cogs.battle.session import BattleSession                    # noqa: E402
+from cogs.battle.stability_manager import StabilityManager       # noqa: E402
+from cogs.battle.stamina_manager import StaminaManager           # noqa: E402
+from cogs.battle.status_manager import StatusManager             # noqa: E402
 from cogs.core import constants as C                            # noqa: E402
 from utils.database import load_beyblades                       # noqa: E402
 
@@ -90,6 +100,70 @@ class _FakeStability:
         cur = self.stability.get(key, 0)
         self.stability[key] = max(0, min(self.max.get(key, 100), cur + delta))
         return []
+
+
+DUMMY = {"name": "Dummy", "type": "Balance", "spin_direction": "Left",
+        "stats": {"attack": 100, "defense": 100, "stamina": 100, "hp": 100}}
+
+
+class _RealSession:
+    """A real engine stack, for the checks that are about behavior not arithmetic.
+
+    Sections 8-9 assert things that only mean something end to end — that a
+    banked stack survives to the next move, that a multi-hit Special spends it
+    once, that a rule firing on on_stability_break can actually save the
+    blade. Those need the real AbilityEngine, StabilityManager and
+    DamageFilter, not a stand-in that would happily agree with a broken one.
+    """
+
+    def __init__(self, mine, theirs, hp=1000, ehp=1000, max_hp=1000):
+        import copy
+        self.blades = {"p": copy.deepcopy(mine), "e": copy.deepcopy(theirs)}
+        self.hp = {"p": hp, "e": ehp}
+        self.max_hp = max_hp
+        self.max_hp_per_player = {"p": max_hp, "e": max_hp}
+        self.battle_stats = {k: dict(v["stats"]) for k, v in self.blades.items()}
+        self.bey_levels = {"p": 1, "e": 1}
+        self.last_moves, self.moves, self.stat_mult = {}, {}, {}
+        self.round = 1
+        self.status = StatusManager(self)
+        self.status_manager = self.status
+        self.stamina_manager = StaminaManager(self.blades)
+        self.type_mods = {k: TS.TypeModifiers(v, stats=self.battle_stats[k])
+                          for k, v in self.blades.items()}
+        self.stability_manager = StabilityManager(self.blades, self.type_mods)
+        self.chain_handler = _t.SimpleNamespace(resolve=lambda *a, **k: [])
+        self.ability = AbilityEngine(self)
+        for _k in self.blades:
+            self.ability.setup(_k, self.blades[_k])
+
+    # The real BattleSession method under test, lifted verbatim in behavior:
+    # sections 9's whole point is that the guard RE-READS after firing.
+    _ring_out_guard = BattleSession._ring_out_guard
+
+
+def _am(session):
+    am = AttackManager.__new__(AttackManager)
+    am.session = session
+    return am
+
+
+def _charge(am, s, mkey, okey):
+    """Drive one real Charge through resolve_pair's non-combat branch."""
+    s.last_moves = {mkey: C.MOVE_CHARGE, okey: C.MOVE_CHARGE}
+    _, _, _, logs = am.resolve_pair(
+        mkey, okey, C.MOVE_CHARGE, C.MOVE_CHARGE,
+        s.blades[mkey], s.blades[okey],
+        s.battle_stats[mkey], s.battle_stats[okey])
+    return logs
+
+
+def _attack(s, mkey, okey, dmg=100):
+    s.last_moves = {mkey: C.MOVE_ATTACK, okey: C.MOVE_ATTACK}
+    return s.ability.apply(mkey, okey, s.blades[mkey], s.blades[okey],
+                           C.MOVE_ATTACK, "win", dmg, 0,
+                           is_first_hit=True, cumulative_dmg=0,
+                           is_last_hit=True)
 
 if MUTATE:
     # Break exactly one neutral default and nothing else. If section 1 still
@@ -283,6 +357,130 @@ def main() -> int:
     SG.apply_stability_cost(sess2, "p", plain_blade)
     check("an opted-out blade's Special still costs ZERO stability",
           sess2.stability_manager.stability["p"] == 100)
+
+    # ── 8. Charge stacks, driven through the real engine (Part 2) ───────────
+    print("\n── 8. Charge is no longer a skip-turn ───────────────────────────")
+    CHARGER = {
+        "name": "Charger", "type": "Attack", "spin_direction": "Right",
+        "stats": {"attack": 100, "defense": 100, "stamina": 100, "hp": 100},
+        "button_profile": {"charge": {"max_stacks": 3, "per_stack_pct": 10,
+                                      "lost_on_hit": True,
+                                      "stability_per_stack": 2}},
+    }
+    s = _RealSession(CHARGER, DUMMY)
+    am = _am(s)
+    eng = s.ability
+
+    # Drop below the ceiling first: starting stability doubles as the max, so
+    # a blade at full would have its +2 clamped away and the check would pass
+    # or fail for the wrong reason.
+    s.stability_manager.stability["p"] -= 10
+    stab0 = s.stability_manager.stability["p"]
+    _charge(am, s, "p", "e")
+    check("charging banks a stack",
+          eng.counters.get(("p", "charge_stack")) == 1)
+    check("...and steadies the blade by stability_per_stack",
+          s.stability_manager.stability["p"] == stab0 + 2,
+          (s.stability_manager.stability["p"], stab0))
+
+    _charge(am, s, "p", "e"); _charge(am, s, "p", "e")
+    check("stacks accumulate to the authored cap",
+          eng.counters.get(("p", "charge_stack")) == 3)
+    _charge(am, s, "p", "e")
+    check("...and stop there rather than growing forever",
+          eng.counters.get(("p", "charge_stack")) == 3)
+
+    # Cash them in: 3 stacks x 10% = +30% on the next Attack.
+    out, _, _ = _attack(s, "p", "e", dmg=100)
+    check("the bank is released into the next Attack (+30% on 3 stacks)",
+          out == 130, out)
+    check("...and is spent, not kept",
+          eng.counters.get(("p", "charge_stack")) == 0)
+
+    out2, _, _ = _attack(s, "p", "e", dmg=100)
+    check("a second Attack with an empty bank is plain damage again",
+          out2 == 100, out2)
+
+    # The gamble: getting hit mid-charge knocks the bank loose.
+    s2 = _RealSession(CHARGER, DUMMY)
+    _charge(_am(s2), s2, "p", "e")
+    _charge(_am(s2), s2, "p", "e")
+    check("two stacks banked", s2.ability.counters.get(("p", "charge_stack")) == 2)
+    _attack(s2, "e", "p", dmg=60)          # the DUMMY hits the charger
+    check("being hit while charging knocks the whole bank loose — this is "
+          "what keeps Charge a gamble rather than free value",
+          s2.ability.counters.get(("p", "charge_stack")) == 0,
+          s2.ability.counters.get(("p", "charge_stack")))
+
+    # A multi-hit Special must spend the bank ONCE, not per hit.
+    s3 = _RealSession(CHARGER, DUMMY)
+    for _ in range(3):
+        _charge(_am(s3), s3, "p", "e")
+    spent_logs = []
+    s3.ability.apply(
+        "p", "e", s3.blades["p"], s3.blades["e"], C.MOVE_SPECIAL, "win",
+        100, 0, is_first_hit=True, cumulative_dmg=0, is_last_hit=False)
+    mid = s3.ability.counters.get(("p", "charge_stack"))
+    s3.ability.apply(
+        "p", "e", s3.blades["p"], s3.blades["e"], C.MOVE_SPECIAL, "win",
+        100, 0, is_first_hit=False, cumulative_dmg=100, is_last_hit=True)
+    check("a multi-hit Special spends the bank once, on the first hit only — "
+          "per-hit spending is the trap that already caught the duration tick",
+          mid == 0 and s3.ability.counters.get(("p", "charge_stack")) == 0,
+          (mid, s3.ability.counters.get(("p", "charge_stack")), spent_logs))
+
+    # And the whole system stays inert for an opted-out blade.
+    s4 = _RealSession(dict(DUMMY, name="Plain"), DUMMY)
+    _charge(_am(s4), s4, "p", "e")
+    check("an opted-out blade banks NOTHING — Charge behaves exactly as it "
+          "always did for the other 113 blades",
+          s4.ability.counters.get(("p", "charge_stack"), 0) == 0)
+    out_plain, _, _ = _attack(s4, "p", "e", dmg=100)
+    check("...and its Attack is unmodified", out_plain == 100, out_plain)
+
+    # ── 9. the new triggers actually fire (Part 4) ──────────────────────────
+    print("\n── 9. the new triggers are reachable ────────────────────────────")
+    check("all five are registered in TRIGGERS",
+          {"on_charge", "on_low_stability", "on_stability_break",
+           "on_gauge_full"} <= AE.TRIGGERS, AE.TRIGGERS)
+
+    # on_charge is the headline: on_charge_win/_loss are UNREACHABLE because
+    # calc_damage returns "mirror" for every charge, so this hook is the only
+    # honest way for a blade to react to charging at all.
+    REACTOR = {
+        "name": "Reactor", "type": "Attack", "spin_direction": "Right",
+        "stats": {"attack": 100, "defense": 100, "stamina": 100, "hp": 100},
+        "abilities": [{"name": "Spark", "trigger": "on_charge", "rules": [
+            {"when": "on_charge", "do": [
+                {"op": "log", "text": "SPARK-FIRED"}], "_name": "Spark"}]}],
+    }
+    s5 = _RealSession(REACTOR, DUMMY)
+    logs5 = _charge(_am(s5), s5, "p", "e")
+    check("on_charge fires on a real Charge — the trigger no blade could use "
+          "before, because only on_charge_mirror was ever reachable",
+          any("SPARK-FIRED" in l for l in logs5), logs5)
+
+    # on_stability_break is a genuine last chance, not a notification.
+    SAVER = {
+        "name": "Saver", "type": "Attack", "spin_direction": "Right",
+        "stats": {"attack": 100, "defense": 100, "stamina": 100, "hp": 100},
+        "abilities": [{"name": "Cling", "trigger": "on_stability_break",
+                       "rules": [{"when": "on_stability_break", "do": [
+                           {"op": "gain_stability", "value": 20}],
+                           "_name": "Cling"}]}],
+    }
+    s6 = _RealSession(SAVER, DUMMY)
+    s6.stability_manager.stability["p"] = 0
+    survived = not s6._ring_out_guard("p", [])
+    check("a rule that restores stability on on_stability_break actually "
+          "SURVIVES the ring-out — the guard re-reads the bar after firing",
+          survived and s6.stability_manager.stability["p"] > 0,
+          s6.stability_manager.stability["p"])
+
+    s7 = _RealSession(dict(DUMMY, name="NoSave"), DUMMY)
+    s7.stability_manager.stability["p"] = 0
+    check("...and a blade with no such rule still rings out normally",
+          s7._ring_out_guard("p", []))
 
     print(f"\n{PASS} passed, {FAIL} failed")
     if MUTATE:

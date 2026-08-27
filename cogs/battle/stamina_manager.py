@@ -29,11 +29,11 @@ Using Special resets the gauge to 0.
 
 import math
 import random
+from . import button_profile
 from .constants import (
     BASE_HP,
     MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_SPECIAL, MOVE_CHARGE,
     SPECIAL_GAUGE_MAX,
-    GAUGE_PER_ATTACK, GAUGE_PER_DEFENSE, GAUGE_PER_STAMINA, GAUGE_PER_DMG_TAKEN, GAUGE_PER_CHARGE,
 )
 
 
@@ -304,14 +304,10 @@ class StaminaManager:
 
         source is one of: 'attack', 'defense', 'stamina', 'dmg_taken', 'charge'.
         """
-        gain_map = {
-            "attack":    GAUGE_PER_ATTACK,
-            "defense":   GAUGE_PER_DEFENSE,
-            "stamina":   GAUGE_PER_STAMINA,
-            "dmg_taken": GAUGE_PER_DMG_TAKEN,
-            "charge":    GAUGE_PER_CHARGE,
-        }
-        gain = gain_map.get(source, 0)
+        # Per-blade gauge generation. Absent a `button_profile`, this returns
+        # the same GAUGE_PER_* constants the literal map used to hold, so the
+        # 113 blades that have not opted in gain exactly what they always did.
+        gain = button_profile.gauge_gain(self._blades.get(key), source)
         self.gauge[key] = min(SPECIAL_GAUGE_MAX, self.gauge.get(key, 0) + gain)
 
     def gauge_ready(self, key: str) -> bool:

@@ -63,6 +63,7 @@ from .constants import (
 )
 from .damage_rules import calc_damage, resolve_special
 from . import avatar_combat as AVC
+from . import button_profile
 from cogs.abilities.special_moves import SELF_MANAGED_HITS
 from cogs.ui.log_formatter import format_battle_logs  # NEW: Import log formatter
 
@@ -123,6 +124,16 @@ class AttackManager:
                 mkey, okey, mblade, oblade, mmove, matchup, 0, 0
             )
             logs.extend(ab_logs)
+            if mmove == MOVE_CHARGE:
+                logs.extend(self._bank_charge_stack(mkey, mblade))
+                # `on_charge`, fired here rather than left to the move x result
+                # matrix. calc_damage returns "mirror" for EVERY charge, so
+                # on_charge_win / on_charge_loss are unreachable by
+                # construction and only on_charge_mirror can ever fire — which
+                # is a large part of why no blade in the roster reacts to
+                # Charge at all. This is the honest hook.
+                _, _ = self.session.ability._fire(
+                    "on_charge", mkey, okey, mblade, mmove, matchup, 0, 0, logs)
             # Damage stays 0: apply_pair_results deliberately skips HP changes
             # for non-combat moves. Abilities that deal damage on a Stamina win
             # use true_damage / steal_hp, which write session.hp directly.
@@ -564,6 +575,37 @@ class AttackManager:
     # =========================================================================
     #  Private helpers
     # =========================================================================
+
+    def _bank_charge_stack(self, key: str, blade: dict) -> list[str]:
+        """Bank one Charge stack, and steady the blade slightly.
+
+        Charge used to be a pure skip-turn: +50 gauge and nothing else, while
+        `damage_rules` hands an attacker its best multiplier in the game
+        against it. Banking gives the turn a payoff worth the exposure — and
+        the stacks are knocked loose if the charge is interrupted (see
+        DamageFilter._break_charge_stacks), so it stays a gamble.
+
+        Inert unless the blade authored `button_profile.charge.max_stacks`.
+        """
+        cfg = button_profile.charge_cfg(blade)
+        if cfg["max_stacks"] <= 0:
+            return []
+        eng = self.session.ability
+        cur = int(eng.counters.get((key, "charge_stack"), 0))
+        if cur >= cfg["max_stacks"]:
+            return [f"  🔋 **Overcharge** — {blade.get('name', '?')} is already "
+                    f"at maximum charge ({cur}/{cfg['max_stacks']})."]
+        eng.counters[(key, "charge_stack")] = cur + 1
+        logs = [f"  🔋 **Overcharge** — {blade.get('name', '?')} banks a charge "
+                f"stack ({cur + 1}/{cfg['max_stacks']})!"]
+        steady = cfg["stability_per_stack"]
+        if steady > 0:
+            try:
+                logs.extend(
+                    self.session.stability_manager._apply(key, steady) or [])
+            except Exception:                            # noqa: BLE001
+                pass
+        return logs
 
     def _resolve_special(
         self,

@@ -55,6 +55,7 @@ import math
 import random
 from typing import TYPE_CHECKING
 
+from . import button_profile
 from .constants import MOVE_ATTACK, MOVE_SPECIAL, MOVE_STAMINA
 
 if TYPE_CHECKING:
@@ -166,7 +167,30 @@ class DamageFilter:
         if dmg_dealt > 0:
             dmg_dealt = self._step4b_knockout_resist(other_key, other_blade, dmg_dealt, logs)
 
+        # ── Step 4c: a hit knocks the DEFENDER's charge off ────────────────────
+        # `other_key` is the side taking the damage here. Charging is meant to
+        # be a gamble — banking power while standing still — so connecting with
+        # someone mid-charge is what makes it one.
+        if dmg_dealt > 0:
+            self._break_charge_stacks(other_key, other_blade, logs)
+
         return dmg_dealt, dmg_taken, logs, mover_silenced
+
+    def _break_charge_stacks(self, key: str, blade: dict,
+                             logs: list[str]) -> None:
+        """Knock a defender's banked Charge stacks loose. Inert unless authored."""
+        cfg = button_profile.charge_cfg(blade)
+        if cfg["max_stacks"] <= 0 or not cfg["lost_on_hit"]:
+            return
+        eng = self.session.ability
+        stacks = int(eng.counters.get((key, "charge_stack"), 0))
+        if stacks <= 0:
+            return
+        eng.counters[(key, "charge_stack")] = 0
+        logs.append(
+            f"  💢 **Overcharge broken** — {blade.get('name', '?')} loses "
+            f"{stacks} banked charge stack(s)!"
+        )
 
     # =========================================================================
     #  Step 1 — Tick buffs & silences
@@ -210,6 +234,52 @@ class DamageFilter:
                 f"  📈 **Damage Amp** — +{int(amp * 100)}% amplification → +**{bonus} dmg**!"
             )
 
+        # Charge stacks, cashed in.
+        #
+        # This lives here, with the other outgoing-damage accumulators, rather
+        # than in the Attack path and _resolve_special separately: this method
+        # already runs for both MOVE_ATTACK and MOVE_SPECIAL, so one site
+        # covers both buttons and they cannot drift apart. It also matters
+        # that run() gates this whole step behind is_first_hit — a multi-hit
+        # Special must spend the bank ONCE, not once per hit, which is the
+        # same trap that forced step 1's duration tick to be gated.
+        dmg_dealt = self._spend_charge_stacks(mover_key, move, dmg_dealt, logs)
+
+        return dmg_dealt
+
+    def _spend_charge_stacks(
+        self,
+        mover_key: str,
+        move:      str,
+        dmg_dealt: int,
+        logs:      list[str],
+    ) -> int:
+        """Convert banked Charge stacks into damage on this move, then clear.
+
+        Inert for every blade that has not authored `button_profile.charge`:
+        `max_stacks` defaults to 0, so nothing is ever banked and there is
+        nothing here to spend.
+        """
+        if move not in (MOVE_ATTACK, MOVE_SPECIAL) or dmg_dealt <= 0:
+            return dmg_dealt
+        eng = self.session.ability
+        blade = self.session.blades.get(mover_key)
+        cfg = button_profile.charge_cfg(blade)
+        if cfg["max_stacks"] <= 0 or cfg["per_stack_pct"] <= 0:
+            return dmg_dealt
+        stacks = int(eng.counters.get((mover_key, "charge_stack"), 0))
+        if stacks <= 0:
+            return dmg_dealt
+        pct = cfg["per_stack_pct"] * stacks
+        bonus = math.ceil(dmg_dealt * pct / 100)
+        eng.counters[(mover_key, "charge_stack")] = 0
+        if bonus > 0:
+            dmg_dealt += bonus
+            name = (blade or {}).get("name", "?")
+            logs.append(
+                f"  🔋 **Overcharge** — {name} releases {stacks} charge "
+                f"stack(s) for +{int(pct)}% → +**{bonus} dmg**!"
+            )
         return dmg_dealt
 
     # =========================================================================
