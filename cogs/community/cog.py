@@ -17,6 +17,7 @@ because the manager refuses it.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Any, Optional
@@ -330,14 +331,47 @@ class CommunityCog(commands.Cog, name="Community"):
         member = member or getattr(source, "user", None) or getattr(
             source, "author", None)
         level = int(award.get("level") or 0)
-        self.bot.dispatch("beycord_community_level",
-                          {"user_id": getattr(member, "id", None),
-                           "level": level, "xp": award.get("xp")})
+        user_id = getattr(member, "id", None)
+
+        # Roles first, and deliberately NOT behind the once-per-level claim
+        # below: `apply_roles` skips what the member already has, so it is
+        # free to re-run, and re-running is the only thing that ever retries a
+        # grant that failed the first time (missing permission, role above the
+        # bot, an API blip).
         if member is not None and getattr(member, "guild", None) is not None:
             try:
                 await self.levels.apply_roles(gid, member, level)
             except Exception:                            # noqa: BLE001
                 log.exception("[community] level roles failed")
+
+        # Say it ONCE per level, ever.
+        #
+        # `levelled` is derived per award from the XP before and after, and
+        # nothing used to remember that a level had already been announced —
+        # so anything that re-crossed the boundary announced again. That is
+        # not hypothetical: a player was congratulated on community level 7
+        # seven times. Since XP in this system only ever increases, a repeat
+        # means the stored total went BACKWARDS, which is what two bot
+        # processes sharing one store do to each other's writes. This guard
+        # does not fix that (nothing in one process can), but it does make the
+        # announcement idempotent, so the visible symptom cannot recur.
+        if user_id is not None:
+            from utils.database import claim_high_water
+            try:
+                # to_thread for the same reason every other store call in this
+                # file hops off the loop: on MySQL this is a network
+                # round-trip under `_users_lock`.
+                fresh = await asyncio.to_thread(
+                    claim_high_water, int(user_id), XP.K_LEVEL_SAID, level)
+            except Exception:                            # noqa: BLE001
+                log.exception("[community] level claim failed")
+                fresh = True          # never swallow a real level-up
+            if not fresh:
+                return
+
+        self.bot.dispatch("beycord_community_level",
+                          {"user_id": user_id,
+                           "level": level, "xp": award.get("xp")})
         chan_id = C.get(C.K_ANNOUNCE)
         channel = (self.bot.get_channel(int(chan_id)) if chan_id
                    else getattr(source, "channel", None))

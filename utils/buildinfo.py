@@ -37,7 +37,7 @@ import sys
 
 log = logging.getLogger("beyblade_bot.build")
 
-VERSION = "v1.49"
+VERSION = "v1.51"
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
