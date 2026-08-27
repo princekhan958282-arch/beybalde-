@@ -224,8 +224,23 @@ class StaminaManager:
         scaled = base * (1 + STAMINA_COST_STAT_WEIGHT * (stat / sta - 1))
         return round(min(STAMINA_COST_MAX, max(STAMINA_COST_MIN, scaled)), 2)
 
-    def deduct_cost(self, key: str, move: str) -> list[str]:
-        """Deduct the stamina cost for the given move. Returns log lines."""
+    def _cost_and_note(self, key: str, move: str) -> tuple[float, str]:
+        """The whole cost pipeline, once: `(cost, explanatory note)`.
+
+        THE BUG THIS REPLACES: `deduct_cost` used to own this calculation
+        privately, and three other places answered "what does this move cost?"
+        by reading the STAMINA_COST table directly. That was harmless while the
+        table WAS the answer. It stopped being the answer the moment Attack and
+        Defense started scaling with stats, and the most expensive consequence
+        was silent: `story_ai.affordable` cleared a move at the base price, and
+        `deduct_cost` then charged the scaled one — driving the League opponent
+        into a stamina KO it never chose, which is the exact failure that
+        function's docstring says it exists to prevent.
+
+        So the calculation lives here, once, and everything that needs the
+        number — the deduction, the affordability check, the label the player
+        is shown — calls it rather than reproducing it.
+        """
         # Scale FIRST, so the surcharge/discount pipeline below composes on top
         # of the real cost and the ordering guarantee in its comment holds.
         cost = self._scaled_cost(key, move,
@@ -233,7 +248,7 @@ class StaminaManager:
                                      self._blades.get(key), move,
                                      STAMINA_COST.get(move, 0.0)))
         if cost <= 0:
-            return []
+            return 0.0, ""
         note = ""
         # Surcharge first, discount second — so a blade carrying both pays
         # the discount on the raised cost rather than on the base, and the
@@ -253,6 +268,20 @@ class StaminaManager:
         if red > 0:
             cost = round(cost * (1.0 - red), 2)
             note += f" *(-{int(red * 100)}% drain)*"
+        return max(0.0, cost), note
+
+    def cost_for(self, key: str, move: str) -> float:
+        """What `move` will ACTUALLY cost `key` right now, all in.
+
+        Per-blade override, stat scaling, surcharge, discount — the same number
+        `deduct_cost` is about to remove, because it is the same code path.
+        Ask this, never STAMINA_COST, which is only the base of the curve.
+        """
+        return self._cost_and_note(key, move)[0]
+
+    def deduct_cost(self, key: str, move: str) -> list[str]:
+        """Deduct the stamina cost for the given move. Returns log lines."""
+        cost, note = self._cost_and_note(key, move)
         if cost <= 0:
             return []
         self.stamina[key] = round(max(0.0, self.stamina.get(key, 0.0) - cost), 2)
@@ -386,7 +415,13 @@ class StaminaManager:
     # ── Convenience ───────────────────────────────────────────────────────────
 
     def can_afford(self, key: str, move: str) -> bool:
-        cost = STAMINA_COST.get(move, None)
-        if cost is None:
+        """Can `key` pay for `move` right now?
+
+        Asks `cost_for`, not the table. This has no battle callers today, and
+        that is exactly why it is worth keeping honest: a public method that
+        answers with the base price is how the next caller reintroduces the
+        League's stamina-KO bug the moment somebody wires it up.
+        """
+        if move not in STAMINA_COST:
             raise ValueError(f"Unknown move: {move}. Valid moves: {list(STAMINA_COST.keys())}")
-        return self.stamina.get(key, 0.0) >= cost
+        return self.stamina.get(key, 0.0) >= self.cost_for(key, move)

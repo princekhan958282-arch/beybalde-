@@ -604,6 +604,63 @@ def main() -> int:
           "flat 2.2 — the documented ordering still holds",
           abs(spent - 4.88) < 0.02, spent)
 
+    # ── 12. one function owns "what does this move cost" ────────────────────
+    print("\n── 12. cost_for is the only answer, and deduct_cost agrees ─────")
+    # The bug this pins: deduct_cost owned the cost calculation privately and
+    # three other places answered the same question by reading the
+    # STAMINA_COST table. Harmless while the table WAS the answer; the moment
+    # Attack and Defense started scaling with stats, the League AI cleared
+    # moves at the base price that deduct_cost then charged at the scaled one,
+    # driving an opponent into a stamina KO it never chose.
+    for name in ("Storm Spriggan", "Blood Dragon", "Drakoryn", "Dead Phoenix"):
+        b = get_beyblade(name)
+        for mv in (C.MOVE_ATTACK, C.MOVE_DEFENSE, C.MOVE_CHARGE,
+                   C.MOVE_SPECIAL):
+            sm_q = StaminaManager({"p": b})
+            quoted = sm_q.cost_for("p", mv)
+            sm_q.stamina["p"] = 99.0
+            sm_q.deduct_cost("p", mv)
+            charged = round(99.0 - sm_q.stamina["p"], 2)
+            check(f"{name} {mv}: quoted {quoted} == charged {charged}",
+                  abs(quoted - charged) < 0.001, (quoted, charged))
+
+    # ...and it stays true through the surcharge/discount pipeline, which is
+    # the part a second implementation would get subtly wrong.
+    for label, inc, flat, red in (
+        ("a surcharged blade",        0.5, 0.0, 0.0),
+        ("a flat-surcharged blade",   0.0, 0.2, 0.0),
+        ("a discounted blade",        0.0, 0.0, 0.25),
+        ("one carrying both",         0.5, 0.2, 0.25),
+    ):
+        sm_q = StaminaManager({"p": get_beyblade("Blood Dragon")})
+        sm_q.cost_increase_moves["p"] = (C.MOVE_ATTACK,)
+        sm_q.cost_increase["p"], sm_q.cost_increase_flat["p"] = inc, flat
+        sm_q.drain_reduction["p"] = red
+        quoted = sm_q.cost_for("p", C.MOVE_ATTACK)
+        sm_q.stamina["p"] = 99.0
+        sm_q.deduct_cost("p", C.MOVE_ATTACK)
+        charged = round(99.0 - sm_q.stamina["p"], 2)
+        check(f"{label}: cost_for still matches what is removed",
+              abs(quoted - charged) < 0.001, (quoted, charged))
+
+    sm_z = StaminaManager({"p": get_beyblade("Blood Dragon")})
+    check("the free Stamina move quotes 0 and removes 0",
+          sm_z.cost_for("p", C.MOVE_STAMINA) == 0.0)
+    check("can_afford agrees with cost_for, not with the table — it has no "
+          "battle callers today, which is exactly how a wrong answer there "
+          "gets wired up later",
+          sm_z.can_afford("p", C.MOVE_ATTACK) is False
+          if sm_z.stamina["p"] < sm_z.cost_for("p", C.MOVE_ATTACK) else True)
+
+    labels_src = open(os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "cogs/core/constants.py"), encoding="utf-8").read()
+    block = labels_src[labels_src.index("MOVE_LABELS = {"):]
+    block = block[:block.index("}")]
+    check("no MOVE_LABEL quotes a stamina cost any more — no constant CAN be "
+          "right once the price is per blade",
+          "Stamina)" not in block, block)
+
     print(f"\n{PASS} passed, {FAIL} failed")
     if MUTATE:
         # Inverted on purpose: with a broken default, a red run is the pass.

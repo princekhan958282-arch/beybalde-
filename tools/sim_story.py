@@ -613,8 +613,14 @@ async def suite(trials: int) -> None:
     check("boss_ai carries its own, different cost table",
           ai.STAMINA_COST != SM.STAMINA_COST,
           (ai.STAMINA_COST, SM.STAMINA_COST))
-    check("story_ai prices moves off the REAL table",
-          SA.REAL_COST is SM.STAMINA_COST)
+    # This used to read `SA.REAL_COST is SM.STAMINA_COST` — the suite was
+    # asserting the bug as if it were the fix. Pointing at the table was only
+    # correct while the table WAS the price; once Attack and Defense started
+    # scaling with the blade's stats it became the base of a curve, and a
+    # check that demanded the stale pointer would have blocked the real fix.
+    check("story_ai prices moves off the manager, not off any table",
+          "REAL_COST" not in inspect.getsource(SA)
+          and "cost_for" in inspect.getsource(SA.affordable))
     asrc = inspect.getsource(SA)
     check("...and never imports boss_ai's copy",
           "boss_ai.STAMINA_COST" not in asrc.split('"""', 2)[-1])
@@ -1215,6 +1221,64 @@ async def suite(trials: int) -> None:
     # This is exactly what LeagueMatch._rounds does with it.
     check("the School League reads a real winner off it, not a draw",
           bool(getattr(sess, "winner_id", None)))
+
+    # ── 16. the opponent can pay for what it picks ──────────────────────────
+    print("\n── 16. affordable() and deduct_cost quote the same price ───────")
+    # The bug this pins: `affordable` re-checked against the flat STAMINA_COST
+    # table while `deduct_cost` charged the stat-scaled price. The League
+    # opponent was cleared to play a move at 2.2 and then billed 3.25, bottomed
+    # out at zero and lost by stamina KO — the exact failure this module's
+    # docstring says the re-check exists to prevent. The table stopped being
+    # the price the moment Attack and Defense started scaling with stats.
+    from cogs.battle.stamina_manager import STAMINA_COST as _TABLE
+
+    class _CostProbe:
+        def __init__(self, blade):
+            self.blades = {"p": blade}
+            self.stamina_manager = SM.StaminaManager({"p": blade})
+
+    for _name in ("Blood Dragon", "Drakoryn", "Dead Phoenix"):
+        _b = get_beyblade(_name)
+        _s = _CostProbe(_b)
+        for _mv in (MOVE_ATTACK, MOVE_DEFENSE, MOVE_CHARGE):
+            _real = _s.stamina_manager.cost_for("p", _mv)
+            # Exactly enough: affordable must say yes.
+            _s.stamina_manager.stamina["p"] = _real
+            _yes = SA.affordable(_s, "p", _mv)
+            # A hair under: it must say no, and that is the case the flat
+            # table got wrong whenever the scaled price was higher.
+            _s.stamina_manager.stamina["p"] = max(0.0, _real - 0.01)
+            _no = SA.affordable(_s, "p", _mv)
+            check(f"{_name} {_mv}: affordable at exactly {_real}, refused just under",
+                  _yes and not _no, (_real, _yes, _no))
+
+    # And the specific shape of the old bug: stamina that clears the TABLE
+    # price but not the real one must now be refused.
+    _bd = get_beyblade("Blood Dragon")
+    _s = _CostProbe(_bd)
+    _real = _s.stamina_manager.cost_for("p", MOVE_ATTACK)
+    check("Blood Dragon's Attack really does cost more than the table says — "
+          "otherwise this check proves nothing",
+          _real > _TABLE[MOVE_ATTACK], (_real, _TABLE[MOVE_ATTACK]))
+    _between = (_TABLE[MOVE_ATTACK] + _real) / 2
+    _s.stamina_manager.stamina["p"] = _between
+    check(f"at {_between:.2f} stamina — over the table price, under the real "
+          f"one — the move is REFUSED, not cleared into a stamina KO",
+          not SA.affordable(_s, "p", MOVE_ATTACK))
+    # Prove the KO was real: charging it from there empties the bar.
+    _s.stamina_manager.stamina["p"] = _between
+    _s.stamina_manager.deduct_cost("p", MOVE_ATTACK)
+    check("...which it would have been: charging it anyway leaves 0 stamina",
+          _s.stamina_manager.stamina["p"] == 0.0,
+          _s.stamina_manager.stamina["p"])
+
+    check("legal_moves never returns empty — Stamina is always free",
+          SA.legal_moves(_s, "p") and MOVE_STAMINA in SA.legal_moves(_s, "p"))
+    src_ai = open(os.path.join(ROOT, "cogs/story/story_ai.py"),
+                  encoding="utf-8").read()
+    check("story_ai no longer imports the cost TABLE at all — the import is "
+          "what made the stale read look deliberate",
+          "STAMINA_COST as REAL_COST" not in src_ai)
 
 
 async def win_rate_table(trials: int) -> tuple[float, float]:
