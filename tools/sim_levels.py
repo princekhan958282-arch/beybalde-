@@ -61,8 +61,12 @@ def check_stat_cap(blades: dict) -> None:
             continue
         capped = sum(1 for v in vals if v >= BL.STAT_CAP)
         distinct = len(set(vals))
+        # 3, not 2: Drakoryn's authored 190 Defense (an explicit user spec,
+        # not a guess) joins Dead Phoenix and Heaven's Ring at the level-100
+        # Defense cap. Three out of a 112-blade roster is still "almost
+        # nothing" for the guard this check exists for.
         check(f"{stat}: almost nothing pinned to the cap",
-              capped <= 2, f"{capped}/{len(vals)} capped")
+              capped <= 3, f"{capped}/{len(vals)} capped")
         check(f"{stat}: blades stay distinct",
               distinct >= 40, f"{distinct} distinct values")
 
