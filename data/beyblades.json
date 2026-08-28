@@ -10394,7 +10394,7 @@
     "ability": {
       "name": "Radiant Rush",
       "trigger": "on_attack_hit",
-      "description": "Every Attack that lands off cooldown gets +180% damage and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
+      "description": "Every Attack that lands off cooldown gets +20% Attack scaling and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
       "rules": [
         {
           "when": "on_attack_hit",
@@ -10430,7 +10430,7 @@
       {
         "name": "Radiant Rush",
         "trigger": "on_attack_hit",
-        "description": "Every Attack that lands off cooldown gets +180% damage and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
+        "description": "Every Attack that lands off cooldown gets +20% Attack scaling and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
         "rules": [
           {
             "when": "on_attack_hit",
@@ -10439,7 +10439,7 @@
               {"cond": "mode_is_not", "value": "silverflame"}
             ],
             "do": [
-              {"op": "bonus_damage_pct", "value": 180},
+              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.20},
               {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
               {"op": "start_cooldown", "name": "radiant_rush", "turns": 2},
               {"op": "log", "text": "⚡ **Radiant Rush** — Radiant Valkyrie surges!"}
@@ -10453,7 +10453,7 @@
               {"cond": "mode_is", "value": "silverflame"}
             ],
             "do": [
-              {"op": "bonus_damage_pct", "value": 180},
+              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.20},
               {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
               {"op": "start_cooldown", "name": "radiant_rush", "turns": 1},
               {"op": "log", "text": "⚡🔥 **Radiant Rush** — blazing every round in Silver Flame!"}
@@ -10518,5 +10518,366 @@
         ]
       }
     ]
-  }
+  },
+    "Astral Valkyrie — Starbreaker": {
+      "id": "BB114",
+      "name": "Astral Valkyrie — Starbreaker",
+      "rarity": "Legendary",
+      "limited": true,
+      "available_until": "2026-01-01T00:00:00Z",
+      "owner_ids": null,
+      "type": "Attack",
+      "spin_direction": "Right",
+      "burst_height": "Mid",
+      "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542557825836781578/Picsart_26-08-27_10-13-54-473.png?ex=6a91aa6d&is=6a9058ed&hm=7f1a85e1505a33a7682f068ea2be525931628c4c41b8f7d837b3a0b89c32612e&",
+      "description": "The over-charged wing. Every third strike opens a starfall, and when the light finally dims it throws up an astral guard rather than break.",
+      "stats": {
+        "attack": 152,
+        "defense": 96,
+        "stamina": 88,
+        "special": 148,
+        "hp": 150
+      },
+      "button_profile": {
+        "special": {
+          "stamina_cost": 3
+        }
+      },
+      "special_move": {
+        "name": "⭐ Starbreaker Impact",
+        "description": "180% Attack, cutting through 25% of the opponent's Defense. Leaves Starbreaker with +15% Attack for 2 turns. Costs a full gauge and 3 stamina.",
+        "non_damage": true,
+        "hits": 1,
+        "damage_per_hit": 0,
+        "total_damage": 0,
+        "flavour_texts": [
+          "⭐ **Starbreaker Impact** — the sky splits!",
+          "⭐ **Starbreaker Impact** — armour is no answer to a star!"
+        ]
+      },
+      "ability": {
+        "name": "Starfall Edge",
+        "trigger": "on_attack_win",
+        "description": "Every 3rd successful Attack lands with +35% Attack bonus damage and steadies Starbreaker by 2 Stability.",
+        "rules": [
+          {
+            "when": "on_attack_win",
+            "do": [
+              {
+                "op": "gain_counter",
+                "name": "starfall",
+                "amount": 1,
+                "max": 3,
+                "label": "Starfall",
+                "emoji": "⭐"
+              },
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.35,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "starfall",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "op": "gain_stability",
+                "value": 2,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "starfall",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "op": "reset_counter",
+                "name": "starfall",
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "starfall",
+                    "value": 3
+                  }
+                ]
+              }
+            ],
+            "_name": "Starfall Edge"
+          }
+        ]
+      },
+      "abilities": [
+        {
+          "name": "Starfall Edge",
+          "trigger": "on_attack_win",
+          "description": "Every 3rd successful Attack lands with +35% Attack bonus damage and steadies Starbreaker by 2 Stability.",
+          "rules": [
+            {
+              "when": "on_attack_win",
+              "do": [
+                {
+                  "op": "gain_counter",
+                  "name": "starfall",
+                  "amount": 1,
+                  "max": 3,
+                  "label": "Starfall",
+                  "emoji": "⭐"
+                },
+                {
+                  "op": "bonus_damage_stat",
+                  "stat": "attack",
+                  "scale": 0.35,
+                  "_if": [
+                    {
+                      "cond": "counter_at_least",
+                      "name": "starfall",
+                      "value": 3
+                    }
+                  ]
+                },
+                {
+                  "op": "gain_stability",
+                  "value": 2,
+                  "_if": [
+                    {
+                      "cond": "counter_at_least",
+                      "name": "starfall",
+                      "value": 3
+                    }
+                  ]
+                },
+                {
+                  "op": "reset_counter",
+                  "name": "starfall",
+                  "_if": [
+                    {
+                      "cond": "counter_at_least",
+                      "name": "starfall",
+                      "value": 3
+                    }
+                  ]
+                }
+              ],
+              "_name": "Starfall Edge"
+            }
+          ]
+        },
+        {
+          "name": "Astral Guard",
+          "trigger": "on_low_hp",
+          "description": "Once per battle, when HP falls below 50%, gain +20% Defense and take 15% less damage for 2 turns.",
+          "rules": [
+            {
+              "when": "on_low_hp",
+              "once": "battle",
+              "if": [
+                {
+                  "cond": "hp_below_pct",
+                  "value": 0.5
+                }
+              ],
+              "do": [
+                {
+                  "op": "buff",
+                  "stat": "defense",
+                  "pct": 20,
+                  "turns": 2
+                },
+                {
+                  "op": "reduce_damage_pct_turns",
+                  "value": 15,
+                  "turns": 2
+                },
+                {
+                  "op": "log",
+                  "text": "🛡️ **Astral Guard** — Starbreaker braces behind astral light!"
+                }
+              ],
+              "_name": "Astral Guard"
+            }
+          ]
+        },
+        {
+          "name": "Starbreaker Impact",
+          "trigger": "on_special",
+          "description": "180% Attack damage that cuts through 25% of the opponent's Defense, and leaves Starbreaker with +15% Attack for 2 turns.",
+          "rules": [
+            {
+              "when": "on_special",
+              "do": [
+                {
+                  "op": "bonus_damage_stat",
+                  "stat": "attack",
+                  "scale": 1.8
+                },
+                {
+                  "op": "special_pierce_pct",
+                  "value": 25
+                },
+                {
+                  "op": "buff",
+                  "stat": "attack",
+                  "pct": 15,
+                  "turns": 2
+                }
+              ],
+              "_name": "Starbreaker Impact"
+            }
+          ]
+        }
+      ]
+    },
+    "Astral Valkyrie — Skyrend": {
+      "id": "BB115",
+      "name": "Astral Valkyrie — Skyrend",
+      "rarity": "Legendary",
+      "limited": true,
+      "available_until": "2026-01-01T00:00:00Z",
+      "owner_ids": null,
+      "type": "Attack",
+      "spin_direction": "Right",
+      "burst_height": "Mid",
+      "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542557816047542332/file_00000000d8b48211b0dae822e63c91ae.png?ex=6a91aa6a&is=6a9058ea&hm=286e9af1111575b25b15b679aa741fd650d7c1b66baa622fa218b3c01cfc57ff&",
+      "description": "The steady wing. It cuts when the wind allows, turns a block into a wind-up, and lands hard enough to plant itself back on its feet.",
+      "stats": {
+        "attack": 128,
+        "defense": 104,
+        "stamina": 132,
+        "special": 140,
+        "hp": 145
+      },
+      "button_profile": {
+        "special": {
+          "stamina_cost": 3
+        }
+      },
+      "special_move": {
+        "name": "🌪️ Skyrend Crash",
+        "description": "A grounding crash that restores 3 Stability. Costs a full gauge and 3 stamina.",
+        "non_damage": true,
+        "hits": 1,
+        "damage_per_hit": 0,
+        "total_damage": 0,
+        "flavour_texts": [
+          "🌪️ **Skyrend Crash** — it plants itself and holds!",
+          "🌪️ **Skyrend Crash** — the wind returns to the wing!"
+        ]
+      },
+      "ability": {
+        "name": "Sky Cutter",
+        "trigger": "on_attack_hit",
+        "description": "Each Attack has a 25% chance to cut deeper for +30% Attack bonus damage.",
+        "rules": [
+          {
+            "when": "on_attack_hit",
+            "chance": 0.25,
+            "do": [
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.3
+              },
+              {
+                "op": "log",
+                "text": "🌬️ **Sky Cutter** — the wind opens a seam!"
+              }
+            ],
+            "_name": "Sky Cutter"
+          }
+        ]
+      },
+      "abilities": [
+        {
+          "name": "Sky Cutter",
+          "trigger": "on_attack_hit",
+          "description": "Each Attack has a 25% chance to cut deeper for +30% Attack bonus damage.",
+          "rules": [
+            {
+              "when": "on_attack_hit",
+              "chance": 0.25,
+              "do": [
+                {
+                  "op": "bonus_damage_stat",
+                  "stat": "attack",
+                  "scale": 0.3
+                },
+                {
+                  "op": "log",
+                  "text": "🌬️ **Sky Cutter** — the wind opens a seam!"
+                }
+              ],
+              "_name": "Sky Cutter"
+            }
+          ]
+        },
+        {
+          "name": "Wing Reversal",
+          "trigger": "on_defense_win",
+          "description": "After a successful Defense, Skyrend's NEXT Attack gains +25% Attack. Holding the charge does not stack it.",
+          "rules": [
+            {
+              "when": "on_defense_win",
+              "do": [
+                {
+                  "op": "gain_counter",
+                  "name": "wing_reversal",
+                  "amount": 1,
+                  "max": 1,
+                  "label": "Reversal",
+                  "emoji": "🪶"
+                },
+                {
+                  "op": "log",
+                  "text": "🪶 **Wing Reversal** — the block becomes a wind-up!"
+                }
+              ],
+              "_name": "Wing Reversal (arm)"
+            },
+            {
+              "when": "on_attack_hit",
+              "if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "wing_reversal",
+                  "value": 1
+                }
+              ],
+              "do": [
+                {
+                  "op": "bonus_damage_stat",
+                  "stat": "attack",
+                  "scale": 0.25
+                },
+                {
+                  "op": "reset_counter",
+                  "name": "wing_reversal"
+                }
+              ],
+              "_name": "Wing Reversal (release)"
+            }
+          ]
+        },
+        {
+          "name": "Skyrend Crash",
+          "trigger": "on_special",
+          "description": "A grounding crash that costs no ground of its own — Skyrend restores 3 Stability.",
+          "rules": [
+            {
+              "when": "on_special",
+              "do": [
+                {
+                  "op": "gain_stability",
+                  "value": 3
+                }
+              ],
+              "_name": "Skyrend Crash"
+            }
+          ]
+        }
+      ]
+    }
 }

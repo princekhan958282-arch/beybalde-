@@ -195,6 +195,9 @@ class AbilityEngine:
         # key -> [percent, rounds_left]. Opened by `reflect_pct_turns` and
         # consumed in _fire_defensive on whatever hit actually lands.
         self.reflect_windows: dict[str, list] = {}
+        # [pct, turns] — a timed MITIGATION window, the defensive twin of
+        # reflect_windows above. Swept by tick_dmg_amps() with the rest.
+        self.resist_windows: dict[str, list] = {}
         # Timed `set_mode` grants — a transform that reverts itself. Each entry
         # is {key, mode, turns, revert_to, on_expire, ab_name}. Swept by
         # tick_extras() at end of round; `on_expire` is a normal `do` list run
@@ -864,6 +867,31 @@ class AbilityEngine:
                 cut = math.ceil(dmg_dealt * float(val) / 100)
                 dmg_dealt = max(0, dmg_dealt - cut)
                 logs.append(f"🛡️ **{ab_name}** — damage reduced by {int(val)}%!")
+            elif kind == "reduce_damage_pct_turns":
+                # "Take 15% less for 2 turns" — which `reduce_damage_pct`
+                # cannot say. That op only touches the hit its own rule is
+                # already resolving, so a defensive window would have to be
+                # re-declared by a rule that fires on every incoming attack,
+                # and a blade cannot know in advance it is about to be hit.
+                #
+                # Deliberately the mirror of `reflect_pct_turns`: same
+                # [pct, turns] shape, same refresh-never-stack rule, same
+                # sweep. Two timed windows on one side of the exchange should
+                # not be two different mechanisms.
+                pct   = float(val or 0)
+                turns = int(op.get("turns", 1) or 1)
+                if pct > 0 and turns > 0:
+                    pct  = min(90.0, pct)      # never total immunity
+                    prev = self.resist_windows.get(key)
+                    # Refresh, never stack: two overlapping 15% windows
+                    # multiplying to 28% is not what "15%" means, and it is
+                    # what a player would try first.
+                    if prev and prev[0] >= pct:
+                        prev[1] = max(int(prev[1]), turns)
+                    else:
+                        self.resist_windows[key] = [pct, turns]
+                    logs.append(f"🛡️ **{ab_name}** — braced: {int(pct)}% less "
+                                f"damage for {turns} turn(s)!")
             elif kind == "stacking_resist":
                 # Resistance that BUILDS as the blade is hit: "7% per stack, up
                 # to 5". `reduce_damage_pct` is a fixed number and
@@ -1854,6 +1882,21 @@ class AbilityEngine:
         # counter" — the rule would have to know in advance that it was going
         # to be attacked. Applied here, on the real incoming hit, so the
         # counter is a percentage of what actually landed.
+        # Mitigation first: a reflect is "a percentage of that hit", and the
+        # hit is what gets through, so the window has to shrink it before the
+        # counter is computed off it.
+        rwin = (getattr(self, "resist_windows", None) or {}).get(dkey)
+        if rwin and dmg_dealt > 0 and rwin[1] > 0:
+            try:
+                soak = math.ceil(dmg_dealt * float(rwin[0]) / 100)
+            except (TypeError, ValueError):              # noqa: BLE001
+                soak = 0
+            if soak > 0:
+                before_soak = dmg_dealt
+                dmg_dealt = max(0, dmg_dealt - soak)
+                logs.append(f"  🛡️ **Braced** — {int(rwin[0])}% absorbed "
+                            f"({before_soak} → {dmg_dealt})!")
+
         win = (getattr(self, "reflect_windows", None) or {}).get(dkey)
         if win and dmg_dealt > 0 and win[1] > 0:
             try:
@@ -1925,6 +1968,18 @@ class AbilityEngine:
                 if entry[1] <= 0:
                     windows.pop(key, None)
                     logs.append("  ⏳ The counter stance drops.")
+
+        rwindows = getattr(self, "resist_windows", None)
+        if rwindows:
+            for key, entry in list(rwindows.items()):
+                try:
+                    entry[1] = int(entry[1]) - 1
+                except (TypeError, ValueError, IndexError):   # noqa: BLE001
+                    rwindows.pop(key, None)
+                    continue
+                if entry[1] <= 0:
+                    rwindows.pop(key, None)
+                    logs.append("  ⏳ The brace wears off.")
 
         # `ability_amp` windows expire here too — one sweep, one place, so a
         # new timed mechanism cannot be added without an expiry by accident.

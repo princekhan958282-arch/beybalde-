@@ -182,14 +182,23 @@ def main() -> int:
               for op in rule.get("do", []) if op.get("op") == "evolve_form"))
 
     # ── 2. Radiant Rush — damage math, and the 2-round normal cadence ───────
-    print("\n── 2. Radiant Rush — +180% dmg / +15% ATK, once every 2 rounds ───")
+    print("\n── 2. Radiant Rush — +20% + +15% ATK, once every 2 rounds ──────")
     atk = RV["stats"]["attack"]
-    rider = round(atk * 0.15)
+    # Both riders are a share of the ATK STAT, not of the damage already
+    # dealt. This shipped as `bonus_damage_pct: 180` — +180% of the hit — which
+    # tripled a normal Attack: 906 at level 100, 45% of a full HP bar, every
+    # other round, from an ability rather than a Special. "+180% ATK scaling"
+    # in the spec meant the Special's kind of scaling (a multiple of ATK), and
+    # the corrected figure is +20%.
+    rush = round(atk * 0.20) + round(atk * 0.15)
 
     s = FakeSession(RV, DUMMY)
     out1, _, logs1 = move(s, MOVE_ATTACK, "win", dmg=100)
-    check("round 1: Radiant Rush fires — +180% dmg AND the +15% ATK rider",
-          out1 == 100 + 180 + rider, (out1, 100 + 180 + rider))
+    check("round 1: Radiant Rush fires — +20% ATK scaling AND the +15% rider",
+          out1 == 100 + rush, (out1, 100 + rush))
+    check("...and it is a fraction of ATK, NOT a multiple of the hit — a "
+          "100-damage swing must not come back as 300",
+          out1 < 200, out1)
     check("...and it's on cooldown afterward",
           s.ability.cooldowns.get(("p", "radiant_rush"), 0) == 2,
           s.ability.cooldowns.get(("p", "radiant_rush")))
@@ -203,7 +212,7 @@ def main() -> int:
     out3, _, _ = move(s, MOVE_ATTACK, "win", dmg=100)
     check("round 3: off cooldown — Radiant Rush fires again "
           "(this is the 'once every 2 rounds' cadence)",
-          out3 == 100 + 180 + rider, (out3, 100 + 180 + rider))
+          out3 == 100 + rush, (out3, 100 + rush))
 
     # ── 3. Silver Flame Awakening — a real Special drives the transform ─────
     print("\n── 3. Silver Flame Awakening — transform triggered by the Special ─")
@@ -285,7 +294,7 @@ def main() -> int:
     out_after, _, _ = move(s3, MOVE_ATTACK, "win", dmg=100)
     check("Radiant Rush is back to needing a fresh proc (no leftover Silver "
           "Flame cadence) once reverted",
-          out_after in (100, 100 + 180 + rider), out_after)
+          out_after in (100, 100 + rush), out_after)
 
     # ── 5. re-casting the Special while ALREADY transformed doesn't restart "
     print("── 5. re-casting Silver Radiance mid-transform doesn't plant a "
@@ -314,13 +323,20 @@ def main() -> int:
             for op in rule.get("do", []):
                 for exp_op in op.get("on_expire", []):
                     ops_seen.add(exp_op.get("op"))
-    for wanted in ("bonus_damage_pct", "bonus_damage_stat", "start_cooldown",
+    # `bonus_damage_pct` is deliberately ABSENT: Radiant Rush's riders are both
+    # a share of the ATK stat. It used to carry `bonus_damage_pct: 180`, which
+    # multiplied the hit rather than scaling off the stat and tripled a normal
+    # Attack — so its absence here is a real assertion, not an omission.
+    for wanted in ("bonus_damage_stat", "start_cooldown",
                   "evolve_form", "buff", "dmg_amp", "set_mode",
                   "status_apply"):
         check(f"'{wanted}' op reachable from Radiant Valkyrie's own JSON",
               wanted in ops_seen, sorted(ops_seen))
     check("on_attack_hit and on_special triggers both present",
           triggers_seen == {"on_attack_hit", "on_special"}, triggers_seen)
+    check("Radiant Rush no longer multiplies the hit — no bonus_damage_pct "
+          "anywhere in this blade",
+          "bonus_damage_pct" not in ops_seen, sorted(ops_seen))
 
     print(f"\n{PASS} passed, {FAIL} failed")
     return 1 if FAIL else 0
