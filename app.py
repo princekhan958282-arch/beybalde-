@@ -152,6 +152,7 @@ COGS = [
     "cogs.battle.boss.boss_battle",
     "cogs.story",            # the School League (PvE on the real PvP engine)
     "cogs.updates",          # update DMs out, /bugs and /suggest back in
+    "cogs.vote",             # /vote Top.gg rewards + re-vote reminders
     "cogs.community",        # polls, giveaways, XP — MAIN SERVER ONLY
     "cogs.snapshots",        # daily player-data backups + restore
     "cogs.clans.clan",
