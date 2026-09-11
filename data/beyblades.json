@@ -1988,7 +1988,7 @@
         "name": "Blazing Wing Strike",
         "trigger": "on_hit",
         "description": "Each hit of Blazing Eternal Storm burns 1 Stamina from the enemy and heals Garuda for 30 HP — 4 hits, so 4 Stamina burned and 120 HP healed.",
-        "garuda_stamina_drain_per_hit": 1.0,
+        "garuda_stamina_drain_per_hit": 1,
         "garuda_heal_per_hit": 30
       }
     ],
@@ -2102,7 +2102,7 @@
             "do": [
               {
                 "op": "bonus_damage_pct",
-                "value": 25.0
+                "value": 25
               }
             ],
             "_note": "Dark Weather: +25% Special Move damage, always."
@@ -2819,7 +2819,7 @@
         "name": "Solar Lockdown",
         "trigger": "on_special",
         "description": "Soligle ignites the solar lock — drains 4 Stamina from the enemy (true drain), ignores enemy defense for 2 turns, and grants +30 ATK for 2 turns from the solar surge. On each Solar Flare Crush hit, an additional 1.5 Stamina is burned from the enemy.",
-        "solar_stamina_drain": 4.0,
+        "solar_stamina_drain": 4,
         "solar_ignore_defense_turns": 2,
         "solar_atk_buff": 30,
         "solar_atk_turns": 2
@@ -3475,7 +3475,7 @@
         "trigger": "passive",
         "description": "Ignore 50% DEF. Critical hits deal +100% damage. Cannot be debuffed.",
         "ignore_def_pct": 0.5,
-        "crit_damage_bonus_pct": 1.0,
+        "crit_damage_bonus_pct": 1,
         "cannot_be_debuffed": true
       }
     ],
@@ -5320,7 +5320,7 @@
       "threshold_pct": 0.5,
       "atk_amp_on_threshold": 0.4,
       "frost_break_bonus": 15,
-      "critical_low_atk_amp": 1.0,
+      "critical_low_atk_amp": 1,
       "comeback_ko_chance": 0.2
     },
     "special_move": {
@@ -5353,7 +5353,7 @@
         "threshold_pct": 0.5,
         "atk_amp_on_threshold": 0.4,
         "frost_break_bonus": 15,
-        "critical_low_atk_amp": 1.0,
+        "critical_low_atk_amp": 1,
         "comeback_ko_chance": 0.2
       }
     ],
@@ -5520,7 +5520,7 @@
               {
                 "op": "special_amp_stack",
                 "value": 0.5,
-                "max": 4.0
+                "max": 4
               },
               {
                 "op": "buff_all_pct",
@@ -5602,7 +5602,7 @@
               },
               {
                 "op": "crit_damage",
-                "value": 2.0
+                "value": 2
               },
               {
                 "op": "hp_regen",
@@ -7668,7 +7668,7 @@
               {
                 "op": "bonus_damage_stat",
                 "stat": "attack",
-                "scale": 1.0
+                "scale": 1
               },
               {
                 "op": "gain_stamina",
@@ -7691,7 +7691,7 @@
     "dual_spin": true,
     "limited": true,
     "owner_ids": [
-      1412473875819663471
+      1412473875819663400
     ],
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537309143613046825/1786593422587.png?ex=6a8286b5&is=6a813535&hm=3a2d833437ea9ff453cec66df9ce78f9336bfe53284a39181be310ec945bdbdf&",
     "description": "Two faces on one axis, and only one of them is ever forward. Turned to Sunder it cleaves guard and never loses its footing; turned to Bulwark it takes the blow and sends it back with interest. The blader chooses which face meets the stadium.",
@@ -9121,7 +9121,7 @@
     "burst_height": "Low",
     "limited": true,
     "owner_ids": [
-      1273889267986468885
+      1273889267986468900
     ],
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541405667586478120/1785516907259.png?ex=6a8d7965&is=6a8c27e5&hm=af8ba92b991c766d02af6d6160aad74399a0dacadf8a86b19197e83fe070fbb8&",
     "description": "Each attack she survives adds another crystalline petal to her silken mantle, until she has enough to either turn them into an unbreakable ward or let them all go at once.",
@@ -9619,7 +9619,7 @@
     "spin_direction": "Dual",
     "burst_height": "Mid",
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541737368514732062/IMG_1439.jpg?ex=6a8eae50&is=6a8d5cd0&hm=4aff631530e2cf6be9dd2ac6eda8a48b35dbc0187c110e82e9d3c5d1c983cae0&",
-    "description": "A qilin of storm and clean light. It does not shrug off what is thrown at it — it burns the impurity out, and keeps the charge. Enough of that gathered lightning and the ground itself becomes the weapon.",
+    "description": "A qilin of storm and clean light, relaunched with a faster purification cycle. It burns impurity into stored voltage, accelerates through direct victories, and turns a full charge into a battlefield-wide lightning zone.",
     "stats": {
       "attack": 123,
       "defense": 103,
@@ -9635,12 +9635,12 @@
     },
     "special_move": {
       "name": "🌩️ Lightning Purifier",
-      "description": "Kirindael raises the horn and the air turns white. The zone stands for 8 rounds and answers 4 times.",
+      "description": "Kirindael raises the horn and the air turns white. The relaunched zone stands for 6 rounds and answers 3 times for 300 total damage.",
       "non_damage": true,
       "hits": 1,
       "damage_per_hit": 0,
       "total_damage": 0,
-      "zone_total_damage": 225,
+      "zone_total_damage": 300,
       "flavour_texts": [
         "🌩️ **Lightning Purifier** — the zone opens; the storm takes the floor!",
         "🌩️ **Lightning Purifier** — clean light, and nowhere to stand!"
@@ -9649,7 +9649,7 @@
     "ability": {
       "name": "Horn of Purity",
       "trigger": "setup",
-      "description": "The first debuff aimed at Kirindael is purified outright, and the horn's light lingers: 2 rounds of Purification Protection during which nothing else can stick. Each purification banks +20 Purifier Charge. Once the light fades, the horn can purify again.",
+      "description": "The first debuff aimed at Kirindael is purified outright, and the horn's light lingers: 2 rounds of Purification Protection during which nothing else can stick. Each successful purification banks +25 Purifier Charge. Once the light fades, the horn can purify again.",
       "rules": [
         {
           "when": "setup",
@@ -9659,7 +9659,7 @@
               "label": "Horn of Purity",
               "turns": 2,
               "counter": "purifier_charge",
-              "amount": 20,
+              "amount": 25,
               "max": 100,
               "counter_label": "Purifier Charge",
               "emoji": "⚡"
@@ -9673,7 +9673,7 @@
       {
         "name": "Horn of Purity",
         "trigger": "setup",
-        "description": "The first debuff aimed at Kirindael is purified outright, and the horn's light lingers: 2 rounds of Purification Protection during which nothing else can stick. Each purification banks +20 Purifier Charge. Once the light fades, the horn can purify again.",
+        "description": "The first debuff aimed at Kirindael is purified outright, and the horn's light lingers: 2 rounds of Purification Protection during which nothing else can stick. Each successful purification banks +25 Purifier Charge. Once the light fades, the horn can purify again.",
         "rules": [
           {
             "when": "setup",
@@ -9683,7 +9683,7 @@
                 "label": "Horn of Purity",
                 "turns": 2,
                 "counter": "purifier_charge",
-                "amount": 20,
+                "amount": 25,
                 "max": 100,
                 "counter_label": "Purifier Charge",
                 "emoji": "⚡"
@@ -9696,19 +9696,33 @@
       {
         "name": "Spark Rush",
         "trigger": "on_attack_mirror",
-        "description": "When both blades commit to Attack, Kirindael's horn discharges into the clash: bonus lightning damage and +20 Purifier Charge.",
+        "description": "Kirindael now builds momentum without waiting for the opponent: every Attack win banks +10 Purifier Charge. When both blades commit to Attack, Spark Rush erupts for +25% damage and +25 Purifier Charge.",
         "rules": [
+          {
+            "when": "on_attack_win",
+            "do": [
+              {
+                "op": "gain_counter",
+                "name": "purifier_charge",
+                "amount": 10,
+                "max": 100,
+                "label": "Purifier Charge",
+                "emoji": "⚡"
+              }
+            ],
+            "_name": "Spark Rush"
+          },
           {
             "when": "on_attack_mirror",
             "do": [
               {
                 "op": "bonus_damage_pct",
-                "value": 20
+                "value": 25
               },
               {
                 "op": "gain_counter",
                 "name": "purifier_charge",
-                "amount": 20,
+                "amount": 25,
                 "max": 100,
                 "label": "Purifier Charge",
                 "emoji": "⚡"
@@ -9721,7 +9735,7 @@
       {
         "name": "Lightning Purifier",
         "trigger": "on_special",
-        "description": "Opens the Lightning Purifier Zone for 8 rounds. The cast itself deals nothing — the zone then strikes 4 times across its life for 225 total. Spends all 100 Purifier Charge.",
+        "description": "Opens the relaunched Lightning Purifier Zone for 6 rounds. The cast itself deals no immediate damage; the zone strikes 3 times across its life for 300 total. Spends all 100 Purifier Charge.",
         "rules": [
           {
             "when": "on_special",
@@ -9729,9 +9743,9 @@
               {
                 "op": "create_zone",
                 "label": "Lightning Purifier",
-                "turns": 8,
-                "hits": 4,
-                "dmg": 45,
+                "turns": 6,
+                "hits": 3,
+                "dmg": 80,
                 "mult": 1.25,
                 "emoji": "🌩️"
               },
@@ -10020,7 +10034,11 @@
               "op": "bonus_damage_pct",
               "value": 25,
               "_if": [
-                {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+                {
+                  "cond": "counter_at_least",
+                  "name": "rampage_stack",
+                  "value": 3
+                }
               ]
             },
             {
@@ -10029,14 +10047,22 @@
               "value": 10,
               "turns": 2,
               "_if": [
-                {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+                {
+                  "cond": "counter_at_least",
+                  "name": "rampage_stack",
+                  "value": 3
+                }
               ]
             },
             {
               "op": "reset_counter",
               "name": "rampage_stack",
               "_if": [
-                {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+                {
+                  "cond": "counter_at_least",
+                  "name": "rampage_stack",
+                  "value": 3
+                }
               ]
             }
           ],
@@ -10065,7 +10091,11 @@
                 "op": "bonus_damage_pct",
                 "value": 25,
                 "_if": [
-                  {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+                  {
+                    "cond": "counter_at_least",
+                    "name": "rampage_stack",
+                    "value": 3
+                  }
                 ]
               },
               {
@@ -10074,14 +10104,22 @@
                 "value": 10,
                 "turns": 2,
                 "_if": [
-                  {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+                  {
+                    "cond": "counter_at_least",
+                    "name": "rampage_stack",
+                    "value": 3
+                  }
                 ]
               },
               {
                 "op": "reset_counter",
                 "name": "rampage_stack",
                 "_if": [
-                  {"cond": "counter_at_least", "name": "rampage_stack", "value": 3}
+                  {
+                    "cond": "counter_at_least",
+                    "name": "rampage_stack",
+                    "value": 3
+                  }
                 ]
               }
             ],
@@ -10119,7 +10157,10 @@
             ],
             "_name": "Azure Rebirth",
             "if": [
-              {"cond": "hp_below_pct", "value": 0.3}
+              {
+                "cond": "hp_below_pct",
+                "value": 0.3
+              }
             ]
           }
         ]
@@ -10136,14 +10177,20 @@
                 "op": "bonus_damage_pct",
                 "value": 30,
                 "_if": [
-                  {"cond": "enemy_hp_below_pct", "value": 0.4}
+                  {
+                    "cond": "enemy_hp_below_pct",
+                    "value": 0.4
+                  }
                 ]
               },
               {
                 "op": "special_pierce_pct",
                 "value": 25,
                 "_if": [
-                  {"cond": "enemy_hp_below_pct", "value": 0.4}
+                  {
+                    "cond": "enemy_hp_below_pct",
+                    "value": 0.4
+                  }
                 ]
               }
             ],
@@ -10207,21 +10254,33 @@
         {
           "when": "on_defense_win",
           "do": [
-            {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+            {
+              "op": "spend_stacks",
+              "name": "reaver_stack",
+              "label": "Reaver Stack"
+            }
           ],
           "_name": "Crimson Reaver (reset)"
         },
         {
           "when": "on_defense_loss",
           "do": [
-            {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+            {
+              "op": "spend_stacks",
+              "name": "reaver_stack",
+              "label": "Reaver Stack"
+            }
           ],
           "_name": "Crimson Reaver (reset)"
         },
         {
           "when": "on_defense_mirror",
           "do": [
-            {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+            {
+              "op": "spend_stacks",
+              "name": "reaver_stack",
+              "label": "Reaver Stack"
+            }
           ],
           "_name": "Crimson Reaver (reset)"
         }
@@ -10251,21 +10310,33 @@
           {
             "when": "on_defense_win",
             "do": [
-              {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+              {
+                "op": "spend_stacks",
+                "name": "reaver_stack",
+                "label": "Reaver Stack"
+              }
             ],
             "_name": "Crimson Reaver (reset)"
           },
           {
             "when": "on_defense_loss",
             "do": [
-              {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+              {
+                "op": "spend_stacks",
+                "name": "reaver_stack",
+                "label": "Reaver Stack"
+              }
             ],
             "_name": "Crimson Reaver (reset)"
           },
           {
             "when": "on_defense_mirror",
             "do": [
-              {"op": "spend_stacks", "name": "reaver_stack", "label": "Reaver Stack"}
+              {
+                "op": "spend_stacks",
+                "name": "reaver_stack",
+                "label": "Reaver Stack"
+              }
             ],
             "_name": "Crimson Reaver (reset)"
           }
@@ -10279,7 +10350,10 @@
           {
             "when": "on_defense_win",
             "if": [
-              {"cond": "not_on_cooldown", "name": "iron_lock"}
+              {
+                "cond": "not_on_cooldown",
+                "name": "iron_lock"
+              }
             ],
             "do": [
               {
@@ -10305,32 +10379,66 @@
           {
             "when": "turn_start",
             "do": [
-              {"op": "gain_counter", "name": "iron_lock_mark", "amount": -1}
+              {
+                "op": "gain_counter",
+                "name": "iron_lock_mark",
+                "amount": -1
+              }
             ],
             "_name": "Iron Lock (decay)"
           },
           {
             "when": "passive",
             "if": [
-              {"cond": "counter_at_least", "name": "iron_lock_mark", "value": 1},
-              {"cond": "enemy_move_is", "value": "attack"}
+              {
+                "cond": "counter_at_least",
+                "name": "iron_lock_mark",
+                "value": 1
+              },
+              {
+                "cond": "enemy_move_is",
+                "value": "attack"
+              }
             ],
             "do": [
-              {"op": "true_damage_stat_pct", "stat": "attack", "scale": 0.20},
-              {"op": "reset_counter", "name": "iron_lock_mark"}
+              {
+                "op": "true_damage_stat_pct",
+                "stat": "attack",
+                "scale": 0.2
+              },
+              {
+                "op": "reset_counter",
+                "name": "iron_lock_mark"
+              }
             ],
             "_name": "Iron Lock: Counterseal"
           },
           {
             "when": "passive",
             "if": [
-              {"cond": "counter_at_least", "name": "iron_lock_mark", "value": 1},
-              {"cond": "enemy_move_is", "value": "stamina"}
+              {
+                "cond": "counter_at_least",
+                "name": "iron_lock_mark",
+                "value": 1
+              },
+              {
+                "cond": "enemy_move_is",
+                "value": "stamina"
+              }
             ],
             "do": [
-              {"op": "enemy_lose_stability", "amount": 1},
-              {"op": "gain_stability", "value": 1},
-              {"op": "reset_counter", "name": "iron_lock_mark"}
+              {
+                "op": "enemy_lose_stability",
+                "amount": 1
+              },
+              {
+                "op": "gain_stability",
+                "value": 1
+              },
+              {
+                "op": "reset_counter",
+                "name": "iron_lock_mark"
+              }
             ],
             "_name": "Iron Lock: Stability Steal"
           }
@@ -10344,13 +10452,20 @@
           {
             "when": "on_special",
             "do": [
-              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.35},
               {
                 "op": "bonus_damage_stat",
                 "stat": "attack",
-                "scale": 0.10,
+                "scale": 0.35
+              },
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.1,
                 "_if": [
-                  {"cond": "enemy_stability_below_pct", "value": 0.3}
+                  {
+                    "cond": "enemy_stability_below_pct",
+                    "value": 0.3
+                  }
                 ]
               }
             ],
@@ -10399,28 +10514,68 @@
         {
           "when": "on_attack_hit",
           "if": [
-            {"cond": "not_on_cooldown", "name": "radiant_rush"},
-            {"cond": "mode_is_not", "value": "silverflame"}
+            {
+              "cond": "not_on_cooldown",
+              "name": "radiant_rush"
+            },
+            {
+              "cond": "mode_is_not",
+              "value": "silverflame"
+            }
           ],
           "do": [
-            {"op": "bonus_damage_pct", "value": 180},
-            {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
-            {"op": "start_cooldown", "name": "radiant_rush", "turns": 2},
-            {"op": "log", "text": "⚡ **Radiant Rush** — Radiant Valkyrie surges!"}
+            {
+              "op": "bonus_damage_pct",
+              "value": 180
+            },
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.15
+            },
+            {
+              "op": "start_cooldown",
+              "name": "radiant_rush",
+              "turns": 2
+            },
+            {
+              "op": "log",
+              "text": "⚡ **Radiant Rush** — Radiant Valkyrie surges!"
+            }
           ],
           "_name": "Radiant Rush"
         },
         {
           "when": "on_attack_hit",
           "if": [
-            {"cond": "not_on_cooldown", "name": "radiant_rush"},
-            {"cond": "mode_is", "value": "silverflame"}
+            {
+              "cond": "not_on_cooldown",
+              "name": "radiant_rush"
+            },
+            {
+              "cond": "mode_is",
+              "value": "silverflame"
+            }
           ],
           "do": [
-            {"op": "bonus_damage_pct", "value": 180},
-            {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
-            {"op": "start_cooldown", "name": "radiant_rush", "turns": 1},
-            {"op": "log", "text": "⚡🔥 **Radiant Rush** — blazing every round in Silver Flame!"}
+            {
+              "op": "bonus_damage_pct",
+              "value": 180
+            },
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.15
+            },
+            {
+              "op": "start_cooldown",
+              "name": "radiant_rush",
+              "turns": 1
+            },
+            {
+              "op": "log",
+              "text": "⚡🔥 **Radiant Rush** — blazing every round in Silver Flame!"
+            }
           ],
           "_name": "Radiant Rush (Silver Flame)"
         }
@@ -10435,28 +10590,70 @@
           {
             "when": "on_attack_hit",
             "if": [
-              {"cond": "not_on_cooldown", "name": "radiant_rush"},
-              {"cond": "mode_is_not", "value": "silverflame"}
+              {
+                "cond": "not_on_cooldown",
+                "name": "radiant_rush"
+              },
+              {
+                "cond": "mode_is_not",
+                "value": "silverflame"
+              }
             ],
             "do": [
-              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.20},
-              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
-              {"op": "start_cooldown", "name": "radiant_rush", "turns": 2},
-              {"op": "log", "text": "⚡ **Radiant Rush** — Radiant Valkyrie surges!"}
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.2
+              },
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.15
+              },
+              {
+                "op": "start_cooldown",
+                "name": "radiant_rush",
+                "turns": 2
+              },
+              {
+                "op": "log",
+                "text": "⚡ **Radiant Rush** — Radiant Valkyrie surges!"
+              }
             ],
             "_name": "Radiant Rush"
           },
           {
             "when": "on_attack_hit",
             "if": [
-              {"cond": "not_on_cooldown", "name": "radiant_rush"},
-              {"cond": "mode_is", "value": "silverflame"}
+              {
+                "cond": "not_on_cooldown",
+                "name": "radiant_rush"
+              },
+              {
+                "cond": "mode_is",
+                "value": "silverflame"
+              }
             ],
             "do": [
-              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.20},
-              {"op": "bonus_damage_stat", "stat": "attack", "scale": 0.15},
-              {"op": "start_cooldown", "name": "radiant_rush", "turns": 1},
-              {"op": "log", "text": "⚡🔥 **Radiant Rush** — blazing every round in Silver Flame!"}
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.2
+              },
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.15
+              },
+              {
+                "op": "start_cooldown",
+                "name": "radiant_rush",
+                "turns": 1
+              },
+              {
+                "op": "log",
+                "text": "⚡🔥 **Radiant Rush** — blazing every round in Silver Flame!"
+              }
             ],
             "_name": "Radiant Rush (Silver Flame)"
           }
@@ -10470,14 +10667,21 @@
           {
             "when": "on_special",
             "do": [
-              {"op": "bonus_damage_stat", "stat": "attack", "scale": 1.80}
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 1.8
+              }
             ],
             "_name": "Silver Radiance (ATK scaling)"
           },
           {
             "when": "on_special",
             "if": [
-              {"cond": "mode_is_not", "value": "silverflame"}
+              {
+                "cond": "mode_is_not",
+                "value": "silverflame"
+              }
             ],
             "do": [
               {
@@ -10485,8 +10689,17 @@
                 "name": "Radiant Valkyrie: Silver Flame",
                 "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542361664182296656/image_19e6d538.png?ex=6a90f3bc&is=6a8fa23c&hm=fbdb7e956b553e19a5b4c5463cd2ddeb720876fc7e563ee96fbec74a75374aba&"
               },
-              {"op": "buff", "stat": "attack", "pct": 25, "turns": 3},
-              {"op": "dmg_amp", "value": 0.10, "turns": 3},
+              {
+                "op": "buff",
+                "stat": "attack",
+                "pct": 25,
+                "turns": 3
+              },
+              {
+                "op": "dmg_amp",
+                "value": 0.1,
+                "turns": 3
+              },
               {
                 "op": "set_mode",
                 "name": "silverflame",
@@ -10498,20 +10711,35 @@
                     "name": "Radiant Valkyrie",
                     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542361648273166406/image_be3c1d1c.png?ex=6a90f3b8&is=6a8fa238&hm=4f66ce45a71273f953c7408693e4e8e7ced2f171cbd7484d737bb43d113a2154&"
                   },
-                  {"op": "log", "text": "⚪ **Silver Flame** fades — Radiant Valkyrie returns to its normal form."}
+                  {
+                    "op": "log",
+                    "text": "⚪ **Silver Flame** fades — Radiant Valkyrie returns to its normal form."
+                  }
                 ]
               },
-              {"op": "log", "text": "⚪🔥 **Silver Flame Awakening** — Radiant Valkyrie ignites!"}
+              {
+                "op": "log",
+                "text": "⚪🔥 **Silver Flame Awakening** — Radiant Valkyrie ignites!"
+              }
             ],
             "_name": "Silver Flame Awakening"
           },
           {
             "when": "on_attack_hit",
             "if": [
-              {"cond": "mode_is", "value": "silverflame"}
+              {
+                "cond": "mode_is",
+                "value": "silverflame"
+              }
             ],
             "do": [
-              {"op": "status_apply", "status": "burn", "dmg": 10, "turns": 2, "max_stacks": 2}
+              {
+                "op": "status_apply",
+                "status": "burn",
+                "dmg": 10,
+                "turns": 2,
+                "max_stacks": 2
+              }
             ],
             "_name": "Silver Burn"
           }
@@ -10519,43 +10747,99 @@
       }
     ]
   },
-    "Astral Valkyrie — Starbreaker": {
-      "id": "BB114",
-      "name": "Astral Valkyrie — Starbreaker",
-      "rarity": "Legendary",
-      "limited": true,
-      "available_until": "2026-01-01T00:00:00Z",
-      "owner_ids": null,
-      "type": "Attack",
-      "spin_direction": "Right",
-      "burst_height": "Mid",
-      "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542557825836781578/Picsart_26-08-27_10-13-54-473.png?ex=6a91aa6d&is=6a9058ed&hm=7f1a85e1505a33a7682f068ea2be525931628c4c41b8f7d837b3a0b89c32612e&",
-      "description": "The over-charged wing. Every third strike opens a starfall, and when the light finally dims it throws up an astral guard rather than break.",
-      "stats": {
-        "attack": 152,
-        "defense": 96,
-        "stamina": 88,
-        "special": 148,
-        "hp": 150
-      },
-      "button_profile": {
-        "special": {
-          "stamina_cost": 3
+  "Astral Valkyrie — Starbreaker": {
+    "id": "BB114",
+    "name": "Astral Valkyrie — Starbreaker",
+    "rarity": "Legendary",
+    "limited": true,
+    "available_until": "2026-01-01T00:00:00Z",
+    "owner_ids": null,
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542557825836781578/Picsart_26-08-27_10-13-54-473.png?ex=6a91aa6d&is=6a9058ed&hm=7f1a85e1505a33a7682f068ea2be525931628c4c41b8f7d837b3a0b89c32612e&",
+    "description": "The over-charged wing. Every third strike opens a starfall, and when the light finally dims it throws up an astral guard rather than break.",
+    "stats": {
+      "attack": 152,
+      "defense": 96,
+      "stamina": 88,
+      "special": 148,
+      "hp": 150
+    },
+    "button_profile": {
+      "special": {
+        "stamina_cost": 3
+      }
+    },
+    "special_move": {
+      "name": "⭐ Starbreaker Impact",
+      "description": "180% Attack, cutting through 25% of the opponent's Defense. Leaves Starbreaker with +15% Attack for 2 turns. Costs a full gauge and 3 stamina.",
+      "non_damage": true,
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "flavour_texts": [
+        "⭐ **Starbreaker Impact** — the sky splits!",
+        "⭐ **Starbreaker Impact** — armour is no answer to a star!"
+      ]
+    },
+    "ability": {
+      "name": "Starfall Edge",
+      "trigger": "on_attack_win",
+      "description": "Every 3rd successful Attack lands with +35% Attack bonus damage and steadies Starbreaker by 2 Stability.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "gain_counter",
+              "name": "starfall",
+              "amount": 1,
+              "max": 3,
+              "label": "Starfall",
+              "emoji": "⭐"
+            },
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.35,
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "starfall",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "op": "gain_stability",
+              "value": 2,
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "starfall",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "op": "reset_counter",
+              "name": "starfall",
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "starfall",
+                  "value": 3
+                }
+              ]
+            }
+          ],
+          "_name": "Starfall Edge"
         }
-      },
-      "special_move": {
-        "name": "⭐ Starbreaker Impact",
-        "description": "180% Attack, cutting through 25% of the opponent's Defense. Leaves Starbreaker with +15% Attack for 2 turns. Costs a full gauge and 3 stamina.",
-        "non_damage": true,
-        "hits": 1,
-        "damage_per_hit": 0,
-        "total_damage": 0,
-        "flavour_texts": [
-          "⭐ **Starbreaker Impact** — the sky splits!",
-          "⭐ **Starbreaker Impact** — armour is no answer to a star!"
-        ]
-      },
-      "ability": {
+      ]
+    },
+    "abilities": [
+      {
         "name": "Starfall Edge",
         "trigger": "on_attack_win",
         "description": "Every 3rd successful Attack lands with +35% Attack bonus damage and steadies Starbreaker by 2 Stability.",
@@ -10610,164 +10894,132 @@
           }
         ]
       },
-      "abilities": [
+      {
+        "name": "Astral Guard",
+        "trigger": "on_low_hp",
+        "description": "Once per battle, when HP falls below 50%, gain +20% Defense and take 15% less damage for 2 turns.",
+        "rules": [
+          {
+            "when": "on_low_hp",
+            "once": "battle",
+            "if": [
+              {
+                "cond": "hp_below_pct",
+                "value": 0.5
+              }
+            ],
+            "do": [
+              {
+                "op": "buff",
+                "stat": "defense",
+                "pct": 20,
+                "turns": 2
+              },
+              {
+                "op": "reduce_damage_pct_turns",
+                "value": 15,
+                "turns": 2
+              },
+              {
+                "op": "log",
+                "text": "🛡️ **Astral Guard** — Starbreaker braces behind astral light!"
+              }
+            ],
+            "_name": "Astral Guard"
+          }
+        ]
+      },
+      {
+        "name": "Starbreaker Impact",
+        "trigger": "on_special",
+        "description": "180% Attack damage that cuts through 25% of the opponent's Defense, and leaves Starbreaker with +15% Attack for 2 turns.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 1.8
+              },
+              {
+                "op": "special_pierce_pct",
+                "value": 25
+              },
+              {
+                "op": "buff",
+                "stat": "attack",
+                "pct": 15,
+                "turns": 2
+              }
+            ],
+            "_name": "Starbreaker Impact"
+          }
+        ]
+      }
+    ]
+  },
+  "Astral Valkyrie — Skyrend": {
+    "id": "BB115",
+    "name": "Astral Valkyrie — Skyrend",
+    "rarity": "Legendary",
+    "limited": true,
+    "available_until": "2026-01-01T00:00:00Z",
+    "owner_ids": null,
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542557816047542332/file_00000000d8b48211b0dae822e63c91ae.png?ex=6a91aa6a&is=6a9058ea&hm=286e9af1111575b25b15b679aa741fd650d7c1b66baa622fa218b3c01cfc57ff&",
+    "description": "The steady wing. It cuts when the wind allows, turns a block into a wind-up, and lands hard enough to plant itself back on its feet.",
+    "stats": {
+      "attack": 128,
+      "defense": 104,
+      "stamina": 132,
+      "special": 140,
+      "hp": 145
+    },
+    "button_profile": {
+      "special": {
+        "stamina_cost": 3
+      }
+    },
+    "special_move": {
+      "name": "🌪️ Skyrend Crash",
+      "description": "A grounding crash that restores 3 Stability. Costs a full gauge and 3 stamina.",
+      "non_damage": true,
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "flavour_texts": [
+        "🌪️ **Skyrend Crash** — it plants itself and holds!",
+        "🌪️ **Skyrend Crash** — the wind returns to the wing!"
+      ]
+    },
+    "ability": {
+      "name": "Sky Cutter",
+      "trigger": "on_attack_hit",
+      "description": "Each Attack has a 25% chance to cut deeper for +30% Attack bonus damage.",
+      "rules": [
         {
-          "name": "Starfall Edge",
-          "trigger": "on_attack_win",
-          "description": "Every 3rd successful Attack lands with +35% Attack bonus damage and steadies Starbreaker by 2 Stability.",
-          "rules": [
+          "when": "on_attack_hit",
+          "chance": 0.25,
+          "do": [
             {
-              "when": "on_attack_win",
-              "do": [
-                {
-                  "op": "gain_counter",
-                  "name": "starfall",
-                  "amount": 1,
-                  "max": 3,
-                  "label": "Starfall",
-                  "emoji": "⭐"
-                },
-                {
-                  "op": "bonus_damage_stat",
-                  "stat": "attack",
-                  "scale": 0.35,
-                  "_if": [
-                    {
-                      "cond": "counter_at_least",
-                      "name": "starfall",
-                      "value": 3
-                    }
-                  ]
-                },
-                {
-                  "op": "gain_stability",
-                  "value": 2,
-                  "_if": [
-                    {
-                      "cond": "counter_at_least",
-                      "name": "starfall",
-                      "value": 3
-                    }
-                  ]
-                },
-                {
-                  "op": "reset_counter",
-                  "name": "starfall",
-                  "_if": [
-                    {
-                      "cond": "counter_at_least",
-                      "name": "starfall",
-                      "value": 3
-                    }
-                  ]
-                }
-              ],
-              "_name": "Starfall Edge"
-            }
-          ]
-        },
-        {
-          "name": "Astral Guard",
-          "trigger": "on_low_hp",
-          "description": "Once per battle, when HP falls below 50%, gain +20% Defense and take 15% less damage for 2 turns.",
-          "rules": [
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.3
+            },
             {
-              "when": "on_low_hp",
-              "once": "battle",
-              "if": [
-                {
-                  "cond": "hp_below_pct",
-                  "value": 0.5
-                }
-              ],
-              "do": [
-                {
-                  "op": "buff",
-                  "stat": "defense",
-                  "pct": 20,
-                  "turns": 2
-                },
-                {
-                  "op": "reduce_damage_pct_turns",
-                  "value": 15,
-                  "turns": 2
-                },
-                {
-                  "op": "log",
-                  "text": "🛡️ **Astral Guard** — Starbreaker braces behind astral light!"
-                }
-              ],
-              "_name": "Astral Guard"
+              "op": "log",
+              "text": "🌬️ **Sky Cutter** — the wind opens a seam!"
             }
-          ]
-        },
-        {
-          "name": "Starbreaker Impact",
-          "trigger": "on_special",
-          "description": "180% Attack damage that cuts through 25% of the opponent's Defense, and leaves Starbreaker with +15% Attack for 2 turns.",
-          "rules": [
-            {
-              "when": "on_special",
-              "do": [
-                {
-                  "op": "bonus_damage_stat",
-                  "stat": "attack",
-                  "scale": 1.8
-                },
-                {
-                  "op": "special_pierce_pct",
-                  "value": 25
-                },
-                {
-                  "op": "buff",
-                  "stat": "attack",
-                  "pct": 15,
-                  "turns": 2
-                }
-              ],
-              "_name": "Starbreaker Impact"
-            }
-          ]
+          ],
+          "_name": "Sky Cutter"
         }
       ]
     },
-    "Astral Valkyrie — Skyrend": {
-      "id": "BB115",
-      "name": "Astral Valkyrie — Skyrend",
-      "rarity": "Legendary",
-      "limited": true,
-      "available_until": "2026-01-01T00:00:00Z",
-      "owner_ids": null,
-      "type": "Attack",
-      "spin_direction": "Right",
-      "burst_height": "Mid",
-      "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542557816047542332/file_00000000d8b48211b0dae822e63c91ae.png?ex=6a91aa6a&is=6a9058ea&hm=286e9af1111575b25b15b679aa741fd650d7c1b66baa622fa218b3c01cfc57ff&",
-      "description": "The steady wing. It cuts when the wind allows, turns a block into a wind-up, and lands hard enough to plant itself back on its feet.",
-      "stats": {
-        "attack": 128,
-        "defense": 104,
-        "stamina": 132,
-        "special": 140,
-        "hp": 145
-      },
-      "button_profile": {
-        "special": {
-          "stamina_cost": 3
-        }
-      },
-      "special_move": {
-        "name": "🌪️ Skyrend Crash",
-        "description": "A grounding crash that restores 3 Stability. Costs a full gauge and 3 stamina.",
-        "non_damage": true,
-        "hits": 1,
-        "damage_per_hit": 0,
-        "total_damage": 0,
-        "flavour_texts": [
-          "🌪️ **Skyrend Crash** — it plants itself and holds!",
-          "🌪️ **Skyrend Crash** — the wind returns to the wing!"
-        ]
-      },
-      "ability": {
+    "abilities": [
+      {
         "name": "Sky Cutter",
         "trigger": "on_attack_hit",
         "description": "Each Attack has a 25% chance to cut deeper for +30% Attack bonus damage.",
@@ -10790,94 +11042,70 @@
           }
         ]
       },
-      "abilities": [
-        {
-          "name": "Sky Cutter",
-          "trigger": "on_attack_hit",
-          "description": "Each Attack has a 25% chance to cut deeper for +30% Attack bonus damage.",
-          "rules": [
-            {
-              "when": "on_attack_hit",
-              "chance": 0.25,
-              "do": [
-                {
-                  "op": "bonus_damage_stat",
-                  "stat": "attack",
-                  "scale": 0.3
-                },
-                {
-                  "op": "log",
-                  "text": "🌬️ **Sky Cutter** — the wind opens a seam!"
-                }
-              ],
-              "_name": "Sky Cutter"
-            }
-          ]
-        },
-        {
-          "name": "Wing Reversal",
-          "trigger": "on_defense_win",
-          "description": "After a successful Defense, Skyrend's NEXT Attack gains +25% Attack. Holding the charge does not stack it.",
-          "rules": [
-            {
-              "when": "on_defense_win",
-              "do": [
-                {
-                  "op": "gain_counter",
-                  "name": "wing_reversal",
-                  "amount": 1,
-                  "max": 1,
-                  "label": "Reversal",
-                  "emoji": "🪶"
-                },
-                {
-                  "op": "log",
-                  "text": "🪶 **Wing Reversal** — the block becomes a wind-up!"
-                }
-              ],
-              "_name": "Wing Reversal (arm)"
-            },
-            {
-              "when": "on_attack_hit",
-              "if": [
-                {
-                  "cond": "counter_at_least",
-                  "name": "wing_reversal",
-                  "value": 1
-                }
-              ],
-              "do": [
-                {
-                  "op": "bonus_damage_stat",
-                  "stat": "attack",
-                  "scale": 0.25
-                },
-                {
-                  "op": "reset_counter",
-                  "name": "wing_reversal"
-                }
-              ],
-              "_name": "Wing Reversal (release)"
-            }
-          ]
-        },
-        {
-          "name": "Skyrend Crash",
-          "trigger": "on_special",
-          "description": "A grounding crash that costs no ground of its own — Skyrend restores 3 Stability.",
-          "rules": [
-            {
-              "when": "on_special",
-              "do": [
-                {
-                  "op": "gain_stability",
-                  "value": 3
-                }
-              ],
-              "_name": "Skyrend Crash"
-            }
-          ]
-        }
-      ]
-    }
+      {
+        "name": "Wing Reversal",
+        "trigger": "on_defense_win",
+        "description": "After a successful Defense, Skyrend's NEXT Attack gains +25% Attack. Holding the charge does not stack it.",
+        "rules": [
+          {
+            "when": "on_defense_win",
+            "do": [
+              {
+                "op": "gain_counter",
+                "name": "wing_reversal",
+                "amount": 1,
+                "max": 1,
+                "label": "Reversal",
+                "emoji": "🪶"
+              },
+              {
+                "op": "log",
+                "text": "🪶 **Wing Reversal** — the block becomes a wind-up!"
+              }
+            ],
+            "_name": "Wing Reversal (arm)"
+          },
+          {
+            "when": "on_attack_hit",
+            "if": [
+              {
+                "cond": "counter_at_least",
+                "name": "wing_reversal",
+                "value": 1
+              }
+            ],
+            "do": [
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.25
+              },
+              {
+                "op": "reset_counter",
+                "name": "wing_reversal"
+              }
+            ],
+            "_name": "Wing Reversal (release)"
+          }
+        ]
+      },
+      {
+        "name": "Skyrend Crash",
+        "trigger": "on_special",
+        "description": "A grounding crash that costs no ground of its own — Skyrend restores 3 Stability.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "gain_stability",
+                "value": 3
+              }
+            ],
+            "_name": "Skyrend Crash"
+          }
+        ]
+      }
+    ]
+  }
 }
