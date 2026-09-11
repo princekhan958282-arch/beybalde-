@@ -5,7 +5,7 @@ tools/sim_kirindael.py — Kirindael, and the second Special resource.
 What is genuinely new here
 --------------------------
 Every other blade in the roster fires its Special on one condition: the gauge
-is full. Kirindael needs a full gauge AND 100 Purifier Charge, a resource its
+is full. Kirindael needs a full gauge AND 60 Purifier Charge, a resource its
 own abilities build. That is not a bigger number, it is a second gate, and it
 had to be added to every place that asks "can this side use its Special" —
 the SPECIAL button, the League opponent's move search, and the battle card
@@ -188,7 +188,7 @@ def main() -> int:
     # ── 2. the second Special gate ──────────────────────────────────────────
     print("\n── 2. two resources, not one bigger number ──────────────────────")
     check("the blade declares a second requirement",
-          SG.requirement(K) == {"counter": "purifier_charge", "value": 100,
+          SG.requirement(K) == {"counter": "purifier_charge", "value": 60,
                                 "cooldown_name": "", "label": "Purifier Charge",
                                 "emoji": "⚡"},
           SG.requirement(K))
@@ -202,10 +202,10 @@ def main() -> int:
           "real", msg is not None, msg)
     check("...and the refusal names the resource, so a locked button explains "
           "itself", "Purifier Charge" in (msg or ""), msg)
-    e.counters[("p", "purifier_charge")] = 99
-    check("99 of 100 is still not enough",
+    e.counters[("p", "purifier_charge")] = 59
+    check("59 of 60 is still not enough",
           SG.blocked_reason(s, "p", K, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX))
-    e.counters[("p", "purifier_charge")] = 100
+    e.counters[("p", "purifier_charge")] = 60
     check("both full unlocks it",
           SG.ready(s, "p", K, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX))
     check("an ordinary blade is never held back by a gate it never declared",
@@ -281,7 +281,7 @@ def main() -> int:
     check("one clash lifts it to 75", charge(e) == 75, charge(e))
     for _ in range(3):
         e.apply("p", "e", K, K, MOVE_ATTACK, "win", 100, 0)
-    check("ordinary Attack wins can finish the charge without opponent cooperation",
+    check("the blade can exceed the 60-point gate while still respecting its 100-point counter cap",
           charge(e) == 100, charge(e))
     check("the charge is capped and cannot overshoot",
           (e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0),
@@ -299,7 +299,7 @@ def main() -> int:
     check("it has flavour to print", bool(flav))
 
     e, s = armed()
-    e.counters[("p", "purifier_charge")] = 100
+    e.counters[("p", "purifier_charge")] = 60
     dmg, _, logs = e.apply("p", "e", K, K, "special", "win", 0, 0)
     check("casting deals 0 damage", dmg == 0 and s.hp["e"] == 1000, s.hp["e"])
     check("the zone opens", len(e.zones) == 1)
