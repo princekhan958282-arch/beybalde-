@@ -9735,7 +9735,7 @@
       {
         "name": "Lightning Purifier",
         "trigger": "on_special",
-        "description": "Opens the relaunched Lightning Purifier Zone for 6 rounds. The cast itself deals no immediate damage; the zone strikes 3 times across its life for 300 total. Spends all 100 Purifier Charge.",
+        "description": "Opens the relaunched Lightning Purifier Zone for 6 rounds. The cast itself deals no immediate damage; the zone strikes 3 times across its life for 300 total. Spends the required 60 Purifier Charge.",
         "rules": [
           {
             "when": "on_special",
