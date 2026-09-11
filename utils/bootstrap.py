@@ -78,6 +78,8 @@ _IMPORT_NAME = {
     "PyMySQL": "pymysql",
     "pillow": "PIL",
     "audioop-lts": "audioop",
+    "PyNaCl": "nacl",
+    "davey": "davey",
 }
 
 
