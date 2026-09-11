@@ -9619,7 +9619,7 @@
     "spin_direction": "Dual",
     "burst_height": "Mid",
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1541737368514732062/IMG_1439.jpg?ex=6a8eae50&is=6a8d5cd0&hm=4aff631530e2cf6be9dd2ac6eda8a48b35dbc0187c110e82e9d3c5d1c983cae0&",
-    "description": "A qilin of storm and clean light, relaunched with a faster purification cycle. It burns impurity into stored voltage, accelerates through direct victories, and turns a full charge into a battlefield-wide lightning zone.",
+    "description": "A dual-spin qilin that converts purification and aggressive clashes into Purifier Charge. Kirindael cleanses hostile effects, builds voltage through Attack victories, then releases the stored storm as Lightning Purifier.",
     "stats": {
       "attack": 123,
       "defense": 103,
@@ -9635,7 +9635,7 @@
     },
     "special_move": {
       "name": "🌩️ Lightning Purifier",
-      "description": "Kirindael raises the horn and the air turns white. The relaunched zone stands for 6 rounds and answers 3 times for 300 total damage.",
+      "description": "Requires a full Special Gauge and 100 Purifier Charge. The cast deals no immediate damage and consumes all Purifier Charge, creating Lightning Purifier Zone for 6 rounds. The zone strikes on rounds 2, 4, and 6 for 100 damage each, dealing 300 total damage.",
       "non_damage": true,
       "hits": 1,
       "damage_per_hit": 0,
@@ -9649,7 +9649,7 @@
     "ability": {
       "name": "Horn of Purity",
       "trigger": "setup",
-      "description": "The first debuff aimed at Kirindael is purified outright, and the horn's light lingers: 2 rounds of Purification Protection during which nothing else can stick. Each successful purification banks +25 Purifier Charge. Once the light fades, the horn can purify again.",
+      "description": "When a debuff first reaches Kirindael, Horn of Purity completely purifies it and grants 2 rounds of Purification Protection, blocking further debuffs during the protection window. A successful purification grants +25 Purifier Charge. After the protection expires, Horn of Purity can activate again.",
       "rules": [
         {
           "when": "setup",
@@ -9673,7 +9673,7 @@
       {
         "name": "Horn of Purity",
         "trigger": "setup",
-        "description": "The first debuff aimed at Kirindael is purified outright, and the horn's light lingers: 2 rounds of Purification Protection during which nothing else can stick. Each successful purification banks +25 Purifier Charge. Once the light fades, the horn can purify again.",
+        "description": "When a debuff first reaches Kirindael, Horn of Purity completely purifies it and grants 2 rounds of Purification Protection, blocking further debuffs during the protection window. A successful purification grants +25 Purifier Charge. After the protection expires, Horn of Purity can activate again.",
         "rules": [
           {
             "when": "setup",
@@ -9696,7 +9696,7 @@
       {
         "name": "Spark Rush",
         "trigger": "on_attack_mirror",
-        "description": "Kirindael now builds momentum without waiting for the opponent: every Attack win banks +10 Purifier Charge. When both blades commit to Attack, Spark Rush erupts for +25% damage and +25 Purifier Charge.",
+        "description": "Every Attack win grants +10 Purifier Charge. If both blades choose Attack, Spark Rush activates instead: Kirindael deals +25% damage and gains +25 Purifier Charge. Purifier Charge is capped at 100.",
         "rules": [
           {
             "when": "on_attack_win",
@@ -9735,7 +9735,7 @@
       {
         "name": "Lightning Purifier",
         "trigger": "on_special",
-        "description": "Opens the relaunched Lightning Purifier Zone for 6 rounds. The cast itself deals no immediate damage; the zone strikes 3 times across its life for 300 total. Spends all 100 Purifier Charge.",
+        "description": "Requires a full Special Gauge and 100 Purifier Charge. The cast deals no immediate damage and consumes all Purifier Charge, creating Lightning Purifier Zone for 6 rounds. The zone strikes on rounds 2, 4, and 6 for 100 damage each, dealing 300 total damage.",
         "rules": [
           {
             "when": "on_special",
