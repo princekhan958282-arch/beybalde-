@@ -183,26 +183,7 @@ class VoteCog(commands.Cog, name="Vote"):
         description="Vote for Beycord and claim 20k Beycoins + 3h EXP Surge",
     )
     async def vote(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer(ephemeral=True, thinking=True)
-
-        profile = await get_user(interaction.user.id)
-        now = _now()
-        last_claim = int(profile.get(K_LAST_CLAIM, 0) or 0)
-        next_claim = last_claim + CLAIM_WINDOW_SECONDS
-
-        if last_claim and now < next_claim:
-            embed = discord.Embed(
-                title="🗳️ Vote reward already claimed",
-                description=(
-                    f"Your next reward can be claimed <t:{next_claim}:R>.\n\n"
-                    f"Reward: **{COIN_REWARD:,} Beycoins** + "
-                    "**3 hours EXP Surge**."
-                ),
-                color=discord.Color.orange(),
-            )
-            await interaction.followup.send(
-                embed=embed, view=self._vote_view(), ephemeral=True)
-            return
+        await interaction.response.defer(thinking=True)
 
         try:
             voted = await self._has_voted(interaction.user.id)
@@ -216,7 +197,7 @@ class VoteCog(commands.Cog, name="Vote"):
                 color=discord.Color.orange(),
             )
             await interaction.followup.send(
-                embed=embed, view=self._vote_view(), ephemeral=True)
+                embed=embed, view=self._vote_view())
             return
 
         if not voted:
@@ -231,7 +212,27 @@ class VoteCog(commands.Cog, name="Vote"):
                 color=discord.Color.blurple(),
             )
             await interaction.followup.send(
-                embed=embed, view=self._vote_view(), ephemeral=True)
+                embed=embed, view=self._vote_view())
+            return
+
+        profile = await get_user(interaction.user.id)
+        now = _now()
+        last_claim = int(profile.get(K_LAST_CLAIM, 0) or 0)
+        next_claim = last_claim + CLAIM_WINDOW_SECONDS
+
+        if last_claim and now < next_claim:
+            embed = discord.Embed(
+                title="🗳️ Vote reward already claimed",
+                description=(
+                    f"Top.gg confirms an active vote, but this reward was already "
+                    f"claimed. Your next reward can be claimed <t:{next_claim}:R>.\n\n"
+                    f"Reward: **{COIN_REWARD:,} Beycoins** + "
+                    "**3 hours EXP Surge**."
+                ),
+                color=discord.Color.orange(),
+            )
+            await interaction.followup.send(
+                embed=embed, view=self._vote_view())
             return
 
         result = await mutate_user(
@@ -244,7 +245,6 @@ class VoteCog(commands.Cog, name="Vote"):
                 f"✅ Your vote is verified, but this vote reward was already "
                 f"claimed. Next claim: <t:{result['next_claim']}:R>.",
                 view=self._vote_view(),
-                ephemeral=True,
             )
             return
 
@@ -268,7 +268,7 @@ class VoteCog(commands.Cog, name="Vote"):
             inline=True,
         )
         await interaction.followup.send(
-            embed=embed, view=self._vote_view(), ephemeral=True)
+            embed=embed, view=self._vote_view())
 
     @tasks.loop(seconds=REMINDER_POLL_SECONDS)
     async def reminder_worker(self) -> None:
