@@ -134,7 +134,7 @@ print("\n── 1. the card matches the spec ───────────�
 check("Heaven's Ring is in the roster", HR is not None)
 check("rarity Ultimate", HR["rarity"] == "Ultimate", HR.get("rarity"))
 check("type Defense", HR["type"] == "Defense", HR.get("type"))
-for stat, want in (("hp", 145), ("attack", 88), ("defense", 171),
+for stat, want in (("hp", 145), ("attack", 88), ("defense", 161),
                    ("stamina", 112)):
     check(f"{stat} is {want}", HR["stats"][stat] == want, HR["stats"].get(stat))
 # `special` was not in the spec. Set to match Inferno Viper — the only other
@@ -248,7 +248,7 @@ check("a runaway stack is capped short of immunity", dmg > 0, dmg)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n── 4. Angelic Counter — 30% to reflect 55% ──────────────────────")
+print("\n── 4. Angelic Counter — 25% to reflect 45% ──────────────────────")
 # `chance` is a rule-level key `_rule_fires` has always honoured, so this
 # ability needed no new op — only a check that the odds are what they claim.
 
@@ -265,10 +265,10 @@ rate = fired / TRIALS
 print(f"       reflected on {fired:,} of {TRIALS:,} impacts — {rate:.1%}")
 # Expected 6,000, sd ~65. A +/-5sd band never flakes and still catches a rate
 # that is out by even 10%.
-check("it fires on about 30% of impacts", 0.285 <= rate <= 0.315, f"{rate:.3f}")
+check("it fires on about 25% of impacts", 0.235 <= rate <= 0.265, f"{rate:.3f}")
 
-# 55% of what ACTUALLY landed, not of what was thrown. Divine runs first and
-# absorbs 7% of the incoming 100, so the reflect is 55% of 93 = 52, not 55.
+# 45% of what ACTUALLY landed, not of what was thrown. Divine runs first and
+# absorbs 7% of the incoming 100, so the reflect is 45% of 93 = 42, not 45.
 # That ordering is the coherent reading — you throw back what hit you, not what
 # was aimed at you — and it is asserted rather than left to be noticed later as
 # "the reflect is 3 short".
@@ -281,16 +281,16 @@ for _ in range(60):
     if taken:
         reflected = taken
         break
-check("...and reflects 55% of the damage that got through Divine (55% of 93)",
-      reflected == 52, reflected)
+check("...and reflects 45% of the damage that got through Divine (45% of 93)",
+      reflected == 42, reflected)
 
 # With absorption out of the way the raw 55% is visible, which is what proves
 # the number above is the absorption and not a rounding accident.
 e6b, _ = engine()
-only_reflect = [{"op": "reflect_pct", "value": 55}]
+only_reflect = [{"op": "reflect_pct", "value": 45}]
 _d, taken = e6b._run_ops({"do": only_reflect}, "Angelic Counter", "p", "e",
                          "attack", 100, 0, [])
-check("...which is a clean 55 with no absorption in front of it", taken == 55,
+check("...which is a clean 45 with no absorption in front of it", taken == 45,
       taken)
 
 
