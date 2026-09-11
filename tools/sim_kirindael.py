@@ -269,26 +269,26 @@ def main() -> int:
     check("winning an ordinary Attack still builds relaunch momentum",
           charge(e) == 10, charge(e))
 
-    # ── 5. reaching 100 the way the blade actually does ─────────────────────
-    print("\n── 5. the two charge sources meet in the middle ─────────────────")
+    # ── 5. reaching 60 the way the blade actually does ──────────────────────
+    print("\n── 5. the new 60-charge gate ───────────────────────────────────")
     e, s = armed()
     for _ in range(2):
         curse(e)
         e.tick_extras()
         e.tick_extras()
     check("two purifications bank 50", charge(e) == 50, charge(e))
-    e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0)
-    check("one clash lifts it to 75", charge(e) == 75, charge(e))
-    for _ in range(3):
-        e.apply("p", "e", K, K, MOVE_ATTACK, "win", 100, 0)
-    check("the blade can exceed the 60-point gate while still respecting its 100-point counter cap",
-          charge(e) == 100, charge(e))
-    check("the charge is capped and cannot overshoot",
-          (e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0),
-           charge(e) == 100)[1], charge(e))
     s.stamina_manager.gauge["p"] = SPECIAL_GAUGE_MAX
-    check("with both resources full the Special is finally available",
+    check("50 charge is still below the Special gate",
+          not SG.ready(s, "p", K, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX))
+    e.apply("p", "e", K, K, MOVE_ATTACK, "win", 100, 0)
+    check("one ordinary Attack win lifts it exactly to 60",
+          charge(e) == 60, charge(e))
+    check("60 charge plus a full gauge unlocks Lightning Purifier",
           SG.ready(s, "p", K, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX))
+    for _ in range(5):
+        e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0)
+    check("the counter still keeps its existing 100-point storage cap",
+          charge(e) == 100, charge(e))
 
     # ── 6. Lightning Purifier ───────────────────────────────────────────────
     print("\n── 6. Lightning Purifier — 0 on cast, 300 over the zone ─────────")
@@ -318,7 +318,7 @@ def main() -> int:
           strikes == [2, 4, 6], strikes)
     check("...for exactly 300 total, the relaunch payoff on the card",
           dealt == 300, dealt)
-    check("the zone closes when its 8 rounds are up", not e.zones)
+    check("the zone closes when its 6 rounds are up", not e.zones)
 
     # ── 7. the primitives on their own ──────────────────────────────────────
     print("\n── 7. the new primitives, in isolation ──────────────────────────")
