@@ -11107,5 +11107,158 @@
         ]
       }
     ]
+  },
+  "Hermiblaze": {
+    "id": "BB116",
+    "name": "Hermiblaze",
+    "rarity": "Mythic",
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "High",
+    "limited": true,
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1548040826762829935/IMG-20260910-WA0002.jpg?ex=6aa59cde&is=6aa44b5e&hm=99ded8b73d10d413044b3f4b8cf1a04e77186db3b2045c5eb9129160dbda0e6d&",
+    "description": "A limited Attack blade built around controlled overdrive. Hermiblaze turns direct victories into Blaze Stacks, raising its striking power while burning through its own stamina. The longer it stays aggressive, the harder it hits — and the faster it risks running dry.",
+    "stats": {
+      "attack": 152,
+      "defense": 74,
+      "stamina": 104,
+      "special": 150,
+      "hp": 132
+    },
+    "ability": {
+      "name": "Blazing Ascension",
+      "trigger": "on_attack_win",
+      "description": "Every Attack win grants 1 Blaze Stack, up to 4. Each stack adds 6% of Hermiblaze's base Attack. Building momentum is costly: every Attack win also burns 1 stamina immediately.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack_pct": 6,
+              "max": 4,
+              "name": "blaze_stack"
+            },
+            {
+              "op": "gain_stamina",
+              "value": -1
+            }
+          ],
+          "_name": "Blazing Ascension"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Blazing Ascension",
+        "trigger": "on_attack_win",
+        "description": "Every Attack win grants 1 Blaze Stack, up to 4. Each stack adds 6% of Hermiblaze's base Attack. Building momentum is costly: every Attack win also burns 1 stamina immediately.",
+        "rules": [
+          {
+            "when": "on_attack_win",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack_pct": 6,
+                "max": 4,
+                "name": "blaze_stack"
+              },
+              {
+                "op": "gain_stamina",
+                "value": -1
+              }
+            ],
+            "_name": "Blazing Ascension"
+          }
+        ]
+      },
+      {
+        "name": "Aether Rush",
+        "trigger": "on_attack_mirror",
+        "description": "When both blades choose Attack, Hermiblaze deals 20% more damage, gains 1 Blaze Stack and burns 2 stamina. It has a 25% chance to gain one additional Blaze Stack, which burns 1 more stamina.",
+        "rules": [
+          {
+            "when": "on_attack_mirror",
+            "do": [
+              {
+                "op": "bonus_damage_pct",
+                "value": 20
+              },
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack_pct": 6,
+                "max": 4,
+                "name": "blaze_stack"
+              },
+              {
+                "op": "gain_stamina",
+                "value": -2
+              }
+            ],
+            "_name": "Aether Rush"
+          },
+          {
+            "when": "on_attack_mirror",
+            "chance": 0.25,
+            "do": [
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack_pct": 6,
+                "max": 4,
+                "name": "blaze_stack"
+              },
+              {
+                "op": "gain_stamina",
+                "value": -1
+              }
+            ],
+            "_name": "Aether Rush — Overdrive"
+          }
+        ]
+      },
+      {
+        "name": "Celestial Blaze",
+        "trigger": "on_special",
+        "description": "A 3-hit finisher that consumes all Blaze Stacks. Each consumed stack adds 12% damage to the Special, up to 48% at 4 stacks. Firing it burns 5 additional stamina.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "consume_stack_damage_pct",
+                "name": "blaze_stack",
+                "per_stack": 12
+              },
+              {
+                "op": "spend_stacks",
+                "name": "blaze_stack",
+                "label": "Blaze Stack"
+              },
+              {
+                "op": "gain_stamina",
+                "value": -5
+              }
+            ],
+            "_name": "Celestial Blaze"
+          }
+        ]
+      }
+    ],
+    "special_move": {
+      "name": "🌠 Celestial Blaze",
+      "description": "Hermiblaze detonates its stored momentum in three consecutive strikes. Base damage is 195; each Blaze Stack consumed adds 12% to the Special, up to +48% at four stacks.",
+      "hits": 3,
+      "damage_per_hit": 65,
+      "total_damage": 195,
+      "flavour_texts": [
+        "🌠 **Celestial Blaze** — Hermiblaze tears open the sky!",
+        "🔥 **Second impact** — the blaze climbs higher!",
+        "☄️ **Final impact** — every stored spark detonates at once!"
+      ]
+    }
   }
 }
