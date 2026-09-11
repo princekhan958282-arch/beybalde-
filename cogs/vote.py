@@ -245,7 +245,6 @@ class VoteCog(commands.Cog, name="Vote"):
                 f"✅ Your vote is verified, but this vote reward was already "
                 f"claimed. Next claim: <t:{result['next_claim']}:R>.",
                 view=self._vote_view(),
-                ephemeral=True,
             )
             return
 
