@@ -166,34 +166,99 @@ COGS = [
 
 # ── Playwright Chromium auto-install ───────────────────────────────────────────
 
+_PLAYWRIGHT_BROWSER_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), ".playwright-browsers"
+)
+os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", _PLAYWRIGHT_BROWSER_DIR)
+
+
 def _ensure_chromium() -> None:
-    """
-    Install the Playwright Chromium browser binary if it isn't present yet.
-    This is required on fresh deployments where `playwright install chromium`
-    has never been run (pip install alone doesn't download the browser).
-    Runs synchronously at startup — takes ~5 s on first boot, instant after.
+    """Ensure Playwright's Chromium binary exists in persistent bot storage.
+
+    Do not use "can Chromium launch?" as the installation test. A browser can
+    already be installed but fail to launch because the host image is missing
+    an OS library; reinstalling the same browser on every boot does not fix that
+    and creates the warning loop seen on Pterodactyl panels.
+
+    The browser is stored inside the bot directory instead of Playwright's
+    per-user cache so panel/container recreation does not discard it.
     """
     try:
         from playwright.sync_api import sync_playwright
-        # Quick probe: if we can launch and close chromium, it's already installed
+    except Exception as exc:
+        logger.warning("🎭 Playwright package unavailable: %s", exc)
+        return
+
+    try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(args=["--no-sandbox"])
-            browser.close()
-        logger.info("🎭 Playwright Chromium already installed — skipping download.")
-    except Exception:
-        logger.info("🎭 Playwright Chromium not found — installing now (one-time)…")
+            executable = p.chromium.executable_path
+        if executable and os.path.isfile(executable) and os.access(executable, os.X_OK):
+            logger.info("🎭 Playwright Chromium ready: %s", executable)
+            return
+    except Exception as exc:
+        logger.debug("🎭 Chromium path probe failed: %s", exc)
+
+    try:
+        os.makedirs(_PLAYWRIGHT_BROWSER_DIR, exist_ok=True)
+    except OSError as exc:
+        logger.warning(
+            "🎭 Cannot create Playwright browser directory %s: %s. "
+            "Cards will use the Pillow fallback.",
+            _PLAYWRIGHT_BROWSER_DIR,
+            exc,
+        )
+        return
+
+    logger.info("🎭 Playwright Chromium missing — installing once…")
+    try:
         result = subprocess.run(
             [sys.executable, "-m", "playwright", "install", "chromium"],
             capture_output=True,
             text=True,
+            timeout=300,
+            env=dict(os.environ, PLAYWRIGHT_BROWSERS_PATH=_PLAYWRIGHT_BROWSER_DIR),
         )
-        if result.returncode == 0:
-            logger.info("🎭 Playwright Chromium installed successfully.")
+    except subprocess.TimeoutExpired:
+        logger.warning(
+            "🎭 Playwright Chromium install timed out after 300s. "
+            "Cards will use the Pillow fallback."
+        )
+        return
+    except Exception as exc:
+        logger.warning(
+            "🎭 Playwright Chromium install could not start: %s. "
+            "Cards will use the Pillow fallback.",
+            exc,
+        )
+        return
+
+    if result.returncode != 0:
+        output = (result.stderr or result.stdout or "").strip().splitlines()
+        tail = " | ".join(output[-6:]) if output else "no installer output"
+        logger.warning(
+            "🎭 Playwright Chromium install failed (exit %s): %s. "
+            "Cards will use the Pillow fallback.",
+            result.returncode,
+            tail,
+        )
+        return
+
+    try:
+        with sync_playwright() as p:
+            executable = p.chromium.executable_path
+        if executable and os.path.isfile(executable):
+            logger.info("🎭 Playwright Chromium installed successfully: %s", executable)
         else:
             logger.warning(
-                f"🎭 Playwright Chromium install failed:\n{result.stderr}\n"
-                "Profile card PNGs will fall back to embed format."
+                "🎭 Playwright installer exited successfully but Chromium was "
+                "not found at the expected path. Cards will use Pillow."
             )
+    except Exception as exc:
+        logger.warning(
+            "🎭 Chromium verification failed after install: %s. "
+            "Cards will use the Pillow fallback.",
+            exc,
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
