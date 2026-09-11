@@ -8882,7 +8882,7 @@
     "description": "A halo given form. Heaven's Ring answers every blow with divine absorption, turning the force of an attack back on the one who threw it.",
     "stats": {
       "attack": 88,
-      "defense": 171,
+      "defense": 161,
       "stamina": 112,
       "special": 130,
       "hp": 145
@@ -8929,15 +8929,15 @@
       {
         "name": "Angelic Counter",
         "trigger": "passive",
-        "description": "30% chance to reflect 55% of the damage dealt back to its attacker.",
+        "description": "25% chance to reflect 45% of the damage dealt back to its attacker.",
         "rules": [
           {
             "when": "on_take_damage",
-            "chance": 0.3,
+            "chance": 0.25,
             "do": [
               {
                 "op": "reflect_pct",
-                "value": 55
+                "value": 45
               }
             ]
           }
@@ -9629,7 +9629,7 @@
     },
     "special_requires": {
       "counter": "purifier_charge",
-      "value": 100,
+      "value": 60,
       "label": "Purifier Charge",
       "emoji": "⚡"
     },
