@@ -226,14 +226,14 @@ def main() -> int:
           s.status.get_buff_bonus("p", "attack") == 0,
           s.status.get_buff_bonus("p", "attack"))
     check("...and it says so", any("purified" in ln for ln in logs), logs)
-    check("purifying banks +20 Purifier Charge", charge(e) == 20, charge(e))
+    check("purifying banks +25 Purifier Charge", charge(e) == 25, charge(e))
     check("cover stands for 2 rounds", e.ward_turns.get("p") == 2)
 
     logs = curse(e, "defense")
     check("a second debuff inside the window is also blocked",
           s.status.get_buff_bonus("p", "defense") == 0)
     check("...but does NOT pay out again — the charge cannot be farmed by "
-          "spamming debuffs", charge(e) == 20, charge(e))
+          "spamming debuffs", charge(e) == 25, charge(e))
 
     t1 = e.tick_extras()
     check("after one round the cover is still up",
@@ -244,7 +244,7 @@ def main() -> int:
 
     curse(e)
     check("the next debuff re-arms it and pays out again",
-          charge(e) == 40 and e.ward_turns.get("p") == 2, charge(e))
+          charge(e) == 50 and e.ward_turns.get("p") == 2, charge(e))
 
     # A blade with no ward must be unaffected by any of this.
     e2, s2 = engine(PLAIN)
@@ -262,24 +262,27 @@ def main() -> int:
 
     e, s = armed()
     dmg, _, logs = e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0)
-    check("a clash sparks: +20% damage (100 -> 120)", dmg == 120, dmg)
-    check("...and banks +20 Purifier Charge", charge(e) == 20, charge(e))
+    check("a clash sparks: +25% damage (100 -> 125)", dmg == 125, dmg)
+    check("...and banks +25 Purifier Charge", charge(e) == 25, charge(e))
     e, s = armed()
     e.apply("p", "e", K, K, MOVE_ATTACK, "win", 100, 0)
-    check("winning an ordinary exchange is NOT a clash and banks nothing",
-          charge(e) == 0, charge(e))
+    check("winning an ordinary Attack still builds relaunch momentum",
+          charge(e) == 10, charge(e))
 
     # ── 5. reaching 100 the way the blade actually does ─────────────────────
     print("\n── 5. the two charge sources meet in the middle ─────────────────")
     e, s = armed()
-    for _ in range(3):
+    for _ in range(2):
         curse(e)
         e.tick_extras()
         e.tick_extras()
-    check("three purifications bank 60", charge(e) == 60, charge(e))
-    for _ in range(2):
-        e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0)
-    check("two clashes finish the job at exactly 100", charge(e) == 100, charge(e))
+    check("two purifications bank 50", charge(e) == 50, charge(e))
+    e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0)
+    check("one clash lifts it to 75", charge(e) == 75, charge(e))
+    for _ in range(3):
+        e.apply("p", "e", K, K, MOVE_ATTACK, "win", 100, 0)
+    check("ordinary Attack wins can finish the charge without opponent cooperation",
+          charge(e) == 100, charge(e))
     check("the charge is capped and cannot overshoot",
           (e.apply("p", "e", K, K, MOVE_ATTACK, "mirror", 100, 0),
            charge(e) == 100)[1], charge(e))
@@ -288,7 +291,7 @@ def main() -> int:
           SG.ready(s, "p", K, SPECIAL_GAUGE_MAX, SPECIAL_GAUGE_MAX))
 
     # ── 6. Lightning Purifier ───────────────────────────────────────────────
-    print("\n── 6. Lightning Purifier — 0 on cast, 225 over the zone ─────────")
+    print("\n── 6. Lightning Purifier — 0 on cast, 300 over the zone ─────────")
     hits, dph, flav, _ = resolve_special(K, K["stats"]["special"])
     check("the cast itself is declared non-damage, so scaling cannot floor it "
           "back up to 1", K["special_move"].get("non_damage") is True)
@@ -300,21 +303,21 @@ def main() -> int:
     dmg, _, logs = e.apply("p", "e", K, K, "special", "win", 0, 0)
     check("casting deals 0 damage", dmg == 0 and s.hp["e"] == 1000, s.hp["e"])
     check("the zone opens", len(e.zones) == 1)
-    check("...for 8 rounds", e.zones[0]["turns"] == 8, e.zones[0]["turns"])
+    check("...for 6 rounds", e.zones[0]["turns"] == 6, e.zones[0]["turns"])
     check("casting spends every point of Purifier Charge",
           charge(e) == 0, charge(e))
 
     strikes = []
-    for r in range(1, 9):
+    for r in range(1, 7):
         for ln in e.tick_extras():
             if "strikes" in ln:
                 strikes.append(r)
     dealt = 1000 - s.hp["e"]
-    check("the zone strikes exactly 4 times", len(strikes) == 4, strikes)
+    check("the zone strikes exactly 3 times", len(strikes) == 3, strikes)
     check("...spread across its life rather than front-loaded",
-          strikes == [2, 4, 6, 8], strikes)
-    check("...for exactly 225 total, the number on the card",
-          dealt == 225, dealt)
+          strikes == [2, 4, 6], strikes)
+    check("...for exactly 300 total, the relaunch payoff on the card",
+          dealt == 300, dealt)
     check("the zone closes when its 8 rounds are up", not e.zones)
 
     # ── 7. the primitives on their own ──────────────────────────────────────
