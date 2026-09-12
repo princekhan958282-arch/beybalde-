@@ -323,23 +323,30 @@ class StabilityManager:
                 return effects
         return {}
 
-    def apply_move_cost_increase(self, key: str, move: str) -> list[str]:
-        """Apply an ability-authored extra stability cost for this move.
-
-        The surcharge is independent of the normal type-gated stability rules:
-        it is a drawback the blade carries itself. A +10 surcharge therefore
-        still costs 10 on Charge/Special even though those moves normally cost
-        zero stability.
-        """
+    def move_cost_increase(self, key: str, move: str) -> int:
+        """Snapshot the extra Stability cost owed by key for move."""
         try:
             amount = float(self.cost_increase_flat.get(key, 0.0) or 0.0)
             allowed = self.cost_increase_moves.get(
                 key, ("attack", "defense", "charge", "special"))
             if amount <= 0 or str(move).lower() not in allowed:
-                return []
-            # Current Blood Dragon values are integral, but round explicitly so
-            # the primitive behaves predictably for future fractional authors.
-            cost = max(0, int(round(amount)))
+                return 0
+            return max(0, int(round(amount)))
+        except Exception:
+            return 0
+
+    def apply_move_cost_increase(
+        self, key: str, move: str, amount: Optional[int] = None
+    ) -> list[str]:
+        """Apply an ability-authored extra Stability cost for this move.
+
+        amount may be snapshotted before move resolution. That matters for
+        stack-on-hit abilities: a stack earned by the current hit must increase
+        the NEXT action cost, exactly like stamina is deducted before the hit.
+        """
+        try:
+            cost = self.move_cost_increase(key, move) if amount is None else max(
+                0, int(amount))
             if cost <= 0:
                 return []
             return self._apply(key, -cost)
