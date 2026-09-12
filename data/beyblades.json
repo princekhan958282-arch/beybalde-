@@ -10497,10 +10497,10 @@
     },
     "special_move": {
       "name": "Silver Radiance",
-      "description": "190 base damage, plus a rider worth 180% of Attack. On resolution, Radiant Valkyrie ignites into Silver Flame for 3 turns.",
+      "description": "170 base damage, plus a rider worth 52% of Attack. On resolution, Radiant Valkyrie ignites into Silver Flame for 3 turns.",
       "hits": 1,
-      "damage_per_hit": 190,
-      "total_damage": 190,
+      "damage_per_hit": 170,
+      "total_damage": 170,
       "flavour_texts": [
         "⚡⚪🔥 **Silver Radiance** — light becomes flame!",
         "⚪🔥 **Silver Radiance** — Radiant Valkyrie awakens in Silver Flame!"
@@ -10509,7 +10509,7 @@
     "ability": {
       "name": "Radiant Rush",
       "trigger": "on_attack_hit",
-      "description": "Every Attack that lands off cooldown gets +20% Attack scaling and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
+      "description": "Every Attack that lands off cooldown gains +13% of Attack as bonus damage. On an Attack win or Attack loss, it gains another +8% of Attack. Cooldown: 2 rounds normally. In Silver Flame, Radiant Rush instead gains +30% of Attack and its cooldown drops to 1 round.",
       "rules": [
         {
           "when": "on_attack_hit",
@@ -10525,13 +10525,31 @@
           ],
           "do": [
             {
-              "op": "bonus_damage_pct",
-              "value": 180
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.13
             },
             {
               "op": "bonus_damage_stat",
               "stat": "attack",
-              "scale": 0.15
+              "scale": 0.08,
+              "_if": [
+                {
+                  "cond": "matchup_is",
+                  "value": "win"
+                }
+              ]
+            },
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.08,
+              "_if": [
+                {
+                  "cond": "matchup_is",
+                  "value": "loss"
+                }
+              ]
             },
             {
               "op": "start_cooldown",
@@ -10559,13 +10577,9 @@
           ],
           "do": [
             {
-              "op": "bonus_damage_pct",
-              "value": 180
-            },
-            {
               "op": "bonus_damage_stat",
               "stat": "attack",
-              "scale": 0.15
+              "scale": 0.3
             },
             {
               "op": "start_cooldown",
@@ -10585,7 +10599,7 @@
       {
         "name": "Radiant Rush",
         "trigger": "on_attack_hit",
-        "description": "Every Attack that lands off cooldown gets +20% Attack scaling and +15% Attack. Fires once every 2 rounds normally, once every round while in Silver Flame mode.",
+        "description": "Every Attack that lands off cooldown gains +13% of Attack as bonus damage. On an Attack win or Attack loss, it gains another +8% of Attack. Cooldown: 2 rounds normally. In Silver Flame, Radiant Rush instead gains +30% of Attack and its cooldown drops to 1 round.",
         "rules": [
           {
             "when": "on_attack_hit",
@@ -10603,12 +10617,29 @@
               {
                 "op": "bonus_damage_stat",
                 "stat": "attack",
-                "scale": 0.2
+                "scale": 0.13
               },
               {
                 "op": "bonus_damage_stat",
                 "stat": "attack",
-                "scale": 0.15
+                "scale": 0.08,
+                "_if": [
+                  {
+                    "cond": "matchup_is",
+                    "value": "win"
+                  }
+                ]
+              },
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.08,
+                "_if": [
+                  {
+                    "cond": "matchup_is",
+                    "value": "loss"
+                  }
+                ]
               },
               {
                 "op": "start_cooldown",
@@ -10638,12 +10669,7 @@
               {
                 "op": "bonus_damage_stat",
                 "stat": "attack",
-                "scale": 0.2
-              },
-              {
-                "op": "bonus_damage_stat",
-                "stat": "attack",
-                "scale": 0.15
+                "scale": 0.3
               },
               {
                 "op": "start_cooldown",
@@ -10662,7 +10688,7 @@
       {
         "name": "Silver Flame Awakening",
         "trigger": "on_special",
-        "description": "Silver Radiance always adds 180% Attack in bonus damage. If Radiant Valkyrie isn't already transformed, resolving the Special also ignites Silver Flame: +25% Attack and +10% damage for 3 turns, and Attacks can apply Silver Burn while it lasts. After 3 turns, Radiant Valkyrie reverts to its normal form and image.",
+        "description": "Silver Radiance adds 52% of Attack in bonus damage. If Radiant Valkyrie isn't already transformed, resolving the Special ignites Silver Flame for 3 turns: +11% overall damage, Radiant Rush on a 1-round cooldown with +30% Attack scaling, and successful Attacks can apply Silver Burn. Silver Burn deals 20 damage for 3 turns and stacks up to 3 times. After 3 turns, Radiant Valkyrie reverts to its normal form and image.",
         "rules": [
           {
             "when": "on_special",
@@ -10670,7 +10696,7 @@
               {
                 "op": "bonus_damage_stat",
                 "stat": "attack",
-                "scale": 1.8
+                "scale": 0.52
               }
             ],
             "_name": "Silver Radiance (ATK scaling)"
@@ -10690,14 +10716,8 @@
                 "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542361664182296656/image_19e6d538.png?ex=6a90f3bc&is=6a8fa23c&hm=fbdb7e956b553e19a5b4c5463cd2ddeb720876fc7e563ee96fbec74a75374aba&"
               },
               {
-                "op": "buff",
-                "stat": "attack",
-                "pct": 25,
-                "turns": 3
-              },
-              {
                 "op": "dmg_amp",
-                "value": 0.1,
+                "value": 0.11,
                 "turns": 3
               },
               {
@@ -10736,9 +10756,9 @@
               {
                 "op": "status_apply",
                 "status": "burn",
-                "dmg": 10,
-                "turns": 2,
-                "max_stacks": 2
+                "dmg": 20,
+                "turns": 3,
+                "max_stacks": 3
               }
             ],
             "_name": "Silver Burn"
