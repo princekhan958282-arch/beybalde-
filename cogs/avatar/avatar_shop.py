@@ -292,44 +292,48 @@ def _pull_from_pool(
 # ── Skills info button ────────────────────────────────────────────────────────
 
 class AvatarSkillsView(discord.ui.View):
-    """Adds a "Skills" button to an avatar card.
+    """Mobile-friendly detail page for an avatar's signature skills."""
 
-    Only attached when the avatar actually has a `skills` list — the flat
-    bonus avatars have nothing extra to show, so they get no button.
-    """
-
-    def __init__(self, avatar: dict, *, timeout: float = 180):
+    def __init__(self, avatar: dict, *, active_slot: int = 0,
+                 skill_levels: dict | None = None, timeout: float = 180):
         super().__init__(timeout=timeout)
         self.avatar = avatar
+        self.active_slot = active_slot
+        self.skill_levels = skill_levels or {}
 
-    @discord.ui.button(label="Skills", emoji="\u26a1",
+    @discord.ui.button(label="Skills", emoji="⚡",
                        style=discord.ButtonStyle.primary)
     async def show_skills(self, interaction: discord.Interaction,
                           button: discord.ui.Button) -> None:
-        av     = self.avatar
+        from . import avatar_skills as AS
+        from .avatar_progress import slugify
+
+        av = self.avatar
         rarity = av.get("rarity", "Common")
-        # NOTE: no backslash escapes inside the f-string expressions — this
-        # project targets Python 3.11 (runtime.txt), where that is a
-        # SyntaxError and would stop the whole cog from loading.
-        emoji  = RARITY_EMOJI.get(rarity, "\u26aa")
-        name   = av["name"]
-        embed  = discord.Embed(
-            title=f"{emoji} {name} \u2014 Skills",
+        emoji = RARITY_EMOJI.get(rarity, "⚪")
+        embed = discord.Embed(
+            title=f"{emoji} {av['name']} — Skills",
+            description="Choose **one** signature skill per battle.",
             color=RARITY_COLORS.get(rarity, 0xAAAAAA),
         )
-        for i, sk in enumerate(av.get("skills") or [], 1):
-            sk_name = sk.get("name", "Skill")
+
+        skills = av.get("skills") or []
+        for slot, skill in enumerate(skills, 1):
+            selected = "✅ Selected" if slot == self.active_slot else "▫️ Available"
+            level = max(1, int(self.skill_levels.get(
+                slugify(skill.get("name", "")), 1
+            )))
             embed.add_field(
-                name=f"\u26a1 Skill {i} \u2014 {sk_name}",
-                value=sk.get("description", "\u2014"),
+                name=(f"{selected}  •  {slot}. {skill.get('name', 'Skill')} "
+                      f"• {AS.skill_cost(slot)}⚡ • Lv{level}"),
+                value=skill.get("description") or "No description.",
                 inline=False,
             )
-        if not embed.fields:
-            embed.description = "This avatar has no signature skills."
-        img = av.get("image", "")
-        if img.startswith("http"):
-            embed.set_thumbnail(url=img)
-        # Ephemeral so it does not clutter the channel for everyone else.
+
+        image = av.get("image", "")
+        if image.startswith(("http://", "https://")) and is_renderable_image(image):
+            embed.set_thumbnail(url=image)
+        embed.set_footer(text="Change selection with ;askill <1-3>")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -715,22 +719,27 @@ class AvatarShop(commands.Cog, name="Avatar"):
             except Exception:                            # noqa: BLE001
                 pass
 
-        embed = build_avatar_embed(avatar, owned=owned, equipped=equipped,
-                                   level=lvl, skill_levels=skill_lvls,
-                                   active_skill_slot=active_slot)
+        embed = build_avatar_embed(
+            avatar,
+            owned=owned,
+            equipped=equipped,
+            level=lvl,
+            skill_levels=skill_lvls,
+            active_skill_slot=active_slot,
+            compact=True,
+        )
 
-        # Show image if the avatar has one
-        image = avatar.get("image", "")
-        if image:
-            if (image.startswith(("http://", "https://"))
-                    and is_renderable_image(image)):
-                embed.set_image(url=image)
-            else:
-                embed.add_field(name="🖼️ Image", value=f"`{image}`", inline=False)
-
-        # Avatars with signature skills get a button to read them in full.
+        # The shared builder uses a thumbnail. Avoid also adding the same art as
+        # a full-width image: that doubled the card height on phones.
         if avatar.get("skills"):
-            await ctx.send(embed=embed, view=AvatarSkillsView(avatar))
+            await ctx.send(
+                embed=embed,
+                view=AvatarSkillsView(
+                    avatar,
+                    active_slot=active_slot,
+                    skill_levels=skill_lvls,
+                ),
+            )
         else:
             await ctx.send(embed=embed)
 

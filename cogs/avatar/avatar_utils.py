@@ -232,7 +232,8 @@ def format_bonuses_summary(bonuses: dict) -> str:
 
 def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False,
                        level: int = 1, skill_levels: dict | None = None,
-                       active_skill_slot: int = 0) -> discord.Embed:
+                       active_skill_slot: int = 0, *,
+                       compact: bool = False) -> discord.Embed:
     """
     Build a Discord embed for a single avatar.
     Used in shop previews and inventory views.
@@ -261,9 +262,20 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
         description=avatar.get("description", ""),
         color=color,
     )
-    embed.add_field(name="Rarity", value=rarity, inline=True)
-    embed.add_field(name="Type",   value=format_type(avatar.get("type")), inline=True)
-    embed.add_field(name="Price",  value=format_price(avatar["price"]), inline=True)
+    if compact:
+        # One short block stays readable on narrow Discord clients and avoids
+        # the awkward 2+1 wrapping produced by three inline fields.
+        price = format_price(avatar["price"])
+        embed.add_field(
+            name="Card",
+            value=(f"**{emoji} {rarity}**  •  {format_type(avatar.get('type'))}\n"
+                   f"🪙 {price}  •  ID: `{avatar['id']}`"),
+            inline=False,
+        )
+    else:
+        embed.add_field(name="Rarity", value=rarity, inline=True)
+        embed.add_field(name="Type",   value=format_type(avatar.get("type")), inline=True)
+        embed.add_field(name="Price",  value=format_price(avatar["price"]), inline=True)
 
     # Level, and what it is currently worth. Shown for owned cards only — on a
     # shop preview the player does not own it yet, so "Lv1" would read as a
@@ -288,9 +300,22 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
         except Exception:                                # noqa: BLE001
             pass
 
+    displayed_bonuses = avatar.get("bonuses", {})
+    bonus_heading = "Bonuses"
+    if compact and avatar.get("skills"):
+        # Signature-card data keeps a union of skill effects at the top level
+        # for validation and migration. Those values are conditional, not
+        # permanent, and belong on the Skills page only.
+        from .avatar_skills import CARD_LEVEL_BONUS_KEYS
+        displayed_bonuses = {
+            key: value for key, value in displayed_bonuses.items()
+            if key in CARD_LEVEL_BONUS_KEYS
+        }
+        bonus_heading = "Permanent Bonuses"
+
     embed.add_field(
-        name="Bonuses",
-        value=format_bonuses_summary(avatar.get("bonuses", {})),
+        name=bonus_heading,
+        value=format_bonuses_summary(displayed_bonuses),
         inline=False,
     )
 
@@ -303,7 +328,7 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
     # indication that you only get one is how a player would find out the
     # expensive way.
     skills = avatar.get("skills") or []
-    if skills:
+    if skills and not compact:
         try:
             from . import avatar_skills as AS
             costs = [AS.skill_cost(i) for i in range(1, len(skills) + 1)]
