@@ -370,6 +370,24 @@ class MySQLStore:
                         self._row(uid, profile,
                                   seen=time.time() if touch else None))
 
+    def put_many(self, profiles: dict[str, dict], touch: bool = True) -> None:
+        """Write several profiles in one MySQL transaction."""
+        self.ensure_ready()
+        conn = self._conn()
+        seen = time.time() if touch else None
+        conn.begin()
+        try:
+            with conn.cursor() as cur:
+                cur.executemany(
+                    self._UPSERT,
+                    [self._row(str(uid), profile, seen=seen)
+                     for uid, profile in profiles.items()],
+                )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
     def has(self, uid: str) -> bool:
         self.ensure_ready()
         with self._conn().cursor() as cur:
