@@ -11,11 +11,10 @@ JSON:
    against Rush Launch. The gate is asserted by running a real sixteen-hit
    Special into Shining Shuriken and counting.
 
-2. **Unstable Attack's drawback going missing.** The +10 Attack half and the
-   +0.2 stamina half are two separate ops on one rule. If they fall out of
-   step — or if the flat surcharge never reaches `deduct_cost` — the blade is
-   pure upside and the JSON still reads correctly. Both are driven to full
-   stacks and the resulting Attack cost is measured.
+2. **Unstable Attack's drawbacks going missing.** The +8 Attack, +0.3 stamina
+   cost and +1 Stability usage are separate ops on one rule. If they fall out
+   of step, the blade gets free power. All three are driven to full stacks and
+   their caps and move scopes are asserted.
 
 Run:  python3 tools/sim_mythic_beys.py
 """
@@ -130,9 +129,10 @@ print("\n── 3. it really fires once per Attack, not once per hit ───�
 from cogs.battle.status_manager import StatusManager                # noqa: E402
 from cogs.battle.stamina_manager import (StaminaManager,            # noqa: E402
                                          STAMINA_COST)
+from cogs.battle.stability_manager import StabilityManager           # noqa: E402
 from cogs.abilities.ability_engine import AbilityEngine             # noqa: E402
 from cogs.core.constants import (MOVE_ATTACK, MOVE_SPECIAL,         # noqa: E402
-                                 MOVE_DEFENSE)
+                                 MOVE_DEFENSE, MOVE_CHARGE)
 
 
 class Stub:
@@ -223,22 +223,30 @@ check("...and drops 40% of the enemy's Attack (100 -> -40)",
       any("attack" in ln.lower() and "-40" in ln for ln in logs),
       [ln for ln in logs if "attack" in ln.lower()])
 
-print("\n── 4. Unstable Attack: both halves, in lockstep ─────────────────")
+print("\n── 4. Unstable Attack: power and both costs stay in lockstep ───")
 rules = DB[BD]["abilities"][0]["rules"]
 for when in ("on_attack_hit", "on_hit"):
     r = [x for x in rules if x["when"] == when]
     check(f"Blood Dragon stacks on {when}", len(r) == 1, len(r))
     ops = {o["op"] for o in r[0]["do"]}
-    check(f"{when}: it banks Attack AND raises its own cost",
-          ops == {"stacking_buff", "stamina_cost_increase"}, ops)
+    check(f"{when}: Attack, stamina cost and Stability cost all stack",
+          ops == {"stacking_buff", "stamina_cost_increase",
+                  "stability_cost_increase"}, ops)
     buf = [o for o in r[0]["do"] if o["op"] == "stacking_buff"][0]
-    cost = [o for o in r[0]["do"] if o["op"] == "stamina_cost_increase"][0]
-    check(f"{when}: +10 Attack a stack, 10 stacks",
-          buf["per_stack"] == 10 and buf["max"] == 10, buf)
-    check(f"{when}: +0.2 stamina a stack, same 10 cap",
-          cost["flat_per_stack"] == 0.2 and cost["max"] == 10, cost)
-    check(f"{when}: the surcharge hits Attack and Special only",
-          sorted(cost["moves"]) == ["attack", "special"], cost["moves"])
+    stam = [o for o in r[0]["do"] if o["op"] == "stamina_cost_increase"][0]
+    stab = [o for o in r[0]["do"] if o["op"] == "stability_cost_increase"][0]
+    check(f"{when}: +8 Attack a stack, 10 stacks",
+          buf["per_stack"] == 8 and buf["max"] == 10, buf)
+    check(f"{when}: +0.3 stamina a stack, same 10 cap",
+          stam["flat_per_stack"] == 0.3 and stam["max"] == 10, stam)
+    check(f"{when}: stamina surcharge hits Attack, Defense and Special",
+          sorted(stam["moves"]) == ["attack", "defense", "special"],
+          stam["moves"])
+    check(f"{when}: +1 Stability usage a stack, same 10 cap",
+          stab["flat_per_stack"] == 1 and stab["max"] == 10, stab)
+    check(f"{when}: Stability surcharge hits Attack/Defense/Charge/Special",
+          sorted(stab["moves"]) == ["attack", "charge", "defense", "special"],
+          stab["moves"])
 
 s, e = engine_for(DB[BD], plain)
 sm = s.stamina_manager
@@ -253,77 +261,85 @@ def cost_of(mgr, key, move):
 
 
 def base_of(mgr, key, move):
-    """This blade's own un-stacked cost for `move`.
-
-    Attack and Defense no longer cost a flat STAMINA_COST[move] for the whole
-    roster — they scale with the stat that button uses, measured against the
-    blade's own stamina stat. Blood Dragon is the extreme case that makes the
-    point: 158 Attack on 81 Stamina, so it pays 3.25 to swing where the table
-    says 2.2, and only 1.49 to defend on its 29 Defense.
-
-    These checks are about the +0.2-a-stack SURCHARGE, so they measure the
-    delta from the blade's real base. Re-typing the post-scaling numbers here
-    would assert the cost curve by accident, in a file about a blade's
-    ability.
-    """
     return mgr._scaled_cost(key, move, STAMINA_COST[move])
 
 
 sm.stamina["1"] = 100.0
 _bd_atk = base_of(sm, "1", MOVE_ATTACK)
+_bd_def = base_of(sm, "1", MOVE_DEFENSE)
 _bd_spc = base_of(sm, "1", MOVE_SPECIAL)
-check(f"before any hit, an Attack costs Blood Dragon's own base {_bd_atk}",
-      cost_of(sm, "1", MOVE_ATTACK) == _bd_atk,
-      cost_of(sm, "1", MOVE_ATTACK))
 
 for n in range(1, 13):          # deliberately past the 10-stack cap
     e.apply("1", "2", s.blades["1"], s.blades["2"], MOVE_ATTACK, "win", 50, 0)
     if n == 1:
-        check("one hit adds +0.2 to the Attack cost",
-              cost_of(sm, "1", MOVE_ATTACK) == round(_bd_atk + 0.2, 2),
+        check("one hit adds +0.3 stamina cost",
+              cost_of(sm, "1", MOVE_ATTACK) == round(_bd_atk + 0.3, 2),
               cost_of(sm, "1", MOVE_ATTACK))
     if n == 5:
-        check(f"five hits: +1.0 ({_bd_atk} -> {round(_bd_atk + 1.0, 2)})",
-              cost_of(sm, "1", MOVE_ATTACK) == round(_bd_atk + 1.0, 2),
+        check("five hits add +1.5 stamina cost",
+              cost_of(sm, "1", MOVE_ATTACK) == round(_bd_atk + 1.5, 2),
               cost_of(sm, "1", MOVE_ATTACK))
 
-check(f"at 10 stacks an Attack costs {round(_bd_atk + 2.0, 2)} "
-      f"instead of {_bd_atk}",
-      cost_of(sm, "1", MOVE_ATTACK) == round(_bd_atk + 2.0, 2),
+check("at 10 stacks Attack has +3 stamina cost",
+      cost_of(sm, "1", MOVE_ATTACK) == round(_bd_atk + 3.0, 2),
       cost_of(sm, "1", MOVE_ATTACK))
-check(f"...and a Special {round(_bd_spc + 2.0, 2)} instead of {_bd_spc}",
-      cost_of(sm, "1", MOVE_SPECIAL) == round(_bd_spc + 2.0, 2),
-      cost_of(sm, "1", MOVE_SPECIAL))
-check("hits 11 and 12 add nothing — the cap really caps",
-      sm.cost_increase_flat["1"] == 2.0, sm.cost_increase_flat["1"])
-check("Defense is not surcharged — the drawback is offensive",
-      cost_of(sm, "1", MOVE_DEFENSE) == base_of(sm, "1", MOVE_DEFENSE),
+check("Defense also has +3 stamina cost",
+      cost_of(sm, "1", MOVE_DEFENSE) == round(_bd_def + 3.0, 2),
       cost_of(sm, "1", MOVE_DEFENSE))
-check("the opponent pays nothing for Blood Dragon's stacks",
-      cost_of(sm, "2", MOVE_ATTACK) == base_of(sm, "2", MOVE_ATTACK),
-      cost_of(sm, "2", MOVE_ATTACK))
-check("the Attack buff capped at +100 in the same 10 stacks",
-      e.counters.get(("1", "unstable")) == 10,
-      e.counters.get(("1", "unstable")))
-check("the two halves stayed in lockstep",
-      e.counters.get(("1", "unstable"))
-      == e.counters.get(("1", "unstable_cost")),
-      (e.counters.get(("1", "unstable")),
-       e.counters.get(("1", "unstable_cost"))))
+check("Special also has +3 stamina cost",
+      cost_of(sm, "1", MOVE_SPECIAL) == round(_bd_spc + 3.0, 2),
+      cost_of(sm, "1", MOVE_SPECIAL))
+check("stamina surcharge caps at +3.0",
+      sm.cost_increase_flat["1"] == 3.0, sm.cost_increase_flat["1"])
+check("Attack buff caps at +80 across 10 stacks",
+      s.status.get_buff_bonus("1", "attack") == 80,
+      s.status.get_buff_bonus("1", "attack"))
+check("all three stack counters stay in lockstep",
+      e.counters.get(("1", "unstable")) == 10
+      and e.counters.get(("1", "unstable_cost")) == 10
+      and e.counters.get(("1", "unstable_stability_cost")) == 10,
+      {k: v for k, v in e.counters.items() if k[0] == "1"})
 
-# The Special path banks stacks too — same ability, other trigger. `on_hit`
-# is fired by process_hit_proc, NOT by apply(): the engine keeps the two
-# strictly apart so an attack-side effect cannot go off once per Special hit.
-# Going through apply() here would have "passed" by never firing at all.
+# The AbilityEngine writes the Stability surcharge onto the manager.
+check("at 10 stacks Stability surcharge is +10",
+      s.stability_manager.cost_increase_flat["1"] == 10,
+      s.stability_manager.cost_increase_flat["1"])
+check("its move scope includes Attack, Defense, Charge and Special",
+      sorted(s.stability_manager.cost_increase_moves["1"])
+      == ["attack", "charge", "defense", "special"],
+      s.stability_manager.cost_increase_moves["1"])
+
+# Drive the real StabilityManager so the new primitive is proven all the way
+# down to the meter rather than merely present in JSON/engine state.
+real_stm = StabilityManager(
+    {"1": DB[BD]},
+    {"1": types.SimpleNamespace(stability_start=100)},
+)
+real_stm.cost_increase_flat["1"] = 10
+real_stm.cost_increase_moves["1"] = ("attack", "defense", "charge", "special")
+for move_name in (MOVE_ATTACK, MOVE_DEFENSE, MOVE_CHARGE, MOVE_SPECIAL):
+    real_stm.stability["1"] = 100
+    real_stm.apply_move_cost_increase("1", move_name)
+    check(f"{move_name}: +10 Stability usage is actually charged",
+          real_stm.stability["1"] == 90, real_stm.stability["1"])
+real_stm.stability["1"] = 100
+real_stm.apply_move_cost_increase("1", "stamina")
+check("Stamina move is intentionally NOT surcharged",
+      real_stm.stability["1"] == 100, real_stm.stability["1"])
+
+# Special hits build stacks too, one stack per successful hit.
 s, e = engine_for(DB[BD], plain)
 for _ in range(4):
     e.process_hit_proc("1", s.blades["1"], "2", 40)
-check("each Special HIT banks a stack as well",
+check("each Special hit banks one stack",
       e.counters.get(("1", "unstable")) == 4,
       e.counters.get(("1", "unstable")))
-check("...raising the cost by the same 0.8",
-      s.stamina_manager.cost_increase_flat["1"] == 0.8,
+check("four Special hits raise stamina surcharge to +1.2",
+      s.stamina_manager.cost_increase_flat["1"] == 1.2,
       s.stamina_manager.cost_increase_flat["1"])
+check("...and Stability surcharge to +4",
+      s.stability_manager.cost_increase_flat["1"] == 4,
+      s.stability_manager.cost_increase_flat["1"])
 
 print("\n── 5. Blood Claw adds its full Attack, and pays for it ──────────")
 spec = [r for r in DB[BD]["abilities"][0]["rules"] if r["when"] == "on_special"]
