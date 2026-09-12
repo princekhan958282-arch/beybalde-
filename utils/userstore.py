@@ -338,6 +338,23 @@ class UserStore:
             self._UPSERT,
             self._row_tuple(uid, profile, seen=time.time() if touch else None))
 
+    def put_many(self, profiles: dict[str, dict], touch: bool = True) -> None:
+        """Write several profiles in one SQLite transaction."""
+        self.ensure_ready()
+        conn = self._conn()
+        seen = time.time() if touch else None
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            conn.executemany(
+                self._UPSERT,
+                [self._row_tuple(str(uid), profile, seen=seen)
+                 for uid, profile in profiles.items()],
+            )
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+
     def has(self, uid: str) -> bool:
         self.ensure_ready()
         return self._conn().execute(
