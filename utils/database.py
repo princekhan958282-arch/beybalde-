@@ -440,6 +440,26 @@ async def mutate_user(user_id: int, fn, touch: bool = True):
     return await asyncio.to_thread(_mutate_user_sync, user_id, fn, touch)
 
 
+def _mutate_users_sync(user_ids, fn, touch: bool = True):
+    """Atomically mutate multiple profiles and persist all of them or none."""
+    ids = [str(uid) for uid in dict.fromkeys(user_ids)]
+    if not ids:
+        raise ValueError("at least one user id is required")
+    with _users_lock:
+        profiles = {
+            uid: USER_STORE.get_one(uid) or _default_profile(uid)
+            for uid in ids
+        }
+        result = fn(profiles)
+        USER_STORE.put_many(profiles, touch=touch)
+        return result
+
+
+async def mutate_users(user_ids, fn, touch: bool = True):
+    """Async front door for one atomic multi-profile transaction."""
+    return await asyncio.to_thread(_mutate_users_sync, user_ids, fn, touch)
+
+
 def touch_user(user_id: int) -> None:
     """Record activity without rewriting the profile blob."""
     prof = USER_STORE.get_one(str(user_id))
