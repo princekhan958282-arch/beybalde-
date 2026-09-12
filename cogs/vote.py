@@ -8,10 +8,9 @@ A verified active Top.gg vote grants:
     - 20,000 Beycoins
     - 3 hours of EXP Surge
 
-The claim is protected by both Top.gg verification and a durable 12-hour
-per-user claim window. The reminder is also durable: after a successful claim,
-the bot stores the next reminder timestamp in the player's profile and a
-background loop sends one DM when that timestamp becomes due.
+The claim is protected by Top.gg verification plus the exact v1 vote creation
+timestamp, so one vote can only pay once. The reminder uses Top.gg's own vote
+expiry timestamp and is stored durably in the player's profile.
 
 TOPGG_API_TOKEN must contain the API token from the bot's Top.gg dashboard.
 The current Top.gg v1 vote-status endpoint is used so the bot can identify the
@@ -184,7 +183,14 @@ class VoteCog(commands.Cog, name="Vote"):
                 headers={"Authorization": f"Bearer {token}"},
             ) as response:
                 if response.status == 200:
-                    data = await response.json(content_type=None)
+                    try:
+                        data = await response.json(content_type=None)
+                    except (ValueError, aiohttp.ContentTypeError) as exc:
+                        raise VoteServiceError(
+                            "Top.gg returned an unreadable vote response.") from exc
+                    if not isinstance(data, dict):
+                        raise VoteServiceError(
+                            "Top.gg returned an invalid vote response.")
                     created_at = str(data.get("created_at", "") or "")
                     expires_raw = str(data.get("expires_at", "") or "")
                     if not created_at or not expires_raw:
