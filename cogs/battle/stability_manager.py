@@ -163,6 +163,11 @@ class StabilityManager:
                  avatar_bonuses: Optional[dict] = None) -> None:
         self._blades = blades
         self.stability: dict[str, int] = {}
+        # Ability-driven per-move stability surcharges. AbilityEngine owns the
+        # stack counters; this manager owns the resolved cost because it is the
+        # only authority that mutates the stability meter.
+        self.cost_increase_flat: dict[str, float] = {}
+        self.cost_increase_moves: dict[str, tuple[str, ...]] = {}
         # Starting stability doubles as the CEILING: recovery (stamina +25,
         # blocked +5, ability ops) can refill the meter but never overfill it.
         # Without this cap, stamina spam pushed stability to 200/100, made
@@ -317,6 +322,36 @@ class StabilityManager:
             if frac <= threshold:
                 return effects
         return {}
+
+    def move_cost_increase(self, key: str, move: str) -> int:
+        """Snapshot the extra Stability cost owed by key for move."""
+        try:
+            amount = float(self.cost_increase_flat.get(key, 0.0) or 0.0)
+            allowed = self.cost_increase_moves.get(
+                key, ("attack", "defense", "charge", "special"))
+            if amount <= 0 or str(move).lower() not in allowed:
+                return 0
+            return max(0, int(round(amount)))
+        except Exception:
+            return 0
+
+    def apply_move_cost_increase(
+        self, key: str, move: str, amount: Optional[int] = None
+    ) -> list[str]:
+        """Apply an ability-authored extra Stability cost for this move.
+
+        amount may be snapshotted before move resolution. That matters for
+        stack-on-hit abilities: a stack earned by the current hit must increase
+        the NEXT action cost, exactly like stamina is deducted before the hit.
+        """
+        try:
+            cost = self.move_cost_increase(key, move) if amount is None else max(
+                0, int(amount))
+            if cost <= 0:
+                return []
+            return self._apply(key, -cost)
+        except Exception:
+            return []
 
     # =========================================================================
     #  Private helpers

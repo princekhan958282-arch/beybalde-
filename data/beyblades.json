@@ -7536,7 +7536,7 @@
     "spin_direction": "Right",
     "burst_height": "High",
     "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537309675605729361/Firefly.png?ex=6a7e92b4&is=6a7d4134&hm=96f0e86852fe220a3f33a1d9c73011b98c90ab388927041809b05e48f55771b0&",
-    "description": "158 Attack over 29 Defence, and no interest in a long fight. Blood Dragon feeds on its own momentum — every hit it lands makes the next one heavier and the one after that more expensive. It either finishes the job or grinds itself to a halt trying.",
+    "description": "158 Attack over 29 Defence, and no interest in a long fight. Blood Dragon feeds on successful hits: every connection raises its Attack while making Attack, Defense and Special cost more stamina and making Attack, Defense, Charge and Special consume more Stability. It must finish the fight before its own momentum becomes too expensive.",
     "stats": {
       "attack": 158,
       "defense": 29,
@@ -7547,7 +7547,7 @@
     "ability": {
       "name": "Unstable Attack",
       "trigger": "on_hit",
-      "description": "Every hit banks a stack, to a maximum of 10. Each stack is worth **+10 Attack** — and **+0.2 stamina** on every Attack and Special Blood Dragon makes from then on. At full stacks it swings with +100 Attack and pays 4.2 stamina an Attack instead of 2.2.",
+      "description": "Every successful hit banks a stack, to a maximum of 10. Each stack grants **+8 Attack**, adds **+0.3 stamina cost** to Attack, Defense and Special, and adds **+1 Stability usage** to Attack, Defense, Charge and Special. At full stacks Blood Dragon has +80 Attack, +3 stamina cost on Attack/Defense/Special, and +10 Stability usage on Attack/Defense/Charge/Special.",
       "rules": [
         {
           "when": "on_attack_hit",
@@ -7555,17 +7555,30 @@
             {
               "op": "stacking_buff",
               "stat": "attack",
-              "per_stack": 10,
+              "per_stack": 8,
               "max": 10,
               "name": "unstable"
             },
             {
               "op": "stamina_cost_increase",
-              "flat_per_stack": 0.2,
+              "flat_per_stack": 0.3,
               "max": 10,
               "name": "unstable_cost",
               "moves": [
                 "attack",
+                "defense",
+                "special"
+              ]
+            },
+            {
+              "op": "stability_cost_increase",
+              "flat_per_stack": 1,
+              "max": 10,
+              "name": "unstable_stability_cost",
+              "moves": [
+                "attack",
+                "defense",
+                "charge",
                 "special"
               ]
             }
@@ -7578,23 +7591,36 @@
             {
               "op": "stacking_buff",
               "stat": "attack",
-              "per_stack": 10,
+              "per_stack": 8,
               "max": 10,
               "name": "unstable"
             },
             {
               "op": "stamina_cost_increase",
-              "flat_per_stack": 0.2,
+              "flat_per_stack": 0.3,
               "max": 10,
               "name": "unstable_cost",
               "moves": [
                 "attack",
+                "defense",
+                "special"
+              ]
+            },
+            {
+              "op": "stability_cost_increase",
+              "flat_per_stack": 1,
+              "max": 10,
+              "name": "unstable_stability_cost",
+              "moves": [
+                "attack",
+                "defense",
+                "charge",
                 "special"
               ]
             }
           ],
           "_name": "Unstable Attack",
-          "_note": "on_hit is the per-Special-hit trigger and on_attack_hit the normal-attack one; they are disjoint, so a swing banks exactly one stack."
+          "_note": "on_hit is the per-Special-hit trigger and on_attack_hit the normal-attack one; they are disjoint, so a successful hit banks exactly one stack."
         }
       ]
     },
@@ -7613,7 +7639,7 @@
       {
         "name": "Unstable Attack",
         "trigger": "on_hit",
-        "description": "Every hit banks a stack, to a maximum of 10. Each stack is worth **+10 Attack** — and **+0.2 stamina** on every Attack and Special Blood Dragon makes from then on. At full stacks it swings with +100 Attack and pays 4.2 stamina an Attack instead of 2.2.",
+        "description": "Every successful hit banks a stack, to a maximum of 10. Each stack grants **+8 Attack**, adds **+0.3 stamina cost** to Attack, Defense and Special, and adds **+1 Stability usage** to Attack, Defense, Charge and Special. At full stacks Blood Dragon has +80 Attack, +3 stamina cost on Attack/Defense/Special, and +10 Stability usage on Attack/Defense/Charge/Special.",
         "rules": [
           {
             "when": "on_attack_hit",
@@ -7621,17 +7647,30 @@
               {
                 "op": "stacking_buff",
                 "stat": "attack",
-                "per_stack": 10,
+                "per_stack": 8,
                 "max": 10,
                 "name": "unstable"
               },
               {
                 "op": "stamina_cost_increase",
-                "flat_per_stack": 0.2,
+                "flat_per_stack": 0.3,
                 "max": 10,
                 "name": "unstable_cost",
                 "moves": [
                   "attack",
+                  "defense",
+                  "special"
+                ]
+              },
+              {
+                "op": "stability_cost_increase",
+                "flat_per_stack": 1,
+                "max": 10,
+                "name": "unstable_stability_cost",
+                "moves": [
+                  "attack",
+                  "defense",
+                  "charge",
                   "special"
                 ]
               }
@@ -7644,23 +7683,36 @@
               {
                 "op": "stacking_buff",
                 "stat": "attack",
-                "per_stack": 10,
+                "per_stack": 8,
                 "max": 10,
                 "name": "unstable"
               },
               {
                 "op": "stamina_cost_increase",
-                "flat_per_stack": 0.2,
+                "flat_per_stack": 0.3,
                 "max": 10,
                 "name": "unstable_cost",
                 "moves": [
                   "attack",
+                  "defense",
+                  "special"
+                ]
+              },
+              {
+                "op": "stability_cost_increase",
+                "flat_per_stack": 1,
+                "max": 10,
+                "name": "unstable_stability_cost",
+                "moves": [
+                  "attack",
+                  "defense",
+                  "charge",
                   "special"
                 ]
               }
             ],
             "_name": "Unstable Attack",
-            "_note": "on_hit is the per-Special-hit trigger and on_attack_hit the normal-attack one; they are disjoint, so a swing banks exactly one stack."
+            "_note": "on_hit is the per-Special-hit trigger and on_attack_hit the normal-attack one; they are disjoint, so a successful hit banks exactly one stack."
           },
           {
             "when": "on_special",

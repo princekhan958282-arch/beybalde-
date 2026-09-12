@@ -1391,6 +1391,39 @@ class AbilityEngine:
                                     f"by {int(pct * 100)}%!")
                 except Exception:
                     pass
+            elif kind == "stability_cost_increase":
+                # Stackable self-stability surcharge for selected moves.
+                # Stored on StabilityManager so the move-resolution layer can
+                # charge it exactly once per selected action.
+                try:
+                    stm = self.session.stability_manager
+                    if not hasattr(stm, "cost_increase_flat"):
+                        stm.cost_increase_flat = {}
+                    if not hasattr(stm, "cost_increase_moves"):
+                        stm.cost_increase_moves = {}
+
+                    moves = op.get("moves")
+                    if moves:
+                        stm.cost_increase_moves[key] = tuple(
+                            str(m).lower() for m in moves)
+                    elif key not in stm.cost_increase_moves:
+                        stm.cost_increase_moves[key] = (
+                            "attack", "defense", "charge", "special")
+
+                    per = float(op.get("flat_per_stack", val or 0))
+                    cname = op.get("name", f"{ab_name}_stability_cost")
+                    mx = int(op.get("max", 99))
+                    cur = self.counters.get((key, cname), 0)
+                    if per > 0 and cur < mx:
+                        cur += 1
+                        self.counters[(key, cname)] = cur
+                        stm.cost_increase_flat[key] = cur * per
+                        logs.append(
+                            f"💢 **{ab_name}** — stack {cur}/{mx}: "
+                            f"selected moves now use "
+                            f"+{stm.cost_increase_flat[key]:g} Stability!")
+                except Exception:
+                    pass
             elif kind == "stamina_cost_increase":
                 # The drawback half of a power ability: this blade's OWN moves
                 # cost more stamina. `stamina_cost_reduction` clamps to 0–0.9

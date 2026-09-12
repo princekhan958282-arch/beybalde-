@@ -17,16 +17,16 @@ ability as specified.
 
 **Blood Dragon** is the opposite: 158 Attack over 29 Defence, and an ability
 that makes it stronger and more expensive at the same time. Unstable Attack
-banks +10 Attack per hit to 10 stacks, and every one of those stacks also adds
-0.2 stamina to the cost of every Attack and Special it makes afterwards. At
-full stacks that is +100 Attack and an Attack that costs 4.2 stamina instead
-of 2.2 — it wins fast or it seizes up.
+banks +8 Attack per hit to 10 stacks. Every stack also adds 0.3 stamina to
+Attack, Defense and Special, plus 1 Stability usage to Attack, Defense, Charge
+and Special. At full stacks that is +80 Attack, +3 stamina cost and +10
+Stability usage on the authored moves — it wins fast or it seizes up.
 
 Blood Claw adds Blood Dragon's full Attack stat to its 170 base and charges 3
 more stamina on top of the Special's own cost.
 
 Three ops carry this and are documented at their definitions in
-cogs/abilities/ability_engine.py: `stamina_cost_increase`'s stacking flat form,
+cogs/abilities/ability_engine.py: `stamina_cost_increase`'s stacking flat form, `stability_cost_increase`,
 `bonus_damage_stat`, and `drain_stamina`'s `steal: false`.
 
 Idempotent: re-running replaces these two by name rather than appending.
@@ -134,20 +134,24 @@ BEYS = [
             "name": "Unstable Attack",
             "trigger": "on_hit",
             "description": (
-                "Every hit banks a stack, to a maximum of 10. Each stack is "
-                "worth **+10 Attack** — and **+0.2 stamina** on every Attack "
-                "and Special Blood Dragon makes from then on. At full stacks "
-                "it swings with +100 Attack and pays 4.2 stamina an Attack "
-                "instead of 2.2."),
+                "Every successful hit banks a stack, to a maximum of 10. "
+                "Each stack grants **+8 Attack**, adds **+0.3 stamina cost** "
+                "to Attack, Defense and Special, and adds **+1 Stability "
+                "usage** to Attack, Defense, Charge and Special. At full "
+                "stacks that is +80 Attack, +3 stamina cost and +10 Stability "
+                "usage on the authored moves."),
             "rules": [
                 {
                     "when": "on_attack_hit",
                     "do": [
                         {"op": "stacking_buff", "stat": "attack",
-                         "per_stack": 10, "max": 10, "name": "unstable"},
-                        {"op": "stamina_cost_increase", "flat_per_stack": 0.2,
+                         "per_stack": 8, "max": 10, "name": "unstable"},
+                        {"op": "stamina_cost_increase", "flat_per_stack": 0.3,
                          "max": 10, "name": "unstable_cost",
-                         "moves": ["attack", "special"]},
+                         "moves": ["attack", "defense", "special"]},
+                        {"op": "stability_cost_increase", "flat_per_stack": 1,
+                         "max": 10, "name": "unstable_stability_cost",
+                         "moves": ["attack", "defense", "charge", "special"]},
                     ],
                     "_name": "Unstable Attack",
                 },
@@ -155,10 +159,13 @@ BEYS = [
                     "when": "on_hit",
                     "do": [
                         {"op": "stacking_buff", "stat": "attack",
-                         "per_stack": 10, "max": 10, "name": "unstable"},
-                        {"op": "stamina_cost_increase", "flat_per_stack": 0.2,
+                         "per_stack": 8, "max": 10, "name": "unstable"},
+                        {"op": "stamina_cost_increase", "flat_per_stack": 0.3,
                          "max": 10, "name": "unstable_cost",
-                         "moves": ["attack", "special"]},
+                         "moves": ["attack", "defense", "special"]},
+                        {"op": "stability_cost_increase", "flat_per_stack": 1,
+                         "max": 10, "name": "unstable_stability_cost",
+                         "moves": ["attack", "defense", "charge", "special"]},
                     ],
                     "_name": "Unstable Attack",
                     "_note": "on_hit is the per-Special-hit trigger and "
