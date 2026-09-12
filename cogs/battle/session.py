@@ -1264,6 +1264,15 @@ class BattleSession:
             self.defense_manager.apply_stability_costs(k2, m2, m1, matchup_p1, dmg_p1)
         )
 
+        # ── Ability-driven stability surcharges ───────────────────────────────
+        # Charged once per selected action after the ordinary stability rules
+        # have resolved. This also covers Charge and Special, which normally
+        # have no stability cost at all.
+        for key, move in ((k1, m1), (k2, m2)):
+            round_log.extend(
+                self.stability_manager.apply_move_cost_increase(key, move)
+            )
+
         # ── Ring-out check (stability reached zero) ───────────────────────────
         for key in (k1, k2):
             if self.hp[key] > 0 and self._ring_out_guard(key, round_log):
