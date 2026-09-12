@@ -24,9 +24,7 @@ import discord
 from discord.ext import commands
 from discord import ui
 
-from utils.database import (
-    get_user, update_user, load_beyblades, mutate_user, mutate_users,
-)
+from utils.database import get_user, update_user, load_beyblades, mutate_user
 from utils.availability import obtainable
 from utils.embeds import RARITY_EMOJIS
 
@@ -1451,68 +1449,56 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
         if seller.bot:
             return await ctx.send("❌ You can't buy from a bot!")
 
-        from utils.inventory import can_add as _inv_can_add
+        seller_profile = await get_user(seller.id)
+        listings       = seller_profile.get("marketplace_listings", [])
 
-        class SaleRejected(Exception):
-            pass
-
-        def complete_sale(profiles: dict[str, dict]) -> dict:
-            seller_profile = profiles[str(seller.id)]
-            buyer_profile = profiles[str(ctx.author.id)]
-            listings = seller_profile.get("marketplace_listings", [])
-            listing = next(
-                (item for item in listings
-                 if item.get("bey_name", "").lower() == bey_name.lower()),
-                None,
+        listing = next((l for l in listings if l["bey_name"].lower() == bey_name.lower()), None)
+        if not listing:
+            return await ctx.send(
+                f"❌ **{seller.display_name}** doesn't have **{bey_name}** listed.\n"
+                f"Check `;marketplace` for available listings."
             )
-            if listing is None:
-                raise SaleRejected("sold")
 
-            price = int(listing.get("price", 0))
-            buyer_coins = int(buyer_profile.get("coins", 0))
-            if price < MARKETPLACE_MIN:
-                raise SaleRejected("invalid")
-            if buyer_coins < price:
-                raise SaleRejected(f"coins:{price}:{buyer_coins}")
-            if not _inv_can_add(buyer_profile):
-                raise SaleRejected("full")
+        price          = listing["price"]
+        buyer_profile  = await get_user(ctx.author.id)
+        buyer_coins    = buyer_profile.get("coins", 0)
 
-            fee = int(price * MARKETPLACE_FEE)
-            payout = price - fee
-            listings.remove(listing)
-            seller_profile["marketplace_listings"] = listings
-            seller_profile["coins"] = int(seller_profile.get("coins", 0)) + payout
-            buyer_profile["coins"] = buyer_coins - price
-            buyer_profile.setdefault("inventory", []).append(listing["bey_name"])
-            return {"listing": dict(listing), "price": price, "payout": payout}
-
-        try:
-            sale = await mutate_users(
-                [seller.id, ctx.author.id], complete_sale
+        if buyer_coins < price:
+            return await ctx.send(
+                f"❌ **{listing['bey_name']}** costs **{price:,} coins** but you only have **{buyer_coins:,}**.\n"
+                f"Short by **{price - buyer_coins:,} coins**."
             )
-        except SaleRejected as exc:
-            reason = str(exc)
-            if reason == "sold":
-                return await ctx.send(
-                    f"❌ **{bey_name}** is no longer available. Check `;marketplace`."
-                )
-            if reason == "full":
-                from utils.inventory import full_message
-                buyer_profile = await get_user(ctx.author.id)
-                return await ctx.send(full_message(buyer_profile, bey_name))
-            if reason.startswith("coins:"):
-                _, price_text, coins_text = reason.split(":")
-                price, buyer_coins = int(price_text), int(coins_text)
-                return await ctx.send(
-                    f"❌ This Bey costs **{price:,} coins** but you only have "
-                    f"**{buyer_coins:,}**. Short by **{price - buyer_coins:,} coins**."
-                )
-            logger.error("Rejected invalid marketplace listing from seller %s", seller.id)
-            return await ctx.send("❌ This listing is invalid and cannot be purchased.")
 
-        listing = sale["listing"]
-        price = sale["price"]
-        seller_payout = sale["payout"]
+        fee           = int(price * MARKETPLACE_FEE)
+        seller_payout = price - fee
+
+        # Re-fetch seller profile to guard against concurrent purchases of the same listing
+        seller_profile = await get_user(seller.id)
+        listings       = seller_profile.get("marketplace_listings", [])
+        listing        = next((l for l in listings if l["bey_name"].lower() == bey_name.lower()), None)
+        if not listing:
+            return await ctx.send(
+                f"❌ **{bey_name}** was just sold to someone else. Check `;marketplace` for other listings."
+            )
+
+        # BEFORE the seller is paid. This block pays out and delists at :1429
+        # and only grants the bey seven lines later — checking capacity at the
+        # append would have taken the buyer's coins, paid the seller, removed
+        # the listing, and then had nowhere to put the bey.
+        from utils.inventory import can_add as _inv_can_add, full_message
+        if not _inv_can_add(buyer_profile):
+            return await ctx.send(full_message(buyer_profile, bey_name))
+
+        # Update seller first — remove listing and pay out
+        listings.remove(listing)
+        seller_profile["marketplace_listings"] = listings
+        seller_profile["coins"] = seller_profile.get("coins", 0) + seller_payout
+        await update_user(seller.id, seller_profile)
+
+        # Then deduct from buyer and grant Bey
+        buyer_profile["coins"] = buyer_coins - price
+        buyer_profile.setdefault("inventory", []).append(listing["bey_name"])
+        await update_user(ctx.author.id, buyer_profile)
 
         bey_data   = load_beyblades().get(listing["bey_name"], {})
         rarity     = bey_data.get("rarity", "Common")
