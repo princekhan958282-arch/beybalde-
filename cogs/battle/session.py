@@ -1185,6 +1185,14 @@ class BattleSession:
         for key, move in ((k1, m1), (k2, m2)):
             round_log.extend(sm.deduct_cost(key, move))
 
+        # Snapshot ability-driven Stability costs BEFORE damage/abilities.
+        # A stack earned by this move affects the next move, matching stamina
+        # costs which were deducted immediately above.
+        stability_surcharge = {
+            key: self.stability_manager.move_cost_increase(key, move)
+            for key, move in ((k1, m1), (k2, m2))
+        }
+
         # ── Passive stamina regen (after cost deduction) ────────────────────────
         for key in (k1, k2):
             move_this_round = self.moves[key]
@@ -1270,7 +1278,8 @@ class BattleSession:
         # have no stability cost at all.
         for key, move in ((k1, m1), (k2, m2)):
             round_log.extend(
-                self.stability_manager.apply_move_cost_increase(key, move)
+                self.stability_manager.apply_move_cost_increase(
+                    key, move, stability_surcharge.get(key, 0))
             )
 
         # ── Ring-out check (stability reached zero) ───────────────────────────
