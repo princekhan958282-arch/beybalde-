@@ -174,15 +174,15 @@ def main() -> int:
     at100 = BL.stats_at(RV, 100, {})
     check("base stats stay at or under the level-100 cap",
           all(v <= BL.STAT_CAP for v in at100.values()), at100)
-    check("Special is authored with a real (non-zero) base — 190",
-          RV["special_move"]["damage_per_hit"] == 190)
+    check("Special is authored with a real (non-zero) base — 170",
+          RV["special_move"]["damage_per_hit"] == 170)
     check("the transformation art is present in the JSON at all",
           any("1542361664182296656" in op.get("image_url", "")
               for ab in RV["abilities"] for rule in ab["rules"]
               for op in rule.get("do", []) if op.get("op") == "evolve_form"))
 
     # ── 2. Radiant Rush — damage math, and the 2-round normal cadence ───────
-    print("\n── 2. Radiant Rush — +20% + +15% ATK, once every 2 rounds ──────")
+    print("\n── 2. Radiant Rush — +13% ATK +8% on win/loss, every 2 rounds ─")
     atk = RV["stats"]["attack"]
     # Both riders are a share of the ATK STAT, not of the damage already
     # dealt. This shipped as `bonus_damage_pct: 180` — +180% of the hit — which
@@ -190,11 +190,11 @@ def main() -> int:
     # other round, from an ability rather than a Special. "+180% ATK scaling"
     # in the spec meant the Special's kind of scaling (a multiple of ATK), and
     # the corrected figure is +20%.
-    rush = round(atk * 0.20) + round(atk * 0.15)
+    rush = round(atk * 0.13) + round(atk * 0.08)
 
     s = FakeSession(RV, DUMMY)
     out1, _, logs1 = move(s, MOVE_ATTACK, "win", dmg=100)
-    check("round 1: Radiant Rush fires — +20% ATK scaling AND the +15% rider",
+    check("round 1: Radiant Rush fires — +13% ATK plus +8% on an Attack win",
           out1 == 100 + rush, (out1, 100 + rush))
     check("...and it is a fraction of ATK, NOT a multiple of the hit — a "
           "100-damage swing must not come back as 300",
@@ -218,8 +218,8 @@ def main() -> int:
     print("\n── 3. Silver Flame Awakening — transform triggered by the Special ─")
     s2 = FakeSession(RV, MIRROR_FOE, ehp=100000)
     dealt, sp_logs = special(s2, "p", "e")
-    want_special = RV["special_move"]["damage_per_hit"] + round(atk * 1.80)
-    check("Silver Radiance: 190 base + a rider worth 180% Attack",
+    want_special = RV["special_move"]["damage_per_hit"] + round(atk * 0.52)
+    check("Silver Radiance: 170 base + a rider worth 52% Attack",
           dealt == want_special, (dealt, want_special))
 
     check("the form evolves: name changes to Silver Flame",
@@ -230,11 +230,8 @@ def main() -> int:
     check("the mode tag flips to silverflame (drives Radiant Rush's cadence "
           "and Silver Burn)",
           s2.ability.modes.get("p") == "silverflame")
-    check("+25% Attack buff is live",
-          s2.ability._get_buf_bonus("p", "attack") == round(atk * 0.25),
-          s2.ability._get_buf_bonus("p", "attack"))
-    check("+10% damage amp is live (tracked separately from the ATK buff)",
-          abs(s2.status.get_dmg_amp("p") - 0.10) < 1e-9,
+    check("+11% damage amp is live",
+          abs(s2.status.get_dmg_amp("p") - 0.11) < 1e-9,
           s2.status.get_dmg_amp("p"))
     check("a timed_modes entry is armed for the 3-turn window",
           any(e["key"] == "p" and e["mode"] == "silverflame"
@@ -257,6 +254,12 @@ def main() -> int:
     check("Silver Burn is on the defender after an Attack in Silver Flame",
           s2.status.burn_stacks.get("e", 0) > 0,
           s2.status.burn_stacks.get("e", 0))
+    check("Silver Burn is 20 damage for 3 turns, max 3 stacks",
+          any(op.get("op") == "status_apply" and op.get("status") == "burn"
+              and op.get("dmg") == 20 and op.get("turns") == 3
+              and op.get("max_stacks") == 3
+              for ab in RV["abilities"] for rule in ab.get("rules", [])
+              for op in rule.get("do", [])))
 
     s2b = FakeSession(RV, DUMMY)   # never transformed
     move(s2b, MOVE_ATTACK, "win", dmg=100)
@@ -267,9 +270,8 @@ def main() -> int:
     print("\n── 4. Silver Flame's 3-turn window expires everything at once ────")
     s3 = FakeSession(RV, MIRROR_FOE, ehp=100000)
     special(s3, "p", "e")
-    check("armed: transformed, buffed, amped",
+    check("armed: transformed and amped",
           s3.blades["p"]["name"] == "Radiant Valkyrie: Silver Flame"
-          and s3.ability._get_buf_bonus("p", "attack") > 0
           and s3.status.get_dmg_amp("p") > 0)
 
     tick_round(s3)   # 3 -> 2
@@ -285,10 +287,7 @@ def main() -> int:
           "1542361648273166406" in s3.blades["p"]["image_url"])
     check("...and the mode tag clears",
           s3.ability.modes.get("p") != "silverflame", s3.ability.modes.get("p"))
-    check("...and the +25% Attack buff is gone",
-          s3.ability._get_buf_bonus("p", "attack") == 0,
-          s3.ability._get_buf_bonus("p", "attack"))
-    check("...and the +10% damage amp is gone",
+    check("...and the +11% damage amp is gone",
           s3.status.get_dmg_amp("p") == 0, s3.status.get_dmg_amp("p"))
 
     out_after, _, _ = move(s3, MOVE_ATTACK, "win", dmg=100)
@@ -310,7 +309,7 @@ def main() -> int:
           s4.ability.timed_modes)
     check("the re-cast's rider still added real damage "
           "(the transform block is gated, not the whole ability)",
-          s4.hp["e"] < 100000 - 2 * round(atk * 1.80))
+          s4.hp["e"] < 100000 - 2 * round(atk * 0.52))
 
     # ── 6. reachability ────────────────────────────────────────────────────
     print("\n── 6. reachability — every op/trigger the kit names is in its JSON ─")
