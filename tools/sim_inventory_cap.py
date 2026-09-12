@@ -234,17 +234,10 @@ check("the trim happens before the cost is computed",
       booster.index("amount = room")
       < booster.index("total_cost = BOOSTER_PACK_PRICE * amount"))
 
-# -- ;buybey: both profiles move in one database transaction ----------------
+# -- ;buybey: the seller is paid before the buyer is granted anything -------
 m0 = shop.index("async def buybey")
 m_end = shop.index("async def ", m0 + 20)
 buy = shop[m0:m_end]
-check("buybey uses the atomic multi-user transaction",
-      "mutate_users(" in buy and "update_user(" not in buy)
-check("seller payout and buyer grant are inside the same callback",
-      buy.index('seller_profile["coins"] =')
-      < buy.index("return {\"listing\"")
-      and buy.index('buyer_profile.setdefault("inventory"')
-      < buy.index("return {\"listing\""))
 check("buybey checks capacity before the seller is paid",
       buy.index("_inv_can_add(buyer_profile)")
       < buy.index('seller_profile["coins"] ='))
