@@ -14,9 +14,9 @@ the bot stores the next reminder timestamp in the player's profile and a
 background loop sends one DM when that timestamp becomes due.
 
 TOPGG_API_TOKEN must contain the API token from the bot's Top.gg dashboard.
-The legacy vote-check endpoint remains supported by Top.gg and is intentionally
-used here because it answers the one thing this command needs without requiring
-this Discord bot process to expose a public webhook server.
+The current Top.gg v1 vote-status endpoint is used so the bot can identify the
+exact vote by its creation timestamp and reward it once without requiring this
+Discord process to expose a public webhook server.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from utils.database import get_user, load_users, mutate_user
+from utils.database import load_users, mutate_user
 from utils.secrets import get as get_secret
 from utils.xp_boost import K_SURGE_UNTIL
 
