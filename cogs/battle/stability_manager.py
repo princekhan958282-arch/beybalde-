@@ -163,6 +163,11 @@ class StabilityManager:
                  avatar_bonuses: Optional[dict] = None) -> None:
         self._blades = blades
         self.stability: dict[str, int] = {}
+        # Ability-driven per-move stability surcharges. AbilityEngine owns the
+        # stack counters; this manager owns the resolved cost because it is the
+        # only authority that mutates the stability meter.
+        self.cost_increase_flat: dict[str, float] = {}
+        self.cost_increase_moves: dict[str, tuple[str, ...]] = {}
         # Starting stability doubles as the CEILING: recovery (stamina +25,
         # blocked +5, ability ops) can refill the meter but never overfill it.
         # Without this cap, stamina spam pushed stability to 200/100, made
@@ -317,6 +322,29 @@ class StabilityManager:
             if frac <= threshold:
                 return effects
         return {}
+
+    def apply_move_cost_increase(self, key: str, move: str) -> list[str]:
+        """Apply an ability-authored extra stability cost for this move.
+
+        The surcharge is independent of the normal type-gated stability rules:
+        it is a drawback the blade carries itself. A +10 surcharge therefore
+        still costs 10 on Charge/Special even though those moves normally cost
+        zero stability.
+        """
+        try:
+            amount = float(self.cost_increase_flat.get(key, 0.0) or 0.0)
+            allowed = self.cost_increase_moves.get(
+                key, ("attack", "defense", "charge", "special"))
+            if amount <= 0 or str(move).lower() not in allowed:
+                return []
+            # Current Blood Dragon values are integral, but round explicitly so
+            # the primitive behaves predictably for future fractional authors.
+            cost = max(0, int(round(amount)))
+            if cost <= 0:
+                return []
+            return self._apply(key, -cost)
+        except Exception:
+            return []
 
     # =========================================================================
     #  Private helpers
