@@ -367,11 +367,13 @@ class HorrorCog(commands.Cog, name="Horror Story"):
     ) -> None:
         # Snapshot the equipped Bey at the moment the battle is accepted.
         bey_name = None
+        copy_id = None
         try:
             from cogs.battle.boss import boss_copy as bcopy
             blade, _copy = await bcopy.equipped_blade(target_id)
             if blade:
                 bey_name = blade.get("name")
+                copy_id = str((_copy or {}).get("id") or "") or None
         except Exception as exc:  # noqa: BLE001
             log.warning("[horror] equipped bey lookup failed for %s: %s", target_id, exc)
 
@@ -386,6 +388,7 @@ class HorrorCog(commands.Cog, name="Horror Story"):
             status="battle_requested",
             battle_started=True,
             equipped_bey=bey_name,
+            equipped_copy_id=copy_id,
         )
         view.stop()
         await interaction.response.edit_message(
@@ -400,6 +403,7 @@ class HorrorCog(commands.Cog, name="Horror Story"):
             interaction.channel,
             interaction.user,
             bey_name,
+            copy_id,
         )
 
     async def apply_unknown_curse(
