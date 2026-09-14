@@ -33,6 +33,12 @@ UNKNOWN_IMAGE_URL = (
     "?ex=6aa9619d&is=6aa8101d&hm=52cb22cc9eb3835acafd3b535fbbbe4dd5a3d6315e42295b03456ad57855ded5&"
 )
 
+UNKNOWN_INFO_IMAGE_URL = (
+    "https://cdn.discordapp.com/attachments/1510856884943454208/"
+    "1549102872346493090/file_0000000006b881f494a52c31bd02f654.png"
+    "?ex=6aa979f9&is=6aa82879&hm=9ed5d8aebd67180cabbc303a7533163359104fb224af3a523110e5d333628b06&"
+)
+
 UNKNOWN_LEVEL = 100
 UNKNOWN_STAT = 600
 UNKNOWN_NPC_ID = -404404000000
@@ -362,25 +368,13 @@ def _arm_unknown(session: BattleSession, player_key: str, unknown_key: str,
 
 
 def _unknown_info_embed() -> discord.Embed:
-    embed = discord.Embed(
-        title="👁️ UNKNOWN",
-        description=(
-            "**Name:** UNKNOWN\n"
-            "**Type:** UNKNOWN\n"
-            "**Rarity:** UNKNOWN\n"
-            "**Level:** UNKNOWN\n\n"
-            "**HP:** UNKNOWN\n"
-            "**ATK:** UNKNOWN\n"
-            "**DEF:** UNKNOWN\n"
-            "**STM:** UNKNOWN\n"
-            "**Stability:** UNKNOWN\n\n"
-            "**Ability:** UNKNOWN\n"
-            "**Special Move:** UNKNOWN\n\n"
-            "*No information about this Beyblade exists.*"
-        ),
-        color=0x050505,
-    )
-    embed.set_image(url=UNKNOWN_IMAGE_URL)
+    """The dedicated full-card art is the entire public info surface.
+
+    Do not rebuild UNKNOWN's hidden stats as text here. The artwork is the
+    canonical ;info unknown / ;bey unknown / ;binfo unknown response.
+    """
+    embed = discord.Embed(color=0x050505)
+    embed.set_image(url=UNKNOWN_INFO_IMAGE_URL)
     return embed
 
 
