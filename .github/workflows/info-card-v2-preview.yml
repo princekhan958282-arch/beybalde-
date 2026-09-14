@@ -1,9 +1,15 @@
 name: Info Card V2 Preview
 
 on:
-  push:
-    branches:
-      - redesign-info-card-v2
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'utils/info_card_v2.py'
+      - 'utils/info_card_v2_fixups.py'
+      - 'utils/info_card_router.py'
+      - 'utils/__init__.py'
+      - 'tools/render_info_card_v2_preview.py'
+      - '.github/workflows/info-card-v2-preview.yml'
 
 jobs:
   preview:
