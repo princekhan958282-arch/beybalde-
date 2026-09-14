@@ -126,7 +126,8 @@ def _iter_rules(blade: dict) -> Iterable[dict]:
     for ability in blade.get("abilities") or []:
         if not isinstance(ability, dict):
             continue
-        for rule in ability.get("rules") or []:
+        source_rules = ability.get("rules") or legacy_convert(ability)
+        for rule in source_rules:
             if isinstance(rule, dict):
                 yield rule
 
