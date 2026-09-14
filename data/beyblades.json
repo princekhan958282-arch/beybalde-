@@ -11332,5 +11332,209 @@
         "☄️ **Final impact** — every stored spark detonates at once!"
       ]
     }
+  },
+  "Xeno Xcalius": {
+    "id": "BB117",
+    "name": "Xeno Xcalius",
+    "rarity": "Epic",
+    "type": "Attack",
+    "spin_direction": "Right",
+    "burst_height": "Mid",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1548880825267781714/Beyblade_Xcalibur.webp?ex=6aa8ab2d&is=6aa759ad&hm=bf40575dc5b9a7cf55870dd8aa11e9914cb78fc36c6dd3ac2b9cecae2942084a&",
+    "description": "A sword-focused Attack type built to snowball successful clashes into a devastating finishing strike. Xeno Xcalius hits harder as its momentum rises, but its aggressive balance burns stamina when an attack fails.",
+    "stats": {
+      "attack": 132,
+      "defense": 72,
+      "stamina": 88,
+      "special": 140,
+      "hp": 118
+    },
+    "ability": {
+      "name": "Xeno Impact",
+      "trigger": "on_attack_win",
+      "description": "Every Attack Win grants 1 Xeno Stack, giving +8% ATK per stack up to 3 stacks (+24%). At 3 stacks, Sword Impact adds +35% ATK bonus damage and ignores 15% Defense, then consumes all Xeno Stacks. Every Attack Loss costs 1 additional Stamina.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack_pct": 8,
+              "max": 3,
+              "name": "xeno_stack"
+            },
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.35,
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "xeno_stack",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "op": "special_pierce_pct",
+              "value": 15,
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "xeno_stack",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "op": "spend_stacks",
+              "name": "xeno_stack",
+              "label": "Xeno Stack",
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "xeno_stack",
+                  "value": 3
+                }
+              ]
+            }
+          ],
+          "_name": "Xeno Impact"
+        },
+        {
+          "when": "on_attack_loss",
+          "do": [
+            {
+              "op": "gain_stamina",
+              "value": -1
+            }
+          ],
+          "_name": "Xeno Recoil"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Xeno Impact",
+        "trigger": "on_attack_win",
+        "description": "Every Attack Win grants 1 Xeno Stack, giving +8% ATK per stack up to 3 stacks (+24%). At 3 stacks, Sword Impact adds +35% ATK bonus damage and ignores 15% Defense, then consumes all Xeno Stacks. Every Attack Loss costs 1 additional Stamina.",
+        "rules": [
+          {
+            "when": "on_attack_win",
+            "do": [
+              {
+                "op": "stacking_buff",
+                "stat": "attack",
+                "per_stack_pct": 8,
+                "max": 3,
+                "name": "xeno_stack"
+              },
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.35,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "xeno_stack",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "op": "special_pierce_pct",
+                "value": 15,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "xeno_stack",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "op": "spend_stacks",
+                "name": "xeno_stack",
+                "label": "Xeno Stack",
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "xeno_stack",
+                    "value": 3
+                  }
+                ]
+              }
+            ],
+            "_name": "Xeno Impact"
+          },
+          {
+            "when": "on_attack_loss",
+            "do": [
+              {
+                "op": "gain_stamina",
+                "value": -1
+              }
+            ],
+            "_name": "Xeno Recoil"
+          }
+        ]
+      },
+      {
+        "name": "Dual Saber Strike",
+        "trigger": "on_special",
+        "description": "Deals 200% ATK damage and pierces 20% Defense. If Xeno Xcalius has 3 Xeno Stacks, the Special reaches 240% ATK. All Xeno Stacks are consumed, and Xcalius loses 2 Stamina after firing. Once per battle.",
+        "rules": [
+          {
+            "when": "on_special",
+            "once": "battle",
+            "do": [
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 2
+              },
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.4,
+                "_if": [
+                  {
+                    "cond": "counter_at_least",
+                    "name": "xeno_stack",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "op": "special_pierce_pct",
+                "value": 20
+              },
+              {
+                "op": "spend_stacks",
+                "name": "xeno_stack",
+                "label": "Xeno Stack"
+              },
+              {
+                "op": "gain_stamina",
+                "value": -2
+              }
+            ],
+            "_name": "Dual Saber Strike"
+          }
+        ]
+      }
+    ],
+    "special_move": {
+      "name": "⚔️ Dual Saber Strike",
+      "description": "Xeno Xcalius aligns its blades for a decisive sword strike. Deals 200% ATK with 20% Defense Pierce; at 3 Xeno Stacks it rises to 240% ATK. Consumes all stacks, costs 2 additional Stamina, and can be used once per battle.",
+      "non_damage": true,
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "flavour_texts": [
+        "⚔️ **Dual Saber Strike** — Xeno Xcalius brings both sabers down at full force!"
+      ]
+    }
   }
 }
