@@ -3,22 +3,21 @@
 from __future__ import annotations
 
 import io
-import os
+import sys
 from pathlib import Path
 
-from PIL import Image
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
+from PIL import Image
 from utils.roster_migrations import UNLOCK_UNICORN
 from utils import info_card_v2
 
-ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "artifacts" / "unlock_unicorn_info_v2.jpg"
 
 
 def main() -> None:
     blade = dict(UNLOCK_UNICORN)
-    # The combo printed on the reference card. These are display-only values;
-    # no battle data is changed by the preview.
     blade.setdefault("ratchet", "Down")
     blade.setdefault("bit", "Needle")
 
