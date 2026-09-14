@@ -21,6 +21,7 @@ from discord.ext import commands
 
 from cogs.battle.session import BattleSession
 from cogs.story.story_ai import LeagueOpponent
+from cogs.abilities.legacy_convert import legacy_convert
 from utils import horror_state
 from utils.database import get_user, mutate_user
 
@@ -34,7 +35,7 @@ UNKNOWN_IMAGE_URL = (
 
 UNKNOWN_LEVEL = 100
 UNKNOWN_STAT = 600
-UNKNOWN_NPC_ID = 404404
+UNKNOWN_NPC_ID = -404404000000
 
 # Real internal values.  The public info surface intentionally never renders
 # this dict; see _info_guard below.
@@ -78,8 +79,10 @@ class UnknownFighter:
 
     __slots__ = ("id", "display_name", "bot", "mention")
 
-    def __init__(self) -> None:
-        self.id = UNKNOWN_NPC_ID
+    def __init__(self, player_id: int) -> None:
+        # Unique synthetic ID per target so two simultaneous Horror battles
+        # cannot overwrite each other's entry in BattleCog.active_battles.
+        self.id = UNKNOWN_NPC_ID - int(player_id)
         self.display_name = "UNKNOWN"
         self.bot = False
         self.mention = "**UNKNOWN**"
@@ -123,7 +126,8 @@ def _iter_rules(blade: dict) -> Iterable[dict]:
     for ability in blade.get("abilities") or []:
         if not isinstance(ability, dict):
             continue
-        for rule in ability.get("rules") or []:
+        source_rules = ability.get("rules") or legacy_convert(ability)
+        for rule in source_rules:
             if isinstance(rule, dict):
                 yield rule
 
@@ -175,6 +179,13 @@ def _counter_profile(blade: dict) -> dict[str, Any]:
                     amount = float(raw or 0)
                 except (TypeError, ValueError):
                     amount = 0.0
+                # A stacking attack gain is countered at its authored ceiling,
+                # not just one stack. Otherwise +8 ATK x10 only produced +8 DEF.
+                if "stack" in kind and op.get("max") is not None and op.get("per_stack") is not None:
+                    try:
+                        amount *= max(1, int(op.get("max") or 1))
+                    except (TypeError, ValueError):
+                        pass
                 # A percentage attack gain is countered with the same share of
                 # UNKNOWN's 600 DEF. Flat gains are mirrored flat.
                 if "pct" in op or op.get("pct") is not None:
@@ -272,21 +283,29 @@ def _countered_player_blade(blade: dict, flags: dict[str, Any]) -> dict:
             abilities.append(ability)
             continue
         ab = copy.deepcopy(ability)
+        # Legacy flat-field abilities must be converted before filtering.
+        # Merely detecting "heal"/"crit" in their text did not counter them,
+        # because AbilityEngine converted the untouched fields again later.
+        source_rules = ab.get("rules") or legacy_convert(ab)
         rules = []
-        for rule in ab.get("rules") or []:
+        for rule in source_rules:
             if not isinstance(rule, dict):
                 rules.append(rule)
                 continue
             r = copy.deepcopy(rule)
-            if str(r.get("when") or "").lower() == "on_special":
-                # Special payload is countered automatically, including chains.
+            when = str(r.get("when") or "").lower()
+            if when in {"on_special", "on_hit"}:
+                # Special payload is countered automatically, including per-hit
+                # riders that would otherwise turn a 0-damage Special back into
+                # real damage.
                 r["do"] = []
                 r.pop("_chain", None)
             else:
                 r["do"] = _filter_ops(r.get("do") or [], flags=flags)
             rules.append(r)
-        if "rules" in ab:
-            ab["rules"] = rules
+        # Freeze the converted rules onto the private battle copy so the engine
+        # cannot re-convert the original legacy flat fields behind our filter.
+        ab["rules"] = rules
         abilities.append(ab)
     out["abilities"] = abilities
     return out
@@ -424,17 +443,24 @@ class UnknownBattleCog(commands.Cog, name="Unknown Horror Battle"):
         return False
 
     @commands.Cog.listener()
-    async def on_horror_battle_requested(self, channel, user, equipped_bey_name) -> None:
+    async def on_horror_battle_requested(
+        self, channel, user, equipped_bey_name, equipped_copy_id=None
+    ) -> None:
         uid = int(user.id)
         if uid in self._running:
             return
         self._running.add(uid)
         try:
-            await self._run(channel, user, str(equipped_bey_name))
+            await self._run(
+                channel, user, str(equipped_bey_name),
+                str(equipped_copy_id) if equipped_copy_id else None,
+            )
         finally:
             self._running.discard(uid)
 
-    async def _run(self, channel, player, accepted_name: str) -> None:
+    async def _run(
+        self, channel, player, accepted_name: str, accepted_copy_id: str | None = None
+    ) -> None:
         from cogs.battle.battle import _apply_parts
         from cogs.battle.boss import boss_copy as bcopy
 
@@ -453,12 +479,18 @@ class UnknownBattleCog(commands.Cog, name="Unknown Horror Battle"):
             return await channel.send(
                 f"{player.mention}\n**UNKNOWN:** that's not the bey you brought me."
             )
+        current_copy_id = str((copy_instance or {}).get("id") or "") or None
+        if current_copy_id != accepted_copy_id:
+            horror_state.save_encounter(player.id, status="battle_failed")
+            return await channel.send(
+                f"{player.mention}\n**UNKNOWN:** don't switch beys after accepting."
+            )
 
         player_blade = raw_blade if copy_instance else _apply_parts(raw_blade, profile)
         flags = _counter_profile(player_blade)
         player_blade = _countered_player_blade(player_blade, flags)
 
-        npc = UnknownFighter()
+        npc = UnknownFighter(player.id)
         unknown_blade = copy.deepcopy(UNKNOWN_BEY)
         controller = UnknownOpponent(npc, unknown_blade)
 
@@ -490,6 +522,10 @@ class UnknownBattleCog(commands.Cog, name="Unknown Horror Battle"):
         )
         pkey, ukey = str(player.id), str(npc.id)
         _arm_unknown(session, pkey, ukey, flags)
+        # Hard stop for the player's Special. This lives on the session so
+        # flat passives, per-hit procs and avatar Special riders cannot leak
+        # damage back into a Special that UNKNOWN already countered.
+        session.special_nullified_keys = {pkey}
 
         # Do not reveal which counter was selected. The entire point of Part 1
         # is that players notice the adaptation before they understand it.
@@ -526,8 +562,20 @@ class UnknownBattleCog(commands.Cog, name="Unknown Horror Battle"):
                     active.pop(npc.id, None)
 
         winner_id = getattr(session, "winner_id", None)
+        if winner_id is None:
+            # Never destroy inventory because the battle errored, timed out in
+            # an undecidable state, or was interrupted before a result existed.
+            horror_state.save_encounter(
+                player.id,
+                status="battle_failed",
+                battle_started=False,
+                bey_claimed=False,
+            )
+            return await channel.send(
+                f"{player.mention}\n**UNKNOWN:** this battle isn't finished."
+            )
         player_won = str(winner_id) == str(player.id)
-        copy_id = str((copy_instance or {}).get("id") or "") or None
+        copy_id = accepted_copy_id
         claimed = await mutate_user(
             player.id,
             lambda p: _take_equipped(p, accepted_name, copy_id),
