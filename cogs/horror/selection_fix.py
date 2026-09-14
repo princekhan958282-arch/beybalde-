@@ -1,9 +1,11 @@
-"""Make Horror settings selection state reliable across Discord interactions.
+"""Reliable Horror settings state + scalable player selection.
 
-The first implementation stored server/channel/player only on one View object.
-On mobile, later component interactions can arrive after the message has been
-refreshed, which made the next callback behave as if no server had been picked.
-Mirror IDs into the cog and restore them whenever the panel is reconstructed.
+Discord string selects are capped at 25 options, and relying on the guild member
+cache can make a large server look like it only has a handful of members.  This
+patch keeps the selected IDs stable, makes Player ID reliable, and replaces the
+old fixed member list with Discord's searchable UserSelect component.  Discord
+itself then supplies members from the selected guild instead of Beycord building
+a truncated cached list.
 """
 
 from __future__ import annotations
@@ -54,9 +56,7 @@ def _view_init(self, cog, owner):
 async def _server_callback(self, interaction: discord.Interaction):
     guild = self.panel.cog.bot.get_guild(int(self.values[0]))
     if guild is None:
-        return await interaction.response.send_message(
-            "❌ Server is unavailable.", ephemeral=True
-        )
+        return await interaction.response.send_message("❌ Server is unavailable.", ephemeral=True)
     changed = self.panel.guild is None or self.panel.guild.id != guild.id
     self.panel.guild = guild
     if changed:
@@ -70,58 +70,91 @@ async def _server_callback(self, interaction: discord.Interaction):
 async def _channel_callback(self, interaction: discord.Interaction):
     _restore(self.panel)
     if not self.panel.guild:
-        return await interaction.response.send_message(
-            "❌ Select a server first.", ephemeral=True
-        )
+        return await interaction.response.send_message("❌ Select a server first.", ephemeral=True)
     channel = self.panel.guild.get_channel(int(self.values[0]))
     if not isinstance(channel, discord.TextChannel):
-        return await interaction.response.send_message(
-            "❌ Channel is unavailable.", ephemeral=True
-        )
+        return await interaction.response.send_message("❌ Channel is unavailable.", ephemeral=True)
     self.panel.channel = channel
     _store(self.panel)
     self.panel.rebuild()
     await interaction.response.edit_message(embed=self.panel.embed(), view=self.panel)
 
 
-async def _player_callback(self, interaction: discord.Interaction):
-    _restore(self.panel)
-    if not self.panel.guild:
-        return await interaction.response.send_message(
-            "❌ Select a server first.", ephemeral=True
+class SearchablePlayerSelect(discord.ui.UserSelect):
+    """Discord-native searchable member picker for the selected server."""
+
+    def __init__(self, panel):
+        self.panel = panel
+        super().__init__(
+            placeholder="Select / search Player" if panel.guild else "Select a server first",
+            min_values=1,
+            max_values=1,
+            disabled=panel.guild is None,
+            row=2,
         )
-    uid = int(self.values[0])
-    member = self.panel.guild.get_member(uid)
-    if member is None:
-        try:
-            member = await self.panel.guild.fetch_member(uid)
-        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-            member = None
-    if member is None or member.bot:
-        return await interaction.response.send_message(
-            "❌ Player is unavailable in the selected server.", ephemeral=True
-        )
-    self.panel.target = member
-    _store(self.panel)
-    self.panel.rebuild()
-    await interaction.response.edit_message(embed=self.panel.embed(), view=self.panel)
+
+    async def callback(self, interaction: discord.Interaction):
+        _restore(self.panel)
+        guild = self.panel.guild
+        if guild is None:
+            return await interaction.response.send_message("❌ Select a server first.", ephemeral=True)
+
+        selected = self.values[0]
+        uid = int(selected.id)
+        member = guild.get_member(uid)
+        if member is None:
+            try:
+                member = await guild.fetch_member(uid)
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                member = None
+        if member is None or member.bot:
+            return await interaction.response.send_message(
+                "❌ Select a real player who belongs to the selected server.", ephemeral=True
+            )
+
+        self.panel.target = member
+        _store(self.panel)
+        self.panel.rebuild()
+        await interaction.response.edit_message(embed=self.panel.embed(), view=self.panel)
+
+
+def _rebuild(self):
+    self.clear_items()
+    self.add_item(h.ServerSelect(self))
+    self.add_item(h.ChannelSelect(self))
+    self.add_item(SearchablePlayerSelect(self))
+
+    player_id = discord.ui.Button(
+        label="Player ID", emoji="🔎", style=discord.ButtonStyle.secondary, row=3
+    )
+    player_id.callback = self._player_id
+    self.add_item(player_id)
+
+    spawn = discord.ui.Button(
+        label="SPAWN", emoji="👁️", style=discord.ButtonStyle.danger, row=3
+    )
+    spawn.callback = self._spawn
+    self.add_item(spawn)
+
+    close = discord.ui.Button(label="Close", style=discord.ButtonStyle.secondary, row=3)
+    close.callback = self._close
+    self.add_item(close)
 
 
 async def _player_id_submit(self, interaction: discord.Interaction):
     _restore(self.panel)
-    if not self.panel.guild:
-        return await interaction.response.send_message(
-            "❌ Select a server first.", ephemeral=True
-        )
+    guild = self.panel.guild
+    if guild is None:
+        return await interaction.response.send_message("❌ Select a server first.", ephemeral=True)
     try:
-        uid = int(str(self.player_id).strip())
-    except ValueError:
+        uid = int(str(self.player_id.value).strip())
+    except (TypeError, ValueError):
         return await interaction.response.send_message("❌ Invalid user ID.", ephemeral=True)
 
-    member = self.panel.guild.get_member(uid)
+    member = guild.get_member(uid)
     if member is None:
         try:
-            member = await self.panel.guild.fetch_member(uid)
+            member = await guild.fetch_member(uid)
         except (discord.NotFound, discord.Forbidden, discord.HTTPException):
             member = None
     if member is None or member.bot:
@@ -138,9 +171,7 @@ async def _player_id_submit(self, interaction: discord.Interaction):
 async def _player_id_button(self, interaction: discord.Interaction):
     _restore(self)
     if not self.guild:
-        return await interaction.response.send_message(
-            "❌ Select a server first.", ephemeral=True
-        )
+        return await interaction.response.send_message("❌ Select a server first.", ephemeral=True)
     await interaction.response.send_modal(h.PlayerIdModal(self))
 
 
@@ -157,9 +188,9 @@ async def _spawn(self, interaction: discord.Interaction):
 
 async def setup(bot) -> None:
     h.HorrorSettingsView.__init__ = _view_init
+    h.HorrorSettingsView.rebuild = _rebuild
     h.ServerSelect.callback = _server_callback
     h.ChannelSelect.callback = _channel_callback
-    h.PlayerSelect.callback = _player_callback
     h.PlayerIdModal.on_submit = _player_id_submit
     h.HorrorSettingsView._player_id = _player_id_button
     h.HorrorSettingsView._spawn = _spawn
