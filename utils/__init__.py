@@ -19,6 +19,14 @@ try:
     import sys as _sys
     from . import info_card_router as _selected_info_card
 
+    # Presentation-only V2 polish.  This is deliberately isolated so disabling
+    # V2 or falling back to legacy remains a clean rollback path.
+    try:
+        from . import info_card_v2_fixups as _info_card_v2_fixups
+        _info_card_v2_fixups.apply(_selected_info_card.v2)
+    except Exception:
+        pass
+
     info_card = _selected_info_card
     _sys.modules[f"{__name__}.info_card"] = _selected_info_card
 except Exception:
