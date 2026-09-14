@@ -151,6 +151,7 @@ COGS = [
     "cogs.codes.redeem",
     "cogs.battle.boss.boss_battle",
     "cogs.story",            # the School League (PvE on the real PvP engine)
+    "cogs.horror",           # owner-controlled Horror Story encounters
     "cogs.updates",          # update DMs out, /bugs and /suggest back in
     "cogs.vote",             # /vote Top.gg rewards + re-vote reminders
     "cogs.community",        # polls, giveaways, XP — MAIN SERVER ONLY
