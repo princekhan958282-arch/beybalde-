@@ -1,0 +1,62 @@
+name: Info Card V2 Test
+
+on:
+  push:
+    branches:
+      - redesign-info-card-v2
+  pull_request:
+    paths:
+      - 'utils/info_card_v2.py'
+      - 'utils/info_card_router.py'
+      - 'utils/info_card_legacy.py'
+      - 'utils/info_card_pillow_legacy.py'
+      - 'tools/sim_info_card_v2.py'
+      - '.github/workflows/info-card-v2-test.yml'
+
+jobs:
+  render-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependency
+        run: python -m pip install --upgrade pillow
+
+      - name: Run V2 smoke checks
+        run: python tools/sim_info_card_v2.py
+
+      - name: Render Unlock Unicorn exact Discord card
+        run: |
+          python - <<'PY'
+          import asyncio
+          from pathlib import Path
+          from utils.roster_migrations import UNLOCK_UNICORN
+          from utils import info_card_v2
+
+          async def main():
+              buf = await info_card_v2.render_info_card(UNLOCK_UNICORN)
+              if buf is None:
+                  raise SystemExit('Unlock Unicorn V2 render returned None')
+              data = buf.getvalue()
+              if data[:2] != b'\xff\xd8':
+                  raise SystemExit('Unlock Unicorn output is not JPEG')
+              out = Path('artifacts/unlock_unicorn_v2.jpg')
+              out.parent.mkdir(parents=True, exist_ok=True)
+              out.write_bytes(data)
+              print(f'wrote {out} ({len(data)} bytes)')
+
+          asyncio.run(main())
+          PY
+
+      - name: Upload exact rendered card
+        uses: actions/upload-artifact@v4
+        with:
+          name: unlock-unicorn-v2-card
+          path: artifacts/unlock_unicorn_v2.jpg
+          if-no-files-found: error
