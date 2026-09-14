@@ -16,9 +16,9 @@ def _flat_edge_background_to_alpha(img: Image.Image | None) -> Image.Image | Non
     """Remove only flat neutral backgrounds connected to the image edges.
 
     Some Bey art arrives as an opaque WebP on black with a neutral grey strip
-    along the bottom.  A normal alpha crop cannot remove that, so V2 used to
-    show a visible square inside the circular hero medallion.  Flood-filling
-    from the corners removes those *connected* flat fields while preserving
+    along the bottom. A normal alpha crop cannot remove that, so V2 used to
+    show a visible square inside the circular hero medallion. Flood-filling
+    from many edge seeds removes those *connected* flat fields while preserving
     dark/grey details enclosed inside the Bey itself.
     """
     if img is None:
@@ -28,17 +28,28 @@ def _flat_edge_background_to_alpha(img: Image.Image | None) -> Image.Image | Non
     if w < 2 or h < 2:
         return out
 
-    points = ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1))
+    # Corners alone are not enough for source images that contain a second
+    # flat band (for example a grey footer) touching only the left/right edge.
+    points: list[tuple[int, int]] = []
+    for i in range(0, 21):
+        x = min(w - 1, round((w - 1) * i / 20))
+        y = min(h - 1, round((h - 1) * i / 20))
+        points.extend(((x, 0), (x, h - 1), (0, y), (w - 1, y)))
+
+    seen: set[tuple[int, int]] = set()
     for xy in points:
+        if xy in seen:
+            continue
+        seen.add(xy)
         r, g, b, a = out.getpixel(xy)
         spread = max(r, g, b) - min(r, g, b)
         mean = (r + g + b) / 3.0
         # Only touch edge-connected colours that look like a background:
-        # near-black, or a fairly neutral grey.  Coloured backgrounds stay.
-        looks_flat_bg = max(r, g, b) <= 55 or (spread <= 16 and 65 <= mean <= 225)
+        # near-black, or a fairly neutral grey. Coloured backgrounds stay.
+        looks_flat_bg = max(r, g, b) <= 55 or (spread <= 18 and 55 <= mean <= 235)
         if a and looks_flat_bg:
             try:
-                ImageDraw.floodfill(out, xy, (0, 0, 0, 0), thresh=28)
+                ImageDraw.floodfill(out, xy, (0, 0, 0, 0), thresh=30)
             except Exception:
                 pass
     return out
@@ -47,7 +58,7 @@ def _flat_edge_background_to_alpha(img: Image.Image | None) -> Image.Image | Non
 def _clean_special_name(name: object) -> str:
     text = str(name or "")
     # Pillow's bundled/default fonts often lack emoji glyphs, which rendered as
-    # an empty square before a move name.  The information remains in the text;
+    # an empty square before a move name. The information remains in the text;
     # only unsupported leading symbol glyphs are removed from the card title.
     return re.sub(r"^[^A-Za-z0-9]+", "", text).strip() or text
 
