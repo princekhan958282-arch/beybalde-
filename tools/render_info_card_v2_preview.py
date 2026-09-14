@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Render the exact V2 Discord info-card bytes for Unlock Unicorn."""
+"""Render the exact V2 Discord info-card bytes for Unlock Unicorn.
+
+This is the visual regression target used while reviewing PR #106. It writes
+exactly the JPEG produced by the V2 Pillow renderer; Discord adds no filter.
+"""
 from __future__ import annotations
 
 import io
