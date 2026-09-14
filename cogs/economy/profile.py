@@ -1145,6 +1145,33 @@ class ProfileCog(commands.Cog, name="Profile"):
     @commands.command(name="beypedia", aliases=["bey", "binfo", "info"])
     async def beypedia(self, ctx: commands.Context, *, name: str = None) -> None:
         """;beypedia — your equipped bey | ;beypedia <name> — any bey."""
+        # Horror Story's opponent is intentionally outside the normal Beypedia.
+        if name is not None and name.strip().casefold() == "unknown":
+            try:
+                from cogs.horror.horror import UNKNOWN_BEY_IMAGE_URL
+            except Exception:
+                UNKNOWN_BEY_IMAGE_URL = None
+            embed = discord.Embed(
+                title="👁️ UNKNOWN",
+                description=(
+                    "**Name:** UNKNOWN\n"
+                    "**Type:** UNKNOWN\n"
+                    "**Rarity:** UNKNOWN\n"
+                    "**Level:** UNKNOWN\n\n"
+                    "**HP:** UNKNOWN\n"
+                    "**ATK:** UNKNOWN\n"
+                    "**DEF:** UNKNOWN\n"
+                    "**STM:** UNKNOWN\n"
+                    "**Stability:** UNKNOWN\n\n"
+                    "**Ability:** UNKNOWN\n"
+                    "**Special Move:** UNKNOWN\n\n"
+                    "*No information about this Beyblade exists.*"
+                ),
+                color=0x050505,
+            )
+            if UNKNOWN_BEY_IMAGE_URL:
+                embed.set_image(url=UNKNOWN_BEY_IMAGE_URL)
+            return await ctx.send(embed=embed)
         if name is None:
             # An equipped boss copy is a rolled instance, so its name is not in
             # beyblades.json — get_beyblade() returned None and that None went
