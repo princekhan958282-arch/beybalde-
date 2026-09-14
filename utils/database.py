@@ -610,38 +610,33 @@ async def has_claimed(user_id: int, key: str) -> bool:
 
 async def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) -> float:
     """
-    A damage/stat multiplier from BLADE MASTERY, and nothing else.
+    Combat stat multiplier from blade mastery plus account-wide modifiers.
 
-    Trainer level used to feed this: +2% to every stat per 10 levels, to a
-    +20% ceiling. Removed in v1.23. It was a scalar on attack, defence and
-    stamina at once, which is the one shape of bonus that cannot change a
-    decision — it never made a move better or worse, only made the same battle
-    resolve faster for whoever had been playing longer, and it did that to
-    every newer player they met. Trainer level pays coins now; see
-    `utils/trainer_levels.level_reward`.
+    Trainer level no longer affects combat. Blade mastery still gives +0.5%
+    per mastery level (up to the mastery subsystem's own cap).
 
-    This function is deliberately KEPT rather than deleted. Mastery is a real
-    per-blade bonus that still needs a home, six call sites already read it,
-    and `1.0` is the correct answer for a caller that passes no blade.
-
-    `blade_name` adds that blade's mastery bonus: +0.5% per mastery level,
-    +5% at Mastery 10. Callers that don't pass one get a flat 1.0.
+    Horror Story's Unknown curse is account-wide: while active it multiplies
+    the final combat stat scalar by 0.8. This path is shared by PvP, boss and
+    story battle setup, so the curse cannot be bypassed by changing modes or
+    equipping a boss copy.
     """
-    if not blade_name:
-        # Nothing to look up, so no profile read — this used to be the whole
-        # point of the call and is now the one case that costs nothing.
-        return 1.0
+    bonus = 0.0
+    if blade_name:
+        profile = await get_user(user_id)
+        try:
+            from cogs.extras.mastery import MASTERY_BONUS_PER_LEVEL, level_from_xp
+            entry = (profile.get("mastery") or {}).get(blade_name) or {}
+            bonus += level_from_xp(entry.get("xp", 0)) * MASTERY_BONUS_PER_LEVEL
+        except Exception:
+            pass
 
-    profile = await get_user(user_id)
-    bonus   = 0.0
+    mult = 1.0 + bonus
     try:
-        from cogs.extras.mastery import MASTERY_BONUS_PER_LEVEL, level_from_xp
-        entry = (profile.get("mastery") or {}).get(blade_name) or {}
-        bonus += level_from_xp(entry.get("xp", 0)) * MASTERY_BONUS_PER_LEVEL
+        from utils.horror_state import curse_multiplier
+        mult *= curse_multiplier(user_id)
     except Exception:
         pass
-
-    return 1.0 + bonus
+    return mult
 
 
 def add_beyblade_to_inventory(user_id: int, beyblade_name: str) -> bool:
