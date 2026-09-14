@@ -1,0 +1,32 @@
+name: Info Card V2 Preview
+
+on:
+  push:
+    branches:
+      - redesign-info-card-v2
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install preview dependencies
+        run: python -m pip install --upgrade pillow
+
+      - name: Render Unlock Unicorn
+        run: python tools/render_info_card_v2_preview.py
+
+      - name: Upload exact Discord card bytes
+        uses: actions/upload-artifact@v4
+        with:
+          name: unlock-unicorn-info-card-v2
+          path: artifacts/unlock_unicorn_info_v2.jpg
+          if-no-files-found: error
