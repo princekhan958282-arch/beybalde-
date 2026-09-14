@@ -26,6 +26,34 @@ HORROR_IMAGE_URL = (
     "1549073218004975716/8619f5904b67ec3c915a5c8563e1e64e_1.jpg"
     "?ex=6aa95e5b&is=6aa80cdb&hm=3666ae337cf73f0f0953a3c3aa1ef532ecb6e9f12dcec8d5705031e9937f4e98&"
 )
+UNKNOWN_BEY_IMAGE_URL = (
+    "https://cdn.discordapp.com/attachments/1510856884943454208/"
+    "1549076715903516732/38968.png"
+    "?ex=6aa9619d&is=6aa8101d&hm=52cb22cc9eb3835acafd3b535fbbbe4dd5a3d6315e42295b03456ad57855ded5&"
+)
+
+# Internal combat profile. Presentation must NEVER expose these values.
+# Level is fixed at the game's maximum; stats are deliberately balanced later.
+UNKNOWN_BEY = {
+    "id": "horror_unknown",
+    "name": "UNKNOWN",
+    "level": 100,
+    "image_url": UNKNOWN_BEY_IMAGE_URL,
+    "hidden": True,
+    "type": "Balance",
+    "rarity": "Exclusive",
+    "abilities": [{
+        "name": "Unknown Counter",
+        "trigger": "enemy_ability",
+        "description": "Automatically counters an enemy ability when it activates.",
+    }],
+    "special_move": {
+        "name": "Unknown Counter",
+        "trigger": "enemy_special",
+        "description": "Automatically counters an enemy Special Move when it activates.",
+    },
+}
+
 PROMPT_TIMEOUT = 120.0
 
 
@@ -300,6 +328,28 @@ class HorrorCog(commands.Cog, name="Horror Story"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self._curse_locks: dict[int, asyncio.Lock] = {}
+
+    @commands.Cog.listener()
+    async def on_horror_battle_requested(self, channel, user, equipped_bey_name):
+        """Reveal the hidden opponent card when the target accepts.
+
+        The normal battle engine listener can consume the same event. UNKNOWN's
+        actual numeric statline is intentionally not authored until balancing,
+        so this never invents combat numbers.
+        """
+        embed = discord.Embed(
+            title="👁️ UNKNOWN CHALLENGER",
+            description=(
+                f"**Your Bey:** {discord.utils.escape_markdown(str(equipped_bey_name))}\n"
+                "**Opponent:** UNKNOWN\n"
+                "**Type:** UNKNOWN\n"
+                "**Level:** UNKNOWN\n\n"
+                "*Something is wrong with this Bey...*"
+            ),
+            color=0x050505,
+        )
+        embed.set_image(url=UNKNOWN_BEY_IMAGE_URL)
+        await channel.send(embed=embed)
 
     @commands.command(name="settings", hidden=True)
     async def settings(self, ctx: commands.Context):
