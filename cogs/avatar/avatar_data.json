@@ -10,27 +10,50 @@
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520787463314870422/92a33fd259241144eec72a3fb4819af7.jpg?ex=6a427732&is=6a4125b2&hm=40701a8a94939a78239c9a207392c5fe334af867c31d0885db2615278e7d2be6&",
       "bonuses": {
         "attack_flat": 0,
-        "attack_percent": 0.0,
+        "attack_percent": 0,
         "defence_flat": 5,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 3,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 0,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 0,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.03
-      }
+      },
+      "skills": [
+        {
+          "name": "Steadfast Guard",
+          "description": "Defence increased by 12%.",
+          "bonuses": {
+            "defence_percent": 0.12
+          }
+        },
+        {
+          "name": "Second Wind",
+          "description": "Stamina increased by 12%.",
+          "bonuses": {
+            "stamina_percent": 0.12
+          }
+        },
+        {
+          "name": "Calm Foundation",
+          "description": "Stability increased by 10%.",
+          "bonuses": {
+            "stability_percent": 0.1
+          }
+        }
+      ]
     },
     {
       "id": "avatar_r001",
@@ -44,25 +67,48 @@
         "attack_flat": 5,
         "attack_percent": 0.05,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 0,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 0,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 0,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
+        "special_move_percent": 0,
         "crit_percent": 0.08,
         "dodge_chance": 0.1,
-        "counter_chance": 0.0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.03
-      }
+      },
+      "skills": [
+        {
+          "name": "Predator's Edge",
+          "description": "Attack increased by 14%.",
+          "bonuses": {
+            "attack_percent": 0.14
+          }
+        },
+        {
+          "name": "Shadow Step",
+          "description": "Dodge chance increased by 12%.",
+          "bonuses": {
+            "dodge_chance": 0.12
+          }
+        },
+        {
+          "name": "Killing Focus",
+          "description": "Crit chance increased by 12%.",
+          "bonuses": {
+            "crit_percent": 0.12
+          }
+        }
+      ]
     },
     {
       "id": "avatar_r002",
@@ -74,27 +120,50 @@
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520787479488237668/218c38e2f5586a65da3cbde09ad860c9.jpg?ex=6a427735&is=6a4125b5&hm=debd7752b611172d8de21cd99661b82e053958a8a3c416cf08ce07bd81c263e386242839c07&",
       "bonuses": {
         "attack_flat": 0,
-        "attack_percent": 0.0,
+        "attack_percent": 0,
         "defence_flat": 3,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 8,
         "stamina_percent": 0.05,
         "stability_flat": 5,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 5,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
         "resistance_damage_percent": 0.05,
-        "resistance_status_chance": 0.0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.03
-      }
+      },
+      "skills": [
+        {
+          "name": "Tidal Endurance",
+          "description": "Stamina increased by 16%.",
+          "bonuses": {
+            "stamina_percent": 0.16
+          }
+        },
+        {
+          "name": "Flowing Guard",
+          "description": "Incoming damage reduced by 8%.",
+          "bonuses": {
+            "resistance_damage_percent": 0.08
+          }
+        },
+        {
+          "name": "Rising Current",
+          "description": "Charge increased by 15%.",
+          "bonuses": {
+            "charge_percent": 0.15
+          }
+        }
+      ]
     },
     {
       "id": "avatar_e001",
@@ -106,19 +175,19 @@
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520787499960762508/07ea285927d39ddb1f543de99661b82e.jpg?ex=6a42773a&is=6a4125ba&hm=170dbd69a43a9f8ba7f7013f24fb07c5f7550df6529e28f6a7c9e2a9841a3825&",
       "bonuses": {
         "attack_flat": 0,
-        "attack_percent": 0.0,
+        "attack_percent": 0,
         "defence_flat": 10,
         "defence_percent": 0.1,
         "stamina_flat": 5,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 8,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 0,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
         "counter_chance": 0.12,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
@@ -126,7 +195,30 @@
         "resistance_status_chance": 0.2,
         "hp_flat": 0,
         "hp_percent": 0.06
-      }
+      },
+      "skills": [
+        {
+          "name": "Fortress Rhythm",
+          "description": "Defence increased by 20%.",
+          "bonuses": {
+            "defence_percent": 0.2
+          }
+        },
+        {
+          "name": "Perfect Tempo",
+          "description": "Counter chance increased by 18%.",
+          "bonuses": {
+            "counter_chance": 0.18
+          }
+        },
+        {
+          "name": "Unshaken Voice",
+          "description": "Status resistance increased by 30%.",
+          "bonuses": {
+            "resistance_status_chance": 0.3
+          }
+        }
+      ]
     },
     {
       "id": "avatar_l001",
@@ -140,11 +232,11 @@
         "attack_flat": 8,
         "attack_percent": 0.08,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 0,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 0,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 10,
         "charge_percent": 0.1,
         "special_move_flat": 15,
@@ -154,11 +246,34 @@
         "counter_chance": 0.05,
         "multi_hit_power_double": true,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.08
-      }
+      },
+      "skills": [
+        {
+          "name": "Tempest Edge",
+          "description": "Attack increased by 22%.",
+          "bonuses": {
+            "attack_percent": 0.22
+          }
+        },
+        {
+          "name": "Storm Harvest",
+          "description": "Special Move damage increased by 28%.",
+          "bonuses": {
+            "special_move_percent": 0.28
+          }
+        },
+        {
+          "name": "Reaper's Momentum",
+          "description": "Charge increased by 25%.",
+          "bonuses": {
+            "charge_percent": 0.25
+          }
+        }
+      ]
     },
     {
       "id": "avatar_m001",
@@ -172,11 +287,11 @@
         "attack_flat": 12,
         "attack_percent": 0.12,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 0,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 5,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 15,
         "charge_percent": 0.12,
         "special_move_flat": 20,
@@ -186,11 +301,34 @@
         "counter_chance": 0.05,
         "multi_hit_power_double": true,
         "multi_hit_extra_hits": true,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.1
-      }
+      },
+      "skills": [
+        {
+          "name": "Hellfire Drive",
+          "description": "Attack increased by 30%.",
+          "bonuses": {
+            "attack_percent": 0.3
+          }
+        },
+        {
+          "name": "Infernal Execution",
+          "description": "Special Move damage increased by 38%.",
+          "bonuses": {
+            "special_move_percent": 0.38
+          }
+        },
+        {
+          "name": "Undying Flame",
+          "description": "Incoming damage reduced by 15%.",
+          "bonuses": {
+            "resistance_damage_percent": 0.15
+          }
+        }
+      ]
     },
     {
       "id": "avatar_m002",
@@ -210,10 +348,10 @@
         "stability_flat": 15,
         "stability_percent": 0.15,
         "charge_flat": 0,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
         "dodge_chance": 0.18,
         "counter_chance": 0.18,
         "multi_hit_power_double": false,
@@ -222,7 +360,30 @@
         "resistance_status_chance": 0.6,
         "hp_flat": 0,
         "hp_percent": 0.11
-      }
+      },
+      "skills": [
+        {
+          "name": "Abyssal Bulwark",
+          "description": "Defence increased by 35%.",
+          "bonuses": {
+            "defence_percent": 0.35
+          }
+        },
+        {
+          "name": "Unmoving Depths",
+          "description": "Stability increased by 30%.",
+          "bonuses": {
+            "stability_percent": 0.3
+          }
+        },
+        {
+          "name": "Void Carapace",
+          "description": "Incoming damage reduced by 22%.",
+          "bonuses": {
+            "resistance_damage_percent": 0.22
+          }
+        }
+      ]
     },
     {
       "id": "avatar_x001",
@@ -254,7 +415,32 @@
         "resistance_status_chance": 0.75,
         "hp_flat": 0,
         "hp_percent": 0.15
-      }
+      },
+      "skills": [
+        {
+          "name": "Prime Dominion",
+          "description": "Attack and Defence increased by 35%.",
+          "bonuses": {
+            "attack_percent": 0.35,
+            "defence_percent": 0.35
+          }
+        },
+        {
+          "name": "Perfect Core",
+          "description": "Stamina and Stability increased by 30%.",
+          "bonuses": {
+            "stamina_percent": 0.3,
+            "stability_percent": 0.3
+          }
+        },
+        {
+          "name": "Omega Release",
+          "description": "Special Move damage increased by 55%.",
+          "bonuses": {
+            "special_move_percent": 0.55
+          }
+        }
+      ]
     },
     {
       "id": "avatar_m003",
@@ -268,25 +454,48 @@
         "attack_flat": 18,
         "attack_percent": 0.18,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 0,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 5,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 12,
         "charge_percent": 0.12,
         "special_move_flat": 25,
         "special_move_percent": 0.22,
         "crit_percent": 0.22,
-        "dodge_chance": 0.0,
+        "dodge_chance": 0,
         "counter_chance": 0.15,
         "multi_hit_power_double": true,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
+        "resistance_damage_percent": 0,
         "resistance_status_chance": 0.3,
         "hp_flat": 0,
         "hp_percent": 0.1
-      }
+      },
+      "skills": [
+        {
+          "name": "Cleave",
+          "description": "Attack increased by 28%.",
+          "bonuses": {
+            "attack_percent": 0.28
+          }
+        },
+        {
+          "name": "Malevolent Precision",
+          "description": "Crit chance increased by 30%.",
+          "bonuses": {
+            "crit_percent": 0.3
+          }
+        },
+        {
+          "name": "King's Verdict",
+          "description": "Special Move damage increased by 40%.",
+          "bonuses": {
+            "special_move_percent": 0.4
+          }
+        }
+      ]
     },
     {
       "id": "avatar_l003",
@@ -300,25 +509,48 @@
         "attack_flat": 10,
         "attack_percent": 0.12,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 0,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 0,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 12,
         "charge_percent": 0.12,
         "special_move_flat": 18,
         "special_move_percent": 0.18,
         "crit_percent": 0.1,
         "dodge_chance": 0.08,
-        "counter_chance": 0.0,
+        "counter_chance": 0,
         "multi_hit_power_double": true,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.08
-      }
+      },
+      "skills": [
+        {
+          "name": "Partner Sync",
+          "description": "Attack increased by 24%.",
+          "bonuses": {
+            "attack_percent": 0.24
+          }
+        },
+        {
+          "name": "Strelizia Rush",
+          "description": "Charge increased by 25%.",
+          "bonuses": {
+            "charge_percent": 0.25
+          }
+        },
+        {
+          "name": "Darling's Resolve",
+          "description": "Special Move damage increased by 32%.",
+          "bonuses": {
+            "special_move_percent": 0.32
+          }
+        }
+      ]
     },
     {
       "id": "avatar_r003",
@@ -330,27 +562,50 @@
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520391548259274802/509d7cd90746f487ef9fba368d9b0879.jpg",
       "bonuses": {
         "attack_flat": 3,
-        "attack_percent": 0.0,
+        "attack_percent": 0,
         "defence_flat": 3,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 10,
         "stamina_percent": 0.08,
         "stability_flat": 8,
         "stability_percent": 0.05,
         "charge_flat": 5,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
         "dodge_chance": 0.12,
-        "counter_chance": 0.0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
         "resistance_damage_percent": 0.05,
-        "resistance_status_chance": 0.0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.03
-      }
+      },
+      "skills": [
+        {
+          "name": "Endless Rally",
+          "description": "Stamina increased by 18%.",
+          "bonuses": {
+            "stamina_percent": 0.18
+          }
+        },
+        {
+          "name": "Quick Step",
+          "description": "Dodge chance increased by 15%.",
+          "bonuses": {
+            "dodge_chance": 0.15
+          }
+        },
+        {
+          "name": "Never Give Up",
+          "description": "Stability increased by 15%.",
+          "bonuses": {
+            "stability_percent": 0.15
+          }
+        }
+      ]
     },
     {
       "id": "avatar_e003",
@@ -382,7 +637,32 @@
         "resistance_status_chance": 0.15,
         "hp_flat": 0,
         "hp_percent": 0.05
-      }
+      },
+      "skills": [
+        {
+          "name": "Red Thread",
+          "description": "Attack and Defence increased by 12%.",
+          "bonuses": {
+            "attack_percent": 0.12,
+            "defence_percent": 0.12
+          }
+        },
+        {
+          "name": "Twilight Balance",
+          "description": "Stamina and Stability increased by 12%.",
+          "bonuses": {
+            "stamina_percent": 0.12,
+            "stability_percent": 0.12
+          }
+        },
+        {
+          "name": "Comet Wish",
+          "description": "Special Move damage increased by 18%.",
+          "bonuses": {
+            "special_move_percent": 0.18
+          }
+        }
+      ]
     },
     {
       "id": "avatar_u002",
@@ -396,7 +676,7 @@
         "attack_flat": 15,
         "attack_percent": 0.15,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 10,
         "stamina_percent": 0.1,
         "stability_flat": 8,
@@ -414,7 +694,30 @@
         "resistance_status_chance": 0.2,
         "hp_flat": 0,
         "hp_percent": 0.12
-      }
+      },
+      "skills": [
+        {
+          "name": "Silent Fang",
+          "description": "Attack increased by 30%.",
+          "bonuses": {
+            "attack_percent": 0.3
+          }
+        },
+        {
+          "name": "Body Flicker",
+          "description": "Dodge chance increased by 35%.",
+          "bonuses": {
+            "dodge_chance": 0.35
+          }
+        },
+        {
+          "name": "Assassin's Mark",
+          "description": "Crit chance increased by 32%.",
+          "bonuses": {
+            "crit_percent": 0.32
+          }
+        }
+      ]
     },
     {
       "id": "avatar_r004",
@@ -428,25 +731,48 @@
         "attack_flat": 6,
         "attack_percent": 0.06,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 0,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 3,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 8,
         "charge_percent": 0.08,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
+        "special_move_percent": 0,
         "crit_percent": 0.1,
         "dodge_chance": 0.05,
-        "counter_chance": 0.0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
+        "resistance_damage_percent": 0,
         "resistance_status_chance": 0.05,
         "hp_flat": 0,
         "hp_percent": 0.03
-      }
+      },
+      "skills": [
+        {
+          "name": "Hidden Confidence",
+          "description": "Attack increased by 14%.",
+          "bonuses": {
+            "attack_percent": 0.14
+          }
+        },
+        {
+          "name": "Cool Composure",
+          "description": "Stability increased by 12%.",
+          "bonuses": {
+            "stability_percent": 0.12
+          }
+        },
+        {
+          "name": "Secret Push",
+          "description": "Charge increased by 18%.",
+          "bonuses": {
+            "charge_percent": 0.18
+          }
+        }
+      ]
     },
     {
       "id": "avatar_e004",
@@ -460,9 +786,9 @@
         "attack_flat": 5,
         "attack_percent": 0.05,
         "defence_flat": 3,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 5,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 10,
         "stability_percent": 0.1,
         "charge_flat": 12,
@@ -470,7 +796,7 @@
         "special_move_flat": 18,
         "special_move_percent": 0.15,
         "crit_percent": 0.08,
-        "dodge_chance": 0.0,
+        "dodge_chance": 0,
         "counter_chance": 0.08,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
@@ -478,7 +804,30 @@
         "resistance_status_chance": 0.1,
         "hp_flat": 0,
         "hp_percent": 0.05
-      }
+      },
+      "skills": [
+        {
+          "name": "Calculated Strike",
+          "description": "Attack increased by 16%.",
+          "bonuses": {
+            "attack_percent": 0.16
+          }
+        },
+        {
+          "name": "Steady Mind",
+          "description": "Stability increased by 18%.",
+          "bonuses": {
+            "stability_percent": 0.18
+          }
+        },
+        {
+          "name": "Perfect Timing",
+          "description": "Special Move damage increased by 22%.",
+          "bonuses": {
+            "special_move_percent": 0.22
+          }
+        }
+      ]
     },
     {
       "id": "avatar_u003",
@@ -492,25 +841,48 @@
         "attack_flat": 0,
         "attack_percent": 0.19,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 0,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 0,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 0,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
         "special_move_percent": 0.6,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": true,
         "multi_hit_extra_hits": true,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.12
-      }
+      },
+      "skills": [
+        {
+          "name": "Ackerman Instinct",
+          "description": "Attack increased by 35%.",
+          "bonuses": {
+            "attack_percent": 0.35
+          }
+        },
+        {
+          "name": "ODM Evasion",
+          "description": "Dodge chance increased by 30%.",
+          "bonuses": {
+            "dodge_chance": 0.3
+          }
+        },
+        {
+          "name": "Final Cut",
+          "description": "Special Move damage increased by 50%.",
+          "bonuses": {
+            "special_move_percent": 0.5
+          }
+        }
+      ]
     },
     {
       "id": "avatar_l004",
@@ -524,25 +896,48 @@
         "attack_flat": 10,
         "attack_percent": 0.1,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 8,
         "stamina_percent": 0.05,
         "stability_flat": 5,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 15,
         "charge_percent": 0.15,
         "special_move_flat": 18,
         "special_move_percent": 0.18,
         "crit_percent": 0.1,
         "dodge_chance": 0.08,
-        "counter_chance": 0.0,
+        "counter_chance": 0,
         "multi_hit_power_double": true,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.08
-      }
+      },
+      "skills": [
+        {
+          "name": "Comet Pursuit",
+          "description": "Attack increased by 24%.",
+          "bonuses": {
+            "attack_percent": 0.24
+          }
+        },
+        {
+          "name": "Time Chase",
+          "description": "Charge increased by 28%.",
+          "bonuses": {
+            "charge_percent": 0.28
+          }
+        },
+        {
+          "name": "Falling Star",
+          "description": "Special Move damage increased by 32%.",
+          "bonuses": {
+            "special_move_percent": 0.32
+          }
+        }
+      ]
     },
     {
       "id": "avatar_r005",
@@ -554,27 +949,50 @@
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012679513342125/b65308d5dc9a54fbe60536f0d81caeab.jpg?ex=6a4348f1&is=6a41f771&hm=e6fe22c3b04b503c47677efe726b7266576953e8c6a9a18aca6565c78f76de6f&",
       "bonuses": {
         "attack_flat": 3,
-        "attack_percent": 0.0,
+        "attack_percent": 0,
         "defence_flat": 4,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 10,
         "stamina_percent": 0.06,
         "stability_flat": 7,
         "stability_percent": 0.05,
         "charge_flat": 4,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
         "dodge_chance": 0.1,
-        "counter_chance": 0.0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
         "resistance_damage_percent": 0.05,
-        "resistance_status_chance": 0.0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.03
-      }
+      },
+      "skills": [
+        {
+          "name": "Bright Spirit",
+          "description": "Stamina increased by 16%.",
+          "bonuses": {
+            "stamina_percent": 0.16
+          }
+        },
+        {
+          "name": "Sure Footing",
+          "description": "Stability increased by 14%.",
+          "bonuses": {
+            "stability_percent": 0.14
+          }
+        },
+        {
+          "name": "Light Step",
+          "description": "Dodge chance increased by 12%.",
+          "bonuses": {
+            "dodge_chance": 0.12
+          }
+        }
+      ]
     },
     {
       "id": "avatar_e005",
@@ -590,14 +1008,14 @@
         "defence_flat": 12,
         "defence_percent": 0.1,
         "stamina_flat": 6,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 10,
         "stability_percent": 0.08,
         "charge_flat": 5,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
         "dodge_chance": 0.05,
         "counter_chance": 0.14,
         "multi_hit_power_double": false,
@@ -606,7 +1024,30 @@
         "resistance_status_chance": 0.15,
         "hp_flat": 0,
         "hp_percent": 0.06
-      }
+      },
+      "skills": [
+        {
+          "name": "Royal Guard",
+          "description": "Defence increased by 22%.",
+          "bonuses": {
+            "defence_percent": 0.22
+          }
+        },
+        {
+          "name": "Retaliation",
+          "description": "Counter chance increased by 20%.",
+          "bonuses": {
+            "counter_chance": 0.2
+          }
+        },
+        {
+          "name": "Iron Poise",
+          "description": "Stability increased by 18%.",
+          "bonuses": {
+            "stability_percent": 0.18
+          }
+        }
+      ]
     },
     {
       "id": "avatar_r006",
@@ -620,25 +1061,48 @@
         "attack_flat": 4,
         "attack_percent": 0.04,
         "defence_flat": 5,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 6,
         "stamina_percent": 0.05,
         "stability_flat": 5,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 8,
         "charge_percent": 0.06,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
+        "special_move_percent": 0,
         "crit_percent": 0.05,
         "dodge_chance": 0.08,
-        "counter_chance": 0.0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
+        "resistance_damage_percent": 0,
         "resistance_status_chance": 0.05,
         "hp_flat": 0,
         "hp_percent": 0.03
-      }
+      },
+      "skills": [
+        {
+          "name": "Team Rhythm",
+          "description": "Stamina increased by 14%.",
+          "bonuses": {
+            "stamina_percent": 0.14
+          }
+        },
+        {
+          "name": "Sharp Read",
+          "description": "Crit chance increased by 10%.",
+          "bonuses": {
+            "crit_percent": 0.1
+          }
+        },
+        {
+          "name": "Fast Transition",
+          "description": "Charge increased by 16%.",
+          "bonuses": {
+            "charge_percent": 0.16
+          }
+        }
+      ]
     },
     {
       "id": "avatar_m004",
@@ -652,11 +1116,11 @@
         "attack_flat": 15,
         "attack_percent": 0.18,
         "defence_flat": 5,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 10,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 8,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 12,
         "charge_percent": 0.12,
         "special_move_flat": 15,
@@ -666,11 +1130,34 @@
         "counter_chance": 0.1,
         "multi_hit_power_double": true,
         "multi_hit_extra_hits": true,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
         "hp_flat": 30,
         "hp_percent": 0.1
-      }
+      },
+      "skills": [
+        {
+          "name": "Beat Rush",
+          "description": "Attack increased by 30%.",
+          "bonuses": {
+            "attack_percent": 0.3
+          }
+        },
+        {
+          "name": "Martial Focus",
+          "description": "Crit chance increased by 28%.",
+          "bonuses": {
+            "crit_percent": 0.28
+          }
+        },
+        {
+          "name": "Final Heaven",
+          "description": "Special Move damage increased by 38%.",
+          "bonuses": {
+            "special_move_percent": 0.38
+          }
+        }
+      ]
     },
     {
       "id": "avatar_r007",
@@ -682,27 +1169,50 @@
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012714078605373/0dda3103a17269da65ffee2b3d214818.jpg?ex=6a4348fa&is=6a41f77a&hm=2ac1578fcf5a48f4bf353a9fb04712fa3178012eca4cc90cff9f4b2b52f205f3&",
       "bonuses": {
         "attack_flat": 3,
-        "attack_percent": 0.0,
+        "attack_percent": 0,
         "defence_flat": 5,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 9,
         "stamina_percent": 0.06,
         "stability_flat": 8,
         "stability_percent": 0.05,
         "charge_flat": 6,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
         "dodge_chance": 0.06,
-        "counter_chance": 0.0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
         "resistance_damage_percent": 0.05,
-        "resistance_status_chance": 0.0,
+        "resistance_status_chance": 0,
         "hp_flat": 0,
         "hp_percent": 0.03
-      }
+      },
+      "skills": [
+        {
+          "name": "Long Haul",
+          "description": "Stamina increased by 16%.",
+          "bonuses": {
+            "stamina_percent": 0.16
+          }
+        },
+        {
+          "name": "Stable Pace",
+          "description": "Stability increased by 14%.",
+          "bonuses": {
+            "stability_percent": 0.14
+          }
+        },
+        {
+          "name": "Safe Passage",
+          "description": "Incoming damage reduced by 8%.",
+          "bonuses": {
+            "resistance_damage_percent": 0.08
+          }
+        }
+      ]
     },
     {
       "id": "avatar_r008",
@@ -714,18 +1224,18 @@
       "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012738065694780/download.jpg?ex=6a4348ff&is=6a41f77f&hm=4d1271fbad981b5095b4fb9da088e285f55fe473ab25889c58928bad2c255cc5&",
       "bonuses": {
         "attack_flat": 3,
-        "attack_percent": 0.0,
+        "attack_percent": 0,
         "defence_flat": 4,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 7,
         "stamina_percent": 0.05,
         "stability_flat": 5,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 5,
-        "charge_percent": 0.0,
+        "charge_percent": 0,
         "special_move_flat": 0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
         "dodge_chance": 0.1,
         "counter_chance": 0.05,
         "multi_hit_power_double": false,
@@ -734,7 +1244,30 @@
         "resistance_status_chance": 0.08,
         "hp_flat": 0,
         "hp_percent": 0.03
-      }
+      },
+      "skills": [
+        {
+          "name": "Dragon's Calm",
+          "description": "Stamina increased by 14%.",
+          "bonuses": {
+            "stamina_percent": 0.14
+          }
+        },
+        {
+          "name": "Tiny Guardian",
+          "description": "Defence increased by 14%.",
+          "bonuses": {
+            "defence_percent": 0.14
+          }
+        },
+        {
+          "name": "Playful Drift",
+          "description": "Dodge chance increased by 12%.",
+          "bonuses": {
+            "dodge_chance": 0.12
+          }
+        }
+      ]
     },
     {
       "id": "avatar_e006",
@@ -750,9 +1283,9 @@
         "defence_flat": 6,
         "defence_percent": 0.06,
         "stamina_flat": 8,
-        "stamina_percent": 0.0,
+        "stamina_percent": 0,
         "stability_flat": 6,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 8,
         "charge_percent": 0.08,
         "special_move_flat": 10,
@@ -766,7 +1299,30 @@
         "resistance_status_chance": 0.1,
         "hp_flat": 20,
         "hp_percent": 0.05
-      }
+      },
+      "skills": [
+        {
+          "name": "Titan Force",
+          "description": "Attack increased by 20%.",
+          "bonuses": {
+            "attack_percent": 0.2
+          }
+        },
+        {
+          "name": "Titan Endurance",
+          "description": "Stamina increased by 18%.",
+          "bonuses": {
+            "stamina_percent": 0.18
+          }
+        },
+        {
+          "name": "Jaw Counter",
+          "description": "Counter chance increased by 18%.",
+          "bonuses": {
+            "counter_chance": 0.18
+          }
+        }
+      ]
     },
     {
       "id": "avatar_l005",
@@ -798,7 +1354,30 @@
         "resistance_status_chance": 0.3,
         "hp_flat": 40,
         "hp_percent": 0.09
-      }
+      },
+      "skills": [
+        {
+          "name": "Queen's Guard",
+          "description": "Defence increased by 26%.",
+          "bonuses": {
+            "defence_percent": 0.26
+          }
+        },
+        {
+          "name": "Royal Resolve",
+          "description": "Incoming damage reduced by 18%.",
+          "bonuses": {
+            "resistance_damage_percent": 0.18
+          }
+        },
+        {
+          "name": "Unbroken Crown",
+          "description": "Status resistance increased by 35%.",
+          "bonuses": {
+            "resistance_status_chance": 0.35
+          }
+        }
+      ]
     },
     {
       "id": "avatar_u004",
@@ -812,11 +1391,11 @@
         "attack_flat": 14,
         "attack_percent": 0.16,
         "defence_flat": 0,
-        "defence_percent": 0.0,
+        "defence_percent": 0,
         "stamina_flat": 10,
         "stamina_percent": 0.08,
         "stability_flat": 5,
-        "stability_percent": 0.0,
+        "stability_percent": 0,
         "charge_flat": 14,
         "charge_percent": 0.14,
         "special_move_flat": 18,
@@ -830,7 +1409,30 @@
         "resistance_status_chance": 0.1,
         "hp_flat": 0,
         "hp_percent": 0.12
-      }
+      },
+      "skills": [
+        {
+          "name": "Love Breathing",
+          "description": "Attack increased by 32%.",
+          "bonuses": {
+            "attack_percent": 0.32
+          }
+        },
+        {
+          "name": "Flexible Motion",
+          "description": "Dodge chance increased by 30%.",
+          "bonuses": {
+            "dodge_chance": 0.3
+          }
+        },
+        {
+          "name": "Love Hashira Finale",
+          "description": "Special Move damage increased by 42%.",
+          "bonuses": {
+            "special_move_percent": 0.42
+          }
+        }
+      ]
     },
     {
       "id": "avatar_u005",
@@ -862,7 +1464,30 @@
         "resistance_status_chance": 0.6,
         "hp_flat": 0,
         "hp_percent": 0.13
-      }
+      },
+      "skills": [
+        {
+          "name": "Butterfly Step",
+          "description": "Dodge chance increased by 28%.",
+          "bonuses": {
+            "dodge_chance": 0.28
+          }
+        },
+        {
+          "name": "Wisteria Guard",
+          "description": "Status resistance increased by 70%.",
+          "bonuses": {
+            "resistance_status_chance": 0.7
+          }
+        },
+        {
+          "name": "Needle Counter",
+          "description": "Counter chance increased by 28%.",
+          "bonuses": {
+            "counter_chance": 0.28
+          }
+        }
+      ]
     },
     {
       "id": "avatar_x002",
@@ -900,24 +1525,24 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 0.0,
+        "attack_flat": 0,
         "attack_percent": 0.3,
-        "defence_flat": 0.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 0.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
+        "defence_flat": 0,
+        "defence_percent": 0,
+        "stamina_flat": 0,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
         "crit_percent": 0.4,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 0.0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 0,
         "hp_percent": 0.15,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
@@ -964,24 +1589,24 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 0.0,
-        "attack_percent": 0.0,
-        "defence_flat": 0.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 0.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
+        "attack_flat": 0,
+        "attack_percent": 0,
+        "defence_flat": 0,
+        "defence_percent": 0,
+        "stamina_flat": 0,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
         "special_move_percent": 1.11,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 0.0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 0,
         "hp_percent": 0.15,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
@@ -1016,39 +1641,39 @@
           "name": "Standing Ground",
           "description": "Attack +40 and Stamina +40 — the wall pushes back.",
           "bonuses": {
-            "attack_flat": 40.0,
-            "stamina_flat": 40.0
+            "attack_flat": 40,
+            "stamina_flat": 40
           }
         },
         {
           "name": "Bulwark",
           "description": "Defence increased by 209.",
           "bonuses": {
-            "defence_flat": 209.0
+            "defence_flat": 209
           }
         }
       ],
       "bonuses": {
-        "attack_flat": 40.0,
-        "attack_percent": 0.0,
-        "defence_flat": 209.0,
+        "attack_flat": 40,
+        "attack_percent": 0,
+        "defence_flat": 209,
         "defence_percent": 0.3,
-        "stamina_flat": 40.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "stamina_flat": 40,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 0,
         "hp_percent": 0.13
       }
     },
@@ -1068,14 +1693,14 @@
           "name": "Venom Strike",
           "description": "Attack increased by 58.",
           "bonuses": {
-            "attack_flat": 58.0
+            "attack_flat": 58
           }
         },
         {
           "name": "Endless Coil",
           "description": "Stamina increased by 169.",
           "bonuses": {
-            "stamina_flat": 169.0
+            "stamina_flat": 169
           }
         },
         {
@@ -1088,26 +1713,26 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 58.0,
-        "attack_percent": 0.0,
-        "defence_flat": 0.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 169.0,
+        "attack_flat": 58,
+        "attack_percent": 0,
+        "defence_flat": 0,
+        "defence_percent": 0,
+        "stamina_flat": 169,
         "stamina_percent": 1.2,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
         "resistance_damage_percent": 0.12,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 0.0,
+        "resistance_status_chance": 0,
+        "hp_flat": 0,
         "hp_percent": 0.15
       }
     },
@@ -1146,26 +1771,26 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 0.0,
+        "attack_flat": 0,
         "attack_percent": 0.25,
-        "defence_flat": 0.0,
+        "defence_flat": 0,
         "defence_percent": 0.5,
-        "stamina_flat": 0.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "stamina_flat": 0,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
         "resistance_damage_percent": 0.08,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 0.0,
+        "resistance_status_chance": 0,
+        "hp_flat": 0,
         "hp_percent": 0.13
       }
     },
@@ -1200,31 +1825,31 @@
           "name": "Spirit Blade",
           "description": "Attack increased by 96.",
           "bonuses": {
-            "attack_flat": 96.0
+            "attack_flat": 96
           }
         }
       ],
       "bonuses": {
-        "attack_flat": 96.0,
+        "attack_flat": 96,
         "attack_percent": 0.22,
-        "defence_flat": 0.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 0.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
+        "defence_flat": 0,
+        "defence_percent": 0,
+        "stamina_flat": 0,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
         "counter_chance": 0.25,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
         "resistance_damage_percent": 0.15,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 0.0,
+        "resistance_status_chance": 0,
+        "hp_flat": 0,
         "hp_percent": 0.15
       }
     },
@@ -1259,32 +1884,32 @@
           "name": "Deathly Grasp",
           "description": "Attack increased by 61 and Defence by 61.",
           "bonuses": {
-            "attack_flat": 61.0,
-            "defence_flat": 61.0
+            "attack_flat": 61,
+            "defence_flat": 61
           }
         }
       ],
       "bonuses": {
-        "attack_flat": 61.0,
-        "attack_percent": 0.0,
-        "defence_flat": 61.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 0.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
+        "attack_flat": 61,
+        "attack_percent": 0,
+        "defence_flat": 61,
+        "defence_percent": 0,
+        "stamina_flat": 0,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
         "special_move_percent": 0.64,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 0,
         "hp_percent": 0.15,
         "nth_hit_interval": 3,
         "nth_hit_attack_percent": 0.18
@@ -1323,32 +1948,32 @@
           "name": "Deadly Stinger",
           "description": "Attack increased by 96, and by a further 20%.",
           "bonuses": {
-            "attack_flat": 96.0,
+            "attack_flat": 96,
             "attack_percent": 0.2
           }
         }
       ],
       "bonuses": {
-        "attack_flat": 96.0,
+        "attack_flat": 96,
         "attack_percent": 0.2,
-        "defence_flat": 0.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 0.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
+        "defence_flat": 0,
+        "defence_percent": 0,
+        "stamina_flat": 0,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
         "crit_percent": 0.3,
         "dodge_chance": 0.05,
-        "counter_chance": 0.0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 0,
         "hp_percent": 0.15,
         "defence_break_min": 0.55,
         "defence_break_max": 0.8,
@@ -1378,7 +2003,7 @@
           "name": "Forked Lightning",
           "description": "Attack increased by 62, and by a further 18%.",
           "bonuses": {
-            "attack_flat": 62.0,
+            "attack_flat": 62,
             "attack_percent": 0.18
           }
         },
@@ -1392,26 +2017,26 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 62.0,
+        "attack_flat": 62,
         "attack_percent": 0.18,
-        "defence_flat": 0.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 0.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
+        "defence_flat": 0,
+        "defence_percent": 0,
+        "stamina_flat": 0,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
         "special_move_percent": 0.88,
         "crit_percent": 0.26,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": true,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 0.0,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 0,
         "hp_percent": 0.15
       }
     },
@@ -1452,24 +2077,24 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 0.0,
-        "attack_percent": 0.0,
-        "defence_flat": 0.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 0.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 0.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
+        "attack_flat": 0,
+        "attack_percent": 0,
+        "defence_flat": 0,
+        "defence_percent": 0,
+        "stamina_flat": 0,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
         "special_move_percent": 0.7,
         "crit_percent": 0.4,
         "dodge_chance": 0.05,
         "counter_chance": 0.35,
         "resistance_damage_percent": 0.08,
         "resistance_status_chance": 0.2,
-        "hp_flat": 0.0,
+        "hp_flat": 0,
         "hp_percent": 0.12,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false
@@ -1544,27 +2169,27 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 35.0,
+        "attack_flat": 35,
         "attack_percent": 0.16,
-        "defence_flat": 28.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 42.0,
+        "defence_flat": 28,
+        "defence_percent": 0,
+        "stamina_flat": 42,
         "stamina_percent": 0.18,
-        "stability_flat": 30.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "stability_flat": 30,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 120.0,
-        "hp_percent": 0.0
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 120,
+        "hp_percent": 0
       }
     },
     {
@@ -1630,27 +2255,27 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 27.0,
-        "attack_percent": 0.0,
-        "defence_flat": 45.0,
+        "attack_flat": 27,
+        "attack_percent": 0,
+        "defence_flat": 45,
         "defence_percent": 0.2,
-        "stamina_flat": 35.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 42.0,
+        "stamina_flat": 35,
+        "stamina_percent": 0,
+        "stability_flat": 42,
         "stability_percent": 0.22,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 135.0,
-        "hp_percent": 0.0
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 135,
+        "hp_percent": 0
       }
     },
     {
@@ -1753,27 +2378,27 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 46.0,
+        "attack_flat": 46,
         "attack_percent": 0.22,
-        "defence_flat": 25.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 34.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 28.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "defence_flat": 25,
+        "defence_percent": 0,
+        "stamina_flat": 34,
+        "stamina_percent": 0,
+        "stability_flat": 28,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 115.0,
-        "hp_percent": 0.0
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 115,
+        "hp_percent": 0
       }
     },
     {
@@ -1845,27 +2470,27 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 36.0,
+        "attack_flat": 36,
         "attack_percent": 0.15,
-        "defence_flat": 34.0,
+        "defence_flat": 34,
         "defence_percent": 0.12,
-        "stamina_flat": 36.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 35.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "stamina_flat": 36,
+        "stamina_percent": 0,
+        "stability_flat": 35,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 125.0,
-        "hp_percent": 0.0
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 125,
+        "hp_percent": 0
       }
     },
     {
@@ -1938,27 +2563,27 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 30.0,
-        "attack_percent": 0.0,
-        "defence_flat": 43.0,
+        "attack_flat": 30,
+        "attack_percent": 0,
+        "defence_flat": 43,
         "defence_percent": 0.18,
-        "stamina_flat": 37.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 44.0,
+        "stamina_flat": 37,
+        "stamina_percent": 0,
+        "stability_flat": 44,
         "stability_percent": 0.2,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 130.0,
-        "hp_percent": 0.0
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 130,
+        "hp_percent": 0
       }
     },
     {
@@ -2046,27 +2671,27 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 43.0,
+        "attack_flat": 43,
         "attack_percent": 0.2,
-        "defence_flat": 30.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 39.0,
+        "defence_flat": 30,
+        "defence_percent": 0,
+        "stamina_flat": 39,
         "stamina_percent": 0.15,
-        "stability_flat": 32.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "stability_flat": 32,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 118.0,
-        "hp_percent": 0.0
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 118,
+        "hp_percent": 0
       }
     },
     {
@@ -2151,27 +2776,27 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 52.0,
+        "attack_flat": 52,
         "attack_percent": 0.25,
-        "defence_flat": 28.0,
-        "defence_percent": 0.0,
-        "stamina_flat": 35.0,
-        "stamina_percent": 0.0,
-        "stability_flat": 30.0,
-        "stability_percent": 0.0,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "defence_flat": 28,
+        "defence_percent": 0,
+        "stamina_flat": 35,
+        "stamina_percent": 0,
+        "stability_flat": 30,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 120.0,
-        "hp_percent": 0.0
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 120,
+        "hp_percent": 0
       }
     },
     {
@@ -2238,7 +2863,7 @@
               "do": [
                 {
                   "op": "drain_stamina",
-                  "value": 1.0
+                  "value": 1
                 }
               ]
             }
@@ -2302,27 +2927,27 @@
         }
       ],
       "bonuses": {
-        "attack_flat": 45.0,
+        "attack_flat": 45,
         "attack_percent": 0.2,
-        "defence_flat": 40.0,
+        "defence_flat": 40,
         "defence_percent": 0.15,
-        "stamina_flat": 43.0,
+        "stamina_flat": 43,
         "stamina_percent": 0.18,
-        "stability_flat": 45.0,
+        "stability_flat": 45,
         "stability_percent": 0.2,
-        "charge_flat": 0.0,
-        "charge_percent": 0.0,
-        "special_move_flat": 0.0,
-        "special_move_percent": 0.0,
-        "crit_percent": 0.0,
-        "dodge_chance": 0.0,
-        "counter_chance": 0.0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
         "multi_hit_power_double": false,
         "multi_hit_extra_hits": false,
-        "resistance_damage_percent": 0.0,
-        "resistance_status_chance": 0.0,
-        "hp_flat": 125.0,
-        "hp_percent": 0.0
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 125,
+        "hp_percent": 0
       }
     }
   ]
