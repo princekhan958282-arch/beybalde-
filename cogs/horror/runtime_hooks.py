@@ -21,9 +21,12 @@ from . import unknown_battle as unknown_mod
 
 log = logging.getLogger("beyblade_bot.horror.runtime")
 
+# Immutable commit-backed asset URLs. The old Discord links were signed URLs
+# with an expiry timestamp, which would make the Horror art disappear after
+# release. Pinning to the asset commit makes these URLs permanent.
 _ASSET_BASE = (
     "https://raw.githubusercontent.com/princekhan958282-arch/"
-    "beybalde-/main/assets/horror/"
+    "beybalde-/48e88ed193a349da77734d80e1c32965bad34e47/assets/horror/"
 )
 _ACTIVE_STATUSES = {"spawned", "declined_once", "battle_requested", "battle_running"}
 
