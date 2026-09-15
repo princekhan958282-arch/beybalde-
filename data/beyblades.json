@@ -11536,5 +11536,43 @@
         "⚔️ **Dual Saber Strike** — Xeno Xcalius brings both sabers down at full force!"
       ]
     }
+  },
+  "Abyss Drakon": {
+    "id": "BB118",
+    "name": "Abyss Drakon",
+    "rarity": "Legendary",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1549379481750212668/file_000000005384820693ef8f31743c0174.png?ex=6aaa7b96&is=6aa92a16&hm=f14e7534df85b0fe1c752a560489431dd272bec0f1d5025a7e49dc37f23f8842&",
+    "description": "A legendary abyss dragon that learns an opponent's successful actions and turns repetition against them.",
+    "burst_height": "Mid",
+    "type": "Balance",
+    "stats": {
+      "attack": 114,
+      "defense": 98,
+      "stamina": 104,
+      "special": 120,
+      "hp": 109
+    },
+    "ability": {
+      "name": "Void Reversal",
+      "trigger": "on_any_action",
+      "description": "Abyss Drakon remembers the opponent's last successful action. If that same action is used again within 2 rounds, it creates a Void Copy and retaliates with a corrupted effect. Attack reflects 40% of damage dealt as bonus damage; Defense steals 20% of DEF used for 1 round; Stamina steals 3 Stamina; Charge gains 50% of the Charge gained; Special grants Void Seal, reducing the enemy's next Special damage by 30%. The same action type can trigger Void Reversal only once every 3 rounds."
+    },
+    "special_move": {
+      "name": "Nightmare Rift",
+      "description": "Abyss Drakon tears open an abyssal rift. Deals 145 base damage with +45% ATK scaling, ignores 20% DEF, and gains +15% bonus damage for each different Void Copy stored. At 5 different copied actions, Perfect Nightmare Rift adds 50 bonus damage, ignores 25% DEF, and removes 1 positive enemy effect.",
+      "hits": 1,
+      "damage_per_hit": 145,
+      "total_damage": 145,
+      "flavour_texts": [
+        "🌑 **Nightmare Rift** — the abyss remembers every move!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Void Reversal",
+        "trigger": "on_any_action",
+        "description": "Abyss Drakon remembers the opponent's last successful action. If that same action is used again within 2 rounds, it creates a Void Copy and retaliates with a corrupted effect. Attack reflects 40% of damage dealt as bonus damage; Defense steals 20% of DEF used for 1 round; Stamina steals 3 Stamina; Charge gains 50% of the Charge gained; Special grants Void Seal, reducing the enemy's next Special damage by 30%. The same action type can trigger Void Reversal only once every 3 rounds."
+      }
+    ]
   }
 }
