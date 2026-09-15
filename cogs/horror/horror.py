@@ -5,15 +5,11 @@ import discord
 from discord.ext import commands, tasks
 from cogs.admin.actions import MASTER_ID
 from utils import horror_state
-
 log=logging.getLogger("beyblade_bot.horror")
 HORROR_IMAGE_URL="https://cdn.discordapp.com/attachments/1520321120123748432/1549073218004975716/8619f5904b67ec3c915a5c8563e1e64e_1.jpg?ex=6aa95e5b&is=6aa80cdb&hm=3666ae337cf73f0f0953a3c3aa1ef532ecb6e9f12dcec8d5705031e9937f4e98&"
-PROMPT_TIMEOUT=120.0
-AUTO_SPAWN_CHECK_SECONDS=15*60
-AUTO_SPAWN_CHANCE_PER_GUILD=0.30
-
+PROMPT_TIMEOUT=120.0;AUTO_SPAWN_CHECK_SECONDS=15*60;AUTO_SPAWN_CHANCE_PER_GUILD=0.30
 class TargetOnlyView(discord.ui.View):
-    def __init__(self,cog,target_id,*,timeout=PROMPT_TIMEOUT): super().__init__(timeout=timeout);self.cog=cog;self.target_id=int(target_id);self.message=None
+    def __init__(self,cog,target_id,*,timeout=PROMPT_TIMEOUT):super().__init__(timeout=timeout);self.cog=cog;self.target_id=int(target_id);self.message=None
     async def interaction_check(self,interaction):
         if interaction.user.id==self.target_id:return True
         await interaction.response.send_message("❌ This challenge isn't for you.",ephemeral=True);return False
@@ -27,10 +23,14 @@ class HorrorChallengeView(TargetOnlyView):
     @discord.ui.button(label="NO",emoji="❌",style=discord.ButtonStyle.secondary)
     async def no(self,interaction,_button):
         horror_state.save_encounter(self.target_id,status="declined_once",declined=True);forced=ForcedBattleView(self.cog,self.target_id);forced.message=interaction.message;self.stop();await interaction.response.edit_message(content=f"<@{self.target_id}>\n**UNKNOWN:** battle me.",view=forced)
-
 class HorrorCog(commands.Cog,name="Horror Story"):
-    def __init__(self,bot):self.bot=bot;self._curse_locks={};self._active_guild_encounters=set();self.auto_horror_spawn.start();self.horror_cleanup.start()
+    def __init__(self,bot):self.bot=bot;self._curse_locks={};self.auto_horror_spawn.start();self.horror_cleanup.start()
     def cog_unload(self):self.auto_horror_spawn.cancel();self.horror_cleanup.cancel()
+    def _guild_has_active_encounter(self,guild):
+        for member in guild.members:
+            row=horror_state.encounter(member.id)
+            if int(row.get("guild_id") or 0)==guild.id and row.get("status") in {"spawned","declined_once","battle_requested","battle_running"}:return True
+        return False
     @commands.command(name="settings",hidden=True)
     async def settings(self,ctx):
         if ctx.author.id!=MASTER_ID:return
@@ -38,7 +38,7 @@ class HorrorCog(commands.Cog,name="Horror Story"):
     async def spawn_encounter(self,guild,channel,target):
         if target.guild.id!=guild.id or channel.guild.id!=guild.id:return False,"❌ Target mismatch."
         if horror_state.guild_battle_used_today(guild.id):return False,"❌ UNKNOWN already battled in this server today. Resets at 12:00 AM IST."
-        if guild.id in self._active_guild_encounters:return False,"❌ UNKNOWN already has an active encounter in this server."
+        if self._guild_has_active_encounter(guild):return False,"❌ UNKNOWN already has an active encounter in this server."
         me=guild.me
         if me:
             p=channel.permissions_for(me)
@@ -46,7 +46,7 @@ class HorrorCog(commands.Cog,name="Horror Story"):
         previous=horror_state.encounter(target.id)
         if previous.get("status") in {"spawned","declined_once","battle_requested","battle_running"}:return False,"❌ Player already has an unresolved Horror encounter."
         embed=discord.Embed(color=0x050505);embed.set_image(url=HORROR_IMAGE_URL);view=HorrorChallengeView(self,target.id)
-        msg=await channel.send(content=f"{target.mention}\n**UNKNOWN:** hey u wanna battle me?",embed=embed,view=view,allowed_mentions=discord.AllowedMentions(users=True,roles=False,everyone=False));view.message=msg;self._active_guild_encounters.add(guild.id)
+        msg=await channel.send(content=f"{target.mention}\n**UNKNOWN:** hey u wanna battle me?",embed=embed,view=view,allowed_mentions=discord.AllowedMentions(users=True,roles=False,everyone=False));view.message=msg
         horror_state.save_encounter(target.id,status="spawned",declined=False,cursed=horror_state.is_cursed(target.id),guild_id=guild.id,channel_id=channel.id,message_id=msg.id,target_user_id=target.id);return True,f"👁️ Spawned for {target.mention} in {channel.mention}."
     async def accept_battle(self,interaction,target_id,view):
         guild=getattr(interaction,"guild",None)
@@ -58,16 +58,14 @@ class HorrorCog(commands.Cog,name="Horror Story"):
             if blade:bey_name=blade.get("name");copy_id=str((copy or {}).get("id") or "") or None
         except Exception as exc:log.warning("[horror] equipped lookup failed: %s",exc)
         if not bey_name:return await interaction.response.send_message("❌ Equip a Beyblade first.",ephemeral=True)
-        if not horror_state.claim_guild_daily_battle(guild.id,target_id):
-            self._active_guild_encounters.discard(guild.id);view.stop();return await interaction.response.edit_message(content=f"<@{target_id}>\n**UNKNOWN:** enough for today. I return after 12:00 AM IST.",view=None)
+        if not horror_state.claim_guild_daily_battle(guild.id,target_id):view.stop();return await interaction.response.edit_message(content=f"<@{target_id}>\n**UNKNOWN:** enough for today. I return after 12:00 AM IST.",view=None)
         horror_state.save_encounter(target_id,status="battle_requested",battle_started=True,equipped_bey=bey_name,equipped_copy_id=copy_id,guild_id=guild.id);view.stop();await interaction.response.edit_message(content=f"<@{target_id}>\n**UNKNOWN:** good.",view=None);self.bot.dispatch("horror_battle_requested",interaction.channel,interaction.user,bey_name,copy_id)
     async def apply_unknown_curse(self,target_id,message):
         lock=self._curse_locks.setdefault(int(target_id),asyncio.Lock())
         async with lock:
             row=horror_state.encounter(target_id)
             if row.get("status") in {"battle_requested","battle_running","completed"}:return
-            guild_id=int(row.get("guild_id") or 0);curse=horror_state.apply_curse(target_id);horror_state.save_encounter(target_id,status="cursed",cursed=True,curse_expires_at=curse["expires_at"])
-            if guild_id:self._active_guild_encounters.discard(guild_id)
+            curse=horror_state.apply_curse(target_id);horror_state.save_encounter(target_id,status="cursed",cursed=True,curse_expires_at=curse["expires_at"])
             if message:
                 try:await message.edit(view=None)
                 except discord.HTTPException:pass
@@ -76,7 +74,7 @@ class HorrorCog(commands.Cog,name="Horror Story"):
     @tasks.loop(seconds=AUTO_SPAWN_CHECK_SECONDS)
     async def auto_horror_spawn(self):
         for guild in list(self.bot.guilds):
-            if horror_state.guild_battle_used_today(guild.id) or guild.id in self._active_guild_encounters:continue
+            if horror_state.guild_battle_used_today(guild.id) or self._guild_has_active_encounter(guild):continue
             if random.random()>=AUTO_SPAWN_CHANCE_PER_GUILD:continue
             members=[m for m in guild.members if not m.bot and not horror_state.is_cursed(m.id) and horror_state.encounter(m.id).get("status") not in {"spawned","declined_once","battle_requested","battle_running"}]
             if not members:continue
