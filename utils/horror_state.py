@@ -11,10 +11,11 @@ from utils.database import BASE_DIR
 
 STATE_PATH = os.path.join(BASE_DIR, "data", "horror_state.json")
 _LOCK = threading.Lock()
+HORROR_EFFECT_SECONDS = 24 * 60 * 60
 
 
 def _blank() -> dict:
-    return {"curses": {}, "encounters": {}}
+    return {"curses": {}, "encounters": {}, "taken": {}}
 
 
 def _read() -> dict:
@@ -27,6 +28,7 @@ def _read() -> dict:
         return _blank()
     data.setdefault("curses", {})
     data.setdefault("encounters", {})
+    data.setdefault("taken", {})
     return data
 
 
@@ -41,10 +43,19 @@ def _write(data: dict) -> None:
 
 
 def curse_multiplier(user_id: int) -> float:
-    """Return the active combat multiplier. Normal=1.0, Horror curse=0.8."""
+    """Return the active combat multiplier. Expired Horror curses self-clear."""
+    key = str(int(user_id))
+    now = int(time.time())
     with _LOCK:
-        row = _read()["curses"].get(str(int(user_id)), {})
-    if not row.get("active"):
+        data = _read()
+        row = data["curses"].get(key, {})
+        if row.get("active") and int(row.get("expires_at") or 0) <= now:
+            row["active"] = False
+            row["cleared_at"] = now
+            data["curses"][key] = row
+            _write(data)
+        active = bool(row.get("active"))
+    if not active:
         return 1.0
     try:
         return float(row.get("multiplier", 0.8))
@@ -56,16 +67,20 @@ def is_cursed(user_id: int) -> bool:
     return curse_multiplier(user_id) < 1.0
 
 
-def apply_curse(user_id: int, *, source: str = "unknown_challenger") -> None:
+def apply_curse(user_id: int, *, source: str = "unknown_challenger", duration: int = HORROR_EFFECT_SECONDS) -> dict:
+    now = int(time.time())
+    row = {
+        "active": True,
+        "multiplier": 0.8,
+        "source": source,
+        "applied_at": now,
+        "expires_at": now + int(duration),
+    }
     with _LOCK:
         data = _read()
-        data["curses"][str(int(user_id))] = {
-            "active": True,
-            "multiplier": 0.8,
-            "source": source,
-            "applied_at": int(time.time()),
-        }
+        data["curses"][str(int(user_id))] = row
         _write(data)
+    return dict(row)
 
 
 def clear_curse(user_id: int) -> None:
@@ -75,6 +90,42 @@ def clear_curse(user_id: int) -> None:
         row["active"] = False
         row["cleared_at"] = int(time.time())
         _write(data)
+
+
+def record_taken(user_id: int, *, kind: str, amount=1, value=None, source: str = "horror") -> str:
+    """Record anything temporarily taken so restoration can be exactly-once."""
+    now = int(time.time())
+    token = f"{int(user_id)}:{now}:{time.time_ns()}"
+    with _LOCK:
+        data = _read()
+        data["taken"][token] = {
+            "user_id": int(user_id), "kind": str(kind), "amount": amount,
+            "value": value, "source": source, "taken_at": now,
+            "restore_at": now + HORROR_EFFECT_SECONDS, "returned": False,
+        }
+        _write(data)
+    return token
+
+
+def due_restorations(now: int | None = None) -> list[tuple[str, dict]]:
+    now = int(now or time.time())
+    with _LOCK:
+        rows = _read()["taken"]
+        return [(token, dict(row)) for token, row in rows.items()
+                if not row.get("returned") and int(row.get("restore_at") or 0) <= now]
+
+
+def mark_returned(token: str) -> bool:
+    """Atomically mark a restoration complete. False means it was already returned."""
+    with _LOCK:
+        data = _read()
+        row = data["taken"].get(str(token))
+        if not row or row.get("returned"):
+            return False
+        row["returned"] = True
+        row["returned_at"] = int(time.time())
+        _write(data)
+        return True
 
 
 def save_encounter(user_id: int, **fields) -> dict:
