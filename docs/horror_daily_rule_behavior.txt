@@ -1,0 +1,1 @@
+If UNKNOWN already battled someone today, further automatic or manual encounter attempts are rejected for that server until the IST date changes.
