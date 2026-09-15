@@ -1,0 +1,1 @@
+Restarting Beycord does not grant a second UNKNOWN battle because the guild/day record is persisted to horror_state.json.
