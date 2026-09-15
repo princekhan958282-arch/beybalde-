@@ -44,6 +44,37 @@ class _AddModal(discord.ui.Modal):
         await self.view_ref.refresh(interaction)
 
 
+class _BeyLevelModal(discord.ui.Modal, title="Set gift Bey level"):
+    """Set the starting level for the most recently added Bey reward."""
+
+    def __init__(self, view: "CodeBuilderView", current_level: int = 1) -> None:
+        super().__init__()
+        self.view_ref = view
+        self.level = discord.ui.TextInput(
+            label="Bey level (1-100)",
+            placeholder="e.g. 75",
+            default=str(current_level),
+            min_length=1,
+            max_length=3,
+        )
+        self.add_item(self.level)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        raw = str(self.level.value or "").strip()
+        if not raw.isdigit() or not 1 <= int(raw) <= 100:
+            return await interaction.response.send_message(
+                "❌ Bey level must be a number from 1 to 100.", ephemeral=True)
+        blade = next((r for r in reversed(self.view_ref.rewards)
+                      if r.get("kind") == "blade"), None)
+        if blade is None:
+            return await interaction.response.send_message(
+                "❌ Add a Beyblade reward first, then set its level.", ephemeral=True)
+        blade["level"] = int(raw)
+        self.view_ref.note_line = (
+            f"🎚️ **{blade['value']}** gift level set to **Lv.{int(raw)}**.")
+        await self.view_ref.refresh(interaction)
+
+
 class _BossBeyModal(discord.ui.Modal, title="Add a boss bey copy"):
     def __init__(self, view: "CodeBuilderView") -> None:
         super().__init__()
@@ -150,7 +181,7 @@ class CodeBuilderView(discord.ui.View):
     def rebuild(self) -> None:
         self.clear_items()
         self.add_item(RewardKindSelect(self))
-        for item in (self.details, self.clear_rewards, self.create_code_btn):
+        for item in (self.bey_level, self.details, self.clear_rewards, self.create_code_btn):
             self.add_item(item)
 
     def embed(self) -> discord.Embed:
@@ -182,6 +213,19 @@ class CodeBuilderView(discord.ui.View):
     async def on_timeout(self) -> None:
         for child in self.children:
             child.disabled = True
+
+
+    @discord.ui.button(label="Bey level", emoji="🎚️", row=1,
+                       style=discord.ButtonStyle.secondary)
+    async def bey_level(self, interaction: discord.Interaction, _b) -> None:
+        if not await self.guard(interaction):
+            return
+        blade = next((r for r in reversed(self.rewards) if r.get("kind") == "blade"), None)
+        if blade is None:
+            return await interaction.response.send_message(
+                "❌ Add a Beyblade reward first, then set its level.", ephemeral=True)
+        current = max(1, min(100, int(blade.get("level", 1) or 1)))
+        await interaction.response.send_modal(_BeyLevelModal(self, current))
 
     @discord.ui.button(label="Details (uses / expiry / note)", emoji="📝", row=1,
                        style=discord.ButtonStyle.secondary)
