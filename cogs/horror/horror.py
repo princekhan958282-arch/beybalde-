@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from typing import Optional
 
 import discord
 from discord.ext import commands, tasks
@@ -16,7 +15,8 @@ log = logging.getLogger("beyblade_bot.horror")
 HORROR_IMAGE_URL = "https://cdn.discordapp.com/attachments/1520321120123748432/1549073218004975716/8619f5904b67ec3c915a5c8563e1e64e_1.jpg?ex=6aa95e5b&is=6aa80cdb&hm=3666ae337cf73f0f0953a3c3aa1ef532ecb6e9f12dcec8d5705031e9937f4e98&"
 PROMPT_TIMEOUT = 120.0
 AUTO_SPAWN_CHECK_SECONDS = 15 * 60
-AUTO_SPAWN_CHANCE_PER_GUILD = 0.02
+# Each server independently gets a 30% roll on every scheduled check.
+AUTO_SPAWN_CHANCE_PER_GUILD = 0.30
 
 
 class TargetOnlyView(discord.ui.View):
@@ -49,7 +49,7 @@ class HorrorCog(commands.Cog, name="Horror Story"):
     @commands.command(name="settings", hidden=True)
     async def settings(self, ctx):
         if ctx.author.id != MASTER_ID: return
-        await ctx.send("👁️ **Horror Story** is active. Encounters can be spawned manually or appear randomly across servers.")
+        await ctx.send("👁️ **Horror Story** is active. Encounters can be spawned manually or appear randomly across servers. Auto-spawn chance: **30% per server per check**.")
 
     async def spawn_encounter(self, guild, channel, target):
         if target.guild.id != guild.id or channel.guild.id != guild.id: return False,"❌ Target mismatch."
@@ -58,7 +58,7 @@ class HorrorCog(commands.Cog, name="Horror Story"):
             p=channel.permissions_for(me)
             if not (p.view_channel and p.send_messages and p.embed_links): return False,"❌ Beycord cannot send there."
         previous=horror_state.encounter(target.id)
-        if previous.get("status") in {"spawned","declined_once"}: return False,"❌ Player already has an unresolved Horror encounter."
+        if previous.get("status") in {"spawned","declined_once","battle_requested","battle_running"}: return False,"❌ Player already has an unresolved Horror encounter."
         embed=discord.Embed(color=0x050505); embed.set_image(url=HORROR_IMAGE_URL)
         view=HorrorChallengeView(self,target.id)
         msg=await channel.send(content=f"{target.mention}\n**UNKNOWN:** hey u wanna battle me?",embed=embed,view=view,allowed_mentions=discord.AllowedMentions(users=True,roles=False,everyone=False))
@@ -82,7 +82,7 @@ class HorrorCog(commands.Cog, name="Horror Story"):
         lock=self._curse_locks.setdefault(int(target_id),asyncio.Lock())
         async with lock:
             row=horror_state.encounter(target_id)
-            if row.get("status") in {"battle_requested","completed"}: return
+            if row.get("status") in {"battle_requested","battle_running","completed"}: return
             curse=horror_state.apply_curse(target_id)
             horror_state.save_encounter(target_id,status="cursed",cursed=True,curse_expires_at=curse["expires_at"])
             if message:
@@ -93,10 +93,10 @@ class HorrorCog(commands.Cog, name="Horror Story"):
 
     @tasks.loop(seconds=AUTO_SPAWN_CHECK_SECONDS)
     async def auto_horror_spawn(self):
-        """Every check gives each guild a small independent chance of a Horror spawn."""
+        """Every check gives each guild an independent 30% Horror spawn roll."""
         for guild in list(self.bot.guilds):
             if random.random() >= AUTO_SPAWN_CHANCE_PER_GUILD: continue
-            members=[m for m in guild.members if not m.bot and not horror_state.is_cursed(m.id) and horror_state.encounter(m.id).get("status") not in {"spawned","declined_once"}]
+            members=[m for m in guild.members if not m.bot and not horror_state.is_cursed(m.id) and horror_state.encounter(m.id).get("status") not in {"spawned","declined_once","battle_requested","battle_running"}]
             if not members: continue
             me=guild.me
             channels=[c for c in guild.text_channels if me and c.permissions_for(me).view_channel and c.permissions_for(me).send_messages and c.permissions_for(me).embed_links]
@@ -109,14 +109,13 @@ class HorrorCog(commands.Cog, name="Horror Story"):
 
     @tasks.loop(minutes=5)
     async def horror_cleanup(self):
-        """Clear expired effects. Restorable assets are dispatched exactly once to their owning subsystem."""
-        # curse_multiplier performs durable expiry cleanup even after a restart.
+        """Clear expired effects and dispatch durable restorations."""
         for guild in list(self.bot.guilds):
             for member in guild.members:
                 horror_state.curse_multiplier(member.id)
+                # encounter() also expires abandoned pre-battle state after 24h.
+                horror_state.encounter(member.id)
         for token,row in horror_state.due_restorations():
-            # The subsystem that actually took the asset must return it, then call
-            # horror_state.mark_returned(token). This prevents guessing inventory schemas here.
             self.bot.dispatch("horror_restore_due",token,row)
 
     @horror_cleanup.before_loop
