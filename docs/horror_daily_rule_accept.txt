@@ -1,0 +1,1 @@
+The daily allowance is consumed when the selected player presses BATTLE and the battle request is accepted.
