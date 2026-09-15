@@ -1,0 +1,1 @@
+Daily battle lock is claimed when BATTLE is accepted, not merely when UNKNOWN appears. Active encounter reservation prevents UNKNOWN from selecting multiple players simultaneously in one server.
