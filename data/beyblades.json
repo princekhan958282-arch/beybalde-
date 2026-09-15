@@ -11546,11 +11546,11 @@
     "burst_height": "Mid",
     "type": "Balance",
     "stats": {
-      "attack": 142,
-      "defense": 126,
-      "stamina": 132,
-      "special": 148,
-      "hp": 137
+      "attack": 114,
+      "defense": 98,
+      "stamina": 104,
+      "special": 120,
+      "hp": 109
     },
     "ability": {
       "name": "Void Reversal",
