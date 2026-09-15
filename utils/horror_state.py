@@ -6,6 +6,7 @@ import json
 import os
 import threading
 import time
+from datetime import datetime, timezone, timedelta
 
 from utils.database import BASE_DIR
 
@@ -13,10 +14,11 @@ STATE_PATH = os.path.join(BASE_DIR, "data", "horror_state.json")
 _LOCK = threading.Lock()
 HORROR_EFFECT_SECONDS = 24 * 60 * 60
 ENCOUNTER_STALE_SECONDS = 24 * 60 * 60
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def _blank() -> dict:
-    return {"curses": {}, "encounters": {}, "taken": {}}
+    return {"curses": {}, "encounters": {}, "taken": {}, "guild_daily_spawns": {}}
 
 
 def _read() -> dict:
@@ -30,6 +32,7 @@ def _read() -> dict:
     data.setdefault("curses", {})
     data.setdefault("encounters", {})
     data.setdefault("taken", {})
+    data.setdefault("guild_daily_spawns", {})
     return data
 
 
@@ -41,6 +44,38 @@ def _write(data: dict) -> None:
         f.flush()
         os.fsync(f.fileno())
     os.replace(tmp, STATE_PATH)
+
+
+def _ist_day(now: float | None = None) -> str:
+    stamp = time.time() if now is None else float(now)
+    return datetime.fromtimestamp(stamp, tz=timezone.utc).astimezone(IST).date().isoformat()
+
+
+def guild_spawned_today(guild_id: int, now: float | None = None) -> bool:
+    """True after this guild has consumed its one UNKNOWN spawn for the IST day."""
+    day = _ist_day(now)
+    with _LOCK:
+        row = _read()["guild_daily_spawns"].get(str(int(guild_id)), {})
+        return row.get("ist_day") == day
+
+
+def claim_guild_daily_spawn(guild_id: int, user_id: int, now: float | None = None) -> bool:
+    """Atomically reserve a guild's one UNKNOWN encounter until 00:00 IST."""
+    stamp = time.time() if now is None else float(now)
+    day = _ist_day(stamp)
+    with _LOCK:
+        data = _read()
+        key = str(int(guild_id))
+        row = data["guild_daily_spawns"].get(key, {})
+        if row.get("ist_day") == day:
+            return False
+        data["guild_daily_spawns"][key] = {
+            "ist_day": day,
+            "target_user_id": int(user_id),
+            "claimed_at": int(stamp),
+        }
+        _write(data)
+        return True
 
 
 def curse_multiplier(user_id: int) -> float:
@@ -100,7 +135,6 @@ def save_encounter(user_id: int, **fields) -> dict:
     key = str(int(user_id)); now = int(time.time())
     with _LOCK:
         data = _read(); row = dict(data["encounters"].get(key, {})); row.update(fields); row["updated_at"] = now
-        # A completed claim must always enter the durable 24h return ledger.
         if fields.get("status") == "completed" and fields.get("bey_claimed") and not row.get("restoration_token"):
             token = f"{int(user_id)}:{now}:{time.time_ns()}"
             value = {"name": fields.get("claimed_bey") or row.get("equipped_bey"), "copy_id": row.get("equipped_copy_id")}

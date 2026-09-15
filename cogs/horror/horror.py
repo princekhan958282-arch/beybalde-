@@ -15,7 +15,6 @@ log = logging.getLogger("beyblade_bot.horror")
 HORROR_IMAGE_URL = "https://cdn.discordapp.com/attachments/1520321120123748432/1549073218004975716/8619f5904b67ec3c915a5c8563e1e64e_1.jpg?ex=6aa95e5b&is=6aa80cdb&hm=3666ae337cf73f0f0953a3c3aa1ef532ecb6e9f12dcec8d5705031e9937f4e98&"
 PROMPT_TIMEOUT = 120.0
 AUTO_SPAWN_CHECK_SECONDS = 15 * 60
-# Each server independently gets a 30% roll on every scheduled check.
 AUTO_SPAWN_CHANCE_PER_GUILD = 0.30
 
 
@@ -49,7 +48,7 @@ class HorrorCog(commands.Cog, name="Horror Story"):
     @commands.command(name="settings", hidden=True)
     async def settings(self, ctx):
         if ctx.author.id != MASTER_ID: return
-        await ctx.send("👁️ **Horror Story** is active. Encounters can be spawned manually or appear randomly across servers. Auto-spawn chance: **30% per server per check**.")
+        await ctx.send("👁️ **Horror Story** is active. Auto-spawn: **30% per server per check**, but UNKNOWN can select only **one player per server per IST day**. Daily lock resets at **12:00 AM IST**.")
 
     async def spawn_encounter(self, guild, channel, target):
         if target.guild.id != guild.id or channel.guild.id != guild.id: return False,"❌ Target mismatch."
@@ -59,9 +58,18 @@ class HorrorCog(commands.Cog, name="Horror Story"):
             if not (p.view_channel and p.send_messages and p.embed_links): return False,"❌ Beycord cannot send there."
         previous=horror_state.encounter(target.id)
         if previous.get("status") in {"spawned","declined_once","battle_requested","battle_running"}: return False,"❌ Player already has an unresolved Horror encounter."
+        # The reservation is atomic and persistent, so restarts or two task runs
+        # cannot make UNKNOWN choose a second player in this server on the same day.
+        if not horror_state.claim_guild_daily_spawn(guild.id, target.id):
+            return False,"❌ UNKNOWN has already appeared in this server today. Resets at 12:00 AM IST."
         embed=discord.Embed(color=0x050505); embed.set_image(url=HORROR_IMAGE_URL)
         view=HorrorChallengeView(self,target.id)
-        msg=await channel.send(content=f"{target.mention}\n**UNKNOWN:** hey u wanna battle me?",embed=embed,view=view,allowed_mentions=discord.AllowedMentions(users=True,roles=False,everyone=False))
+        try:
+            msg=await channel.send(content=f"{target.mention}\n**UNKNOWN:** hey u wanna battle me?",embed=embed,view=view,allowed_mentions=discord.AllowedMentions(users=True,roles=False,everyone=False))
+        except Exception:
+            # Keep the daily reservation even if Discord rejects the send. This
+            # preserves the strict one-attempt/one-player-per-server daily rule.
+            raise
         view.message=msg
         horror_state.save_encounter(target.id,status="spawned",declined=False,cursed=horror_state.is_cursed(target.id),guild_id=guild.id,channel_id=channel.id,message_id=msg.id,target_user_id=target.id)
         return True,f"👁️ Spawned for {target.mention} in {channel.mention}."
@@ -93,8 +101,9 @@ class HorrorCog(commands.Cog, name="Horror Story"):
 
     @tasks.loop(seconds=AUTO_SPAWN_CHECK_SECONDS)
     async def auto_horror_spawn(self):
-        """Every check gives each guild an independent 30% Horror spawn roll."""
+        """30% roll per guild, capped at one selected player per IST calendar day."""
         for guild in list(self.bot.guilds):
+            if horror_state.guild_spawned_today(guild.id): continue
             if random.random() >= AUTO_SPAWN_CHANCE_PER_GUILD: continue
             members=[m for m in guild.members if not m.bot and not horror_state.is_cursed(m.id) and horror_state.encounter(m.id).get("status") not in {"spawned","declined_once","battle_requested","battle_running"}]
             if not members: continue
@@ -113,7 +122,6 @@ class HorrorCog(commands.Cog, name="Horror Story"):
         for guild in list(self.bot.guilds):
             for member in guild.members:
                 horror_state.curse_multiplier(member.id)
-                # encounter() also expires abandoned pre-battle state after 24h.
                 horror_state.encounter(member.id)
         for token,row in horror_state.due_restorations():
             self.bot.dispatch("horror_restore_due",token,row)
