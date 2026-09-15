@@ -1,0 +1,1 @@
+Daily reset timezone: Asia/Kolkata semantics, fixed UTC+05:30 (IST), midnight boundary.
