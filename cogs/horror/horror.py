@@ -26,8 +26,9 @@ class HorrorChallengeView(TargetOnlyView):
 class HorrorCog(commands.Cog,name="Horror Story"):
     def __init__(self,bot):self.bot=bot;self._curse_locks={};self.auto_horror_spawn.start();self.horror_cleanup.start()
     def cog_unload(self):self.auto_horror_spawn.cancel();self.horror_cleanup.cancel()
-    def _guild_has_active_encounter(self,guild):
+    def _guild_has_active_encounter(self,guild,*,ignore_user_id=None):
         for member in guild.members:
+            if ignore_user_id is not None and member.id==int(ignore_user_id):continue
             row=horror_state.encounter(member.id)
             if int(row.get("guild_id") or 0)==guild.id and row.get("status") in {"spawned","declined_once","battle_requested","battle_running"}:return True
         return False
@@ -51,6 +52,10 @@ class HorrorCog(commands.Cog,name="Horror Story"):
     async def accept_battle(self,interaction,target_id,view):
         guild=getattr(interaction,"guild",None)
         if guild is None:return await interaction.response.send_message("❌ Horror battles are server-only.",ephemeral=True)
+        # The clicked encounter must belong to this target and server. Another active target blocks it.
+        row=horror_state.encounter(target_id)
+        if int(row.get("guild_id") or 0)!=guild.id or row.get("status") not in {"spawned","declined_once"}:return await interaction.response.send_message("❌ This Horror encounter is no longer active.",ephemeral=True)
+        if self._guild_has_active_encounter(guild,ignore_user_id=target_id):return await interaction.response.send_message("❌ UNKNOWN is already facing another player in this server.",ephemeral=True)
         bey_name=None;copy_id=None
         try:
             from cogs.battle.boss import boss_copy as bcopy
