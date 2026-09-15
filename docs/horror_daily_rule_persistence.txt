@@ -1,0 +1,1 @@
+Persistence keys: guild_daily_battles and guild_active_encounters in data/horror_state.json.
