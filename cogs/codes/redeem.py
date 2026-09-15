@@ -13,7 +13,7 @@ Reward spec is a comma-separated string so one code can grant several things:
 
     coins:5000              → Beycoins
     casino:2000             → casino coins
-    blade:Dranzer           → a Beyblade
+    blade:Dranzer           → a Beyblade at level 1\n    blade:Dranzer@75        → a Beyblade starting at level 75
     premium:pro             → a 7-day premium pass
     coins:5000,casino:1000  → both
 
@@ -75,10 +75,18 @@ def parse_rewards(spec: str) -> tuple[Optional[list[dict]], Optional[str]]:
                 "value": int(value),
             })
         elif kind in ("blade", "bey", "beyblade"):
+            # Optional starting level: blade:Dranzer@75. Keeping @ out of the
+            # Bey name makes old code specs fully backwards compatible.
+            blade_value, sep, level_text = value.rpartition("@")
+            level = 1
+            if sep:
+                if not level_text.isdigit() or not 1 <= int(level_text) <= 100:
+                    return None, f"\`{part}\` level must be from 1 to 100."
+                value, level = blade_value.strip(), int(level_text)
             blade = fuzzy_find_beyblade(value)
             if blade is None:
                 return None, f"No Beyblade matching **{value}**."
-            rewards.append({"kind": "blade", "value": blade["name"]})
+            rewards.append({"kind": "blade", "value": blade["name"], "level": level})
         elif kind in ("premium", "pass"):
             key = value.lower()
             if key not in casino_premium.PACKS:
@@ -147,7 +155,8 @@ def describe(rewards: list[dict]) -> str:
         elif r["kind"] == "casino":
             bits.append(f"🎰 {r['value']:,} casino coins")
         elif r["kind"] == "blade":
-            bits.append(f"🌀 **{r['value']}**")
+            level = max(1, min(100, int(r.get("level", 1) or 1)))
+            bits.append(f"🌀 **{r['value']}** (Lv.{level})")
         elif r["kind"] == "premium":
             bits.append(f"👑 {casino_premium.PACKS[r['value']]['display']} pass")
         elif r["kind"] == "avatar":
@@ -177,7 +186,12 @@ async def grant(user_id: int, rewards: list[dict]) -> list[str]:
             got.append(f"🎰 **+{r['value']:,}** casino coins")
         elif r["kind"] == "blade":
             if add_beyblade_to_inventory(user_id, r["value"]):
-                got.append(f"🌀 **{r['value']}** added to your collection")
+                level = max(1, min(100, int(r.get("level", 1) or 1)))
+                if level > 1:
+                    from utils import bey_levels as BL
+                    await mutate_user(user_id, lambda prof: BL.entry_for(
+                        prof, r["value"]).__setitem__("xp", BL.xp_for_level(level)))
+                got.append(f"🌀 **{r['value']}** (Lv.{level}) added to your collection")
             else:
                 # Say so. Announcing a blade that was never granted is worse
                 # than refusing it — the code is spent either way.
