@@ -1,0 +1,1 @@
+IST has no daylight-saving changes, so UTC+05:30 safely represents the requested India midnight reset.
