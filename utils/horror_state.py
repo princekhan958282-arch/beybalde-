@@ -12,6 +12,7 @@ from utils.database import BASE_DIR
 STATE_PATH = os.path.join(BASE_DIR, "data", "horror_state.json")
 _LOCK = threading.Lock()
 HORROR_EFFECT_SECONDS = 24 * 60 * 60
+ENCOUNTER_STALE_SECONDS = 24 * 60 * 60
 
 
 def _blank() -> dict:
@@ -43,24 +44,15 @@ def _write(data: dict) -> None:
 
 
 def curse_multiplier(user_id: int) -> float:
-    """Return the active combat multiplier. Expired Horror curses self-clear."""
-    key = str(int(user_id))
-    now = int(time.time())
+    key = str(int(user_id)); now = int(time.time())
     with _LOCK:
-        data = _read()
-        row = data["curses"].get(key, {})
+        data = _read(); row = data["curses"].get(key, {})
         if row.get("active") and int(row.get("expires_at") or 0) <= now:
-            row["active"] = False
-            row["cleared_at"] = now
-            data["curses"][key] = row
-            _write(data)
+            row["active"] = False; row["cleared_at"] = now; data["curses"][key] = row; _write(data)
         active = bool(row.get("active"))
-    if not active:
-        return 1.0
-    try:
-        return float(row.get("multiplier", 0.8))
-    except (TypeError, ValueError):
-        return 0.8
+    if not active: return 1.0
+    try: return float(row.get("multiplier", 0.8))
+    except (TypeError, ValueError): return 0.8
 
 
 def is_cursed(user_id: int) -> bool:
@@ -69,40 +61,23 @@ def is_cursed(user_id: int) -> bool:
 
 def apply_curse(user_id: int, *, source: str = "unknown_challenger", duration: int = HORROR_EFFECT_SECONDS) -> dict:
     now = int(time.time())
-    row = {
-        "active": True,
-        "multiplier": 0.8,
-        "source": source,
-        "applied_at": now,
-        "expires_at": now + int(duration),
-    }
+    row = {"active": True, "multiplier": 0.8, "source": source, "applied_at": now, "expires_at": now + int(duration)}
     with _LOCK:
-        data = _read()
-        data["curses"][str(int(user_id))] = row
-        _write(data)
+        data = _read(); data["curses"][str(int(user_id))] = row; _write(data)
     return dict(row)
 
 
 def clear_curse(user_id: int) -> None:
     with _LOCK:
-        data = _read()
-        row = data["curses"].setdefault(str(int(user_id)), {})
-        row["active"] = False
-        row["cleared_at"] = int(time.time())
-        _write(data)
+        data = _read(); row = data["curses"].setdefault(str(int(user_id)), {})
+        row["active"] = False; row["cleared_at"] = int(time.time()); _write(data)
 
 
 def record_taken(user_id: int, *, kind: str, amount=1, value=None, source: str = "horror") -> str:
-    """Record anything temporarily taken so restoration can be exactly-once."""
-    now = int(time.time())
-    token = f"{int(user_id)}:{now}:{time.time_ns()}"
+    now = int(time.time()); token = f"{int(user_id)}:{now}:{time.time_ns()}"
     with _LOCK:
         data = _read()
-        data["taken"][token] = {
-            "user_id": int(user_id), "kind": str(kind), "amount": amount,
-            "value": value, "source": source, "taken_at": now,
-            "restore_at": now + HORROR_EFFECT_SECONDS, "returned": False,
-        }
+        data["taken"][token] = {"user_id": int(user_id), "kind": str(kind), "amount": amount, "value": value, "source": source, "taken_at": now, "restore_at": now + HORROR_EFFECT_SECONDS, "returned": False}
         _write(data)
     return token
 
@@ -111,35 +86,33 @@ def due_restorations(now: int | None = None) -> list[tuple[str, dict]]:
     now = int(now or time.time())
     with _LOCK:
         rows = _read()["taken"]
-        return [(token, dict(row)) for token, row in rows.items()
-                if not row.get("returned") and int(row.get("restore_at") or 0) <= now]
+        return [(token, dict(row)) for token, row in rows.items() if not row.get("returned") and int(row.get("restore_at") or 0) <= now]
 
 
 def mark_returned(token: str) -> bool:
-    """Atomically mark a restoration complete. False means it was already returned."""
     with _LOCK:
-        data = _read()
-        row = data["taken"].get(str(token))
-        if not row or row.get("returned"):
-            return False
-        row["returned"] = True
-        row["returned_at"] = int(time.time())
-        _write(data)
-        return True
+        data = _read(); row = data["taken"].get(str(token))
+        if not row or row.get("returned"): return False
+        row["returned"] = True; row["returned_at"] = int(time.time()); _write(data); return True
 
 
 def save_encounter(user_id: int, **fields) -> dict:
-    key = str(int(user_id))
+    key = str(int(user_id)); now = int(time.time())
     with _LOCK:
-        data = _read()
-        row = dict(data["encounters"].get(key, {}))
-        row.update(fields)
-        row["updated_at"] = int(time.time())
-        data["encounters"][key] = row
-        _write(data)
+        data = _read(); row = dict(data["encounters"].get(key, {})); row.update(fields); row["updated_at"] = now
+        # A completed claim must always enter the durable 24h return ledger.
+        if fields.get("status") == "completed" and fields.get("bey_claimed") and not row.get("restoration_token"):
+            token = f"{int(user_id)}:{now}:{time.time_ns()}"
+            value = {"name": fields.get("claimed_bey") or row.get("equipped_bey"), "copy_id": row.get("equipped_copy_id")}
+            data["taken"][token] = {"user_id": int(user_id), "kind": "bey", "amount": 1, "value": value, "source": "unknown_battle", "taken_at": now, "restore_at": now + HORROR_EFFECT_SECONDS, "returned": False}
+            row["restoration_token"] = token
+        data["encounters"][key] = row; _write(data)
     return row
 
 
 def encounter(user_id: int) -> dict:
     with _LOCK:
-        return dict(_read()["encounters"].get(str(int(user_id)), {}))
+        data = _read(); key = str(int(user_id)); row = dict(data["encounters"].get(key, {}))
+        if row.get("status") in {"spawned", "declined_once", "battle_requested", "battle_failed"} and int(row.get("updated_at") or 0) + ENCOUNTER_STALE_SECONDS <= int(time.time()):
+            row["status"] = "expired"; row["expired_at"] = int(time.time()); data["encounters"][key] = row; _write(data)
+        return row
