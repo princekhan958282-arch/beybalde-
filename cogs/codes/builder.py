@@ -44,6 +44,34 @@ class _AddModal(discord.ui.Modal):
         await self.view_ref.refresh(interaction)
 
 
+class _BeyModal(discord.ui.Modal, title="Add a Beyblade"):
+    """Pick both the Bey and the exact starting level for this code reward."""
+
+    def __init__(self, view: "CodeBuilderView") -> None:
+        super().__init__()
+        self.view_ref = view
+        self.name = discord.ui.TextInput(
+            label="Beyblade name", placeholder="e.g. Noctilune", max_length=100)
+        self.level = discord.ui.TextInput(
+            label="Starting level (1-100)", placeholder="e.g. 75",
+            default="1", max_length=3)
+        self.add_item(self.name)
+        self.add_item(self.level)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        name = str(self.name.value or "").strip()
+        level = str(self.level.value or "").strip()
+        if not level.isdigit() or not 1 <= int(level) <= 100:
+            return await interaction.response.send_message(
+                "❌ Level must be a number from **1 to 100**.", ephemeral=True)
+        rewards, err = R.parse_rewards(f"blade:{name}@{int(level)}")
+        if err:
+            return await interaction.response.send_message(f"❌ {err}", ephemeral=True)
+        self.view_ref.rewards.extend(rewards)
+        self.view_ref.note_line = f"✅ Added {R.describe(rewards)}."
+        await self.view_ref.refresh(interaction)
+
+
 class _BossBeyModal(discord.ui.Modal, title="Add a boss bey copy"):
     def __init__(self, view: "CodeBuilderView") -> None:
         super().__init__()
@@ -121,6 +149,8 @@ class RewardKindSelect(discord.ui.Select):
         kind = self.values[0]
         if kind == "bossbey":
             return await interaction.response.send_modal(_BossBeyModal(self.view_ref))
+        if kind == "blade":
+            return await interaction.response.send_modal(_BeyModal(self.view_ref))
         _kind, label, field_label, placeholder = next(
             row for row in self.KINDS if row[0] == kind)
         modal = _AddModal(self.view_ref, kind, f"Add {label}", field_label, placeholder)
