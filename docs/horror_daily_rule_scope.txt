@@ -1,0 +1,1 @@
+Scope is per guild/server ID. Different servers can each have their own UNKNOWN battle on the same IST day.
