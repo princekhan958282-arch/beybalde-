@@ -1,11 +1,11 @@
 """Persistent state for Beycord Horror Story encounters."""
-
 from __future__ import annotations
 
 import json
 import os
 import threading
 import time
+from datetime import datetime, timezone, timedelta
 
 from utils.database import BASE_DIR
 
@@ -13,34 +13,50 @@ STATE_PATH = os.path.join(BASE_DIR, "data", "horror_state.json")
 _LOCK = threading.Lock()
 HORROR_EFFECT_SECONDS = 24 * 60 * 60
 ENCOUNTER_STALE_SECONDS = 24 * 60 * 60
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def _blank() -> dict:
-    return {"curses": {}, "encounters": {}, "taken": {}}
+    return {"curses": {}, "encounters": {}, "taken": {}, "guild_daily_battles": {}}
 
 
 def _read() -> dict:
     try:
         with open(STATE_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-            if not isinstance(data, dict):
-                return _blank()
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return _blank()
-    data.setdefault("curses", {})
-    data.setdefault("encounters", {})
-    data.setdefault("taken", {})
+            if not isinstance(data, dict): return _blank()
+    except (FileNotFoundError, json.JSONDecodeError, OSError): return _blank()
+    data.setdefault("curses", {}); data.setdefault("encounters", {}); data.setdefault("taken", {}); data.setdefault("guild_daily_battles", {})
     return data
 
 
 def _write(data: dict) -> None:
-    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    tmp = STATE_PATH + ".tmp"
+    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True); tmp = STATE_PATH + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
-        f.flush()
-        os.fsync(f.fileno())
+        json.dump(data, f, indent=2); f.flush(); os.fsync(f.fileno())
     os.replace(tmp, STATE_PATH)
+
+
+def ist_day_key(now: float | None = None) -> str:
+    stamp = time.time() if now is None else float(now)
+    return datetime.fromtimestamp(stamp, tz=IST).date().isoformat()
+
+
+def guild_battle_used_today(guild_id: int, now: float | None = None) -> bool:
+    day = ist_day_key(now)
+    with _LOCK:
+        row = _read()["guild_daily_battles"].get(str(int(guild_id)), {})
+        return row.get("day") == day and bool(row.get("used"))
+
+
+def claim_guild_daily_battle(guild_id: int, user_id: int, now: float | None = None) -> bool:
+    """Atomically reserve today's single UNKNOWN battle for this guild (IST day)."""
+    stamp = time.time() if now is None else float(now); day = ist_day_key(stamp)
+    with _LOCK:
+        data = _read(); key = str(int(guild_id)); row = data["guild_daily_battles"].get(key, {})
+        if row.get("day") == day and row.get("used"): return False
+        data["guild_daily_battles"][key] = {"day": day, "used": True, "user_id": int(user_id), "claimed_at": int(stamp)}
+        _write(data); return True
 
 
 def curse_multiplier(user_id: int) -> float:
@@ -55,13 +71,11 @@ def curse_multiplier(user_id: int) -> float:
     except (TypeError, ValueError): return 0.8
 
 
-def is_cursed(user_id: int) -> bool:
-    return curse_multiplier(user_id) < 1.0
+def is_cursed(user_id: int) -> bool: return curse_multiplier(user_id) < 1.0
 
 
 def apply_curse(user_id: int, *, source: str = "unknown_challenger", duration: int = HORROR_EFFECT_SECONDS) -> dict:
-    now = int(time.time())
-    row = {"active": True, "multiplier": 0.8, "source": source, "applied_at": now, "expires_at": now + int(duration)}
+    now = int(time.time()); row = {"active": True, "multiplier": 0.8, "source": source, "applied_at": now, "expires_at": now + int(duration)}
     with _LOCK:
         data = _read(); data["curses"][str(int(user_id))] = row; _write(data)
     return dict(row)
@@ -69,16 +83,13 @@ def apply_curse(user_id: int, *, source: str = "unknown_challenger", duration: i
 
 def clear_curse(user_id: int) -> None:
     with _LOCK:
-        data = _read(); row = data["curses"].setdefault(str(int(user_id)), {})
-        row["active"] = False; row["cleared_at"] = int(time.time()); _write(data)
+        data = _read(); row = data["curses"].setdefault(str(int(user_id)), {}); row["active"] = False; row["cleared_at"] = int(time.time()); _write(data)
 
 
 def record_taken(user_id: int, *, kind: str, amount=1, value=None, source: str = "horror") -> str:
     now = int(time.time()); token = f"{int(user_id)}:{now}:{time.time_ns()}"
     with _LOCK:
-        data = _read()
-        data["taken"][token] = {"user_id": int(user_id), "kind": str(kind), "amount": amount, "value": value, "source": source, "taken_at": now, "restore_at": now + HORROR_EFFECT_SECONDS, "returned": False}
-        _write(data)
+        data = _read(); data["taken"][token] = {"user_id": int(user_id), "kind": str(kind), "amount": amount, "value": value, "source": source, "taken_at": now, "restore_at": now + HORROR_EFFECT_SECONDS, "returned": False}; _write(data)
     return token
 
 
@@ -100,12 +111,9 @@ def save_encounter(user_id: int, **fields) -> dict:
     key = str(int(user_id)); now = int(time.time())
     with _LOCK:
         data = _read(); row = dict(data["encounters"].get(key, {})); row.update(fields); row["updated_at"] = now
-        # A completed claim must always enter the durable 24h return ledger.
         if fields.get("status") == "completed" and fields.get("bey_claimed") and not row.get("restoration_token"):
-            token = f"{int(user_id)}:{now}:{time.time_ns()}"
-            value = {"name": fields.get("claimed_bey") or row.get("equipped_bey"), "copy_id": row.get("equipped_copy_id")}
-            data["taken"][token] = {"user_id": int(user_id), "kind": "bey", "amount": 1, "value": value, "source": "unknown_battle", "taken_at": now, "restore_at": now + HORROR_EFFECT_SECONDS, "returned": False}
-            row["restoration_token"] = token
+            token = f"{int(user_id)}:{now}:{time.time_ns()}"; value = {"name": fields.get("claimed_bey") or row.get("equipped_bey"), "copy_id": row.get("equipped_copy_id")}
+            data["taken"][token] = {"user_id": int(user_id), "kind": "bey", "amount": 1, "value": value, "source": "unknown_battle", "taken_at": now, "restore_at": now + HORROR_EFFECT_SECONDS, "returned": False}; row["restoration_token"] = token
         data["encounters"][key] = row; _write(data)
     return row
 
