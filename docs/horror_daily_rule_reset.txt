@@ -1,0 +1,1 @@
+Reset boundary: 00:00:00 IST (UTC+05:30). The implementation compares persisted daily lock date against the current IST calendar date.
