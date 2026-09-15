@@ -862,7 +862,7 @@ async def _t_ban(ctx: ActionCtx) -> Result:
 # ══════════════════════════════════════════════════════════════════════════════
 
 @register("code_create", "Create a redeem code",
-          "type a spec: coins:5000 blade:Name avatar:Name bossbey:Name uses:100 days:7",
+          "type a spec: coins:5000 blade:Name@LEVEL avatar:Name bossbey:Name uses:100 days:7",
           "codes", needs=("text",))
 async def _code_create(ctx: ActionCtx) -> Result:
     from cogs.codes.redeem import _pretty, create_code, describe, parse_rewards

@@ -11574,5 +11574,43 @@
         "description": "Abyss Drakon remembers the opponent's last successful action. If that same action is used again within 2 rounds, it creates a Void Copy and retaliates with a corrupted effect. Attack reflects 40% of damage dealt as bonus damage; Defense steals 20% of DEF used for 1 round; Stamina steals 3 Stamina; Charge gains 50% of the Charge gained; Special grants Void Seal, reducing the enemy's next Special damage by 30%. The same action type can trigger Void Reversal only once every 3 rounds."
       }
     ]
+  },
+  "Noctilune": {
+    "id": "BB119",
+    "name": "Noctilune",
+    "rarity": "Legendary",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1549386540491481188/file_00000000d12481f4bf0080014c3f4ffc.png?ex=6aaa8229&is=6aa930a9&hm=87e9a2a54b2001c3da2892dbe95bdba2810ec9c679c3393a6868a830fec8c070&",
+    "description": "A moonlit butterfly Bey whose neon-pink wings bloom through smoky black and deep green armor.",
+    "burst_height": "Mid",
+    "type": "Balance",
+    "stats": {
+      "attack": 108,
+      "defense": 112,
+      "stamina": 110,
+      "special": 125,
+      "hp": 115
+    },
+    "ability": {
+      "name": "Lunar Blossom",
+      "trigger": "on_clash_loss",
+      "description": "Whenever Noctilune loses a clash, it gains 1 Lunar Petal (max 5). Each Lunar Petal grants +4% ATK and +4% DEF. At 5 petals, Full Bloom restores 15% max HP, cleanses 1 negative effect, and resets Lunar Petals to 0. Full Bloom can activate twice per battle."
+    },
+    "special_move": {
+      "name": "🌸 Midnight Butterfly",
+      "description": "Noctilune releases its stored lunar energy in a butterfly-shaped strike. Deals 150 base damage plus 45% ATK scaling. Each Lunar Petal adds +6% special damage; at 5 petals, Midnight Butterfly also ignores 20% of the opponent's DEF.",
+      "hits": 1,
+      "damage_per_hit": 150,
+      "total_damage": 150,
+      "flavour_texts": [
+        "🌸 **Midnight Butterfly** — moonlit wings bloom across the arena!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Lunar Blossom",
+        "trigger": "on_clash_loss",
+        "description": "Whenever Noctilune loses a clash, it gains 1 Lunar Petal (max 5). Each Lunar Petal grants +4% ATK and +4% DEF. At 5 petals, Full Bloom restores 15% max HP, cleanses 1 negative effect, and resets Lunar Petals to 0. Full Bloom can activate twice per battle."
+      }
+    ]
   }
 }
