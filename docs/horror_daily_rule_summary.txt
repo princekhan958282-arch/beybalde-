@@ -1,0 +1,1 @@
+30% spawn roll; one active UNKNOWN encounter per server; one accepted UNKNOWN battle per server per IST day; reset at 00:00 IST.
