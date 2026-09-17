@@ -330,6 +330,10 @@ class StaminaManager:
         # Interrupted heal: attacked mid-recovery → heal halved
         if attacked and heal_amt > 0:
             heal_amt = max(1, math.ceil(heal_amt * STAMINA_HEAL_INTERRUPT_MULT))
+        from .purification import heal_amount
+        session = getattr(self, "purification_session", None)
+        if session is not None:
+            heal_amt = heal_amount(session, key, heal_amt)
         if heal_amt > 0:
             hp[key] = min(cap_hp, hp.get(key, 0) + heal_amt)
         name       = blade["name"]

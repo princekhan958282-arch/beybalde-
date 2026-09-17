@@ -109,7 +109,8 @@ class DefenseManager:
         already running (so stacking doesn't reset a longer existing grind).
         Returns log lines.
         """
-        turns = self.calc_grind_duration(def_stat)
+        from .purification import reduce_debuff
+        turns = int(reduce_debuff(self.session, stamina_user_key, self.calc_grind_duration(def_stat)))
         self.grind_turns[stamina_user_key] = max(
             self.grind_turns.get(stamina_user_key, 0), turns
         )
@@ -179,7 +180,8 @@ class DefenseManager:
                     f"({before} → {ostats['defense']})!")
 
         # 2. Active defense buff on the defender
-        def_buf = ab_eng._get_buf_bonus(okey, "defense")
+        from .purification import stat_bonus
+        def_buf = ab_eng._get_buf_bonus(okey, "defense") - stat_bonus(self.session, okey, "defense")
         if def_buf:
             ostats = dict(ostats)
             base_def = ostats.get("defense", 50)

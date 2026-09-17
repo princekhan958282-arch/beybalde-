@@ -640,7 +640,9 @@ class AttackManager:
         _static_pierce_pct = max(0.0, float(_sm_block.get("pierce_defense_pct", 0) or 0))
         _min_hit_dmg = int(_sm_block.get("min_hit_damage", 0) or 0)
         _spc = getattr(self.session, "special_stats", {}).get(mkey)
-        hits, per_hit, flavour, ignores_def = resolve_special(mblade, _spc)
+        from .purification import effective_stats
+        _live_stats = effective_stats(self.session, mkey)
+        hits, per_hit, flavour, ignores_def = resolve_special(mblade, _spc, _live_stats)
         # Abilities can grant extra hits (e.g. a max-stack payoff). Consumed
         # here so it applies to exactly one Special, then clears.
         _extra = 0
@@ -659,7 +661,8 @@ class AttackManager:
             self.session, mkey, hits, per_hit)
         logs.extend(_mh_logs)
 
-        mult       = self.session.stat_mult.get(mkey, 1.0)
+        mult       = (1.0 if _sm_block.get("damage_formula")
+                      else self.session.stat_mult.get(mkey, 1.0))
         atk_sp_mod = self.session.type_mods.get(mkey)
 
         # Resolve type-advantage gate once for the whole special sequence
@@ -722,7 +725,7 @@ class AttackManager:
         # blade gets its value repeated, which is byte-identical to before.
         from .damage_rules import resolve_special_hits
         try:
-            hit_table = resolve_special_hits(mblade, _spc)
+            hit_table = resolve_special_hits(mblade, _spc, _live_stats)
         except Exception:                                # noqa: BLE001
             hit_table = [per_hit] * max(1, hits)
         _authored = len(hit_table)
@@ -849,7 +852,7 @@ class AttackManager:
             # Type defense mitigation (skipped if special pierces defense or
             # defender's type bonus is not active for this matchup)
             def_sp_mod = self.session.type_mods.get(okey) if _sp_def_active else None
-            if def_sp_mod and not ignores_def:
+            if def_sp_mod and not ignores_def and hit_dmg > 0:
                 if _pierce_pct > 0:
                     # Partial pierce: shave the mitigation itself by the pierce
                     # percentage rather than applying it in full — half a

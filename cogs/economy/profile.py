@@ -479,6 +479,11 @@ async def build_profile_embed(
         hits  = sm.get("hits", 1)
         dph   = sm.get("damage_per_hit", 0)
         total = sm.get("total_damage", hits * dph)
+        if sm.get("damage_formula"):
+            from cogs.battle.damage_rules import resolve_special
+            hits, dph, _, _ = resolve_special(active_blade, effective_stats={
+                "attack": _atk, "defense": _def, "stamina": _sta})
+            total = hits * dph
         embed.add_field(
             name  = f"🌋 Special Move — {sm.get('name', '???')}",
             value = (
@@ -570,6 +575,10 @@ async def build_info_embed(blade: dict, viewer_id=None) -> discord.Embed:
         hits  = sm.get("hits", 1)
         dph   = sm.get("damage_per_hit", 0)
         total = sm.get("total_damage", hits * dph)
+        if sm.get("damage_formula"):
+            from cogs.battle.damage_rules import resolve_special
+            hits, dph, _, _ = resolve_special(blade)
+            total = hits * dph
         embed.add_field(
             name  = f"🌋 Special Move — {sm.get('name', '???')}",
             value = (
@@ -707,6 +716,10 @@ async def build_beypedia_embed(blade: dict, viewer_id=None) -> discord.Embed:
         hits  = sm.get("hits", 1)
         dph   = sm.get("damage_per_hit", 0)
         total = sm.get("total_damage", hits * dph)
+        if sm.get("damage_formula"):
+            from cogs.battle.damage_rules import resolve_special
+            hits, dph, _, _ = resolve_special(blade)
+            total = hits * dph
         embed.add_field(
             name  = f"🌋 Special Move — {sm.get('name', '???')}",
             value = (

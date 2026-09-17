@@ -55,6 +55,7 @@ from cogs.battle.constants import (
     SPECIAL_GAUGE_MAX,
 )
 from cogs.battle.damage_filter import DamageFilter
+from cogs.battle import purification
 from .legacy_convert import legacy_convert
 
 # ── Vocabulary ────────────────────────────────────────────────────────────────
@@ -164,8 +165,8 @@ class AbilityEngine:
         # times across that window. `timed_dmg_amps` is the closest existing
         # thing and it only scales OTHER damage; `burn` ticks every round for
         # its whole duration and belongs to StatusManager. Neither can express
-        # "stand for 8 rounds and land 4 strikes in that time", which is what
-        # Kirindael's Lightning Purifier is.
+        # "stand for N rounds and land M strikes in that time". Kept for
+        # authored periodic zones; Lightning Purifier now uses a Domain.
         self.zones: list[dict] = []
 
         # ── Compiled rules cache: blade name -> list[(rule_id, rule)] ────────
@@ -345,6 +346,8 @@ class AbilityEngine:
         which is exactly how one debuff path ends up honouring a ward the
         other two ignore.
         """
+        if purification.active(self.session, key):
+            return False  # Domain replaces Horn immunity with half-strength debuffs.
         if self.debuff_immune.get(key):
             logs.append(f"🛡️ **{ab_name}** — enemy is immune to debuffs!")
             return True
@@ -677,6 +680,7 @@ class AbilityEngine:
     # =========================================================================
 
     def _heal(self, key: str, amount: int, logs: list[str], label: str) -> None:
+        amount = purification.heal_amount(self.session, key, amount)
         if amount <= 0:
             return
         max_hp = self.session.max_hp_per_player.get(key) or self.session.max_hp
@@ -1104,7 +1108,7 @@ class AbilityEngine:
                 else:
                     _amt = int(op.get("amount", val))
                 _t = int(op.get("turns", 2))
-                self.st.add_buff(key, _stat, _amt, _t)
+                self.st.add_buff(key, _stat, _amt, _t, hostile=False)
                 # Debuffs are real (Penta Sword Mode trades DEF and STA for
                 # ATK), so sign the number instead of always prefixing "+" —
                 # that printed "Defense +-20".
@@ -1247,6 +1251,8 @@ class AbilityEngine:
                         logs.append(f"🌸💥 **{ab_name}** — {cur} layer(s) burst "
                                     f"for {dmg} damage ({pct:g}% of current HP)!")
                     self.counters[(key, cname)] = 0
+            elif kind == "purification_domain":
+                pass  # Applied at cast start, before silence and hit filtering.
             elif kind == "cleanse":
                 for _ in range(int(op.get("count", val or 1))):
                     cleared = self.st.cleanse_one(key)
@@ -1364,7 +1370,7 @@ class AbilityEngine:
                         logs.append(f"🌀 **{ab_name}** — drained {take:g} stamina!")
                         hpd = self.heal_per_drain.get(key, 0)
                         if hpd > 0:
-                            heal   = math.ceil(take * hpd)
+                            heal   = purification.heal_amount(self.session, key, math.ceil(take * hpd))
                             mx_hp  = self.session.max_hp_per_player.get(
                                 key, getattr(self.session, "max_hp", 600))
                             before = self.session.hp.get(key, 0)
@@ -1748,6 +1754,8 @@ class AbilityEngine:
               logs: list[str]) -> tuple[int, int]:
         for rid, rule in self._rules_for(blade, key):
             if self._rule_fires(rid, rule, when, key, okey, move, matchup):
+                if rule.get("_avatar") and when not in ("setup", "passive"):
+                    purification.mark(self.session, key, ("skill", rule.get("_name")), logs)
                 ab_name = rule.get("_name", blade.get("name", "Ability"))
                 dmg_dealt, dmg_taken = self._run_ops(
                     rule, ab_name, key, okey, move, dmg_dealt, dmg_taken, logs,
@@ -1787,6 +1795,15 @@ class AbilityEngine:
     ) -> tuple[int, int, list[str]]:
         """Route one move through the full generic trigger pipeline."""
         logs: list[str] = []
+
+        if move == MOVE_SPECIAL and is_first_hit:
+            for _, rule in self._rules_for(mover_blade, mover_key):
+                if rule.get("when") == "on_special":
+                    for op in rule.get("do", []):
+                        if op.get("op") == "purification_domain":
+                            logs.extend(purification.open_domain(
+                                self.session, mover_key, other_key, int(op.get("turns", 4))))
+                            self.counters[(mover_key, "purifier_charge")] = 0
 
         # Cleared per hit. The defender's ops run AFTER the mover's crit has
         # already been multiplied into `dmg_dealt`, so "resist critical damage"
@@ -1883,6 +1900,11 @@ class AbilityEngine:
                 other_key, mover_key, other_blade, move, matchup,
                 dmg_dealt, dmg_taken, logs)
 
+        if is_first_hit and move == MOVE_SPECIAL:
+            purification.mark(self.session, mover_key, ("special",), logs)
+        dmg_dealt = purification.amplify(self.session, mover_key, dmg_dealt, logs,
+                                         first=is_first_hit, last=is_last_hit)
+
         # Lifesteal (generic, set by ops)
         ls = self.lifesteal_pct.get(mover_key, 0.0)
         if ls and dmg_dealt > 0:
@@ -1963,6 +1985,7 @@ class AbilityEngine:
             if hp > 0:
                 self.st.revival_used[key] = True
                 # counteract the lethal blow: restore to `hp` after damage lands
+                hp = purification.heal_amount(self.session, key, hp)
                 self.session.hp[key] = incoming + hp
                 logs.append(f"⚡ **{blade.get('name','?')}** REFUSES to fall — revived with {hp} HP!")
                 # The rest of a revival bundle (stamina, cleanse, buffs,
@@ -2099,7 +2122,7 @@ class AbilityEngine:
         didn't exist when tick_dmg_amps was written and don't share its
         per-entry shape.
         """
-        logs: list[str] = []
+        logs: list[str] = purification.tick(self.session)
         cooldowns = getattr(self, "cooldowns", None)
         if cooldowns:
             for ck, turns in list(cooldowns.items()):

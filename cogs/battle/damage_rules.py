@@ -207,7 +207,8 @@ def special_scale(blade: dict, special_stat: Optional[float]) -> float:
 
 
 def resolve_special(blade: dict,
-                    special_stat: Optional[float] = None
+                    special_stat: Optional[float] = None,
+                    effective_stats: Optional[dict] = None
                     ) -> tuple[int, int, list[str], bool]:
     """Return (hits, damage_per_hit, flavour_texts, ignores_defense).
 
@@ -226,6 +227,13 @@ def resolve_special(blade: dict,
     scale = special_scale(blade, special_stat)
     sm = blade.get("special_move")
     if sm:
+        formula = sm.get("damage_formula")
+        if formula and not sm.get("non_damage"):
+            stats = effective_stats if effective_stats is not None else blade.get("stats", {})
+            damage = math.ceil(float(formula.get("base", 0)) + sum(
+                float(formula.get(stat, 0)) * stats.get(stat, 0)
+                for stat in ("attack", "defense", "stamina")))
+            return 1, max(0, damage), sm.get("flavour_texts") or [sm.get("name", "Special")], bool(sm.get("ignores_defense"))
         # A Special that deals no damage at all.
         #
         # Every other path in this function floors the per-hit damage at 1 —
@@ -286,7 +294,8 @@ def resolve_special(blade: dict,
 
 
 def resolve_special_hits(blade: dict,
-                         special_stat: Optional[float] = None) -> list[int]:
+                         special_stat: Optional[float] = None,
+                         effective_stats: Optional[dict] = None) -> list[int]:
     """The damage of EACH hit, in order.
 
     `resolve_special` returns one uniform per-hit number, which is all most
@@ -300,7 +309,7 @@ def resolve_special_hits(blade: dict,
     than `hits` repeats its last entry; longer, it is truncated — both so a
     mis-authored card degrades instead of raising mid-battle.
     """
-    hits, per_hit, _flavour, _ig = resolve_special(blade, special_stat)
+    hits, per_hit, _flavour, _ig = resolve_special(blade, special_stat, effective_stats)
     sm = blade.get("special_move") or {}
     # A declared non-damage Special stays at zero here too. The `max(1, ...)`
     # in the list branch below would otherwise turn every authored 0 into a 1,

@@ -9687,15 +9687,16 @@
     },
     "special_move": {
       "name": "🌩️ Lightning Purifier",
-      "description": "Kirindael raises the horn and the air turns white. The relaunched zone stands for 6 rounds and answers 3 times for 300 total damage.",
-      "non_damage": true,
+      "description": "Deals 145 + 40% ATK + 50% DEF + 80% STM damage. Opens a 4-round Purification Domain and cleanses negative effects. Purified State: +20% ATK/DEF, +15% Stability and -25% action Stability costs. Incoming debuffs retain 50% strength; each conversion banks +5% damage for the next successful damaging action (max +15%). Enemy: -5% ATK/DEF, +30% action Stability costs, -25% healing/lifesteal. Enemy Special or triggered avatar Skill grants a Purity Mark; 2 marks cause 40 + 15% Kirindael ATK true damage once per Domain. Spends 60 Purifier Charge.",
       "hits": 1,
-      "damage_per_hit": 0,
-      "total_damage": 0,
-      "zone_total_damage": 300,
+      "damage_formula": {
+        "base": 145,
+        "attack": 0.4,
+        "defense": 0.5,
+        "stamina": 0.8
+      },
       "flavour_texts": [
-        "🌩️ **Lightning Purifier** — the zone opens; the storm takes the floor!",
-        "🌩️ **Lightning Purifier** — clean light, and nowhere to stand!"
+        "🌩️ **Lightning Purifier** — the Purification Domain opens!"
       ]
     },
     "ability": {
@@ -9787,27 +9788,18 @@
       {
         "name": "Lightning Purifier",
         "trigger": "on_special",
-        "description": "Opens the relaunched Lightning Purifier Zone for 6 rounds. The cast itself deals no immediate damage; the zone strikes 3 times across its life for 300 total. Spends the required 60 Purifier Charge.",
+        "description": "Deals 145 + 40% ATK + 50% DEF + 80% STM damage. Opens a 4-round Purification Domain and cleanses negative effects. Purified State: +20% ATK/DEF, +15% Stability and -25% action Stability costs. Incoming debuffs retain 50% strength; each conversion banks +5% damage for the next successful damaging action (max +15%). Enemy: -5% ATK/DEF, +30% action Stability costs, -25% healing/lifesteal. Enemy Special or triggered avatar Skill grants a Purity Mark; 2 marks cause 40 + 15% Kirindael ATK true damage once per Domain. Spends 60 Purifier Charge.",
         "rules": [
           {
             "when": "on_special",
             "do": [
               {
-                "op": "create_zone",
-                "label": "Lightning Purifier",
-                "turns": 6,
-                "hits": 3,
-                "dmg": 80,
-                "mult": 1.25,
-                "emoji": "🌩️"
+                "op": "purification_domain",
+                "turns": 4
               },
               {
                 "op": "reset_counter",
                 "name": "purifier_charge"
-              },
-              {
-                "op": "log",
-                "text": "🌩️ **Lightning Purifier** — the charge is spent; the storm holds."
               }
             ],
             "_name": "Lightning Purifier"

@@ -905,6 +905,10 @@ class BattleSession:
             # ~45 chars a line to keep Discord's 3-column grid.
             skill = self.skill_label(key)
             skill_block = f"✨ {skill}\n" if skill else ""
+            from .purification import label
+            domain_label = label(self, key)
+            if domain_label:
+                skill_block += domain_label + "\n"
 
             return (
                 f"**{player.display_name}**\n"
@@ -1067,49 +1071,10 @@ class BattleSession:
         # Now we build the effective dict here (matching DecisionEngine._effective_stats)
         # so calc_damage receives correct stat values, and AttackManager no longer
         # needs to re-apply stat_mult to the damage output.
-        def _effective_stats(key: str, blade: dict) -> dict:
-            base      = dict(blade.get("stats", {}))
-            mult      = self.stat_mult.get(key, 1.0)
-            st        = self.status
-            atk_bonus = st.get_buff_bonus(key, "attack")
-            def_bonus = st.get_buff_bonus(key, "defense")
-            # Stamina was missing here, so any buff/debuff on the stamina STAT
-            # was silently discarded. That is not the same thing as the stamina
-            # BAR (StaminaManager) — a mode that costs "-20 stamina" means the
-            # stat, exactly like the -20 DEF beside it. Encoding it as a bar
-            # drain instead instantly zeroed the bar and Spin-Finished the
-            # owner the moment it used its own special.
-            sta_buff  = st.get_buff_bonus(key, "stamina")
+        from .purification import effective_stats
 
-            # ── Parts flat deltas (bonus and penalty) ─────────────────────────
-            pd = self.part_deltas.get(key, {})
-            atk_bonus += pd.get("attack",  0)
-            def_bonus += pd.get("defense", 0)
-            sta_bonus  = pd.get("stamina", 0) + sta_buff
-
-            # ── Avatar percentage bonuses ──────────────────────────────────────
-            # NOTE: all stats are floored at 0 — part penalties / debuffs can
-            # push a stat negative, and negative stats break the math (negative
-            # DEF would ADD damage via Shield Gate flat reduction, negative ATK
-            # would heal the opponent, etc). 0 is the hard floor.
-            av = self.avatar_bonuses.get(key)
-            if av and av.has_any_bonus:
-                raw_atk = (base.get("attack",  0) + atk_bonus) * mult
-                raw_def = (base.get("defense", 0) + def_bonus) * mult
-                raw_sta = (base.get("stamina", 0) + sta_bonus) * mult
-                return {
-                    "attack":  max(0, int(av.apply_attack_bonus(raw_atk))),
-                    "defense": max(0, int(av.apply_defence_bonus(raw_def))),
-                    "stamina": max(0, int(av.apply_stamina_bonus(raw_sta))),
-                }
-            return {
-                "attack":  max(0, int((base.get("attack",  0) + atk_bonus) * mult)),
-                "defense": max(0, int((base.get("defense", 0) + def_bonus) * mult)),
-                "stamina": max(0, int((base.get("stamina", 0) + sta_bonus) * mult)),
-            }
-
-        s1 = _effective_stats(k1, b1)
-        s2 = _effective_stats(k2, b2)
+        s1 = effective_stats(self, k1)
+        s2 = effective_stats(self, k2)
         sm     = self.stamina_manager
 
         round_log: list[str] = []
@@ -1315,10 +1280,6 @@ class BattleSession:
             round_log.extend(self.ability.tick_dmg_amps())
         except Exception:                                # noqa: BLE001
             pass
-        try:
-            round_log.extend(self.ability.tick_extras())
-        except Exception:                                # noqa: BLE001
-            pass
         for key in (k1, k2):
             st.decrement_invulnerable(key)      # Invulnerability turns
 
@@ -1349,6 +1310,15 @@ class BattleSession:
                 round_log.extend(
                     special_gate.apply_stability_cost(
                         self, key, self.blades.get(key)))
+
+        try:
+            round_log.extend(self.ability.tick_extras())
+        except Exception:                                # noqa: BLE001
+            pass
+        for key in (k1, k2):
+            if self.hp[key] > 0 and self._ring_out_guard(key, round_log):
+                self._mark_finish(key, "ringout")
+                self.hp[key] = 0
 
         # ── Build round summary (via AttackManager) ───────────────────────────
         lines = am.build_round_summary(

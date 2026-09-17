@@ -16,9 +16,8 @@ Three mechanics had no representation at all before this blade:
   * `debuff_ward` — `debuff_immune` is a permanent on/off flag. Horn of Purity
     is dormant, wakes on the FIRST debuff, covers for 2 rounds, pays out, and
     goes dormant again. A boolean cannot hold that.
-  * `create_zone` — a field that stands for 8 rounds and lands 4 strikes in
-    that time. `burn` ticks every round; `timed_dmg_amps` only scales other
-    people's damage. Neither is a zone.
+  * `purification_domain` — a four-round field, replacing the old damage zone.
+    It owns conversion, marks, temporary stability and enemy penalties.
   * `gain_counter` — a plain numeric resource. `stacking_buff` always steps by
     one and grants a stat with it; Purifier Charge moves in twenties and
     grants nothing directly.
@@ -183,7 +182,7 @@ def main() -> int:
     check("the singular mirrors the first of them",
           K["ability"]["name"] == K["abilities"][0]["name"])
     e, _ = engine()
-    check("its rules compile", len(e._rules_for(K, "p")) == 3)
+    check("its rules compile", len(e._rules_for(K, "p")) == 4)
 
     # ── 2. the second Special gate ──────────────────────────────────────────
     print("\n── 2. two resources, not one bigger number ──────────────────────")
@@ -291,34 +290,53 @@ def main() -> int:
           charge(e) == 100, charge(e))
 
     # ── 6. Lightning Purifier ───────────────────────────────────────────────
-    print("\n── 6. Lightning Purifier — 0 on cast, 300 over the zone ─────────")
+    from cogs.battle import purification as P
+    from cogs.battle.stability_manager import StabilityManager
+    import math
+    print("\n── 6. Lightning Purifier — damage and four-round Domain ───────")
     hits, dph, flav, _ = resolve_special(K, K["stats"]["special"])
-    check("the cast itself is declared non-damage, so scaling cannot floor it "
-          "back up to 1", K["special_move"].get("non_damage") is True)
-    check("...and the resolver agrees it deals nothing", dph == 0, dph)
-    check("it has flavour to print", bool(flav))
-
+    expected = math.ceil(145 + .4*K["stats"]["attack"] + .5*K["stats"]["defense"] + .8*K["stats"]["stamina"])
+    check("formula resolves the three stats exactly once", hits == 1 and dph == expected)
+    check("formula ignores legacy special-stat scaling", resolve_special(K, 99999)[1] == expected)
     e, s = armed()
+    s.stability_manager = StabilityManager(s.blades, {})
+    s.status.add_buff("p", "attack", -20, 4)
+    s.status.apply_burn("p", {"burn_damage_per_turn": 20, "burn_duration": 3})
     e.counters[("p", "purifier_charge")] = 60
-    dmg, _, logs = e.apply("p", "e", K, K, "special", "win", 0, 0)
-    check("casting deals 0 damage", dmg == 0 and s.hp["e"] == 1000, s.hp["e"])
-    check("the zone opens", len(e.zones) == 1)
-    check("...for 6 rounds", e.zones[0]["turns"] == 6, e.zones[0]["turns"])
-    check("casting spends every point of Purifier Charge",
-          charge(e) == 0, charge(e))
-
-    strikes = []
-    for r in range(1, 7):
-        for ln in e.tick_extras():
-            if "strikes" in ln:
-                strikes.append(r)
-    dealt = 1000 - s.hp["e"]
-    check("the zone strikes exactly 3 times", len(strikes) == 3, strikes)
-    check("...spread across its life rather than front-loaded",
-          strikes == [2, 4, 6], strikes)
-    check("...for exactly 300 total, the relaunch payoff on the card",
-          dealt == 300, dealt)
-    check("the zone closes when its 6 rounds are up", not e.zones)
+    dmg, _, logs = e.apply("p", "e", K, K, "special", "win", dph, 0)
+    check("the Domain opens for four rounds", P.active(s, "p")["turns"] == 4)
+    check("casting clears debuffs and burn", not s.status.active_buffs["p"] and not s.status.burn_stacks["p"])
+    check("casting spends Purifier Charge", charge(e) == 0)
+    check("no old damage zone survives", not e.zones)
+    check("temporary stability raises bar and capacity", s.stability_manager.max["p"] == 115 and s.stability_manager.stability["p"] == 115)
+    check("owner ATK and enemy DEF apply", s.status.get_buff_bonus("p", "attack") == round(K["stats"]["attack"]*.2) and s.status.get_buff_bonus("e", "defense") == -round(K["stats"]["defense"]*.05))
+    curse(e, "stamina", 20)
+    check("Domain overrides Horn immunity and halves debuffs", s.status.get_buff_bonus("p", "stamina") == -10)
+    check("conversion banks five percent", P.active(s, "p")["conversion"] == 5)
+    for _ in range(4):
+        curse(e, "stamina", 20)
+    check("conversion caps at fifteen", P.active(s, "p")["conversion"] == 15)
+    check("a blocked hit preserves conversion", P.amplify(s, "p", 0, []) == 0 and P.active(s, "p")["conversion"] == 15)
+    check("successful damage spends conversion once", P.amplify(s, "p", 100, []) == 115 and P.amplify(s, "p", 100, []) == 100)
+    check("healing is reduced once", P.heal_amount(s, "e", 100) == 75 and P.heal_amount(s, "p", 100) == 100)
+    s.stability_manager.apply_attack_cost("p", True)
+    s.stability_manager.apply_attack_cost("e", True)
+    check("actual action costs apply -25%/+30%", s.stability_manager.stability["p"] == 107 and s.stability_manager.stability["e"] == 87)
+    hp = s.hp["e"]
+    P.mark(s, "e", ("special",), logs)
+    P.mark(s, "e", ("special",), logs)
+    check("multi-hit special grants only one mark", P.active(s, "p")["marks"] == 1 and s.hp["e"] == hp)
+    P.mark(s, "e", ("skill", "test"), logs)
+    judgment = math.ceil(40 + .15 * P.effective_stats(s, "p")["attack"])
+    check("second mark deals scaled true damage", s.hp["e"] == hp-judgment)
+    P.mark(s, "e", ("skill", "another"), logs)
+    check("judgment only fires once per Domain", s.hp["e"] == hp-judgment)
+    for _ in range(3):
+        e.tick_extras()
+    check("Domain survives first three round ends", P.active(s, "p")["turns"] == 1)
+    e.tick_extras()
+    check("fourth round cleans up all Domain state", not P.active(s, "p") and s.stability_manager.max["p"] == 100 and s.stability_manager.stability["p"] == 92)
+    check("enemy stat and healing penalties expire", s.status.get_buff_bonus("e", "defense") == 0 and P.heal_amount(s, "e", 100) == 100)
 
     # ── 7. the primitives on their own ──────────────────────────────────────
     print("\n── 7. the new primitives, in isolation ──────────────────────────")
@@ -391,7 +409,7 @@ def main() -> int:
           "_tick_zones()" in eng_src and "def _tick_zones" in eng_src)
 
     blob = json.dumps(K)
-    for token in ("debuff_ward", "create_zone", "gain_counter",
+    for token in ("debuff_ward", "purification_domain", "gain_counter",
                   "special_requires", "on_attack_mirror", "reset_counter"):
         check(f'"{token}" is used in Kirindael\'s own record',
               f'"{token}"' in blob)
