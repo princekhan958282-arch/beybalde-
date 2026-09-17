@@ -166,7 +166,13 @@ def project(session, key: str, okey: str) -> ai.Fighter:
     special_mult = (max(1.0, eff_sp / printed_sp)
                     if printed_sp > 0 and eff_sp > 0 else 1.0)
 
+    from cogs.battle.purification import effective_stats
+    from cogs.battle.damage_rules import resolve_special
+    stats = effective_stats(session, key)
+    formula_damage = (resolve_special(blade, effective_stats=stats)[1]
+                      if (blade.get("special_move") or {}).get("damage_formula") else None)
     return ai.Fighter(
+        special_damage=formula_damage,
         name=str(name),
         hp=float(session.hp.get(key, 0)),
         max_hp=float(session.max_hp_per_player.get(key, 1) or 1),

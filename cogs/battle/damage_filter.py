@@ -252,6 +252,11 @@ class DamageFilter:
 
         # Timed ATK buff from active_buffs list
         atk_bonus = sm.get_buff_bonus(mover_key, "attack")
+        from .purification import stat_bonus
+        atk_bonus -= stat_bonus(self.session, mover_key, "attack")
+        blade = self.session.blades.get(mover_key, {})
+        if move == MOVE_SPECIAL and (blade.get("special_move") or {}).get("damage_formula"):
+            atk_bonus = 0  # Formula already uses the live buffed ATK stat.
         if atk_bonus and move in (MOVE_ATTACK, MOVE_SPECIAL):
             dmg_dealt += atk_bonus
             logs.append(

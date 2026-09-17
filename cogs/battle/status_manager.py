@@ -200,7 +200,7 @@ class StatusManager:
     # =========================================================================
 
     def add_buff(self, key: str, stat: str, amount: int, rounds: int,
-                 source: str = "") -> None:
+                 source: str = "", hostile: bool = True) -> None:
         """Add a timed stat buff for *key*.
 
         `source` optionally tags where the buff came from, so it can be
@@ -211,10 +211,13 @@ class StatusManager:
         which is exactly the point — untagged buffs behave as they always did.
         """
         if rounds <= 0:
-            return  # Reject 0-round buffs
+            return  # Reject 0-round buffs without banking conversion.
+        from .purification import reduce_debuff
+        if amount < 0 and hostile:
+            amount = int(reduce_debuff(self.session, key, amount))
         self.active_buffs.setdefault(key, []).append(
             {"stat": stat, "amount": amount, "rounds_left": rounds,
-             "source": source}
+             "source": source, "hostile": hostile}
         )
 
     def clear_source(self, key: str, source: str) -> int:
@@ -235,7 +238,8 @@ class StatusManager:
 
     def get_buff_bonus(self, key: str, stat: str) -> int:
         """Sum of all active buff amounts for *stat* on *key*."""
-        return sum(
+        from .purification import stat_bonus
+        return stat_bonus(self.session, key, stat) + sum(
             b["amount"]
             for b in self.active_buffs.get(key, [])
             if b["stat"] == stat
@@ -274,6 +278,8 @@ class StatusManager:
 
     def silence(self, key: str, turns: int) -> None:
         """Apply (or extend) a silence on *key*."""
+        from .purification import reduce_debuff
+        turns = int(reduce_debuff(self.session, key, turns))
         self.silenced_turns[key] = self.silenced_turns.get(key, 0) + turns
 
     def is_silenced(self, key: str) -> bool:
@@ -377,6 +383,8 @@ class StatusManager:
         if not per_turn or not duration:
             return logs
 
+        from .purification import reduce_debuff
+        per_turn = int(reduce_debuff(self.session, target_key, per_turn))
         current = self.burn_stacks.get(target_key, 0)
         if current < max_stacks:
             self.burn_stacks[target_key]   = current + 1

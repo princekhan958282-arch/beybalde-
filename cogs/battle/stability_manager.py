@@ -206,7 +206,7 @@ class StabilityManager:
         hit=False → zero damage     → -4
         """
         delta = _ATTACK_HIT_COST if hit else _ATTACK_MISS_COST
-        return self._apply(key, delta)
+        return self._action_cost(key, delta)
 
     # =========================================================================
     #  Defense
@@ -225,7 +225,7 @@ class StabilityManager:
         delta = _DEFENSE_COSTS.get(context, _DEFENSE_COSTS["passive"])
         if delta == 0:
             return []
-        return self._apply(key, delta)
+        return self._action_cost(key, delta)
 
     # =========================================================================
     #  Stamina recovery
@@ -254,8 +254,8 @@ class StabilityManager:
 
     def apply_clash_penalty(self, key_a: str, key_b: str) -> list[str]:
         """Apply Attack vs Attack clash penalty → -10 to both."""
-        logs = self._apply(key_a, _CLASH_PENALTY)
-        logs += self._apply(key_b, _CLASH_PENALTY)
+        logs = self._action_cost(key_a, _CLASH_PENALTY)
+        logs += self._action_cost(key_b, _CLASH_PENALTY)
         return logs
 
     # =========================================================================
@@ -349,13 +349,20 @@ class StabilityManager:
                 0, int(amount))
             if cost <= 0:
                 return []
-            return self._apply(key, -cost)
+            return self._action_cost(key, -cost)
         except Exception:
             return []
 
     # =========================================================================
     #  Private helpers
     # =========================================================================
+
+    def _action_cost(self, key: str, delta: int) -> list[str]:
+        from .purification import action_cost
+        session = getattr(self, "purification_session", None)
+        if session is not None and delta < 0:
+            delta = -action_cost(session, key, -delta)
+        return self._apply(key, delta)
 
     def _apply(self, key: str, delta: int) -> list[str]:
         """Clamp-apply ``delta`` to ``stability[key]`` and return a log line.

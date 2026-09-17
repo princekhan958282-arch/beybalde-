@@ -6,7 +6,7 @@ Until now the answer was one line in three different places: gauge >= 150.
 asked it for the League opponent, and the boss AI asked it for itself. Three
 copies of one rule is survivable while the rule never changes.
 
-Kirindael changes it. Its Special needs a full gauge AND 100 Purifier Charge —
+Kirindael changes it. Its Special needs a full gauge AND 60 Purifier Charge —
 a second resource, built by its own abilities rather than by the move economy.
 So the rule moves here, once, and every caller asks this module instead.
 
@@ -14,7 +14,7 @@ The shape in beyblades.json
 ---------------------------
     "special_requires": {
         "counter": "purifier_charge",
-        "value":   100,
+        "value":   60,
         "label":   "Purifier Charge",
         "emoji":   "⚡"
     }
@@ -211,7 +211,8 @@ def apply_stability_cost(session: Any, key: str,
     cost, but it is clamped to leave at least 1 stability standing, so
     "my Special is risky" can never become "my Special killed me".
     """
-    cost = button_profile.special_stability_cost(blade)
+    from .purification import action_cost
+    cost = action_cost(session, key, button_profile.special_stability_cost(blade))
     if cost <= 0:
         return []
     try:

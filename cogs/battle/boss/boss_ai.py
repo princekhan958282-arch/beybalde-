@@ -181,7 +181,8 @@ class Fighter:
     special_atk_pct: Optional[float] = None
     # Only NEMESIS-class bosses carry this. None for everything else, so the
     # ordinary bosses behave exactly as they did before.
-    state:   Optional[BossState] = None   # keep last: positional order matters
+    state:   Optional[BossState] = None
+    special_damage: Optional[float] = None  # Authored stat formula, when supplied.
 
     def alive(self) -> bool:
         return self.hp > 0
@@ -214,7 +215,8 @@ class Fighter:
                        dmg_mult=self.dmg_mult,
                        special_mult=self.special_mult,
                        special_atk_pct=self.special_atk_pct,
-                       state=self.state.copy() if self.state else None)
+                       state=self.state.copy() if self.state else None,
+                       special_damage=self.special_damage)
 
     # ── Stance-adjusted stats (plain fighters are unaffected) ────────────────
     @property
@@ -280,6 +282,8 @@ def _raw_damage(src: Fighter, special: bool = False,
     base = src.eff_attack * DMG_SCALE * src.dmg_mult
     if not special:
         return base
+    if src.special_damage is not None:
+        return src.special_damage * src.dmg_mult * (PLAYER_SPECIAL_VS_BOSS if vs_boss else 1.0)
     # Bosses replace the formula outright with a flat percentage of attack.
     if src.special_atk_pct is not None:
         return src.eff_attack * src.special_atk_pct * src.dmg_mult

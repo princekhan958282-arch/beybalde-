@@ -251,7 +251,8 @@ class ChainHandler:
             )
 
         elif effect == "heal_pct":
-            heal = math.ceil(BASE_HP * value)
+            from .purification import heal_amount
+            heal = heal_amount(s, key, math.ceil(BASE_HP * value))
             s.hp[key] = min(BASE_HP, s.hp.get(key, 0) + heal)
             logs.append(f"  ⛓️ **{ab_name} Chain** — Chain heal: +**{heal} HP**!")
 
