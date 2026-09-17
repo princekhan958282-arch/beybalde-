@@ -11611,6 +11611,7 @@
         "trigger": "on_clash_loss",
         "description": "Whenever Noctilune loses a clash, it gains 1 Lunar Petal (max 5). Each Lunar Petal grants +4% ATK and +4% DEF. At 5 petals, Full Bloom restores 15% max HP, cleanses 1 negative effect, and resets Lunar Petals to 0. Full Bloom can activate twice per battle."
       }
-    ]
+    ],
+    "limited": true
   }
 }

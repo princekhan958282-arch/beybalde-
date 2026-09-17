@@ -166,8 +166,8 @@ check("...and out of spawns", NAME not in s)
 
 b2, h2, s2 = pools(with_blade(limited=True, available_until=FUTURE,
                               booster_exclusive=False))
-check("a limited NON-booster blade can spawn while its window is open",
-      NAME in s2, len(s2))
+check("a limited NON-booster blade never enters wild spawns, even while open",
+      NAME not in s2, len(s2))
 b3, h3, s3 = pools(with_blade(limited=True, available_until=PAST,
                               booster_exclusive=False))
 check("...and cannot once it closes", NAME not in s3)
@@ -178,6 +178,13 @@ check("the shipped roster's booster pool is unchanged", len(b0) >= 10, len(b0))
 check("...and its hidden pool still holds the Black Edition",
       "Ultimate Valkyrie (Black Edition)" in h0, sorted(h0))
 check("...and spawns still produce plenty of blades", len(s0) >= 40, len(s0))
+check("Noctilune carries the same Limited flag as Hermiblaze",
+      DB.get("Noctilune", {}).get("limited") is True
+      and DB.get("Hermiblaze", {}).get("limited") is True,
+      (DB.get("Noctilune", {}).get("limited"),
+       DB.get("Hermiblaze", {}).get("limited")))
+check("Noctilune is excluded from normal wild spawns",
+      "Noctilune" not in s0, sorted(s0))
 
 print("\n── 4. it is still an Ultimate, not a new tier ───────────────────")
 lim = with_blade(limited=True, available_until=FUTURE)[NAME]
