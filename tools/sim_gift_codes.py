@@ -82,6 +82,8 @@ from cogs.admin import actions as A                                # noqa: E402
 from cogs.battle.boss import boss_copy as bcopy                    # noqa: E402
 from cogs.battle.boss import boss_info as binfo                    # noqa: E402
 from cogs.avatar import avatar_engine                              # noqa: E402
+from utils import bey_levels as BL                                # noqa: E402
+from utils.loadout import bey_level_and_stats                     # noqa: E402
 
 TEST_REDEEM_PATH = os.path.join(DATA, "redeem_codes.json")
 CS.REDEEM_PATH = TEST_REDEEM_PATH
@@ -111,6 +113,23 @@ def main() -> int:
     rewards, err = R.parse_rewards("avatar:a")
     check("an ambiguous fragment lists candidates instead of guessing",
           rewards is None and err and "matches" in err, err)
+
+    # ── 1b. normal Bey rewards carry a real starting level ────────────────
+    print("\n── 1b. Bey reward level reaches the calculated statline ─────────")
+
+    blade_name = next(iter(DB.load_beyblades()))
+    blade = DB.get_beyblade(blade_name)
+    levelled, err = R.parse_rewards(f"blade:{blade_name}@100")
+    check("typed Bey rewards accept a starting level from 1 to 100",
+          err is None and levelled[0]["level"] == 100, (levelled, err))
+    defaulted, err = R.parse_rewards(f"blade:{blade_name}")
+    check("old Bey reward syntax stays level 1",
+          err is None and defaulted[0]["level"] == 1, (defaulted, err))
+    invalid, err = R.parse_rewards(f"blade:{blade_name}@101")
+    check("levels above 100 are rejected instead of clamped silently",
+          invalid is None and err and "1 to 100" in err, err)
+    check("the code preview shows the selected level",
+          "Lv.100" in R.describe(levelled), R.describe(levelled))
 
     # ── 2. parse_rewards: boss bey ──────────────────────────────────────────
     print("\n── 2. boss beys are reachable ONLY through this new kind ───────")
@@ -216,6 +235,33 @@ def main() -> int:
               "silently — the player is told, the code is still spent",
               "not be granted" in got4[0], got4)
 
+        # The original level patch only checked the text returned by grant().
+        # Read the persisted profile and drive it through the same helper used
+        # by cards and combat, so a cosmetic "Lv.100" can never pass this test.
+        level_uid = 900002
+        got5 = await R.grant(level_uid, levelled)
+        profile = await DB.get_user(level_uid)
+        stored = (profile.get("bey_progress") or {}).get(blade_name) or {}
+        actual_level, actual_stats = bey_level_and_stats(profile, blade)
+        expected_stats = BL.stats_at(blade, 100, stored.get("ivs"))
+        check("grant stores the chosen level on the owned Bey record",
+              BL.level_from_xp(stored.get("xp", 0)) == 100, stored)
+        check("the shared card/battle lookup resolves that Bey as level 100",
+              actual_level == 100, (actual_level, got5))
+        check("level 100 produces its calculated stats, not level-1 stats",
+              actual_stats == expected_stats
+              and actual_stats != blade.get("stats"),
+              (actual_stats, expected_stats, blade.get("stats")))
+        check("inventory and level progress were persisted together",
+              blade_name in profile.get("inventory", [])
+              and profile.get("active_beyblade") == blade_name,
+              profile)
+        await R.grant(level_uid, defaulted)
+        after_duplicate = await DB.get_user(level_uid)
+        check("a later level-1 duplicate cannot downgrade trained progress",
+              BL.level_of(after_duplicate, blade_name) == 100,
+              (after_duplicate.get("bey_progress") or {}).get(blade_name))
+
     asyncio.run(drive_grant())
 
     # ── 6. create_code() is the ONE place that mints a code ─────────────────
@@ -318,6 +364,21 @@ def main() -> int:
         await boss_modal.on_submit(it4)
         check("...and it too matches the typed-spec parse exactly",
               view.rewards[-1] == R.parse_rewards("bossbey:Drakos:Flawless")[0][0],
+              view.rewards[-1])
+
+        view.rewards.extend(R.parse_rewards(f"blade:{blade_name}")[0])
+        it_level = FakeInter()
+        await view.bey_level.callback(it_level)
+        check("the Bey level button opens the level modal",
+              it_level.sent and isinstance(it_level.sent[0][1], BLD._BeyLevelModal),
+              it_level.sent)
+        level_modal = it_level.sent[0][1]
+        level_modal.level._value = "100"
+        it_level_submit = FakeInter()
+        await level_modal.on_submit(it_level_submit)
+        check("the level modal changes the actual reward payload",
+              view.rewards[-1].get("level") == 100
+              and "Lv.100" in R.describe([view.rewards[-1]]),
               view.rewards[-1])
 
         stranger = FakeInter(uid=424242)
