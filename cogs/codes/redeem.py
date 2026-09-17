@@ -29,7 +29,7 @@ from discord.ext import commands
 
 from cogs.casino import casino_premium, casino_wallet
 from cogs.economy.profile import fuzzy_find_beyblade
-from utils.database import add_avatar_to_inventory, add_beyblade_to_inventory, mutate_user
+from utils.database import add_avatar_to_inventory, mutate_user
 
 from .code_store import REDEEM_PATH, load, make_code, normalise, redeem_lock, save
 
@@ -81,7 +81,7 @@ def parse_rewards(spec: str) -> tuple[Optional[list[dict]], Optional[str]]:
             level = 1
             if sep:
                 if not level_text.isdigit() or not 1 <= int(level_text) <= 100:
-                    return None, f"\`{part}\` level must be from 1 to 100."
+                    return None, f"`{part}` level must be from 1 to 100."
                 value, level = blade_value.strip(), int(level_text)
             blade = fuzzy_find_beyblade(value)
             if blade is None:
@@ -185,12 +185,36 @@ async def grant(user_id: int, rewards: list[dict]) -> list[str]:
             await casino_wallet.credit(user_id, r["value"])
             got.append(f"🎰 **+{r['value']:,}** casino coins")
         elif r["kind"] == "blade":
-            if add_beyblade_to_inventory(user_id, r["value"]):
-                level = max(1, min(100, int(r.get("level", 1) or 1)))
-                if level > 1:
-                    from utils import bey_levels as BL
-                    await mutate_user(user_id, lambda prof: BL.entry_for(
-                        prof, r["value"]).__setitem__("xp", BL.xp_for_level(level)))
+            # Inventory and level progress are one transaction.  The old path
+            # first persisted the inventory, then wrote XP in a second
+            # mutation.  Besides leaving a crash/concurrent-read window where
+            # the new Bey looked level 1, it meant the feature was only wired
+            # as "set an XP number later" rather than creating a complete
+            # owned-Bey record.  Initialising progress in the same profile
+            # write makes the real stats pipeline immediately see the chosen
+            # level and its IVs.
+            from utils import bey_levels as BL
+            from utils.inventory import can_add
+
+            level = max(1, min(100, int(r.get("level", 1) or 1)))
+
+            def add_levelled_bey(profile: dict) -> bool:
+                if not can_add(profile):
+                    return False
+                profile.setdefault("inventory", []).append(r["value"])
+                if profile.get("active_beyblade") is None:
+                    profile["active_beyblade"] = r["value"]
+                progress = BL.entry_for(profile, r["value"])
+                # Progress is currently stored per Bey name, while duplicate
+                # inventory entries are allowed.  A later Lv.1 duplicate must
+                # not reset an already-trained (or earlier gifted) copy.
+                progress["xp"] = max(
+                    int(progress.get("xp", 0) or 0),
+                    BL.xp_for_level(level),
+                )
+                return True
+
+            if await mutate_user(user_id, add_levelled_bey):
                 got.append(f"🌀 **{r['value']}** (Lv.{level}) added to your collection")
             else:
                 # Say so. Announcing a blade that was never granted is worse
