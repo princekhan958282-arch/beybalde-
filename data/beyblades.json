@@ -11241,7 +11241,7 @@
       {
         "name": "Aether Rush",
         "trigger": "on_attack_mirror",
-        "description": "When both blades choose Attack, Hermiblaze deals 20% more damage, gains 1 Blaze Stack and burns 2 stamina. It has a 45% chance to gain one additional Blaze Stack, which burns 1 more stamina.",
+        "description": "When both blades choose Attack, Hermiblaze deals 20% more damage, gains 1 Blaze Stack and burns 0.8 stamina. It has a 45% chance to gain one additional Blaze Stack, which burns 0.2 more stamina.",
         "rules": [
           {
             "when": "on_attack_mirror",
@@ -11259,7 +11259,7 @@
               },
               {
                 "op": "gain_stamina",
-                "value": -2
+                "value": -0.8
               }
             ],
             "_name": "Aether Rush"
