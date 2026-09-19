@@ -90,6 +90,8 @@ Public API
 
 from __future__ import annotations
 
+import math
+
 from typing import TYPE_CHECKING, Optional
 
 from cogs.abilities.type_system import resolve_active_bonuses
@@ -206,7 +208,7 @@ class StabilityManager:
         hit=False → zero damage     → -4
         """
         delta = _ATTACK_HIT_COST if hit else _ATTACK_MISS_COST
-        return self._action_cost(key, delta)
+        return self._action_cost(key, delta, "attack")
 
     # =========================================================================
     #  Defense
@@ -225,7 +227,7 @@ class StabilityManager:
         delta = _DEFENSE_COSTS.get(context, _DEFENSE_COSTS["passive"])
         if delta == 0:
             return []
-        return self._action_cost(key, delta)
+        return self._action_cost(key, delta, "defense")
 
     # =========================================================================
     #  Stamina recovery
@@ -254,8 +256,8 @@ class StabilityManager:
 
     def apply_clash_penalty(self, key_a: str, key_b: str) -> list[str]:
         """Apply Attack vs Attack clash penalty → -10 to both."""
-        logs = self._action_cost(key_a, _CLASH_PENALTY)
-        logs += self._action_cost(key_b, _CLASH_PENALTY)
+        logs = self._action_cost(key_a, _CLASH_PENALTY, "attack")
+        logs += self._action_cost(key_b, _CLASH_PENALTY, "attack")
         return logs
 
     # =========================================================================
@@ -349,7 +351,7 @@ class StabilityManager:
                 0, int(amount))
             if cost <= 0:
                 return []
-            return self._action_cost(key, -cost)
+            return self._action_cost(key, -cost, move)
         except Exception:
             return []
 
@@ -357,11 +359,14 @@ class StabilityManager:
     #  Private helpers
     # =========================================================================
 
-    def _action_cost(self, key: str, delta: int) -> list[str]:
+    def _action_cost(self, key: str, delta: int, move: str = "") -> list[str]:
         from .purification import action_cost
         session = getattr(self, "purification_session", None)
         if session is not None and delta < 0:
             delta = -action_cost(session, key, -delta)
+        extra = getattr(self, "effect_runtime", None)
+        if extra is not None and delta < 0:
+            delta = -math.ceil(extra.cost(key, move, "stability", -delta))
         return self._apply(key, delta)
 
     def _apply(self, key: str, delta: int) -> list[str]:

@@ -373,6 +373,8 @@ class AttackManager:
         # Defender's avatar gets first refusal on the hit — dodge zeroes it,
         # a dodge can roll a counter, otherwise flat resistance shaves it down.
         # Immortality is checked last, on whatever actually got through.
+        from cogs.abilities.extended_effects import runtime
+        extra = runtime(self.session)
         if m1 not in (MOVE_STAMINA, MOVE_CHARGE):
             dmg_p1, _ctr, _avl = AVC.absorb_incoming(self.session, k2, k1, dmg_p1)
             logs.extend(_avl)
@@ -380,7 +382,10 @@ class AttackManager:
                 hp[k1] = max(0, hp[k1] - _ctr)
             dmg_p1, _imm = AVC.guard_lethal(self.session, k2, dmg_p1)
             logs.extend(_imm)
+            actual = min(hp[k2], max(0, dmg_p1))
             hp[k2] = max(0, hp[k2] - dmg_p1)
+            if extra is not None:
+                extra.committed(k1, k2, m1, actual, logs)
         if m2 not in (MOVE_STAMINA, MOVE_CHARGE):
             dmg_p2, _ctr, _avl = AVC.absorb_incoming(self.session, k1, k2, dmg_p2)
             logs.extend(_avl)
@@ -388,7 +393,10 @@ class AttackManager:
                 hp[k2] = max(0, hp[k2] - _ctr)
             dmg_p2, _imm = AVC.guard_lethal(self.session, k1, dmg_p2)
             logs.extend(_imm)
+            actual = min(hp[k1], max(0, dmg_p2))
             hp[k1] = max(0, hp[k1] - dmg_p2)
+            if extra is not None:
+                extra.committed(k2, k1, m2, actual, logs)
 
         # ── Apply counter-hit reflections ─────────────────────────────────────
         # counter_pN is non-zero only for Attack-vs-Defense hits.

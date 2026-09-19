@@ -57,6 +57,7 @@ from cogs.battle.constants import (
 from cogs.battle.damage_filter import DamageFilter
 from cogs.battle import purification
 from .legacy_convert import legacy_convert
+from .extended_effects import ExtendedEffects, OPS as EXTENDED_OPS
 
 # ── Vocabulary ────────────────────────────────────────────────────────────────
 
@@ -126,6 +127,7 @@ class AbilityEngine:
         self.session = session
         self.st      = session.status                 # StatusManager
         self.damage_filter = DamageFilter(session)
+        self.extended = ExtendedEffects(self)
 
         # ── Generic rule state (the ONLY ability memory that exists) ─────────
         self.counters:   dict[tuple[str, str], int] = {}   # (key, name) -> value
@@ -750,6 +752,12 @@ class AbilityEngine:
             gate = op.get("_if")
             if gate and not all(self._check(c, key, okey, move, matchup)
                                 for c in gate):
+                continue
+            if kind in EXTENDED_OPS:
+                if not hasattr(self, "extended"):
+                    self.extended = ExtendedEffects(self)
+                dmg_dealt, dmg_taken = self.extended.execute(
+                    op, ab_name, key, okey, move, dmg_dealt, dmg_taken, logs, matchup)
                 continue
             val  = self._amped(key, op, op.get("value", 0))
 
@@ -1812,6 +1820,10 @@ class AbilityEngine:
         # the next.
         self.last_hit_was_crit = False
 
+        extended = getattr(self, "extended", None)
+        if extended is not None:
+            dmg_dealt = extended.before_hit(mover_key, dmg_dealt, is_first_hit)
+
         # Steps 1–4: buffs tick, ATK buffs & amp, invuln, shields (unchanged)
         dmg_dealt, dmg_taken, f_logs, mover_silenced = self.damage_filter.run(
             mover_key, other_key, mover_blade, other_blade,
@@ -2123,6 +2135,9 @@ class AbilityEngine:
         per-entry shape.
         """
         logs: list[str] = purification.tick(self.session)
+        extended = getattr(self, "extended", None)
+        if extended is not None:
+            logs.extend(extended.tick())
         cooldowns = getattr(self, "cooldowns", None)
         if cooldowns:
             for ck, turns in list(cooldowns.items()):
