@@ -215,6 +215,10 @@ class StatusManager:
         from .purification import reduce_debuff
         if amount < 0 and hostile:
             amount = int(reduce_debuff(self.session, key, amount))
+        from cogs.abilities.extended_effects import runtime
+        extra = runtime(self.session)
+        if extra is not None and amount < 0 and hostile:
+            amount = int(extra.reduce_debuff(key, amount, stat))
         self.active_buffs.setdefault(key, []).append(
             {"stat": stat, "amount": amount, "rounds_left": rounds,
              "source": source, "hostile": hostile}
@@ -239,11 +243,17 @@ class StatusManager:
     def get_buff_bonus(self, key: str, stat: str) -> int:
         """Sum of all active buff amounts for *stat* on *key*."""
         from .purification import stat_bonus
-        return stat_bonus(self.session, key, stat) + sum(
-            b["amount"]
+        from cogs.abilities.extended_effects import runtime
+        extra = runtime(self.session)
+        domain = stat_bonus(self.session, key, stat)
+        if extra is not None:
+            domain = extra.buff_amount(key, stat, domain)
+        total = domain + sum(
+            extra.buff_amount(key, stat, b["amount"]) if extra is not None else b["amount"]
             for b in self.active_buffs.get(key, [])
             if b["stat"] == stat
         )
+        return round(total) if extra is not None and extra.entries(key, "buff_suppression") else total
 
     def clear_buffs(self, key: str, stat: str) -> None:
         """Remove all timed buffs of *stat* from *key*."""
@@ -280,6 +290,10 @@ class StatusManager:
         """Apply (or extend) a silence on *key*."""
         from .purification import reduce_debuff
         turns = int(reduce_debuff(self.session, key, turns))
+        from cogs.abilities.extended_effects import runtime
+        extra = runtime(self.session)
+        if extra is not None:
+            turns = int(extra.reduce_debuff(key, turns, "silence"))
         self.silenced_turns[key] = self.silenced_turns.get(key, 0) + turns
 
     def is_silenced(self, key: str) -> bool:
@@ -385,6 +399,10 @@ class StatusManager:
 
         from .purification import reduce_debuff
         per_turn = int(reduce_debuff(self.session, target_key, per_turn))
+        from cogs.abilities.extended_effects import runtime
+        extra = runtime(self.session)
+        if extra is not None:
+            per_turn = int(extra.reduce_debuff(target_key, per_turn, "burn"))
         current = self.burn_stacks.get(target_key, 0)
         if current < max_stacks:
             self.burn_stacks[target_key]   = current + 1
@@ -472,7 +490,10 @@ class StatusManager:
 
     def snapshot(self, key: str) -> dict[str, Any]:
         """Return a read-only dict of every effect value for *key*."""
+        from cogs.abilities.extended_effects import runtime
+        extra = runtime(self.session)
         return {
+            "extended_effects": extra.snapshot(key) if extra is not None else {},
             "active_buffs":         [dict(b) for b in self.active_buffs.get(key, [])],
             "silenced_turns":       self.silenced_turns.get(key, 0),
             "ignore_defense_turns": self.ignore_defense_turns.get(key, 0),

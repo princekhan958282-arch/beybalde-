@@ -268,6 +268,12 @@ class StaminaManager:
         if red > 0:
             cost = round(cost * (1.0 - red), 2)
             note += f" *(-{int(red * 100)}% drain)*"
+        extra = getattr(self, "effect_runtime", None)
+        if extra is not None:
+            adjusted = extra.cost(key, move, "stamina", cost)
+            if adjusted != cost:
+                note += f" *(ability cost {cost:g} → {adjusted:g})*"
+            cost = adjusted
         return max(0.0, cost), note
 
     def cost_for(self, key: str, move: str) -> float:

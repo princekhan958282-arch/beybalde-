@@ -29,6 +29,7 @@ parts of a kit are dormant here.
 """
 
 from typing import Optional
+from cogs.abilities.extended_effects import OPS as EXTENDED_OPS
 
 # effect name → how the boss engine consumes it
 STAT_EFFECTS = {
@@ -313,6 +314,10 @@ class BladeKit:
             low = when in LOW_HP_TRIGGERS
             target = self.low_hp_mult if low else self.stat_mult
             for op in rule.get("do") or []:
+                if op.get("op") in EXTENDED_OPS:
+                    note = f"{ability.get('name', 'Ability')}: {op['op']} (shared engine only)"
+                    if note not in self.dormant:
+                        self.dormant.append(note)
                 kind = self.OP_TO_EFFECT.get(str(op.get("op") or ""))
                 if kind is None:
                     continue

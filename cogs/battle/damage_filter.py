@@ -253,7 +253,12 @@ class DamageFilter:
         # Timed ATK buff from active_buffs list
         atk_bonus = sm.get_buff_bonus(mover_key, "attack")
         from .purification import stat_bonus
-        atk_bonus -= stat_bonus(self.session, mover_key, "attack")
+        domain_bonus = stat_bonus(self.session, mover_key, "attack")
+        from cogs.abilities.extended_effects import runtime
+        extra = runtime(self.session)
+        if extra is not None:
+            domain_bonus = extra.buff_amount(mover_key, "attack", domain_bonus)
+        atk_bonus -= round(domain_bonus)
         blade = self.session.blades.get(mover_key, {})
         if move == MOVE_SPECIAL and (blade.get("special_move") or {}).get("damage_formula"):
             atk_bonus = 0  # Formula already uses the live buffed ATK stat.
@@ -403,8 +408,11 @@ class DamageFilter:
             return dmg_dealt
 
         # Normal absorption — shield takes the hit
-        absorbed  = sm.absorb_shield(other_key, dmg_dealt)
-        dmg_dealt -= absorbed
+        from cogs.abilities.extended_effects import runtime
+        extra = runtime(self.session)
+        multiplier = extra.shield_multiplier(mover_key) if extra is not None else 1
+        absorbed = sm.absorb_shield(other_key, math.ceil(dmg_dealt * multiplier))
+        dmg_dealt = max(0, dmg_dealt - math.ceil(absorbed / multiplier))
         remaining  = sm.get_shield(other_key)
         logs.append(
             f"  🔵 **Shield** — {other_blade['name']}'s shield absorbed **{absorbed} dmg**! "
