@@ -11605,5 +11605,120 @@
       }
     ],
     "limited": true
+  },
+  "Phantom Nightmare": {
+    "id": "BB120",
+    "name": "Phantom Nightmare",
+    "rarity": "Legendary",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1550863061458489344/file_0000000034288211af8cb54efbf4ed35.png?ex=6aafe147&is=6aae8fc7&hm=2af38171f7efa7003a80835ee9c0b949983cc5d25903bdaca1d1df63301d62bc&",
+    "description": "A phantom dragon Bey that absorbs punishment into spectral energy, then returns the stored force as a delayed echo.",
+    "burst_height": "Mid",
+    "type": "Balance",
+    "spin_direction": "Right",
+    "limited": false,
+    "stats": {
+      "attack": 120,
+      "defense": 115,
+      "stamina": 112,
+      "special": 145,
+      "hp": 125
+    },
+    "ability": {
+      "name": "Phantom Energy",
+      "trigger": "on_take_damage",
+      "description": "Stores 20% of real HP damage received as Phantom Energy, up to 60 stored damage. After 2 turns, 50% of the currently stored damage is released as a protected delayed secondary hit, then that released amount is removed from storage.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "damage_storage",
+              "percent": 20,
+              "max": 60,
+              "name": "phantom_energy"
+            }
+          ],
+          "_name": "Phantom Energy — Damage Storage"
+        },
+        {
+          "when": "on_turn",
+          "do": [
+            {
+              "op": "delayed_echo",
+              "source": "phantom_energy",
+              "delay": 2,
+              "percent": 50,
+              "protected": true,
+              "consume_released": true
+            }
+          ],
+          "_name": "Phantom Energy — Delayed Echo"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Phantom Energy",
+        "trigger": "on_take_damage",
+        "description": "Stores 20% of real HP damage received as Phantom Energy, up to 60 stored damage. After 2 turns, 50% of the currently stored damage is released as a protected delayed secondary hit, then that released amount is removed from storage.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "do": [
+              {
+                "op": "damage_storage",
+                "percent": 20,
+                "max": 60,
+                "name": "phantom_energy"
+              }
+            ],
+            "_name": "Phantom Energy — Damage Storage"
+          },
+          {
+            "when": "on_turn",
+            "do": [
+              {
+                "op": "delayed_echo",
+                "source": "phantom_energy",
+                "delay": 2,
+                "percent": 50,
+                "protected": true,
+                "consume_released": true
+              }
+            ],
+            "_name": "Phantom Energy — Delayed Echo"
+          }
+        ]
+      },
+      {
+        "name": "Phantom Dragon",
+        "trigger": "on_special",
+        "description": "Phantom Dragon heals Phantom Nightmare for 25% of the actual HP damage dealt by the Special.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "lifesteal",
+                "percent": 25,
+                "source": "actual_hp_damage"
+              }
+            ],
+            "_name": "Phantom Dragon — Lifesteal"
+          }
+        ]
+      }
+    ],
+    "special_move": {
+      "name": "🐉 Phantom Dragon",
+      "description": "Phantom Nightmare unleashes its spectral dragon in a finishing strike. Deals 160 base damage plus 45% ATK scaling and heals for 25% of the actual HP damage dealt.",
+      "hits": 1,
+      "damage_per_hit": 160,
+      "total_damage": 160,
+      "attack_scaling": 0.45,
+      "flavour_texts": [
+        "🐉 **Phantom Dragon** — spectral jaws tear through the arena!"
+      ]
+    }
   }
 }
