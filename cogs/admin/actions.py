@@ -1745,7 +1745,7 @@ async def _servers(ctx: ActionCtx) -> Result:
 
     embeds = []
     for n, page in enumerate(pages, 1):
-        e = _embed(f"🌐 Servers ({headline})"
+        e = _embed(f"🌐 Server list — Total servers: {headline}"
                    + (f" — page {n}/{len(pages)}" if len(pages) > 1 else ""),
                    0xE67E22 if drifted else 0x5865F2, page)
         if n == len(pages):
