@@ -305,7 +305,16 @@ class GuildPicker(discord.ui.Select):
     ALL = "all"
 
     def __init__(self, panel: "PanelView"):
-        guilds = list(getattr(panel.bot, "guilds", None) or [])
+        # Prefer live gateway Guild objects, then fill any holes from the
+        # REST directory captured at startup. A dropped GUILD_CREATE stream can
+        # leave bot.guilds incomplete even though the bot is still in those
+        # servers; the admin picker must not inherit that stale cache.
+        cached = list(getattr(panel.bot, "guilds", None) or [])
+        rest_dir = getattr(panel.bot, "_rest_guild_directory", {}) or {}
+        by_id = {g.id: g for g in cached}
+        for gid, guild in rest_dir.items():
+            by_id.setdefault(gid, guild)
+        guilds = list(by_id.values())
         try:
             from utils import activity
             order = {gid: i for i, gid in enumerate(activity.guilds_seen())}
