@@ -297,9 +297,9 @@ class GuildPicker(discord.ui.Select):
     this a filter rather than a required input: the action runs with no
     selection and answers the bot-wide question, exactly as it did before.
 
-    A select holds 25 options. Past that the list shows the busiest 24 by
-    recorded activity, because a truncated list ordered by nothing useful is
-    how a filter becomes a lottery.
+    A select holds 25 options. "All servers" uses one slot, leaving 24
+    servers per page. Previous/Next buttons move through the activity-ordered
+    directory so no server becomes unreachable once the bot passes 24 guilds.
     """
 
     ALL = "all"
@@ -322,23 +322,53 @@ class GuildPicker(discord.ui.Select):
             order = {}
         guilds.sort(key=lambda g: (order.get(g.id, 10 ** 6),
                                    -(g.member_count or 0)))
-        guilds = guilds[:MAX_OPTIONS - 1]
+        per_page = MAX_OPTIONS - 1
+        pages = max(1, (len(guilds) + per_page - 1) // per_page)
+        panel.guild_page = max(0, min(panel.guild_page, pages - 1))
+        start = panel.guild_page * per_page
+        page_guilds = guilds[start:start + per_page]
+        panel.guild_page_count = pages
+        panel.guild_total = len(guilds)
 
-        opts = [option("All servers", self.ALL, "everywhere the bot is", "🌍",
+        opts = [option("All servers", self.ALL, f"all {len(guilds)} servers", "🌍",
                        default=(panel.guild_choice in (None, self.ALL)))]
-        for g in guilds:
+        for g in page_guilds:
             opts.append(option(
                 (g.name or str(g.id))[:LABEL_MAX], str(g.id),
                 f"{g.member_count or 0:,} members", "🏠",
                 default=(str(panel.guild_choice) == str(g.id))))
-        super().__init__(placeholder="Which server?", min_values=1,
-                         max_values=1, options=opts, row=panel.picker_row)
+        super().__init__(
+            placeholder=f"Which server? · page {panel.guild_page + 1}/{pages}",
+            min_values=1, max_values=1, options=opts, row=panel.picker_row)
         self.panel = panel
 
     @guard
     async def callback(self, interaction: discord.Interaction):
         value = self.values[0]
         self.panel.guild_choice = None if value == self.ALL else int(value)
+        self.panel.pending_confirm = False
+        await self.panel.refresh(interaction)
+
+
+class GuildPageButton(discord.ui.Button):
+    """Move through server-picker pages without losing the selected action."""
+
+    def __init__(self, panel: "PanelView", delta: int):
+        label = "Previous servers" if delta < 0 else "Next servers"
+        emoji = "◀️" if delta < 0 else "▶️"
+        page_count = getattr(panel, "guild_page_count", 1)
+        page = getattr(panel, "guild_page", 0)
+        disabled = page_count <= 1 or (delta < 0 and page <= 0) or (
+            delta > 0 and page >= page_count - 1)
+        super().__init__(label=label, emoji=emoji,
+                         style=discord.ButtonStyle.secondary,
+                         row=panel.button_row, disabled=disabled)
+        self.panel = panel
+        self.delta = delta
+
+    @guard
+    async def callback(self, interaction: discord.Interaction):
+        self.panel.guild_page += self.delta
         self.panel.pending_confirm = False
         await self.panel.refresh(interaction)
 
@@ -480,6 +510,9 @@ class PanelView(discord.ui.View):
         self.text2: Optional[str] = None
         # None means "all servers" — the filter's default, not a missing value.
         self.guild_choice: Optional[int] = None
+        self.guild_page = 0
+        self.guild_page_count = 1
+        self.guild_total = 0
         self.pending_confirm = False
         self.message = None
         self.build()
@@ -518,6 +551,7 @@ class PanelView(discord.ui.View):
         self.text = None
         self.text2 = None
         self.guild_choice = None
+        self.guild_page = 0
         self.channel = self.home_channel
         self.pending_confirm = False
 
@@ -533,6 +567,9 @@ class PanelView(discord.ui.View):
         # learns to ignore it.
         if action is not None and "server" in action.needs:
             self.add_item(GuildPicker(self))
+            if self.guild_page_count > 1:
+                self.add_item(GuildPageButton(self, -1))
+                self.add_item(GuildPageButton(self, 1))
         elif action is not None and "user" in action.needs:
             self.add_item(TargetSelect(self))
         elif action is not None and "channel" in action.needs:
