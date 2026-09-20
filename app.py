@@ -432,10 +432,16 @@ class BeybladeBot(commands.Bot):
                                     interaction.guild_id)
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
+        directory = getattr(self, "_rest_guild_directory", None)
+        if directory is not None:
+            directory[guild.id] = guild
         logger.info(f"➕ Joined {guild.name} ({guild.id}) — "
                     f"now in {len(self.guilds)} server(s)")
 
     async def on_guild_remove(self, guild: discord.Guild) -> None:
+        directory = getattr(self, "_rest_guild_directory", None)
+        if directory is not None:
+            directory.pop(guild.id, None)
         logger.info(f"➖ Removed from {guild.name} ({guild.id}) — "
                     f"now in {len(self.guilds)} server(s)")
 
