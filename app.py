@@ -370,7 +370,12 @@ class BeybladeBot(commands.Bot):
         at boot is enough to turn an invisible problem into an obvious one.
         """
         try:
-            rest = {g.id async for g in self.fetch_guilds(limit=200)}
+            rest_guilds = [g async for g in self.fetch_guilds(limit=200)]
+            # Keep the REST directory separately from discord.py's gateway
+            # cache. UI server pickers can still show every server when READY
+            # lost part of its GUILD_CREATE stream; we never mutate bot.guilds.
+            self._rest_guild_directory = {g.id: g for g in rest_guilds}
+            rest = set(self._rest_guild_directory)
         except Exception as exc:                         # noqa: BLE001
             logger.debug(f"guild cache check skipped: {exc}")
             return
