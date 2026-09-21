@@ -782,15 +782,45 @@ class SpawnCog(commands.Cog):
             except Exception as e:
                 log.warning(f"[spawn] save_spawn_state() after reset failed: {e}")
 
-        # Decide WHERE to spawn (outside lock — pure resolution, no shared state mutation)
+        # Decide WHERE to spawn (outside lock — pure resolution, no shared state mutation).
+        # A configured, usable channel always wins. Without one, prefer the
+        # channel that triggered the threshold, then fall back to another
+        # sendable guild text channel instead of silently consuming the spawn.
         configured_id = get_spawn_channel(guild_id)
-        if configured_id:
-            spawn_channel = message.guild.get_channel(configured_id)
-            # FIX Issue 3: validate resolved channel
-            if not _is_valid_text_channel(spawn_channel):
-                spawn_channel = message.channel
-        else:
-            spawn_channel = message.channel
+        configured_channel = (
+            message.guild.get_channel(configured_id) if configured_id else None
+        )
+
+        candidates = []
+        if _is_valid_text_channel(configured_channel):
+            candidates.append(configured_channel)
+        if _is_valid_text_channel(message.channel) and message.channel not in candidates:
+            candidates.append(message.channel)
+        for candidate in message.guild.text_channels:
+            if candidate not in candidates:
+                candidates.append(candidate)
+
+        spawn_channel = None
+        for candidate in candidates:
+            if await _can_send(candidate):
+                spawn_channel = candidate
+                break
+
+        if spawn_channel is None:
+            # No channel can receive the embed. Restore the just-consumed
+            # threshold so activity is not thrown away while permissions are
+            # broken; the next eligible message can try again.
+            async with state["_lock"]:
+                state["counter"] = state["target"]
+                try:
+                    save_spawn_state(guild_id, state["counter"], state["target"])
+                except Exception as e:
+                    log.warning(f"[spawn] save_spawn_state() after no-channel fallback failed: {e}")
+            log.warning(
+                f"[spawn] No usable text channel in guild={guild_id}; "
+                "need View Channel, Send Messages and Embed Links"
+            )
+            return
 
         await self._do_spawn(spawn_channel)
 
