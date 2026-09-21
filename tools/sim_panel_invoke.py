@@ -765,91 +765,26 @@ _ex_cmd.callback = _ex_real
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n── 6c. /trade, all the way through to the swap ──────────────────")
-# The hardest one, and the reason `/trade` had to become public: only the
-# TARGET may press Accept, so an offer only the sender can see can never be
-# accepted. Driven end to end — Run → modal → the real `;trade` → a DIFFERENT
-# user pressing Accept → the blades actually changing hands.
-
+print("\n── 6c. /trade registration does not collide with panel commands ─")
 import cogs.extras.trade as T                           # noqa: E402
 
-PROFILES = {
-    USER_ID: {"inventory": [{"name": "Dragoon"}], "active_beyblade": "Dragoon"},
-    TARGET_ID: {"inventory": [{"name": "Valkyrie"}], "active_beyblade": None},
-}
-TRADE_LOG = []
-async def _fake_get_user(uid):
-    return PROFILES[int(uid)]
-async def _fake_update_user(uid, prof):
-    PROFILES.__setitem__(int(uid), prof)
-T.get_user = _fake_get_user
-T.update_user = _fake_update_user
-T._log_trade = lambda entry: TRADE_LOG.append(entry)
-
-TARGET_MEMBER = interaction(3, {"custom_id": "q", "component_type": 2},
-                            user_id=TARGET_ID).user
-
-reset_wire()
-pt = panel_for("trade")
-pt.action_key = "offer"
-pt.target = TARGET_MEMBER
-pt.build()
-runbtn = next(c for c in pt.children if isinstance(c, K.RunButton))
-run_click(pt, runbtn, interaction(3, {"custom_id": runbtn.custom_id,
-                                      "component_type": 2}))
-check("Run opened a modal as the FIRST response, which Discord requires",
-      acks() and acks()[-1].payload.get("type") == 9,
-      acks()[-1].payload.get("type") if acks() else None)
-
-MODAL = list(STORE._modals.values())[-1]
-check("...asking for both blade names, labelled so they cannot be swapped",
-      [c.label for c in MODAL.children] == ["Your blade", "Their blade"],
-      [c.label for c in MODAL.children])
-
-reset_wire()
-submit = interaction(5, {
-    "custom_id": MODAL.custom_id,
-    "components": [
-        {"type": 1, "components": [{"type": 4,
-                                    "custom_id": MODAL.children[0].custom_id,
-                                    "value": "Dragoon"}]},
-        {"type": 1, "components": [{"type": 4,
-                                    "custom_id": MODAL.children[1].custom_id,
-                                    "value": "Valkyrie"}]},
-    ]})
-
-
-async def _submit():
-    tasks = []
-    real_add = STORE.add_task
-    STORE.add_task = tasks.append
-    try:
-        STORE.dispatch_modal(MODAL.custom_id, submit,
-                             submit.data["components"], {})
-    finally:
-        STORE.add_task = real_add
-    if tasks:
-        await asyncio.gather(*tasks, return_exceptions=True)
-    await asyncio.sleep(0)
-
-
-loop.run_until_complete(_submit())
-
-offers = channel_msgs()
-check("the offer went to the CHANNEL, not to an ephemeral followup — the "
-      "target cannot press a button on a message only the sender can see",
-      len(offers) >= 1 and not followups(),
-      (len(offers), len(followups())))
-if offers:
-    body = str(offers[0].payload)
-    check("...carrying the Accept/Decline buttons",
-          bool(offers[0].payload.get("components")), offers[0].payload.keys())
-    check("...naming the right blades in the right direction — a swapped bind "
-          "raises nothing and only shows up as 'you don't own that'",
-          "Dragoon" in body and "Valkyrie" in body, body[:200])
-    check("...and not ephemeral", not is_ephemeral(offers[0].payload))
-
-check("no error leaked into the offer", not mentions_error(offers), offers)
+check("trade is no longer a generic panel spec", "trade" not in PN.SPECS)
+check("PanelCommands has no /trade app command",
+      not hasattr(PN.PanelCommands, "trade"))
+_trade_prefix = BOT.get_command("trade")
+_trade_app = BOT.tree.get_command("trade")
+check("the new trade flow remains loaded as a hybrid command",
+      _trade_prefix is not None
+      and getattr(_trade_prefix, "app_command", None) is not None)
+check("the command tree contains one usable /trade",
+      _trade_app is not None)
+check("/trade requires only the target player; blade selection happens in UI",
+      _trade_app is not None
+      and len(_trade_app.parameters) == 1
+      and _trade_app.parameters[0].name == "player"
+      and _trade_app.parameters[0].required,
+      [] if _trade_app is None else
+      [(p.name, p.required) for p in _trade_app.parameters])
 
 
 # ══════════════════════════════════════════════════════════════════════════════
