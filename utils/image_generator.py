@@ -26,6 +26,7 @@ import io
 import os
 import threading
 import unicodedata
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont
@@ -80,9 +81,68 @@ _SYS_FONTS = [
 ]
 
 _font_cache: dict[int, ImageFont.FreeTypeFont] = {}
-_art_cache: dict[str, "Image.Image | None"] = {}
+
+# Pillow keeps decoded pixel buffers in RAM, not at their compressed PNG/WebP
+# size. A full 420px RGBA Bey is ~689 KiB; keeping every Bey at every render
+# size can therefore grow well past 100 MiB even though the source files are
+# tiny. The bot is commonly hosted with a 2 GiB memory limit, so keep this
+# shared art cache deliberately bounded. 48 MiB is enough for roughly 70 full
+# 420px battle arts (or many more smaller profile/tournament variants) while
+# leaving headroom for battles, Discord.py, database state and temporary
+# source-image decodes.
+_ART_CACHE_MAX_BYTES = 48 * 1024 * 1024
+_ART_CACHE_MAX_ITEMS = 192
+_art_cache: "OrderedDict[str, Image.Image | None]" = OrderedDict()
 _art_index: dict[str, str] | None = None
 _cache_lock = threading.RLock()
+
+
+def _image_bytes(image: "Image.Image | None") -> int:
+    """Approximate decoded pixel memory held by one cached Pillow image."""
+    if image is None:
+        return 0
+    return int(image.width) * int(image.height) * max(1, len(image.getbands()))
+
+
+def _art_cache_bytes_locked() -> int:
+    """Decoded bytes currently retained by the shared art cache.
+
+    Caller must hold the cache lock. This is computed only on cold inserts, so
+    the O(n) sum never touches the hot per-round render path.
+    """
+    return sum(_image_bytes(image) for image in _art_cache.values())
+
+
+def _art_cache_get_locked(key: str) -> tuple[bool, "Image.Image | None"]:
+    """LRU lookup. Caller must hold the cache lock."""
+    if key not in _art_cache:
+        return False, None
+    image = _art_cache[key]
+    _art_cache.move_to_end(key)
+    return True, image
+
+
+def _art_cache_put_locked(key: str, image: "Image.Image | None"):
+    """Insert one art image and evict least-recently-used entries to budget."""
+    if key in _art_cache:
+        existing = _art_cache[key]
+        _art_cache.move_to_end(key)
+        return existing
+
+    _art_cache[key] = image
+    _art_cache.move_to_end(key)
+    used = _art_cache_bytes_locked()
+
+    while _art_cache and (
+        used > _ART_CACHE_MAX_BYTES or len(_art_cache) > _ART_CACHE_MAX_ITEMS
+    ):
+        _old_key, old_image = _art_cache.popitem(last=False)
+        used -= _image_bytes(old_image)
+
+    # A rendered image is at most 420x420 RGBA, far below this budget.
+    # Returning the image directly also keeps the current render safe if a
+    # future oversized entry is not retained.
+    return _art_cache.get(key, image)
 # A cold render needs three independent decode/resize jobs: the background and
 # both Bey artworks. Pillow performs those operations in native code, so doing
 # them concurrently cuts first-card latency without changing any pixels.
@@ -109,8 +169,9 @@ def _blade_art(name: str, box: int) -> "Image.Image | None":
     global _art_index
     key = f"{_norm_name(name)}@{box}"
     with _cache_lock:
-        if key in _art_cache:
-            return _art_cache[key]
+        hit, cached = _art_cache_get_locked(key)
+        if hit:
+            return cached
     art = None
     try:
         with _cache_lock:
@@ -151,8 +212,10 @@ def _blade_art(name: str, box: int) -> "Image.Image | None":
         art = None
     with _cache_lock:
         # Another battle may have completed the same asset while this thread
-        # was decoding it. Reuse that canonical cached image when it exists.
-        return _art_cache.setdefault(key, art)
+        # was decoding it. Reuse that canonical cached image when it exists,
+        # otherwise insert with LRU eviction so long uptimes cannot grow RAM
+        # without bound.
+        return _art_cache_put_locked(key, art)
 
 
 def _font(size: int) -> ImageFont.ImageFont:
@@ -446,11 +509,9 @@ def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
     right_key = f"{_norm_name(right_blade)}@{_ART_BOX}"
     with _cache_lock:
         background_ready = _bg_cache is not None
-        left_ready = left_key in _art_cache
-        right_ready = right_key in _art_cache
+        left_ready, left_art = _art_cache_get_locked(left_key)
+        right_ready, right_art = _art_cache_get_locked(right_key)
         cached_background = _bg_cache
-        left_art = _art_cache.get(left_key)
-        right_art = _art_cache.get(right_key)
 
     if background_ready and left_ready and right_ready:
         # Consecutive rounds take this allocation-only fast path. Avoiding
