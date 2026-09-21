@@ -51,9 +51,10 @@ A = K.PanelAction
 #  👤  /player
 # ══════════════════════════════════════════════════════════════════════════════
 #
-# Also absorbs /rank. The boards moved out to /leaderboard in v1.18: a board is
-# about everyone, /player is about one player, and the five board rows were
-# most of what this select showed.
+# The ranked card lives here. /rank itself is reserved for starting a ranked
+# match, while /player remains the place to inspect one player's profile/rank.
+# The boards moved out to /leaderboard in v1.18 because a board is about
+# everyone and /player is about one player.
 
 class PlayerSpec(K.PrefixSpec):
     title = "👤  Player"
@@ -316,9 +317,9 @@ class PanelCommands(commands.Cog, name="Panels"):
                    **kwargs) -> None:
         """Run a prefix command straight from a slash command, publicly.
 
-        The same helper the panels use — `/rank` and a chosen `/leaderboard`
-        answer one question each, so making the player open a menu and press
-        Run to reach it would be two clicks for nothing.
+        The same helper the panels use. Direct slash shortcuts such as
+        `/rank @player` and a chosen `/leaderboard` delegate to the existing
+        prefix implementation instead of duplicating validation or battle logic.
         """
         cmd = self.bot.get_command(command)
         if cmd is None:
@@ -409,12 +410,13 @@ class PanelCommands(commands.Cog, name="Panels"):
         return choices
 
     @app_commands.command(name="rank",
-                          description="Your ranked card — tier, score and board placings")
-    @app_commands.describe(user="Whose card to show. Defaults to yours.")
+                          description="Challenge a player to a ranked match")
+    @app_commands.describe(player="Player to challenge in ranked")
     async def rank(self, interaction: discord.Interaction,
-                   user: Optional[discord.Member] = None) -> None:
-        kwargs = {"member": user} if user is not None else {}
-        await self._run(interaction, "rank", **kwargs)
+                   player: discord.Member) -> None:
+        """Start the existing ranked battle flow through a short slash command."""
+        await self._run(interaction, "battle",
+                        opponent=player, mode="ranked")
 
     @app_commands.command(name="trade",
                           description="Offer another player a 1-for-1 blade swap")
