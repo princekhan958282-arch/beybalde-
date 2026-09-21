@@ -88,18 +88,11 @@ class PlayerSpec(K.PrefixSpec):
 #  🏆  /leaderboard
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Discord's own dropdown, built from the same table the board sorts on, so a
-# new board reaches the slash choices, the panel and `;leaderboard` together or
-# not at all. Seven entries against a cap of 25 — but the slice is there
-# because exceeding it is a registration-time error, not a runtime one, and
-# would take the whole cog down at boot rather than showing a short list.
-_BOARD_CHOICES = [
-    app_commands.Choice(name=f"{spec.get('emoji') or '🏅'} {spec['label']}",
-                        value=key)
-    for key, spec in list(RK.CATEGORIES.items())[:25]
-]
-
-
+# /leaderboard uses autocomplete rather than static @choices. Static choices
+# are registered globally by Discord, so main-server-only boards appeared in
+# every server even though the command correctly refused to render them there.
+# Autocomplete runs per interaction and can filter the list for that guild.
+# The command layer still keeps the permission check as the final authority.
 class LeaderboardSpec(K.PrefixSpec):
     """One action per board, read from the same table the board sorts on.
 
@@ -376,19 +369,44 @@ class PanelCommands(commands.Cog, name="Panels"):
     @app_commands.command(name="leaderboard",
                           description="Every leaderboard — rank, level, money and more")
     @app_commands.describe(board="Which board. Leave it blank to pick from a menu.")
-    @app_commands.choices(board=_BOARD_CHOICES)
     async def leaderboard(self, interaction: discord.Interaction,
-                          board: Optional[app_commands.Choice[str]] = None
-                          ) -> None:
+                          board: Optional[str] = None) -> None:
         """Two ways in, one command.
 
-        With a board chosen, Discord's own dropdown has already asked the only
-        question, so there is nothing to open — the board is posted straight
-        away. With nothing chosen, the panel does the asking.
+        With a board chosen, autocomplete has already asked the only question,
+        so there is nothing to open — the board is posted straight away. With
+        nothing chosen, the panel does the asking.
         """
         if board is None:
             return await self._open(interaction, "leaderboard")
-        await self._run(interaction, "leaderboard", category=board.value)
+        await self._run(interaction, "leaderboard", category=board)
+
+    @leaderboard.autocomplete("board")
+    async def leaderboard_board_autocomplete(
+            self, interaction: discord.Interaction, current: str
+            ) -> list[app_commands.Choice[str]]:
+        """Only offer boards that are valid in the interaction's server."""
+        main_only = getattr(RK, "MAIN_ONLY", frozenset())
+        in_main_server = False
+        if main_only:
+            try:
+                from cogs.community import guard as _guard
+                in_main_server = _guard.is_main(interaction.guild)
+            except Exception:                            # noqa: BLE001
+                in_main_server = False
+
+        needle = (current or "").casefold().strip()
+        choices: list[app_commands.Choice[str]] = []
+        for key, spec in RK.CATEGORIES.items():
+            if key in main_only and not in_main_server:
+                continue
+            label = f"{spec.get('emoji') or '🏅'} {spec['label']}"
+            if needle and needle not in key.casefold() and needle not in label.casefold():
+                continue
+            choices.append(app_commands.Choice(name=label, value=key))
+            if len(choices) >= 25:
+                break
+        return choices
 
     @app_commands.command(name="rank",
                           description="Your ranked card — tier, score and board placings")
