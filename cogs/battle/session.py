@@ -1390,7 +1390,8 @@ class BattleSession:
         """
         try:
             from utils.image_generator import render_battle_card, CARD_ENABLED
-            if not CARD_ENABLED:
+            from cogs.admin.actions import battle_ui_mode
+            if battle_ui_mode() == "classic" or not CARD_ENABLED:
                 return None
             p1, p2 = self.players
             k1, k2 = str(p1.id), str(p2.id)

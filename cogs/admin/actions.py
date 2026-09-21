@@ -100,7 +100,7 @@ _state_cache: Optional[dict] = None
 
 
 def _blank_state() -> dict:
-    return {"maintenance": {}, "bans": {}}
+    return {"maintenance": {}, "bans": {}, "battle_ui": "new"}
 
 
 def _state() -> dict:
@@ -115,6 +115,7 @@ def _state() -> dict:
                     data = _blank_state()
                 data.setdefault("maintenance", {})
                 data.setdefault("bans", {})
+                data.setdefault("battle_ui", "new")
                 _state_cache = data
     return _state_cache
 
@@ -130,6 +131,23 @@ def reload_state() -> None:
     global _state_cache
     with _state_lock:
         _state_cache = None
+
+
+def battle_ui_mode() -> str:
+    """Global battle presentation mode: new image card or classic embed."""
+    mode = str(_state().get("battle_ui") or "new").strip().lower()
+    return mode if mode in {"new", "classic"} else "new"
+
+
+def set_battle_ui_mode(mode: str) -> str:
+    mode = str(mode or "").strip().lower()
+    aliases = {"new": "new", "image": "new", "card": "new", "classic": "classic", "old": "classic", "embed": "classic"}
+    chosen = aliases.get(mode)
+    if chosen is None:
+        raise ValueError("battle UI must be new or classic")
+    _state()["battle_ui"] = chosen
+    _save_state()
+    return chosen
 
 
 # ── maintenance mode ──────────────────────────────────────────────────────────
@@ -1959,6 +1977,21 @@ async def _backup_now(ctx: ActionCtx) -> Result:
                            f"({os.path.getsize(path) // 1024 or 1} KB). "
                            f"`/admin → System → Backups` to download or "
                            f"restore it."))
+
+
+
+@register("battle_ui", "Battle UI System", "switch between New and Classic battle UI", "system", needs=("text",))
+async def _battle_ui(ctx: ActionCtx) -> Result:
+    raw = (ctx.text or "").strip().lower()
+    if raw in {"status", "current", "show"}:
+        mode = battle_ui_mode()
+    else:
+        try:
+            mode = set_battle_ui_mode(raw)
+        except ValueError:
+            return Result.fail("Choose `new` or `classic`.")
+    label = "New Battle UI" if mode == "new" else "Classic Battle UI"
+    return Result(message=f"⚔️ Battle UI: **{label}**")
 
 
 @register("maintenance_on", "Maintenance mode ON", "refuse everyone but the owner",
