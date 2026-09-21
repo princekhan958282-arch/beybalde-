@@ -138,39 +138,6 @@ class LeaderboardSpec(K.PrefixSpec):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  🤝  /trade
-# ══════════════════════════════════════════════════════════════════════════════
-
-class TradeSpec(K.PrefixSpec):
-    """A second way to reach `;trade`, not a second trade implementation.
-
-    `;trade` owns the whole flow — the ownership checks, the owner-bound
-    refusal, the 60-second Accept and the re-verified atomic swap. What it
-    does not own is its own syntax: three positional arguments, two of them
-    quoted blade names, is the reason people got it wrong. The panel asks for
-    the same three things with a player picker and two labelled boxes.
-    """
-    title = "🤝  Trade"
-    colour = 0x2ECC71
-    placeholder = "Offer a swap"
-    footer = "1-for-1. The other player has 60 seconds to accept."
-    # Not a preference — a requirement. Only the trade TARGET may press Accept
-    # (`cogs/extras/trade.py:77-82`), so an offer only the sender can see can
-    # never be accepted; it sits there for 60 seconds and reports "declined or
-    # timed out".
-    public = True
-
-    ACTIONS = (
-        A("offer", "Offer a trade", "swap one of your blades for one of theirs",
-          "🤝", invoke="trade",
-          needs=("user", "text", "text2"),
-          binds={"target": "user", "my_blade": "text",
-                 "their_blade": "text2"},
-          text_label="Your blade", text2_label="Their blade"),
-    )
-
-
-# ══════════════════════════════════════════════════════════════════════════════
 #  🎰  /casino
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -303,12 +270,11 @@ SPECS = {
     "avatar": AvatarSpec,
     "story": StorySpec,
     "leaderboard": LeaderboardSpec,
-    "trade": TradeSpec,
 }
 
 
 class PanelCommands(commands.Cog, name="Panels"):
-    """One `/` command per feature. The prefix commands are untouched."""
+    """One `/` command per panel-backed feature. Direct shortcuts such as `/rank` live here too."""
 
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -417,11 +383,6 @@ class PanelCommands(commands.Cog, name="Panels"):
         """Start the existing ranked battle flow through a short slash command."""
         await self._run(interaction, "battle",
                         opponent=player, mode="ranked")
-
-    @app_commands.command(name="trade",
-                          description="Offer another player a 1-for-1 blade swap")
-    async def trade(self, interaction: discord.Interaction) -> None:
-        await self._open(interaction, "trade")
 
 
 async def setup(bot: commands.Bot) -> None:
