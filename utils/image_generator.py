@@ -8,7 +8,7 @@ Design goals
 * Plain dark canvas; no background image is loaded. ``assets/font.ttf``
   remains an optional font override.
 * Phone-first: big type, fat bars, high contrast.  Discord scales the image
-  to chat width; at 1000×980 everything stays readable on a 6" screen.
+  to chat width; at 1000×1040 everything stays readable on a 6" screen.
 * Never break a battle: the session calls this inside try/except + a thread;
   any failure falls back to the classic text embed.
 
@@ -46,9 +46,9 @@ def _sanitize(txt: str) -> str:
     return s or "Player"
 
 # ── Canvas ────────────────────────────────────────────────────────────────────
-W, H = 1000, 980
-_ART_BOX = 360        # blade-art max size (no frame)
-PANEL_TOP = 128       # player panels at top; art sits in the bottom zone
+W, H = 1000, 1040
+_ART_BOX = 420        # blade-art max size (no frame)
+PANEL_TOP = 110       # player panels at top; art sits in the bottom zone
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 BG_TOP    = (18, 18, 28)
@@ -136,7 +136,7 @@ def _blade_art(name: str, box: int) -> "Image.Image | None":
                 # longer render tiny). Cap height so very tall arts don't overflow.
                 scale = box / im.width
                 new_h = max(1, int(im.height * scale))
-                max_h = int(box * 1.15)
+                max_h = box
                 if new_h > max_h:
                     scale = max_h / im.height
                     new_h = max_h
@@ -303,7 +303,7 @@ _CHIP_COLORS = {
 def _chips(draw, x, y, statuses: list[str], align_right: bool = False,
            max_w: int = 400):
     """Rounded status chips, auto-colored, wrapping to 2 rows (max 8 shown)."""
-    f = _font(24)
+    f = _font(28)
     pad_x, pad_y, gap = 14, 7, 10
     row_h = f.size + pad_y * 2 + 10
     items = []
@@ -342,7 +342,7 @@ def _draw_blade_art(img: Image.Image, draw, side: str, name: str, accent,
     Drawn spinning-top placeholder if the PNG is missing."""
     if art is None:
         art = _blade_art(name, _ART_BOX)
-    margin = 44
+    margin = 28
     if art:
         x = margin if side == "left" else W - margin - art.width
         y = H - 26 - art.height
@@ -361,8 +361,8 @@ def _draw_blade_art(img: Image.Image, draw, side: str, name: str, accent,
 def _player_panel(img, draw, side: str, data: dict):
     """One player's half. side: 'left' | 'right'."""
     accent = P1_ACCENT if side == "left" else P2_ACCENT
-    margin = 44
-    panel_w = 400
+    margin = 28
+    panel_w = 440
     x = margin if side == "left" else W - margin - panel_w
     right = side == "right"
 
@@ -378,7 +378,7 @@ def _player_panel(img, draw, side: str, data: dict):
     nx = x if not right else x + panel_w - _text_w(draw, name, nf)
     _draw_text(draw, (nx, y), name, nf, TEXT)
     y += nf.size + 8
-    bf = _fit_text(draw, blade, panel_w, 30, floor=20)
+    bf = _fit_text(draw, blade, panel_w, 36, floor=26)
     bx = x if not right else x + panel_w - _text_w(draw, blade, bf)
     _draw_text(draw, (bx, y), blade, bf, accent)
     y += bf.size + 26
@@ -386,16 +386,16 @@ def _player_panel(img, draw, side: str, data: dict):
     # HP bar
     hp, mx = int(data.get("hp", 0)), max(1, int(data.get("max_hp", 1)))
     pct = hp / mx
-    _rounded_bar(draw, x, y, panel_w, 46, pct, _hp_color(pct),
-                 f"{max(0, hp)} / {mx}", _font(28))
-    y += 46 + 20
+    _rounded_bar(draw, x, y, panel_w, 54, pct, _hp_color(pct),
+                 f"{max(0, hp)} / {mx}", _font(34))
+    y += 54 + 20
 
     # stamina pips + value
     sta, sta_max = float(data.get("stamina", 0)), int(data.get("max_stamina", 10) or 10)
     pip_max = min(sta_max, 10)
     pip_val = sta / sta_max * pip_max
     lab = f"{sta:g}/{sta_max}"
-    lf = _font(24)
+    lf = _font(30)
     if right:
         lw = _text_w(draw, lab, lf)
         _draw_text(draw, (x + panel_w - lw, y - 2), lab, lf, SUBTEXT)
@@ -403,40 +403,40 @@ def _player_panel(img, draw, side: str, data: dict):
     else:
         _pips(draw, x, y, pip_val, pip_max, STA_COL)
         _draw_text(draw, (x + pip_max * 28 + 12, y - 2), lab, lf, SUBTEXT)
-    y += 34
+    y += 40
 
     # special gauge (thin)
     g, gm = float(data.get("gauge", 0)), max(1, float(data.get("gauge_max", 150)))
-    _rounded_bar(draw, x, y, panel_w, 20, g / gm, GAUGE_COL, "", _font(14))
-    gl = _font(20)
+    _rounded_bar(draw, x, y, panel_w, 24, g / gm, GAUGE_COL, "", _font(14))
+    gl = _font(28)
     gtxt = f"SPECIAL {int(g)}/{int(gm)}"
     gx = x if not right else x + panel_w - _text_w(draw, gtxt, gl)
     _draw_text(draw, (gx, y + 26), gtxt, gl, SUBTEXT)
-    y += 58
+    y += 66
 
     # stability bar (thin, steel)
     sv, svm = float(data.get("stability", 0)), max(1, float(data.get("stability_max", 100)))
     spct = sv / svm
     scol = (148, 163, 184) if spct > 0.25 else HP_LOW
-    _rounded_bar(draw, x, y, panel_w, 20, spct, scol, "", _font(14))
+    _rounded_bar(draw, x, y, panel_w, 24, spct, scol, "", _font(14))
     stxt = f"STABILITY {int(sv)}/{int(svm)}"
     sx = x if not right else x + panel_w - _text_w(draw, stxt, gl)
     _draw_text(draw, (sx, y + 26), stxt, gl, SUBTEXT)
-    y += 58
+    y += 66
 
     # status chips
     statuses = data.get("statuses") or []
     if statuses:
         if right:
-            _chips(draw, x + panel_w, y, statuses, align_right=True)
+            _chips(draw, x + panel_w, y, statuses, align_right=True, max_w=panel_w)
         else:
-            _chips(draw, x, y, statuses)
+            _chips(draw, x, y, statuses, max_w=panel_w)
 
 
 def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
     """Render the BEYCBOT Discord battle HUD as a compact mobile-first JPEG.
 
-    The classic 1000x980 layout and 4:2:0 JPEG output keep attachments small
+    The classic 1000x1040 layout and 4:2:0 JPEG output keep attachments small
     enough to leave the mobile placeholder quickly while preserving the same
     HUD content, artwork, and battle state.
     """
@@ -492,7 +492,7 @@ def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
     # small "VS" badge centered between the two bottom artworks
     bvf = _font(46)
     bvw = _text_w(draw, "VS", bvf)
-    bcx, bcy = W // 2, H - 150
+    bcx, bcy = W // 2, H - 210
     draw.ellipse((bcx - 48, bcy - 48, bcx + 48, bcy + 48), fill=(0, 0, 0, 150),
                  outline=(120, 120, 150), width=3)
     draw.text((bcx - bvw // 2, bcy - bvf.size // 2 - 4), "VS", font=bvf, fill=TEXT)
