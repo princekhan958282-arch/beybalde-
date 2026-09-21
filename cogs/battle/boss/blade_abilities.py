@@ -94,11 +94,26 @@ class BladeKit:
         self.true_damage = False
         self.flat_damage = 0.0
         self.flat_reduction = 0.0
+        # Boss Fighter rarity is intentionally boss-only: these modifiers are
+        # consumed only by this isolated boss engine and never leak into PvP.
+        self.boss_damage_amp = 0.0
+        self.boss_special_amp = 0.0
+        self.boss_attack_win_pct = 0.0
+        self.boss_attack_win_max = 0
 
         self.applied: list[str] = []
         self.dormant: list[str] = []
 
         self._parse()
+        if str(self.blade.get("rarity", "")).lower() == "boss fighter":
+            ability = self.blade.get("ability") or {}
+            if ability.get("name") == "Boss Breaker":
+                self.boss_damage_amp = 0.25
+                self.boss_special_amp = 0.20
+                self.boss_attack_win_pct = 0.08
+                self.boss_attack_win_max = 3
+                if "Boss Breaker" not in self.applied:
+                    self.applied.append("Boss Breaker")
 
     # Most abilities in the database don't use a chain at all — they carry
     # flat tuning keys on the ability dict itself (passive_atk_bonus appears on
