@@ -244,4 +244,15 @@ def apply_roster_migrations() -> list[str]:
         fh.flush()
         os.fsync(fh.fileno())
     os.replace(tmp, _DATA)
+
+    # Verify the repair from disk. This catches deployment/filesystem cases
+    # where the replace did not leave the roster in the state we intended.
+    with open(_DATA, "r", encoding="utf-8") as fh:
+        verified = json.load(fh)
+    missing = [str(t["name"]) for t in ROSTER_ADDITIONS
+               if str(t["name"]) not in verified]
+    if missing:
+        raise RuntimeError(
+            "roster migration verification failed: " + ", ".join(missing)
+        )
     return added
