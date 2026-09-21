@@ -26,6 +26,7 @@ import io
 import os
 import threading
 import unicodedata
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont
@@ -82,7 +83,31 @@ _SYS_FONTS = [
 _font_cache: dict[int, ImageFont.FreeTypeFont] = {}
 _art_cache: dict[str, "Image.Image | None"] = {}
 _art_index: dict[str, str] | None = None
+
+# Missing artwork is independent of render size, so keep one small negative
+# cache by normalised Bey name instead of storing a separate None entry for
+# 420px battle art, 208px profile art, tournament art, etc. This avoids
+# repeating the same failed lookup across every Pillow surface while keeping
+# the real image cache completely unchanged.
+_MISSING_ART_CACHE_MAX = 256
+_missing_art_cache: "OrderedDict[str, None]" = OrderedDict()
 _cache_lock = threading.RLock()
+
+
+def _missing_art_hit_locked(name_key: str) -> bool:
+    """Return True for a known-missing Bey and refresh its LRU recency."""
+    if name_key not in _missing_art_cache:
+        return False
+    _missing_art_cache.move_to_end(name_key)
+    return True
+
+
+def _remember_missing_art_locked(name_key: str) -> None:
+    """Remember one missing/unusable Bey art name with a small hard bound."""
+    _missing_art_cache[name_key] = None
+    _missing_art_cache.move_to_end(name_key)
+    while len(_missing_art_cache) > _MISSING_ART_CACHE_MAX:
+        _missing_art_cache.popitem(last=False)
 # A cold render needs three independent decode/resize jobs: the background and
 # both Bey artworks. Pillow performs those operations in native code, so doing
 # them concurrently cuts first-card latency without changing any pixels.
@@ -107,8 +132,11 @@ def _blade_art(name: str, box: int) -> "Image.Image | None":
     """Blade artwork fitted into a box×box square (aspect preserved).
     Lenient filename matching (case/underscore/dash insensitive). Cached."""
     global _art_index
-    key = f"{_norm_name(name)}@{box}"
+    name_key = _norm_name(name)
+    key = f"{name_key}@{box}"
     with _cache_lock:
+        if _missing_art_hit_locked(name_key):
+            return None
         if key in _art_cache:
             return _art_cache[key]
     art = None
@@ -124,7 +152,11 @@ def _blade_art(name: str, box: int) -> "Image.Image | None":
                                 and not f.startswith("_")):
                             index[_norm_name(f)] = os.path.join(_BEY_DIR, f)
                 _art_index = index
-            path = _art_index.get(_norm_name(name))
+            path = _art_index.get(name_key)
+        if not path:
+            with _cache_lock:
+                _remember_missing_art_locked(name_key)
+            return None
         if path:
             with Image.open(path) as source:
                 im = source.convert("RGBA")
@@ -150,6 +182,9 @@ def _blade_art(name: str, box: int) -> "Image.Image | None":
     except Exception:
         art = None
     with _cache_lock:
+        if art is None:
+            _remember_missing_art_locked(name_key)
+            return None
         # Another battle may have completed the same asset while this thread
         # was decoding it. Reuse that canonical cached image when it exists.
         return _art_cache.setdefault(key, art)
@@ -515,6 +550,7 @@ def clear_cache() -> None:
     global _bg_cache
     with _cache_lock:
         _art_cache.clear()
+        _missing_art_cache.clear()
         _font_cache.clear()
         _bg_cache = None
         _cached_text_width.cache_clear()
