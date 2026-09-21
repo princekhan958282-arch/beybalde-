@@ -109,6 +109,7 @@ except Exception as _exc:                                # noqa: BLE001
 # Load subsystem packages (each has __init__.py with setup() entry point)
 COGS = [
     "cogs.core",       # Core utilities
+    "cogs.ping",       # ;ping WebSocket + Discord API/message latency
     "cogs.abilities",  # Ability engine & special moves
     "cogs.battle",     # Battle system
     "cogs.economy",    # Shop, Profile
