@@ -643,47 +643,66 @@ check("...addressed to the player, so it is not an anonymous stray message",
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n── 6. /rank and /leaderboard run from a real slash interaction ──")
+print("\n── 6. /rank starts the real ranked battle path ─────────────────")
 
 reset_wire()
-RANK_RAN = {"n": 0, "author": None}
-_rank_cmd = BOT.get_command("rank")
-_rank_real = _rank_cmd.callback
+RANK_RAN = {"n": 0, "author": None, "opponent": None, "mode": None}
+_battle_cmd = BOT.get_command("battle")
+_battle_real = _battle_cmd.callback
 
 
-async def _rank_probe(self, ctx, member=None):
+async def _rank_battle_probe(self, ctx, opponent, mode="casual"):
     RANK_RAN["n"] += 1
     RANK_RAN["author"] = ctx.author
+    RANK_RAN["opponent"] = opponent
+    RANK_RAN["mode"] = mode
 
 
-_rank_cmd.callback = _rank_probe
+_battle_cmd.callback = _rank_battle_probe
 
-loop.run_until_complete(INVOKE.run_prefix_command(
-    interaction(2, {"id": "1", "name": "rank", "type": 1, "options": []},
-                with_message=False),
-    _rank_cmd, bot=BOT, visibility=INVOKE.PUBLIC))
+_target = interaction(
+    2, {"id": "2", "name": "rank", "type": 1, "options": []},
+    with_message=False, user_id=TARGET_ID).user
+_rank_inter = interaction(
+    2, {"id": "1", "name": "rank", "type": 1, "options": []},
+    with_message=False)
+_panels_cog = BOT.get_cog("Panels")
+loop.run_until_complete(
+    PN.PanelCommands.rank.callback(_panels_cog, _rank_inter, _target))
 
-check("/rank reaches `;rank` through the same helper the panels use",
-      RANK_RAN["n"] == 1, RANK_RAN["n"])
+check("/rank reaches the existing `;battle` command",
+      RANK_RAN["n"] == 1, RANK_RAN)
 check("...with the invoking player as ctx.author",
-      getattr(RANK_RAN["author"], "id", None) == USER_ID)
+      getattr(RANK_RAN["author"], "id", None) == USER_ID, RANK_RAN)
+check("...with the selected player as opponent",
+      getattr(RANK_RAN["opponent"], "id", None) == TARGET_ID, RANK_RAN)
+check("...and forces ranked mode rather than casual",
+      RANK_RAN["mode"] == "ranked", RANK_RAN)
 check("a slash command has no type-6 ack available, so it defers thinking and "
       "the first send fills the placeholder",
       acks() and acks()[0].payload.get("type") == 5,
       acks()[0].payload if acks() else None)
 check("...publicly", not is_ephemeral((acks()[0].payload.get("data") or {})))
 
-_rank_cmd.callback = _rank_real
+_battle_cmd.callback = _battle_real
 
-check("/leaderboard offers Discord's own dropdown of every board",
-      len(BOT.tree.get_command("leaderboard").parameters[0].choices)
-      == len(RK.CATEGORIES),
-      len(BOT.tree.get_command("leaderboard").parameters[0].choices))
+_rank_app = BOT.tree.get_command("rank")
+check("/rank is a top-level slash command", _rank_app is not None)
+check("...requires exactly one player argument",
+      len(_rank_app.parameters) == 1
+      and _rank_app.parameters[0].name == "player"
+      and _rank_app.parameters[0].required,
+      [(p.name, p.required) for p in _rank_app.parameters])
+check("the ranked card is still available from /player",
+      any(a.key == "rank" and a.invoke == "rank"
+          for a in PN.PlayerSpec.ACTIONS))
+
+check("/leaderboard no longer uses globally static board choices",
+      not BOT.tree.get_command("leaderboard").parameters[0].choices,
+      BOT.tree.get_command("leaderboard").parameters[0].choices)
 check("...and the board parameter is optional, so bare /leaderboard still "
       "opens the panel",
       not BOT.tree.get_command("leaderboard").parameters[0].required)
-check("/rank is a top-level slash command",
-      BOT.tree.get_command("rank") is not None)
 check("the picker is 17 lines",  # +/server, /poll, /giveaway, /level in v1.28,
       len(BOT.tree.get_commands()) == 17,  # +/commands in v1.32
       sorted(c.name for c in BOT.tree.get_commands()))
