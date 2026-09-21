@@ -193,7 +193,7 @@ check("the category select itself is under 25 options", len(A.CATEGORIES) <= 25)
 # ══════════════════════════════════════════════════════════════════════════════
 print("\n── 3. destructive actions ask twice ─────────────────────────────")
 
-DESTRUCTIVE = {"resetplayer", "giveallcoins", "ban", "rank_reset"}
+DESTRUCTIVE = {"resetplayer", "giveallcoins", "ban", "rank_reset", "cleanup"}
 missing = [k for k in DESTRUCTIVE if not A.REGISTRY[k].confirm]
 check("everything that erases player data is flagged", not missing, missing)
 check("a confirm message says what happens, not just 'are you sure'",

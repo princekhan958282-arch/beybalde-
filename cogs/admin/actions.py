@@ -1844,6 +1844,31 @@ async def _clearcache(ctx: ActionCtx) -> Result:
                           f"**{freed / 1024:.1f} KB**.\nRestart to load new code.")
 
 
+@register("cleanup", "Clean caches & temp files",
+          "remove only safe rebuildable caches and stale temporary files",
+          "system",
+          confirm="This clears rebuildable caches and temporary files older than 24 hours. "
+                  "Player data, assets, backups and databases are preserved.")
+async def _cleanup(ctx: ActionCtx) -> Result:
+    from utils.cleanup import cleanup
+
+    report = await asyncio.to_thread(cleanup)
+    removed = (report.pycache_dirs + report.tool_cache_dirs
+               + report.stale_temp_files)
+    lines = [
+        f"🧹 Removed **{removed}** disk item(s), freeing "
+        f"**{report.bytes_freed / 1024:.1f} KB**.",
+        f"• Python cache folders: **{report.pycache_dirs}**",
+        f"• Tool cache folders: **{report.tool_cache_dirs}**",
+        f"• Stale temporary files: **{report.stale_temp_files}**",
+        f"• In-memory render cache groups reset: **{report.memory_cache_groups}**",
+    ]
+    if report.skipped:
+        lines.append(f"• Safely skipped: **{report.skipped}**")
+    lines.append("✅ Player data, databases, assets, backups and logs were not touched.")
+    return Result(message="\n".join(lines))
+
+
 @register("updatecheck", "Update diagnostics", "ask GitHub why the updater fails",
           "system")
 async def _updatecheck(ctx: ActionCtx) -> Result:
