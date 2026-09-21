@@ -163,6 +163,34 @@ PART_TYPE_EMOJI = {"ring": "💍", "disk": "🪨", "driver": "⚙️"}
 PART_TYPE_LABEL = {"ring": "Ring", "disk": "Disk", "driver": "Driver"}
 MAX_EQUIPPED_PER_TYPE = 1   # 1 ring + 1 disk + 1 driver = 3 slots total
 
+# Shop-exclusive Beys. These are never part of wild/booster acquisition.
+BEY_SHOP_CATALOG: dict[str, dict] = {
+    "epsilon": {"name": "Epsilon", "price": 45_000},
+}
+
+
+def apply_bey_purchase(profile: dict, bey_name: str) -> dict:
+    """Atomically charge Beycoins and grant one shop-exclusive Bey."""
+    from utils import inventory as INV
+    from utils import bey_levels as BL
+
+    item = BEY_SHOP_CATALOG.get(str(bey_name).lower())
+    if not item:
+        raise PurchaseError(f"**{bey_name}** isn't a shop Bey.")
+
+    INV.require_room(profile, 1, item["name"])
+    coins = int(profile.get("coins", 0) or 0)
+    price = int(item["price"])
+    if coins < price:
+        raise PurchaseError(
+            f"**{item['name']}** costs 🪙 **{price:,}** — you have "
+            f"**{coins:,}**, short by **{price - coins:,}**.")
+
+    profile["coins"] = coins - price
+    profile.setdefault("inventory", []).append(item["name"])
+    BL.entry_for(profile, item["name"])
+    return {"bey": item["name"], "spent": price, "coins": profile["coins"]}
+
 
 class PurchaseError(Exception):
     """A refused purchase, carrying the player-facing reason.
@@ -410,6 +438,25 @@ class ShopCog(commands.Cog, name="Shop"):
         brief="Buy a part 🛍️",
     )
     async def buy(self, ctx: commands.Context, *, item_name: str) -> None:
+        # Shop-exclusive Beys first.
+        shop_bey = BEY_SHOP_CATALOG.get(item_name.lower().strip())
+        if shop_bey:
+            try:
+                result = await mutate_user(
+                    ctx.author.id,
+                    lambda prof, n=shop_bey["name"]: apply_bey_purchase(prof, n))
+            except PurchaseError as exc:
+                return await ctx.send(f"❌ {exc}")
+            except Exception as exc:
+                from utils.inventory import InventoryFull
+                if isinstance(exc, InventoryFull):
+                    return await ctx.send(f"❌ {exc}")
+                raise
+            return await ctx.send(
+                f"✅ Bought **{result['bey']}** for "
+                f"**{result['spent']:,} coins**!\n"
+                f"💰 Remaining: **{result['coins']:,}**")
+
         # Parts first, through the shared transaction. This used to be a
         # get_user -> mutate -> update_user sequence, i.e. the exact
         # read-modify-write race `database.mutate_user` was written to kill —

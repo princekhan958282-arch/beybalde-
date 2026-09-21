@@ -12109,5 +12109,49 @@
         "⚔️ **Achilles Zero Turn** — Achilles CX turns the entire clash into one decisive rotation!"
       ]
     }
+  },
+  "Epsilon": {
+    "id": "BB123",
+    "name": "Epsilon",
+    "rarity": "Boss Fighter",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1551635112263815333/Untitled_design.png?ex=6ab2b04e&is=6ab15ece&hm=9b4342ee217b75250f1bcddbe367e9fa97ff792402ca376cabdb626cca54d298&",
+    "description": "A purpose-built Attack prototype engineered to break Boss-class opponents. Shop exclusive.",
+    "burst_height": "Mid",
+    "type": "Attack",
+    "stats": {
+      "attack": 124,
+      "defense": 43,
+      "stamina": 65,
+      "special": 175,
+      "hp": 135
+    },
+    "ability": {
+      "name": "Boss Breaker",
+      "trigger": "passive",
+      "description": "Against Boss Beys, Epsilon deals +25% damage. Each Attack win in a boss battle builds +8% base ATK, up to 3 stacks (+24%). These bonuses are inactive against normal Beys."
+    },
+    "special_move": {
+      "name": "Epsilon Overdrive",
+      "description": "A prototype overdrive strike built for Boss-class targets. 175 base damage with +55% ATK bonus damage; against a Boss Bey, final Special damage is increased by 20%.",
+      "hits": 1,
+      "damage_formula": {
+        "base": 175,
+        "attack": 0.55
+      },
+      "flavour_texts": [
+        "⚡ **Epsilon Overdrive** — prototype output released!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Boss Breaker",
+        "trigger": "passive",
+        "description": "Against Boss Beys, Epsilon deals +25% damage. Each Attack win in a boss battle builds +8% base ATK, up to 3 stacks (+24%). These bonuses are inactive against normal Beys."
+      }
+    ],
+    "shop_exclusive": true,
+    "shop_price": 45000,
+    "spawnable": false,
+    "booster_exclusive": false
   }
 }
