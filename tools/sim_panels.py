@@ -512,35 +512,24 @@ check("app.py loads the panels cog", '"cogs.ui.panels"' in code("app.py"))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-print("\n── 9. /trade collects three things and hands over all three ─────")
-# `;trade @user "Mine" "Theirs"` is three positional arguments, two of them
-# quoted blade names, which is why people got it wrong. The panel asks for the
-# same three — and the two names are interchangeable strings, so a swapped
-# bind would not raise anywhere: it would just tell the player they do not own
-# their own blade.
-
-_tspec = PN.TradeSpec()
-_offer = _tspec.ACTIONS[0]
-_p = panel_for("trade")
-_m = K.InputModal(_p, _offer)
-check("the modal asks for both blade names",
-      _m.text_field is not None and _m.text2_field is not None)
-check("...with labels that say which is which, not 'Text' twice",
-      _m.text_field.label == "Your blade"
-      and _m.text2_field.label == "Their blade",
-      (_m.text_field.label, _m.text2_field.label))
-
-# "all three reach the command, in the right slots" moved to
-# `tools/sim_panel_invoke.py` with the rest of section 6b — the two blade names
-# are interchangeable strings, so a swapped bind raises nothing and only shows
-# up as "you don't own that". Proving it needs the real command, not a stub.
-
-# text2 must be cleared with the rest, or the next action inherits it.
-_p = panel_for("trade")
-_p.text, _p.text2 = "a", "b"
-_p.reset_selection()
-check("a new selection clears both text boxes",
-      _p.text is None and _p.text2 is None, (_p.text, _p.text2))
+print("\n── 9. /trade has one owner and does not block the panels cog ────")
+check("the generic panels layer no longer owns /trade",
+      "trade" not in PN.SPECS and not hasattr(PN, "TradeSpec"))
+check("PanelCommands does not register a second /trade",
+      not hasattr(PN.PanelCommands, "trade"))
+_trade_prefix = BOT.get_command("trade")
+_trade_slash = BOT.tree.get_command("trade")
+check("the reworked trade cog still registers ;trade",
+      _trade_prefix is not None)
+check("...and its hybrid command owns the single /trade surface",
+      _trade_slash is not None)
+check("/trade takes exactly one required player argument",
+      _trade_slash is not None
+      and len(_trade_slash.parameters) == 1
+      and _trade_slash.parameters[0].name == "player"
+      and _trade_slash.parameters[0].required,
+      [] if _trade_slash is None else
+      [(p.name, p.required) for p in _trade_slash.parameters])
 
 
 # ══════════════════════════════════════════════════════════════════════════════
