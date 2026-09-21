@@ -84,6 +84,11 @@ def _rar_col(rarity: str) -> tuple:
 _bg_cache: dict[int, Image.Image] = {}
 
 
+def clear_cache() -> None:
+    """Drop rebuildable tournament-card backgrounds."""
+    _bg_cache.clear()
+
+
 def _background(h: int) -> Image.Image:
     """Vertical gradient + two soft corner glows, sized to the card height.
 

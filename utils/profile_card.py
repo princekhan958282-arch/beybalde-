@@ -260,6 +260,13 @@ _AVATAR_CACHE_MAX = 64
 _AVATAR_TIMEOUT = 6
 
 
+def clear_cache() -> None:
+    """Drop rebuildable profile-card artwork held in memory."""
+    global _frame_cache
+    _frame_cache = None
+    _AVATAR_CACHE.clear()
+
+
 def _avatar_image(url: str, size: int) -> "Image.Image | None":
     """Fetch a player's avatar as a circular RGBA disc. None on any failure.
 
