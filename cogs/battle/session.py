@@ -20,6 +20,7 @@ import asyncio
 import copy
 import math
 import random
+import time
 from typing import Optional, Any
 
 import discord
@@ -397,8 +398,7 @@ class BattleSession:
 
         # ── Avatar bonuses (loaded once at battle start) ──────────────────────
         # Stored on session so AbilityEngine and other managers can read them.
-        self.avatar_bonuses: dict[str, Any] = {
-            str(p1.id): self._bonuses_for(p1.id),
+        self.avatar_bonuses: dict[str, Any] = {            str(p1.id): self._bonuses_for(p1.id),
             str(p2.id): self._bonuses_for(p2.id),
         }
         # The card each side is wearing, and which of its skills is live.
@@ -797,8 +797,7 @@ class BattleSession:
             pct    = max(0.0, current / maximum)
             filled = round(pct * length)
             if pct > 0.55:
-                bar_char = "█"
-            elif pct > 0.25:
+                bar_char = "█"            elif pct > 0.25:
                 bar_char = "▓"
             else:
                 bar_char = "▒"
@@ -1197,8 +1196,7 @@ class BattleSession:
 
         # ── Intermediate ring-out check (ability-driven stability drops) ──────
         # apply_pair_results may trigger on_win / on_special abilities that drain
-        # stability directly (e.g. Aether Stance, World Rotation).  The existing
-        # ring-out check below only runs after apply_stability_costs, so those
+        # stability directly (e.g. Aether Stance, World Rotation).  The existing        # ring-out check below only runs after apply_stability_costs, so those
         # drops would be missed for a full round.  This catches them immediately.
         for key in (k1, k2):
             if self.hp[key] > 0 and self._ring_out_guard(key, round_log):
@@ -1339,7 +1337,9 @@ class BattleSession:
                   f"{b1.get('name','?')} {max(0, self.hp[k1])} HP  •  "
                   f"{b2.get('name','?')} {max(0, self.hp[k2])} HP")
         )
+        _result_send_started = time.perf_counter()
         await self.channel.send(embed=result_embed)
+        _result_send_ms = (time.perf_counter() - _result_send_started) * 1000
 
         # ── Reset moves ───────────────────────────────────────────────────────
         self.moves = {k1: None, k2: None}
@@ -1357,7 +1357,9 @@ class BattleSession:
         await self._prime_npc_move()
         new_view = _InChannelControlPanel(self)
         self._current_view = new_view
+        _card_render_started = time.perf_counter()
         card = await self._battle_card_file()
+        _card_render_ms = (time.perf_counter() - _card_render_started) * 1000
         if card:
             # Card shows all stats — keep the panel text minimal
             panel_embed = discord.Embed(
@@ -1367,10 +1369,30 @@ class BattleSession:
             panel_embed.set_image(url="attachment://battle.jpg")
         else:
             panel_embed = self._status_embed()
+        _card_size = 0
+        if card is not None:
+            try:
+                _fp = card.fp
+                _pos = _fp.tell()
+                _fp.seek(0, 2)
+                _card_size = _fp.tell()
+                _fp.seek(_pos)
+            except Exception:
+                pass
+        _panel_send_started = time.perf_counter()
         self.panel_msg = await self.channel.send(
             embed=panel_embed,
             file=card,
             view=new_view,
+        )
+        _panel_send_ms = (time.perf_counter() - _panel_send_started) * 1000
+        print(
+            f"[battle-timing] round={self.round} "
+            f"result_send={_result_send_ms:.1f}ms "
+            f"card_render={_card_render_ms:.1f}ms "
+            f"card_size={_card_size / 1024:.1f}KiB "
+            f"card_send={_panel_send_ms:.1f}ms "
+            f"post_result_total={_card_render_ms + _panel_send_ms:.1f}ms"
         )
 
     # ── Battle card (Pillow image) ────────────────────────────────────────────
@@ -1597,8 +1619,7 @@ class BattleSession:
             # here rather than returned, because `w_profile` still holds the
             # PRE-grant XP — so the same `level_up_payout` the payment used can
             # be evaluated exactly, with no second profile read and no change
-            # to `grant_xp`'s three-tuple.
-            if self.payout:
+            # to `grant_xp`'s three-tuple.            if self.payout:
                 _w_before = level_from_xp(w_profile.get("xp", 0))
                 await update_user(winner.id, w_profile)
                 wlvl, _, w_up = grant_xp(winner.id, XP_WIN)
