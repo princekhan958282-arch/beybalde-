@@ -5,11 +5,10 @@ Generates a phone-first battle status card as a JPEG buffer.
 
 Design goals
 ------------
-* ZERO required assets — background, bars and chips are drawn in code, so the
-  bot deploys clean on the panel.  If ``assets/background.png`` or
-  ``assets/font.ttf`` exist they are used automatically as overrides.
+* Plain dark canvas; no background image is loaded. ``assets/font.ttf``
+  remains an optional font override.
 * Phone-first: big type, fat bars, high contrast.  Discord scales the image
-  to chat width; at 1000×620 everything stays readable on a 6" screen.
+  to chat width; at 1000×980 everything stays readable on a 6" screen.
 * Never break a battle: the session calls this inside try/except + a thread;
   any failure falls back to the classic text embed.
 
@@ -29,7 +28,7 @@ import threading
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
 CARD_ENABLED = True
 
@@ -47,9 +46,9 @@ def _sanitize(txt: str) -> str:
     return s or "Player"
 
 # ── Canvas ────────────────────────────────────────────────────────────────────
-W, H = 1000, 750
-_ART_BOX = 325        # blade-art max size (no frame)
-PANEL_TOP = 100       # player panels at top; art sits in the bottom zone
+W, H = 1000, 980
+_ART_BOX = 360        # blade-art max size (no frame)
+PANEL_TOP = 128       # player panels at top; art sits in the bottom zone
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 BG_TOP    = (18, 18, 28)
@@ -72,7 +71,6 @@ GAUGE_COL = (96, 165, 250)
 # this once; this second copy of the same constant was missed, which is why
 # ";info" kept its art while battle cards went blank.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_ASSET_BG   = os.path.join(_PROJECT_ROOT, "assets", "ui", "battle_background.png")
 _ASSET_FONT = os.path.join(_PROJECT_ROOT, "assets", "font.ttf")
 _BEY_DIR    = os.path.join(_PROJECT_ROOT, "assets", "beys")
 _SYS_FONTS = [
@@ -230,13 +228,7 @@ _bg_cache: "Image.Image | None" = None
 
 
 def _background() -> Image.Image:
-    """assets/background.png if present, else a drawn gradient + diagonal glow.
-
-    The composed background is built ONCE and cached; each render gets a
-    fast .copy(). The pure-Python gradient loop (~900k pixel writes) and the
-    disk open+resize previously ran every single round — this was the main
-    card-render bottleneck.
-    """
+    """Return a copy of the cached plain dark canvas."""
     global _bg_cache
     with _cache_lock:
         cached = _bg_cache
@@ -250,38 +242,8 @@ def _background() -> Image.Image:
 
 
 def _build_background() -> Image.Image:
-    if os.path.exists(_ASSET_BG):
-        try:
-            with Image.open(_ASSET_BG) as source_file:
-                source = source_file.convert("RGBA")
-            # Cover-crop rather than stretch so the arena keeps its proportions.
-            scale = max(W / source.width, H / source.height)
-            resized = source.resize(
-                (max(W, int(source.width * scale)), max(H, int(source.height * scale))),
-                Image.LANCZOS,
-            )
-            left = (resized.width - W) // 2
-            top = (resized.height - H) // 2
-            return resized.crop((left, top, left + W, top + H))
-        except Exception:
-            pass
-    bg = Image.new("RGBA", (W, H))
-    px = bg.load()
-    for y in range(H):
-        t = y / H
-        r = int(BG_TOP[0] + (BG_BOT[0] - BG_TOP[0]) * t)
-        g = int(BG_TOP[1] + (BG_BOT[1] - BG_TOP[1]) * t)
-        b = int(BG_TOP[2] + (BG_BOT[2] - BG_TOP[2]) * t)
-        for x in range(W):
-            px[x, y] = (r, g, b, 255)
-    # soft team glows in the corners
-    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(glow)
-    gd.ellipse((-260, -180, 420, 420), fill=P1_ACCENT + (46,))
-    gd.ellipse((W - 420, H - 420, W + 260, H + 180), fill=P2_ACCENT + (46,))
-    glow = glow.filter(ImageFilter.GaussianBlur(90))
-    bg.alpha_composite(glow)
-    return bg
+    """Plain dark canvas: no theme image, gradient, or glow processing."""
+    return Image.new("RGBA", (W, H), BG_TOP + (255,))
 
 
 def _hp_color(pct: float) -> tuple:
@@ -380,7 +342,7 @@ def _draw_blade_art(img: Image.Image, draw, side: str, name: str, accent,
     Drawn spinning-top placeholder if the PNG is missing."""
     if art is None:
         art = _blade_art(name, _ART_BOX)
-    margin = 37
+    margin = 44
     if art:
         x = margin if side == "left" else W - margin - art.width
         y = H - 26 - art.height
@@ -397,66 +359,84 @@ def _draw_blade_art(img: Image.Image, draw, side: str, name: str, accent,
 
 
 def _player_panel(img, draw, side: str, data: dict):
-    """Compact game-HUD player panel. Returns the bottom of the stats block."""
+    """One player's half. side: 'left' | 'right'."""
     accent = P1_ACCENT if side == "left" else P2_ACCENT
-    margin, panel_w = 45, 417
+    margin = 44
+    panel_w = 400
     x = margin if side == "left" else W - margin - panel_w
     right = side == "right"
 
-    # Keep player information directly on the arena. The previous dark panel
-    # hid too much of the battle background on mobile. A subtle team-colored
-    # edge is enough to group each side while leaving the HUD effectively transparent.
-    draw.line((x - 10, PANEL_TOP - 7, x - 10, 396),
-              fill=accent + (150,), width=3)
+    # accent tab
+    tab_x = x - 14 if not right else x + panel_w + 6
+    draw.rounded_rectangle((tab_x, PANEL_TOP - 8, tab_x + 8, PANEL_TOP + 352), radius=4, fill=accent)
 
-    name = _sanitize(data.get("name", "?"))[:24]
-    blade = _sanitize(data.get("blade", "?"))[:28]
-    nf = _fit_text(draw, name, panel_w, 38, floor=22)
+    # name + blade
+    name  = _sanitize(data.get("name", "?"))[:20]
+    blade = _sanitize(data.get("blade", "?"))[:26]
+    nf = _fit_text(draw, name, panel_w, 46)
+    y = PANEL_TOP
     nx = x if not right else x + panel_w - _text_w(draw, name, nf)
-    _draw_text(draw, (nx, PANEL_TOP), name, nf, TEXT)
-    bf = _fit_text(draw, blade, panel_w, 27, floor=19)
+    _draw_text(draw, (nx, y), name, nf, TEXT)
+    y += nf.size + 8
+    bf = _fit_text(draw, blade, panel_w, 30, floor=20)
     bx = x if not right else x + panel_w - _text_w(draw, blade, bf)
-    _draw_text(draw, (bx, PANEL_TOP + 45), blade, bf, accent)
+    _draw_text(draw, (bx, y), blade, bf, accent)
+    y += bf.size + 26
 
+    # HP bar
     hp, mx = int(data.get("hp", 0)), max(1, int(data.get("max_hp", 1)))
     pct = hp / mx
-    y = PANEL_TOP + 88
-    _rounded_bar(draw, x, y, panel_w, 42, pct, _hp_color(pct),
-                 f"HP   {max(0, hp)} / {mx}   {max(0, int(pct * 100))}%", _font(24))
+    _rounded_bar(draw, x, y, panel_w, 46, pct, _hp_color(pct),
+                 f"{max(0, hp)} / {mx}", _font(28))
+    y += 46 + 20
 
-    def stat_row(label, val, maximum, color, yy):
-        maximum = max(1.0, float(maximum))
-        val = float(val)
-        lf = _font(21)
-        _draw_text(draw, (x, yy), label, lf, SUBTEXT)
-        bw, bx0 = 225, x + 97
-        _rounded_bar(draw, bx0, yy + 2, bw, 18, val / maximum, color, "", _font(12))
-        value = f"{val:g}/{maximum:g}"
-        _draw_text(draw, (x + panel_w - _text_w(draw, value, lf), yy), value, lf, TEXT)
+    # stamina pips + value
+    sta, sta_max = float(data.get("stamina", 0)), int(data.get("max_stamina", 10) or 10)
+    pip_max = min(sta_max, 10)
+    pip_val = sta / sta_max * pip_max
+    lab = f"{sta:g}/{sta_max}"
+    lf = _font(24)
+    if right:
+        lw = _text_w(draw, lab, lf)
+        _draw_text(draw, (x + panel_w - lw, y - 2), lab, lf, SUBTEXT)
+        _pips(draw, x + panel_w - lw - 12 - pip_max * 28, y, pip_val, pip_max, STA_COL)
+    else:
+        _pips(draw, x, y, pip_val, pip_max, STA_COL)
+        _draw_text(draw, (x + pip_max * 28 + 12, y - 2), lab, lf, SUBTEXT)
+    y += 34
 
-    sta = float(data.get("stamina", 0)); sta_max = float(data.get("max_stamina", 10) or 10)
-    g = float(data.get("gauge", 0)); gm = float(data.get("gauge_max", 150) or 150)
-    sv = float(data.get("stability", 0)); svm = float(data.get("stability_max", 100) or 100)
-    stat_row("STAMINA", sta, sta_max, STA_COL, y + 58)
-    stat_row("SPECIAL", g, gm, (168, 85, 247), y + 96)
-    stat_row("STABILITY", sv, svm, GAUGE_COL if sv / svm > .25 else HP_LOW, y + 134)
+    # special gauge (thin)
+    g, gm = float(data.get("gauge", 0)), max(1, float(data.get("gauge_max", 150)))
+    _rounded_bar(draw, x, y, panel_w, 20, g / gm, GAUGE_COL, "", _font(14))
+    gl = _font(20)
+    gtxt = f"SPECIAL {int(g)}/{int(gm)}"
+    gx = x if not right else x + panel_w - _text_w(draw, gtxt, gl)
+    _draw_text(draw, (gx, y + 26), gtxt, gl, SUBTEXT)
+    y += 58
 
-    draw.line((x, y + 172, x + panel_w, y + 172), fill=accent + (100,), width=2)
-    _draw_text(draw, (x, y + 184), "ACTIVE EFFECTS", _font(18), SUBTEXT)
+    # stability bar (thin, steel)
+    sv, svm = float(data.get("stability", 0)), max(1, float(data.get("stability_max", 100)))
+    spct = sv / svm
+    scol = (148, 163, 184) if spct > 0.25 else HP_LOW
+    _rounded_bar(draw, x, y, panel_w, 20, spct, scol, "", _font(14))
+    stxt = f"STABILITY {int(sv)}/{int(svm)}"
+    sx = x if not right else x + panel_w - _text_w(draw, stxt, gl)
+    _draw_text(draw, (sx, y + 26), stxt, gl, SUBTEXT)
+    y += 58
+
+    # status chips
     statuses = data.get("statuses") or []
     if statuses:
-        _chips(draw, x + panel_w if right else x, y + 214, statuses,
-               align_right=right, max_w=panel_w)
-    else:
-        _draw_text(draw, (x if not right else x + panel_w - 170, y + 216),
-                   "No active effects", _font(18), (125, 130, 145))
-    return 396
+        if right:
+            _chips(draw, x + panel_w, y, statuses, align_right=True)
+        else:
+            _chips(draw, x, y, statuses)
 
 
 def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
     """Render the BEYCBOT Discord battle HUD as a compact mobile-first JPEG.
 
-    The 1000x750 canvas and 4:2:0 JPEG output keep Discord attachments small
+    The classic 1000x980 layout and 4:2:0 JPEG output keep attachments small
     enough to leave the mobile placeholder quickly while preserving the same
     HUD content, artwork, and battle state.
     """
@@ -494,11 +474,13 @@ def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
             right_art = futures["right"].result()
     draw = ImageDraw.Draw(img, "RGBA")
 
-    # Central arena split only. Discord already displays the round number in
-    # the battle message, so repeating it inside the image wastes vertical space.
-    draw.polygon([(W // 2 - 30, 0), (W // 2 + 30, 0),
-                  (W // 2 + 8, H), (W // 2 - 8, H)],
-                 fill=(8, 10, 22, 150))
+    # header
+    title = f"ROUND {int(round_no)}"
+    tf = _font(40)
+    tw = _text_w(draw, title, tf)
+    draw.rounded_rectangle(((W - tw) // 2 - 26, 30, (W + tw) // 2 + 26, 92),
+                           radius=31, fill=(0, 0, 0, 110), outline=(90, 90, 120), width=2)
+    draw.text(((W - tw) // 2, 38), title, font=tf, fill=TEXT)
 
     _player_panel(img, draw, "left", left)
     _player_panel(img, draw, "right", right)
@@ -507,16 +489,13 @@ def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
     _draw_blade_art(img, draw, "left", left_blade, P1_ACCENT, left_art)
     _draw_blade_art(img, draw, "right", right_blade, P2_ACCENT, right_art)
 
-    vf = _font(54); vw = _text_w(draw, "VS", vf)
-    vcx, vcy = W // 2, 558
-    draw.ellipse((vcx - 46, vcy - 46, vcx + 46, vcy + 46),
-                 fill=(3, 6, 15, 220), outline=(120, 135, 185), width=3)
-    _draw_text(draw, (vcx - vw // 2, vcy - 28), "VS", vf, TEXT)
-
-    # Product name, not the repository/code name.
-    brand = "BEYCBOT"
-    bf = _font(18); bw = _text_w(draw, brand, bf)
-    _draw_text(draw, ((W - bw) // 2, H - 35), brand, bf, (170, 175, 195))
+    # small "VS" badge centered between the two bottom artworks
+    bvf = _font(46)
+    bvw = _text_w(draw, "VS", bvf)
+    bcx, bcy = W // 2, H - 150
+    draw.ellipse((bcx - 48, bcy - 48, bcx + 48, bcy + 48), fill=(0, 0, 0, 150),
+                 outline=(120, 120, 150), width=3)
+    draw.text((bcx - bvw // 2, bcy - bvf.size // 2 - 4), "VS", font=bvf, fill=TEXT)
 
     buf = io.BytesIO()
     # Battle cards contain large detailed bey artwork. Low-compression PNGs were
