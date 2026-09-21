@@ -1339,14 +1339,13 @@ class BattleSession:
                   f"{b1.get('name','?')} {max(0, self.hp[k1])} HP  •  "
                   f"{b2.get('name','?')} {max(0, self.hp[k2])} HP")
         )
-        await self.channel.send(embed=result_embed)
-
         # ── Reset moves ───────────────────────────────────────────────────────
         self.moves = {k1: None, k2: None}
         self.round += 1
 
         # ── Win condition check ───────────────────────────────────────────────
         if self.hp[k1] <= 0 or self.hp[k2] <= 0:
+            await self.channel.send(embed=result_embed)
             await self._end_battle()
             return
 
@@ -1354,24 +1353,33 @@ class BattleSession:
         if self._current_view:
             self._current_view.stop()
 
-        await self._prime_npc_move()
-        new_view = _InChannelControlPanel(self)
-        self._current_view = new_view
-        card = await self._battle_card_file()
-        if card:
-            # Card shows all stats — keep the panel text minimal
-            panel_embed = discord.Embed(
-                title=f"⚔️ ROUND {self.round} — Choose your move!",
-                color=discord.Color.dark_embed(),
+        # The card reads the next round's state before its first await.
+        # Render it while Discord sends the result, then post the next panel.
+        card_task = asyncio.create_task(self._battle_card_file())
+        try:
+            await self.channel.send(embed=result_embed)
+            await self._prime_npc_move()
+            new_view = _InChannelControlPanel(self)
+            self._current_view = new_view
+            card = await card_task
+            if card:
+                # Card shows all stats — keep the panel text minimal
+                panel_embed = discord.Embed(
+                    title=f"⚔️ ROUND {self.round} — Choose your move!",
+                    color=discord.Color.dark_embed(),
+                )
+                panel_embed.set_image(url="attachment://battle.jpg")
+            else:
+                panel_embed = self._status_embed()
+            self.panel_msg = await self.channel.send(
+                embed=panel_embed,
+                file=card,
+                view=new_view,
             )
-            panel_embed.set_image(url="attachment://battle.jpg")
-        else:
-            panel_embed = self._status_embed()
-        self.panel_msg = await self.channel.send(
-            embed=panel_embed,
-            file=card,
-            view=new_view,
-        )
+        finally:
+            if not card_task.done():
+                card_task.cancel()
+            await asyncio.gather(card_task, return_exceptions=True)
 
     # ── Battle card (Pillow image) ────────────────────────────────────────────
     def _stability_max(self, k: str) -> int:
