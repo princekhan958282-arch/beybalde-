@@ -3,88 +3,191 @@
 tools/optimize_assets.py — Blade art optimiser for Beycord
 ===========================================================
 
-Shrinks ``assets/beys/`` art to what the renderers actually paint, and stores
-it as alpha-preserving WebP.
+Normalises local Bey artwork from PNG, WebP, JPG and JPEG into renderer-ready
+files. WebP is the preferred output because it keeps transparency while cutting
+source size and decode work substantially compared with oversized PNGs.
 
 Why
 ---
-Source art arrives at 900–1300 px and 1.0–1.5 MB per blade. Nothing renders it
-that big:
+Source art often arrives at 900–3000+ px even though the largest current Bey
+render surface is about 500 px:
 
-    battle card   utils/image_generator._ART_BOX        = 360 px
-    info card     HTML disc 250 px CSS x2 device scale  ~ 440 px
-    info card     Pillow fallback  R*1.84               = 235 px
+    battle card   utils/image_generator._ART_BOX        = 420 px
+    info card     HTML disc 250 px CSS x2 device scale  ~ 500 px
+    profile card  Pillow disc                           = 208 px
+    tournament    Pillow art                            < 104 px
 
-So 512 px is the real ceiling (headroom above 440). Everything above that is
-disk, RAM and render time spent on pixels nobody sees. At 78 blades the
-difference is ~94 MB of art vs ~7 MB — on a Pterodactyl panel that matters.
+So 512 px is the real ceiling. Anything larger is disk, decode time and
+temporary RAM spent on pixels the bot never displays.
 
-Format
-------
-WebP q92 + ``alpha_quality=100``. Measured against the 900 px source at final
-render size: mean RGB error ~3/255 (1.2%, invisible) and **zero alpha error**,
-so the feathered cutout edges survive intact.
+Input formats
+-------------
+* .webp  — preferred; transparency supported
+* .png   — transparency supported
+* .jpg   — opaque
+* .jpeg  — opaque
 
-Palette-quantised PNG is a similar size but was rejected: it mangles the alpha
-channel (max error 61) and visibly bands the cutout edges.
+Output defaults to WebP q92. --keep-png keeps PNG output instead.
+
+Safety improvements
+-------------------
+* Applies EXIF orientation before resizing (important for phone JPG/JPEG art).
+* Keeps RGB images RGB instead of adding a useless alpha channel.
+* Preserves RGBA only when the source actually has transparency.
+* Rejects animated images instead of silently taking frame 1.
+* Writes atomically and verifies the encoded file before replacing the source.
+* Detects duplicate stems (for example Valkyrie.png + Valkyrie.jpg)
+  before either one can overwrite the other's output.
+* Corrupt/unsupported files are reported per-file instead of crashing midway.
 
 Usage
 -----
-    python tools/optimize_assets.py               # optimise assets/beys in place
-    python tools/optimize_assets.py --dry-run     # report only, write nothing
-    python tools/optimize_assets.py --dir path    # a different folder
-    python tools/optimize_assets.py --keep-png    # write .png instead of .webp
+    python tools/optimize_assets.py
+    python tools/optimize_assets.py --dry-run
+    python tools/optimize_assets.py --dir path
+    python tools/optimize_assets.py --keep-png
 
-Safe to re-run: already-optimised files are detected and skipped, so this can
-be dropped into a deploy step or run after adding new art.
+Safe to re-run: already-small, correctly oriented WebP files are skipped.
 """
 from __future__ import annotations
 
 import argparse
+import io
 import os
 import sys
+import tempfile
+from collections import defaultdict
 
-from PIL import Image
+from PIL import Image, ImageOps
 
-TARGET_PX     = 512     # ceiling; see module docstring
-WEBP_QUALITY  = 92
-WEBP_METHOD   = 6       # slowest/best encoder effort — this is a build step
-SRC_EXT       = (".png", ".webp", ".jpg", ".jpeg")
+TARGET_PX = 512
+WEBP_QUALITY = 92
+WEBP_METHOD = 6
+SRC_EXT = (".png", ".webp", ".jpg", ".jpeg")
+_EXIF_ORIENTATION = 274
 
 
-def optimise_one(path: str, out_dir: str, keep_png: bool = False,
-                 dry_run: bool = False) -> tuple[int, int, str]:
-    """Return (old_bytes, new_bytes, out_name) for one art file."""
-    old = os.path.getsize(path)
-    im = Image.open(path).convert("RGBA")
+def _has_alpha(image: Image.Image) -> bool:
+    """Return whether preserving an alpha channel is meaningful."""
+    if image.mode in ("RGBA", "LA"):
+        return True
+    if image.mode == "P" and "transparency" in image.info:
+        return True
+    return False
 
-    if max(im.size) > TARGET_PX:
-        im.thumbnail((TARGET_PX, TARGET_PX), Image.LANCZOS)
 
+def _prepare_image(path: str) -> Image.Image:
+    """Load one supported image, orient it, resize it, and normalise its mode."""
+    with Image.open(path) as source:
+        if bool(getattr(source, "is_animated", False)) and int(
+            getattr(source, "n_frames", 1)
+        ) > 1:
+            raise ValueError("animated images are not supported for Bey art")
+
+        oriented = ImageOps.exif_transpose(source)
+        oriented.load()
+
+        mode = "RGBA" if _has_alpha(oriented) else "RGB"
+        image = oriented.convert(mode)
+
+    if max(image.size) > TARGET_PX:
+        image.thumbnail((TARGET_PX, TARGET_PX), Image.LANCZOS)
+
+    return image
+
+
+def _save_image(image: Image.Image, target, *, keep_png: bool) -> None:
+    """Encode an already-prepared image to a path or BytesIO."""
+    if keep_png:
+        image.save(target, "PNG", optimize=True, compress_level=9)
+        return
+
+    kwargs = {
+        "format": "WEBP",
+        "quality": WEBP_QUALITY,
+        "method": WEBP_METHOD,
+    }
+    if image.mode == "RGBA":
+        kwargs["alpha_quality"] = 100
+    image.save(target, **kwargs)
+
+
+def _encoded_size(image: Image.Image, *, keep_png: bool) -> int:
+    buf = io.BytesIO()
+    _save_image(image, buf, keep_png=keep_png)
+    return len(buf.getvalue())
+
+
+def _output_path(path: str, out_dir: str, keep_png: bool) -> str:
     stem = os.path.splitext(os.path.basename(path))[0]
-    ext  = ".png" if keep_png else ".webp"
-    out  = os.path.join(out_dir, stem + ext)
+    ext = ".png" if keep_png else ".webp"
+    return os.path.join(out_dir, stem + ext)
+
+
+def _write_atomic(image: Image.Image, out: str, *, keep_png: bool) -> None:
+    """Write+verify in the destination directory, then atomically replace."""
+    out_dir = os.path.dirname(os.path.abspath(out)) or "."
+    fd, temp_path = tempfile.mkstemp(
+        prefix=".bey-art-", suffix=".tmp", dir=out_dir
+    )
+    os.close(fd)
+    try:
+        _save_image(image, temp_path, keep_png=keep_png)
+        with Image.open(temp_path) as verify:
+            verify.verify()
+        os.replace(temp_path, out)
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
+def optimise_one(
+    path: str,
+    out_dir: str,
+    keep_png: bool = False,
+    dry_run: bool = False,
+) -> tuple[int, int, str]:
+    """Optimise one file and return (old_bytes, new_bytes, output_name)."""
+    old = os.path.getsize(path)
+    image = _prepare_image(path)
+    out = _output_path(path, out_dir, keep_png)
+
+    if os.path.abspath(path) != os.path.abspath(out) and os.path.exists(out):
+        raise FileExistsError(
+            f"output already exists: {os.path.basename(out)}"
+        )
 
     if dry_run:
-        import io
-        b = io.BytesIO()
-        if keep_png:
-            im.save(b, "PNG", optimize=True)
-        else:
-            im.save(b, "WEBP", quality=WEBP_QUALITY, alpha_quality=100,
-                    method=WEBP_METHOD)
-        return old, len(b.getvalue()), os.path.basename(out)
+        return old, _encoded_size(image, keep_png=keep_png), os.path.basename(out)
 
-    if keep_png:
-        im.save(out, "PNG", optimize=True)
-    else:
-        im.save(out, "WEBP", quality=WEBP_QUALITY, alpha_quality=100,
-                method=WEBP_METHOD)
-        # drop the superseded source only once the new file is safely written
-        if path != out and os.path.exists(out):
-            os.remove(path)
+    _write_atomic(image, out, keep_png=keep_png)
+
+    if os.path.abspath(path) != os.path.abspath(out):
+        os.remove(path)
 
     return old, os.path.getsize(out), os.path.basename(out)
+
+
+def _already_optimised_webp(path: str) -> bool:
+    """True only when a WebP needs no resize or EXIF correction."""
+    if not path.lower().endswith(".webp"):
+        return False
+    with Image.open(path) as image:
+        if bool(getattr(image, "is_animated", False)) and int(
+            getattr(image, "n_frames", 1)
+        ) > 1:
+            return False
+        orientation = image.getexif().get(_EXIF_ORIENTATION, 1)
+        return max(image.size) <= TARGET_PX and orientation in (None, 1)
+
+
+def _stem_collisions(files: list[str]) -> dict[str, list[str]]:
+    """Output collisions after extension conversion, case-insensitive."""
+    groups: dict[str, list[str]] = defaultdict(list)
+    for name in files:
+        stem = os.path.splitext(name)[0].casefold()
+        groups[stem].append(name)
+    return {stem: names for stem, names in groups.items() if len(names) > 1}
 
 
 def main() -> int:
@@ -94,43 +197,77 @@ def main() -> int:
     ap.add_argument("--keep-png", action="store_true")
     args = ap.parse_args()
 
-    d = args.dir
-    if not os.path.isdir(d):
-        print(f"no such folder: {d}", file=sys.stderr)
+    directory = args.dir
+    if not os.path.isdir(directory):
+        print(f"no such folder: {directory}", file=sys.stderr)
         return 1
 
-    files = sorted(f for f in os.listdir(d)
-                   if f.lower().endswith(SRC_EXT) and not f.startswith("_"))
+    files = sorted(
+        name
+        for name in os.listdir(directory)
+        if name.lower().endswith(SRC_EXT) and not name.startswith("_")
+    )
     if not files:
-        print(f"no art found in {d}")
+        print(f"no art found in {directory}")
         return 0
 
-    tot_old = tot_new = 0
+    collisions = _stem_collisions(files)
+    if collisions:
+        print(
+            "refusing to optimise: multiple source files would map to the same "
+            "output name:",
+            file=sys.stderr,
+        )
+        for names in collisions.values():
+            print("  " + " / ".join(names), file=sys.stderr)
+        return 2
+
+    tot_old = 0
+    tot_new = 0
     skipped = 0
-    print(f"{'file':28} {'before':>9} {'after':>9} {'saved':>7}")
-    for f in files:
-        p = os.path.join(d, f)
-        im = Image.open(p)
-        # Already small enough AND already WebP → nothing to gain, leave it.
-        if (max(im.size) <= TARGET_PX and f.lower().endswith(".webp")
-                and not args.keep_png):
-            skipped += 1
+    failed = 0
+
+    print(f"{'file':32} {'before':>9} {'after':>9} {'saved':>7}")
+    for name in files:
+        path = os.path.join(directory, name)
+        try:
+            if not args.keep_png and _already_optimised_webp(path):
+                skipped += 1
+                continue
+
+            old, new, out_name = optimise_one(
+                path,
+                directory,
+                keep_png=args.keep_png,
+                dry_run=args.dry_run,
+            )
+        except Exception as exc:
+            failed += 1
+            print(f"ERROR {name}: {exc}", file=sys.stderr)
             continue
-        im.close()
-        old, new, name = optimise_one(p, d, args.keep_png, args.dry_run)
+
         tot_old += old
         tot_new += new
-        print(f"{name:28} {old//1024:8d}K {new//1024:8d}K "
-              f"{100 - 100*new/old:6.1f}%")
+        saved = 100 - (100 * new / old) if old else 0.0
+        print(
+            f"{out_name:32} {old // 1024:8d}K {new // 1024:8d}K "
+            f"{saved:6.1f}%"
+        )
 
     if tot_old:
-        print(f"\n{'TOTAL':28} {tot_old//1024:8d}K {tot_new//1024:8d}K "
-              f"{100 - 100*tot_new/tot_old:6.1f}%")
+        saved = 100 - (100 * tot_new / tot_old)
+        print(
+            f"\n{'TOTAL':32} {tot_old // 1024:8d}K {tot_new // 1024:8d}K "
+            f"{saved:6.1f}%"
+        )
     if skipped:
-        print(f"({skipped} already optimised, skipped)")
+        print(f"({skipped} already-optimised WebP files skipped)")
+    if failed:
+        print(f"({failed} file(s) failed; successful files were left valid)")
     if args.dry_run:
         print("\n-- dry run: nothing written --")
-    return 0
+
+    return 2 if failed else 0
 
 
 if __name__ == "__main__":
