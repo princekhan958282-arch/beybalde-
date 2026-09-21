@@ -419,6 +419,10 @@ class MainShopView(ui.View):
             row=0,
         )
         avatar_btn.callback = self._go_avatar
+        # Discord component rows have a maximum width of 5.  The five
+        # navigation buttons above already fill row 0, so keep Avatars on
+        # row 1 instead of overflowing row 0 (6 > 5).
+        avatar_btn.row = 1
         self.add_item(avatar_btn)
 
         if self.section == SECTION_BEYS:
@@ -438,7 +442,7 @@ class MainShopView(ui.View):
         if page:
             sel = ui.Select(
                 placeholder="Pick a part to buy…",
-                row=1,
+                row=2,
                 options=[
                     discord.SelectOption(
                         label=f"{p['name']} — {p['price']:,}"[:100],
@@ -460,7 +464,7 @@ class MainShopView(ui.View):
                    else f"🪙 Buy {self.selected}"[:80]),
             style=discord.ButtonStyle.success,
             disabled=self.selected is None,
-            row=2,
+            row=3,
         )
         buy_btn.callback = self._buy_selected
         self.add_item(buy_btn)
