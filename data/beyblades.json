@@ -11720,5 +11720,213 @@
         "🐉 **Phantom Dragon** — spectral jaws tear through the arena!"
       ]
     }
+  },
+  "Phantom X": {
+    "id": "BB121",
+    "name": "Phantom X",
+    "rarity": "Exclusive",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1551422547009077318/1789743960028.png?ex=6ab1ea57&is=6ab098d7&hm=bf9def402666e0ccb865e5eb2ad529a6cd48f09392fb90d254dc8858a1181f05&",
+    "description": "An Exclusive phantom blade that opens with overwhelming balanced power, then hardens into a spectral shield as the battle turns against it.",
+    "burst_height": "Mid",
+    "type": "Balance",
+    "spin_direction": "Dual",
+    "limited": false,
+    "stats": {
+      "attack": 140,
+      "defense": 120,
+      "stamina": 130,
+      "special": 180,
+      "hp": 130
+    },
+    "ability": {
+      "name": "Phantom Core",
+      "trigger": "passive",
+      "description": "For the opening 3 rounds, Phantom X gains +15% ATK and +15% DEF. Below 60% HP, Phantom Shield activates once per battle: 25% incoming damage reduction for 3 turns and 5% max HP restored immediately.",
+      "rules": [
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "round_below",
+              "value": 4
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 15,
+              "turns": 1
+            },
+            {
+              "op": "buff",
+              "stat": "defense",
+              "pct": 15,
+              "turns": 1
+            }
+          ],
+          "_name": "Phantom Core"
+        },
+        {
+          "when": "on_low_hp",
+          "once": "battle",
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 60
+            }
+          ],
+          "do": [
+            {
+              "op": "reduce_damage_pct_turns",
+              "value": 25,
+              "turns": 3
+            },
+            {
+              "op": "heal_pct",
+              "value": 5
+            }
+          ],
+          "_name": "Phantom Shield"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Phantom Core",
+        "trigger": "passive",
+        "description": "For the opening 3 rounds, Phantom X gains +15% ATK and +15% DEF. Below 60% HP, Phantom Shield activates once per battle: 25% incoming damage reduction for 3 turns and 5% max HP restored immediately.",
+        "rules": [
+          {
+            "when": "passive",
+            "if": [
+              {
+                "cond": "round_below",
+                "value": 4
+              }
+            ],
+            "do": [
+              {
+                "op": "buff",
+                "stat": "attack",
+                "pct": 15,
+                "turns": 1
+              },
+              {
+                "op": "buff",
+                "stat": "defense",
+                "pct": 15,
+                "turns": 1
+              }
+            ],
+            "_name": "Phantom Core"
+          },
+          {
+            "when": "on_low_hp",
+            "once": "battle",
+            "if": [
+              {
+                "cond": "hp_below_pct",
+                "value": 60
+              }
+            ],
+            "do": [
+              {
+                "op": "reduce_damage_pct_turns",
+                "value": 25,
+                "turns": 3
+              },
+              {
+                "op": "heal_pct",
+                "value": 5
+              }
+            ],
+            "_name": "Phantom Shield"
+          }
+        ]
+      },
+      {
+        "name": "Phantom Charge",
+        "trigger": "on_take_damage",
+        "description": "When Phantom X is hit by an Attack, it has a 40% chance to gain 1 Phantom Charge (max 3). Each charge grants +7% base ATK for the battle and reduces the enemy's DEF by 5% for 1 turn.",
+        "rules": [
+          {
+            "when": "on_take_damage",
+            "if": [
+              {
+                "cond": "incoming_move_is",
+                "value": "attack"
+              },
+              {
+                "cond": "counter_below",
+                "name": "phantom_charge",
+                "value": 3
+              }
+            ],
+            "chance": 0.4,
+            "do": [
+              {
+                "op": "gain_counter",
+                "name": "phantom_charge",
+                "amount": 1,
+                "max": 3
+              },
+              {
+                "op": "buff",
+                "stat": "attack",
+                "pct": 7,
+                "turns": 99
+              },
+              {
+                "op": "enemy_debuff",
+                "stat": "defense",
+                "amount": 6,
+                "turns": 1
+              }
+            ],
+            "_name": "Phantom Charge"
+          }
+        ]
+      },
+      {
+        "name": "Phantom Blade",
+        "trigger": "on_special",
+        "description": "Phantom Blade adds 60% of Phantom X's ATK as bonus damage and starts a 3-round cooldown.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.6
+              },
+              {
+                "op": "start_cooldown",
+                "name": "phantom_blade_cd",
+                "turns": 3
+              }
+            ],
+            "_name": "Phantom Blade"
+          }
+        ]
+      }
+    ],
+    "special_requires": {
+      "cooldown_name": "phantom_blade_cd",
+      "label": "Phantom Blade",
+      "emoji": "👻"
+    },
+    "special_move": {
+      "name": "👻 Phantom Blade",
+      "description": "Phantom X tears through the opponent with five spectral strikes. Deals 180 base damage across 5 hits, adds 60% of ATK as bonus damage, ignores 15% of enemy DEF, and then enters a 3-round cooldown.",
+      "hits": 5,
+      "damage_per_hit": 36,
+      "total_damage": 180,
+      "pierce_defense_pct": 15,
+      "flavour_texts": [
+        "👻 **Phantom Blade** — five spectral cuts tear across the arena!"
+      ]
+    }
   }
 }
