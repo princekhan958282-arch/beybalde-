@@ -571,6 +571,7 @@ class BossFight:
         self.blade = _blades.get(player.id, {})
         self.foe = self.fighters[player.id]
         self.kit = self.kits[player.id]
+        self.blades = dict(_blades)
         self.turn_index = 0
         self.target = player
 
@@ -636,6 +637,7 @@ class BossFight:
         self.player = self.active
         self.foe = self.fighters[self.player.id]
         self.kit = self.kits[self.player.id]
+        self.blade = self.blades.get(self.player.id, {})
 
     def step(self, player_move: str) -> dict:
         self.turn += 1
