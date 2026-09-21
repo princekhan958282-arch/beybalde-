@@ -1364,7 +1364,7 @@ class BattleSession:
                 title=f"⚔️ ROUND {self.round} — Choose your move!",
                 color=discord.Color.dark_embed(),
             )
-            panel_embed.set_image(url="attachment://battle.png")
+            panel_embed.set_image(url="attachment://battle.jpg")
         else:
             panel_embed = self._status_embed()
         self.panel_msg = await self.channel.send(
@@ -1452,7 +1452,7 @@ class BattleSession:
 
             left, right = side(k1, p1), side(k2, p2)
             buf = await asyncio.to_thread(render_battle_card, self.round, left, right)
-            return discord.File(fp=buf, filename="battle.png")
+            return discord.File(fp=buf, filename="battle.jpg")
         except Exception:
             return None
 
@@ -1737,7 +1737,7 @@ class BattleSession:
                 title="⚔️ ROUND 1 — Choose your move!",
                 color=discord.Color.dark_embed(),
             )
-            start_embed.set_image(url="attachment://battle.png")
+            start_embed.set_image(url="attachment://battle.jpg")
         else:
             start_embed = self._status_embed("⚔️ Round 1 — Choose your move!")
         self.panel_msg = await self.channel.send(
