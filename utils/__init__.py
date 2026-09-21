@@ -4,11 +4,14 @@
 # The migration is idempotent: once the bey exists, later imports are read-only.
 try:
     from .roster_migrations import apply_roster_migrations as _apply_roster_migrations
-    _apply_roster_migrations()
+    _roster_added = _apply_roster_migrations()
 except Exception:
-    # A roster migration must never stop the bot from booting. Any failure is
-    # intentionally non-fatal; the normal data file remains untouched.
-    pass
+    # Do not silently hide roster-repair failures. A swallowed exception can
+    # leave player-owned Bey names orphaned while the bot appears healthy.
+    import logging as _logging
+    _logging.getLogger("beyblade_bot").exception(
+        "[roster] built-in roster migration failed"
+    )
 
 
 # ── Info-card renderer selector ───────────────────────────────────────────────
