@@ -11928,5 +11928,186 @@
         "👻 **Phantom Blade** — five spectral cuts tear across the arena!"
       ]
     }
+  },
+  "Achilles CX": {
+    "id": "BB122",
+    "name": "Achilles CX",
+    "rarity": "Ultimate",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1551424816177741966/file_000000001cf08208a972408faf148392.png?ex=6ab1ec74&is=6ab09af4&hm=22e7ec58c7304e74689a5e41e30b7e057a980928d999e1e881210c5658ad63af&",
+    "description": "An Ultimate Balance Bey built around adaptable offense and defense, awakening its full Z Power after repeated clash victories.",
+    "burst_height": "Mid",
+    "type": "Balance",
+    "spin_direction": "Right",
+    "limited": false,
+    "stats": {
+      "attack": 138,
+      "defense": 132,
+      "stamina": 125,
+      "special": 180,
+      "hp": 135
+    },
+    "ability": {
+      "name": "Achilles Z",
+      "trigger": "on_attack_win",
+      "description": "Achilles CX builds Z Power through successful clashes. Attack Wins grant +8% ATK for 2 turns and 1 Z Stack; Defense Wins grant +8% DEF for 2 turns and 1 Z Stack. At 3 Z Stacks, Z Awakening activates for +15% overall damage for 2 turns, then the stacks reset.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 8,
+              "turns": 2
+            },
+            {
+              "op": "gain_counter",
+              "name": "z_stack",
+              "amount": 1,
+              "max": 3
+            }
+          ],
+          "_name": "Achilles Z — Attack"
+        },
+        {
+          "when": "on_defense_win",
+          "do": [
+            {
+              "op": "buff",
+              "stat": "defense",
+              "pct": 8,
+              "turns": 2
+            },
+            {
+              "op": "gain_counter",
+              "name": "z_stack",
+              "amount": 1,
+              "max": 3
+            }
+          ],
+          "_name": "Achilles Z — Defense"
+        },
+        {
+          "when": "on_any_action",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "z_stack",
+              "value": 3
+            }
+          ],
+          "do": [
+            {
+              "op": "damage_amp",
+              "value": 15,
+              "turns": 2
+            },
+            {
+              "op": "spend_stacks",
+              "name": "z_stack",
+              "label": "Z Stack"
+            }
+          ],
+          "_name": "Z Awakening"
+        }
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Achilles Z",
+        "trigger": "on_attack_win",
+        "description": "Achilles CX builds Z Power through successful clashes. Attack Wins grant +8% ATK for 2 turns and 1 Z Stack; Defense Wins grant +8% DEF for 2 turns and 1 Z Stack. At 3 Z Stacks, Z Awakening activates for +15% overall damage for 2 turns, then the stacks reset.",
+        "rules": [
+          {
+            "when": "on_attack_win",
+            "do": [
+              {
+                "op": "buff",
+                "stat": "attack",
+                "pct": 8,
+                "turns": 2
+              },
+              {
+                "op": "gain_counter",
+                "name": "z_stack",
+                "amount": 1,
+                "max": 3
+              }
+            ],
+            "_name": "Achilles Z — Attack"
+          },
+          {
+            "when": "on_defense_win",
+            "do": [
+              {
+                "op": "buff",
+                "stat": "defense",
+                "pct": 8,
+                "turns": 2
+              },
+              {
+                "op": "gain_counter",
+                "name": "z_stack",
+                "amount": 1,
+                "max": 3
+              }
+            ],
+            "_name": "Achilles Z — Defense"
+          },
+          {
+            "when": "on_any_action",
+            "if": [
+              {
+                "cond": "counter_at_least",
+                "name": "z_stack",
+                "value": 3
+              }
+            ],
+            "do": [
+              {
+                "op": "damage_amp",
+                "value": 15,
+                "turns": 2
+              },
+              {
+                "op": "spend_stacks",
+                "name": "z_stack",
+                "label": "Z Stack"
+              }
+            ],
+            "_name": "Z Awakening"
+          }
+        ]
+      },
+      {
+        "name": "Achilles Zero Turn",
+        "trigger": "on_special",
+        "description": "Achilles Zero Turn adds 50% of Achilles CX's ATK as bonus damage. During Z Awakening, it gains an additional 15% damage.",
+        "rules": [
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.5
+              }
+            ],
+            "_name": "Achilles Zero Turn"
+          }
+        ]
+      }
+    ],
+    "special_move": {
+      "name": "⚔️ Achilles Zero Turn",
+      "description": "Achilles CX unleashes a three-hit finishing rotation. Deals 180 base damage across 3 hits, adds 50% of ATK as bonus damage, and ignores 15% of enemy DEF. During Z Awakening, the awakened damage boost also strengthens the strike.",
+      "hits": 3,
+      "damage_per_hit": 60,
+      "total_damage": 180,
+      "pierce_defense_pct": 15,
+      "flavour_texts": [
+        "⚔️ **Achilles Zero Turn** — Achilles CX turns the entire clash into one decisive rotation!"
+      ]
+    }
   }
 }
