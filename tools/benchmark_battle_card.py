@@ -150,6 +150,7 @@ def main() -> int:
             "consecutive_rounds_total_ms": round(sum(warm_samples), 3),
             "encoded_bytes": len(warm_payload),
             "image": {"format": decoded.format, "mode": decoded.mode, "size": list(decoded.size)},
+            "delivery_target": {"max_bytes": 350000, "passes": len(warm_payload) <= 350000},
             "runs": {"cold": args.cold_runs, "warm": args.warm_runs},
         }
         print(json.dumps(result, indent=2, sort_keys=True))

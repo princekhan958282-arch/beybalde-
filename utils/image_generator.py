@@ -47,9 +47,9 @@ def _sanitize(txt: str) -> str:
     return s or "Player"
 
 # ── Canvas ────────────────────────────────────────────────────────────────────
-W, H = 1200, 900
-_ART_BOX = 390        # blade-art max size (no frame)
-PANEL_TOP = 120       # player panels at top; art sits in the bottom zone
+W, H = 1000, 750
+_ART_BOX = 325        # blade-art max size (no frame)
+PANEL_TOP = 100       # player panels at top; art sits in the bottom zone
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 BG_TOP    = (18, 18, 28)
@@ -380,7 +380,7 @@ def _draw_blade_art(img: Image.Image, draw, side: str, name: str, accent,
     Drawn spinning-top placeholder if the PNG is missing."""
     if art is None:
         art = _blade_art(name, _ART_BOX)
-    margin = 44
+    margin = 37
     if art:
         x = margin if side == "left" else W - margin - art.width
         y = H - 26 - art.height
@@ -399,14 +399,14 @@ def _draw_blade_art(img: Image.Image, draw, side: str, name: str, accent,
 def _player_panel(img, draw, side: str, data: dict):
     """Compact game-HUD player panel. Returns the bottom of the stats block."""
     accent = P1_ACCENT if side == "left" else P2_ACCENT
-    margin, panel_w = 54, 500
+    margin, panel_w = 45, 417
     x = margin if side == "left" else W - margin - panel_w
     right = side == "right"
 
     # Keep player information directly on the arena. The previous dark panel
     # hid too much of the battle background on mobile. A subtle team-colored
     # edge is enough to group each side while leaving the HUD effectively transparent.
-    draw.line((x - 12, PANEL_TOP - 8, x - 12, 475),
+    draw.line((x - 10, PANEL_TOP - 7, x - 10, 396),
               fill=accent + (150,), width=3)
 
     name = _sanitize(data.get("name", "?"))[:24]
@@ -429,7 +429,7 @@ def _player_panel(img, draw, side: str, data: dict):
         val = float(val)
         lf = _font(21)
         _draw_text(draw, (x, yy), label, lf, SUBTEXT)
-        bw, bx0 = 270, x + 116
+        bw, bx0 = 225, x + 97
         _rounded_bar(draw, bx0, yy + 2, bw, 18, val / maximum, color, "", _font(12))
         value = f"{val:g}/{maximum:g}"
         _draw_text(draw, (x + panel_w - _text_w(draw, value, lf), yy), value, lf, TEXT)
@@ -450,11 +450,16 @@ def _player_panel(img, draw, side: str, data: dict):
     else:
         _draw_text(draw, (x if not right else x + panel_w - 170, y + 216),
                    "No active effects", _font(18), (125, 130, 145))
-    return 475
+    return 396
 
 
 def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
-    """Render the BEYCBOT Discord battle HUD as a compact JPEG."""
+    """Render the BEYCBOT Discord battle HUD as a compact mobile-first JPEG.
+
+    The 1000x750 canvas and 4:2:0 JPEG output keep Discord attachments small
+    enough to leave the mobile placeholder quickly while preserving the same
+    HUD content, artwork, and battle state.
+    """
     left_blade = str(left.get("blade", ""))
     right_blade = str(right.get("blade", ""))
     left_key = f"{_norm_name(left_blade)}@{_ART_BOX}"
@@ -503,10 +508,10 @@ def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
     _draw_blade_art(img, draw, "right", right_blade, P2_ACCENT, right_art)
 
     vf = _font(54); vw = _text_w(draw, "VS", vf)
-    vcx, vcy = W // 2, 670
-    draw.ellipse((vcx - 55, vcy - 55, vcx + 55, vcy + 55),
+    vcx, vcy = W // 2, 558
+    draw.ellipse((vcx - 46, vcy - 46, vcx + 46, vcy + 46),
                  fill=(3, 6, 15, 220), outline=(120, 135, 185), width=3)
-    _draw_text(draw, (vcx - vw // 2, vcy - 34), "VS", vf, TEXT)
+    _draw_text(draw, (vcx - vw // 2, vcy - 28), "VS", vf, TEXT)
 
     # Product name, not the repository/code name.
     brand = "BEYCBOT"
@@ -520,7 +525,7 @@ def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
     # already arrived. JPEG keeps the card opaque (it is RGB already), encodes
     # quickly, and drastically reduces the bytes uploaded every round.
     img.convert("RGB").save(
-        buf, format="JPEG", quality=90, subsampling=0, optimize=False
+        buf, format="JPEG", quality=88, subsampling=2, optimize=False
     )
     buf.seek(0)
     return buf
