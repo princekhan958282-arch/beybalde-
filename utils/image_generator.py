@@ -1,5 +1,5 @@
 """
-utils/image_generator.py — Beycord battle card renderer (Pillow)
+utils/image_generator.py — BEYCBOT battle card renderer (Pillow)
 ================================================================
 Generates a phone-first battle status card as a PNG buffer.
 
@@ -44,9 +44,9 @@ def _sanitize(txt: str) -> str:
     return s or "Player"
 
 # ── Canvas ────────────────────────────────────────────────────────────────────
-W, H = 1000, 980
-_ART_BOX = 360        # blade-art max size (no frame)
-PANEL_TOP = 128       # player panels at top; art sits in the bottom zone
+W, H = 1200, 900
+_ART_BOX = 390        # blade-art max size (no frame)
+PANEL_TOP = 120       # player panels at top; art sits in the bottom zone
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 BG_TOP    = (18, 18, 28)
@@ -328,106 +328,94 @@ def _draw_blade_art(img: Image.Image, draw, side: str, name: str, accent):
 
 
 def _player_panel(img, draw, side: str, data: dict):
-    """One player's half. side: 'left' | 'right'."""
+    """Compact game-HUD player panel. Returns the bottom of the stats block."""
     accent = P1_ACCENT if side == "left" else P2_ACCENT
-    margin = 44
-    panel_w = 400
+    margin, panel_w = 54, 500
     x = margin if side == "left" else W - margin - panel_w
     right = side == "right"
 
-    # accent tab
-    tab_x = x - 14 if not right else x + panel_w + 6
-    draw.rounded_rectangle((tab_x, PANEL_TOP - 8, tab_x + 8, PANEL_TOP + 352), radius=4, fill=accent)
+    # translucent framed HUD block
+    draw.rounded_rectangle((x - 16, PANEL_TOP - 14, x + panel_w + 16, 475),
+                           radius=22, fill=(8, 11, 22, 205),
+                           outline=accent + (210,), width=3)
 
-    # name + blade
-    name  = _sanitize(data.get("name", "?"))[:20]
-    blade = _sanitize(data.get("blade", "?"))[:26]
-    nf = _fit_text(draw, name, panel_w, 46)
-    y = PANEL_TOP
+    name = _sanitize(data.get("name", "?"))[:24]
+    blade = _sanitize(data.get("blade", "?"))[:28]
+    nf = _fit_text(draw, name, panel_w, 38, floor=22)
     nx = x if not right else x + panel_w - _text_w(draw, name, nf)
-    draw.text((nx, y), name, font=nf, fill=TEXT)
-    y += nf.size + 8
-    bf = _fit_text(draw, blade, panel_w, 30, floor=20)
+    draw.text((nx, PANEL_TOP), name, font=nf, fill=TEXT)
+    bf = _fit_text(draw, blade, panel_w, 27, floor=19)
     bx = x if not right else x + panel_w - _text_w(draw, blade, bf)
-    draw.text((bx, y), blade, font=bf, fill=accent)
-    y += bf.size + 26
+    draw.text((bx, PANEL_TOP + 45), blade, font=bf, fill=accent)
 
-    # HP bar
     hp, mx = int(data.get("hp", 0)), max(1, int(data.get("max_hp", 1)))
     pct = hp / mx
-    _rounded_bar(draw, x, y, panel_w, 46, pct, _hp_color(pct),
-                 f"{max(0, hp)} / {mx}", _font(28))
-    y += 46 + 20
+    y = PANEL_TOP + 88
+    _rounded_bar(draw, x, y, panel_w, 42, pct, _hp_color(pct),
+                 f"HP   {max(0, hp)} / {mx}   {max(0, int(pct * 100))}%", _font(24))
 
-    # stamina pips + value
-    sta, sta_max = float(data.get("stamina", 0)), int(data.get("max_stamina", 10) or 10)
-    pip_max = min(sta_max, 10)
-    pip_val = sta / sta_max * pip_max
-    lab = f"{sta:g}/{sta_max}"
-    lf = _font(24)
-    if right:
-        lw = _text_w(draw, lab, lf)
-        draw.text((x + panel_w - lw, y - 2), lab, font=lf, fill=SUBTEXT)
-        _pips(draw, x + panel_w - lw - 12 - pip_max * 28, y, pip_val, pip_max, STA_COL)
-    else:
-        _pips(draw, x, y, pip_val, pip_max, STA_COL)
-        draw.text((x + pip_max * 28 + 12, y - 2), lab, font=lf, fill=SUBTEXT)
-    y += 34
+    def stat_row(label, val, maximum, color, yy):
+        maximum = max(1.0, float(maximum))
+        val = float(val)
+        lf = _font(21)
+        draw.text((x, yy), label, font=lf, fill=SUBTEXT)
+        bw, bx0 = 270, x + 116
+        _rounded_bar(draw, bx0, yy + 2, bw, 18, val / maximum, color, "", _font(12))
+        value = f"{val:g}/{maximum:g}"
+        draw.text((x + panel_w - _text_w(draw, value, lf), yy), value, font=lf, fill=TEXT)
 
-    # special gauge (thin)
-    g, gm = float(data.get("gauge", 0)), max(1, float(data.get("gauge_max", 150)))
-    _rounded_bar(draw, x, y, panel_w, 20, g / gm, GAUGE_COL, "", _font(14))
-    gl = _font(20)
-    gtxt = f"SPECIAL {int(g)}/{int(gm)}"
-    gx = x if not right else x + panel_w - _text_w(draw, gtxt, gl)
-    draw.text((gx, y + 26), gtxt, font=gl, fill=SUBTEXT)
-    y += 58
+    sta = float(data.get("stamina", 0)); sta_max = float(data.get("max_stamina", 10) or 10)
+    g = float(data.get("gauge", 0)); gm = float(data.get("gauge_max", 150) or 150)
+    sv = float(data.get("stability", 0)); svm = float(data.get("stability_max", 100) or 100)
+    stat_row("STAMINA", sta, sta_max, STA_COL, y + 58)
+    stat_row("SPECIAL", g, gm, (168, 85, 247), y + 96)
+    stat_row("STABILITY", sv, svm, GAUGE_COL if sv / svm > .25 else HP_LOW, y + 134)
 
-    # stability bar (thin, steel)
-    sv, svm = float(data.get("stability", 0)), max(1, float(data.get("stability_max", 100)))
-    spct = sv / svm
-    scol = (148, 163, 184) if spct > 0.25 else HP_LOW
-    _rounded_bar(draw, x, y, panel_w, 20, spct, scol, "", _font(14))
-    stxt = f"STABILITY {int(sv)}/{int(svm)}"
-    sx = x if not right else x + panel_w - _text_w(draw, stxt, gl)
-    draw.text((sx, y + 26), stxt, font=gl, fill=SUBTEXT)
-    y += 58
-
-    # status chips
+    draw.line((x, y + 172, x + panel_w, y + 172), fill=accent + (100,), width=2)
+    draw.text((x, y + 184), "ACTIVE EFFECTS", font=_font(18), fill=SUBTEXT)
     statuses = data.get("statuses") or []
     if statuses:
-        if right:
-            _chips(draw, x + panel_w, y, statuses, align_right=True)
-        else:
-            _chips(draw, x, y, statuses)
+        _chips(draw, x + panel_w if right else x, y + 214, statuses,
+               align_right=right, max_w=panel_w)
+    else:
+        draw.text((x if not right else x + panel_w - 170, y + 216),
+                  "No active effects", font=_font(18), fill=(125, 130, 145))
+    return 475
 
 
 def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
-    """Render the battle status card and return a compact JPEG buffer (seeked to 0)."""
+    """Render the BEYCBOT Discord battle HUD as a compact JPEG."""
     img = _background()
     draw = ImageDraw.Draw(img, "RGBA")
 
-    # header
+    # central split and round header
+    draw.polygon([(W // 2 - 30, 0), (W // 2 + 30, 0),
+                  (W // 2 + 8, H), (W // 2 - 8, H)],
+                 fill=(8, 10, 22, 150))
     title = f"ROUND {int(round_no)}"
-    tf = _font(40)
-    tw = _text_w(draw, title, tf)
-    draw.rounded_rectangle(((W - tw) // 2 - 26, 30, (W + tw) // 2 + 26, 92),
-                           radius=31, fill=(0, 0, 0, 110), outline=(90, 90, 120), width=2)
-    draw.text(((W - tw) // 2, 38), title, font=tf, fill=TEXT)
-
-    _draw_blade_art(img, draw, "left", str(left.get("blade", "")), P1_ACCENT)
-    _draw_blade_art(img, draw, "right", str(right.get("blade", "")), P2_ACCENT)
-
-    # small "VS" badge centered between the two bottom artworks
-    bvf = _font(46)
-    bvw = _text_w(draw, "VS", bvf)
-    bcx, bcy = W // 2, H - 150
-    draw.ellipse((bcx - 48, bcy - 48, bcx + 48, bcy + 48), fill=(0, 0, 0, 150),
-                 outline=(120, 120, 150), width=3)
-    draw.text((bcx - bvw // 2, bcy - bvf.size // 2 - 4), "VS", font=bvf, fill=TEXT)
+    tf = _font(38); tw = _text_w(draw, title, tf)
+    draw.rounded_rectangle(((W - tw) // 2 - 28, 24, (W + tw) // 2 + 28, 82),
+                           radius=18, fill=(4, 7, 16, 230),
+                           outline=(100, 120, 180), width=2)
+    draw.text(((W - tw) // 2, 31), title, font=tf, fill=TEXT)
 
     _player_panel(img, draw, "left", left)
     _player_panel(img, draw, "right", right)
+
+    # Bey art occupies the lower battle arena instead of leaving dead space.
+    _draw_blade_art(img, draw, "left", str(left.get("blade", "")), P1_ACCENT)
+    _draw_blade_art(img, draw, "right", str(right.get("blade", "")), P2_ACCENT)
+
+    vf = _font(54); vw = _text_w(draw, "VS", vf)
+    vcx, vcy = W // 2, 670
+    draw.ellipse((vcx - 55, vcy - 55, vcx + 55, vcy + 55),
+                 fill=(3, 6, 15, 220), outline=(120, 135, 185), width=3)
+    draw.text((vcx - vw // 2, vcy - 34), "VS", font=vf, fill=TEXT)
+
+    # Product name, not the repository/code name.
+    brand = "BEYCBOT"
+    bf = _font(18); bw = _text_w(draw, brand, bf)
+    draw.text(((W - bw) // 2, H - 35), brand, font=bf, fill=(170, 175, 195))
 
     buf = io.BytesIO()
     # Battle cards contain large detailed bey artwork. Low-compression PNGs were
