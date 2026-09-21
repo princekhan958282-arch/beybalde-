@@ -625,14 +625,6 @@ class AttackManager:
         logs:   list[str],
     ) -> tuple[int, list[str]]:
         """Resolve a MOVE_SPECIAL: multi-hit loop with per-hit procs."""
-        # Encounter-local hard counter. Horror Story uses this to nullify a
-        # player's Special without mutating the saved Bey or teaching the
-        # generic battle engine anything about UNKNOWN. Resource spending has
-        # already happened before resolve_pair reaches this method, so the move
-        # is still genuinely used; only its payload is countered.
-        if mkey in (getattr(self.session, "special_nullified_keys", set()) or set()):
-            return 0, logs
-
         from cogs.abilities.type_system import resolve_active_bonuses
         sm         = self.session.stamina_manager
         ab_eng     = self.session.ability

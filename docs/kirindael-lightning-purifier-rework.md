@@ -16,7 +16,7 @@
 
 `BattleSession` button validation / `special_gate` → `AttackManager` Special resolver → `AbilityEngine` cast/skill hooks → `StatusManager` / `purification` state → live stats, healing and Stability managers → end-of-round expiry / ring-out → battle display.
 
-Story runs the same `BattleSession`; its AI uses `special_gate.ready`. Horror's explicit Special-nullification hook still exits before casting; `non_damage` also takes precedence over formula damage.
+Story runs the same `BattleSession`; its AI uses `special_gate.ready`. `non_damage` takes precedence over formula damage.
 
 The Domain is transient battle state. No player database migration is required. The roster data is committed; a fresh process reloads it. Existing ownership, rarity and acquisition rules are unchanged.
 
