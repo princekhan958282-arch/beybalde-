@@ -403,7 +403,7 @@ def _player_panel(img, draw, side: str, data: dict):
 
 
 def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
-    """Render the battle status card and return a PNG buffer (seeked to 0)."""
+    """Render the battle status card and return a compact JPEG buffer (seeked to 0)."""
     img = _background()
     draw = ImageDraw.Draw(img, "RGBA")
 
@@ -430,9 +430,13 @@ def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
     _player_panel(img, draw, "right", right)
 
     buf = io.BytesIO()
-    # compress_level=1 + no optimize passes → ~3-5× faster encode than
-    # optimize=True (default level 6 + extra passes). File is slightly
-    # larger but well under Discord limits.
-    img.convert("RGB").save(buf, format="PNG", optimize=False, compress_level=1)
+    # Battle cards contain large detailed bey artwork. Low-compression PNGs were
+    # several times larger than necessary, so Discord/mobile clients could sit
+    # on the attachment placeholder even though the round and buttons had
+    # already arrived. JPEG keeps the card opaque (it is RGB already), encodes
+    # quickly, and drastically reduces the bytes uploaded every round.
+    img.convert("RGB").save(
+        buf, format="JPEG", quality=90, subsampling=0, optimize=False
+    )
     buf.seek(0)
     return buf
