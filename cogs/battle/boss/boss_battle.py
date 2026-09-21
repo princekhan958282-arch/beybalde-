@@ -601,6 +601,7 @@ class BossFight:
         self.phase_two = False
         self.line = ""
         self.last_special = None
+        self.boss_fighter_stacks = {m.id: 0 for m in self.party}
 
     def foe_habit(self) -> str:
         h = self.model.history[-6:]
@@ -701,6 +702,9 @@ class BossFight:
         # exchange, then restored, so the modifiers never compound turn on turn.
         kit  = self.kit
         mult = kit.stats_for(self.foe.hp / self.foe.max_hp)
+        stacks = self.boss_fighter_stacks.get(self.player.id, 0)
+        if stacks and getattr(kit, "boss_attack_win_pct", 0.0):
+            mult["attack"] *= 1.0 + stacks * kit.boss_attack_win_pct
         base_atk, base_def, base_sta = self.foe.attack, self.foe.defense, self.foe.stamina_stat
         self.foe.attack       = base_atk * mult["attack"]
         self.foe.defense      = base_def * mult["defense"]
@@ -720,6 +724,29 @@ class BossFight:
         finally:
             self.foe.attack, self.foe.defense, self.foe.stamina_stat = (
                 base_atk, base_def, base_sta)
+
+        # Boss Fighter bonuses live only in this boss engine.
+        dealt_before = float(report.get("dmg_to_a", 0.0) or 0.0)
+        if dealt_before > 0 and getattr(kit, "boss_damage_amp", 0.0):
+            bonus = dealt_before * kit.boss_damage_amp
+            self.boss.hp = max(0.0, self.boss.hp - bonus)
+            report["boss_fighter_bonus"] = bonus
+            # The Special gets its additional final multiplier on top of the
+            # general Boss Breaker bonus.
+            if player_move == ai.MOVE_SPECIAL and getattr(kit, "boss_special_amp", 0.0):
+                special_bonus = (dealt_before + bonus) * kit.boss_special_amp
+                self.boss.hp = max(0.0, self.boss.hp - special_bonus)
+                report["boss_fighter_special_bonus"] = special_bonus
+
+        # An Attack win means the player's Attack actually damaged the boss.
+        # The new stack affects subsequent exchanges, never retroactively the
+        # hit that earned it.
+        if (player_move == ai.MOVE_ATTACK and dealt_before > 0
+                and getattr(kit, "boss_attack_win_pct", 0.0)):
+            uid = self.player.id
+            cap = int(getattr(kit, "boss_attack_win_max", 0) or 0)
+            self.boss_fighter_stacks[uid] = min(
+                cap, self.boss_fighter_stacks.get(uid, 0) + 1)
 
         report.update(self._apply_kit(kit, report))
         res = ai.outcome(self.boss, self.foe, before)
