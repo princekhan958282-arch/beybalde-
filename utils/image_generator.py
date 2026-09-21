@@ -69,7 +69,7 @@ GAUGE_COL = (96, 165, 250)
 # this once; this second copy of the same constant was missed, which is why
 # ";info" kept its art while battle cards went blank.
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_ASSET_BG   = os.path.join(_PROJECT_ROOT, "assets", "background.png")
+_ASSET_BG   = os.path.join(_PROJECT_ROOT, "assets", "ui", "battle_background.png")
 _ASSET_FONT = os.path.join(_PROJECT_ROOT, "assets", "font.ttf")
 _BEY_DIR    = os.path.join(_PROJECT_ROOT, "assets", "beys")
 _SYS_FONTS = [
@@ -190,8 +190,16 @@ def _background() -> Image.Image:
 def _build_background() -> Image.Image:
     if os.path.exists(_ASSET_BG):
         try:
-            bg = Image.open(_ASSET_BG).convert("RGBA").resize((W, H))
-            return bg
+            source = Image.open(_ASSET_BG).convert("RGBA")
+            # Cover-crop rather than stretch so the arena keeps its proportions.
+            scale = max(W / source.width, H / source.height)
+            resized = source.resize(
+                (max(W, int(source.width * scale)), max(H, int(source.height * scale))),
+                Image.LANCZOS,
+            )
+            left = (resized.width - W) // 2
+            top = (resized.height - H) // 2
+            return resized.crop((left, top, left + W, top + H))
         except Exception:
             pass
     bg = Image.new("RGBA", (W, H))
