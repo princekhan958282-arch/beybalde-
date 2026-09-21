@@ -546,11 +546,12 @@ def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
 
 
 def clear_cache() -> None:
-    """Drop rebuildable battle-card images, fonts, and text masks."""
-    global _bg_cache
+    """Drop rebuildable battle-card images, fonts, text masks, and art index."""
+    global _bg_cache, _art_index
     with _cache_lock:
         _art_cache.clear()
         _missing_art_cache.clear()
+        _art_index = None
         _font_cache.clear()
         _bg_cache = None
         _cached_text_width.cache_clear()
