@@ -81,7 +81,7 @@ Edit `data/beyblades.json`. Each entry follows this schema:
 
 ### Blade artwork — what size to make it
 
-**512 × 512 px, square, PNG or WebP with a transparent background.**
+**512 × 512 px, square. WebP is preferred; PNG, JPG and JPEG are accepted.**
 
 That is not a preference, it is what the renderers paint. The largest surface
 is the `;info` card: `utils/info_card.py` draws blade art into a 250 CSS-px
@@ -98,7 +98,7 @@ Every surface that paints blade art:
 |---|---|---|
 | `;info` card (`info_card.py`) | **500 × 500** | circle, `object-fit: cover` |
 | Profile card (`profile_card.py`) | 208 × 208 | circle |
-| Battle card (`image_generator.py`) | 360 × 360 | circle |
+| Battle card (`image_generator.py`) | 420 × 420 | uncropped cutout |
 | Boss battle card (`boss_card.py`) | 120–150 | circle |
 | Discord embed thumbnail | ~80 × 80 | square |
 | Discord embed image (`set_image`) | ~400 wide | uncropped |
@@ -111,16 +111,17 @@ corners of the square are outside the circle and are always discarded, so
 treat the **inscribed circle (~70% of the width)** as the safe zone for
 anything that must survive.
 
-Transparent background, because the disc paints its own coloured gradient
-behind the art. A white or black rectangle behind the blade shows up as a
-square patch inside the circle.
+Use a transparent background when the artwork is a cutout. WebP and PNG keep
+that transparency; JPG/JPEG are opaque and should only be used when a solid
+background is intentional.
 
-Local files go in `assets/beys/` named after the blade; run
-`python tools/optimize_assets.py` afterwards and it converts to WebP q92 in
-place (measured: ~3/255 mean RGB error at final render size, **zero** alpha
-error, so cutout edges survive). If there is no local file the renderer falls
-back to the entry's `image_url`, which is what every blade currently uses —
-the same 512 px guidance applies to whatever you upload there.
+Local files go in `assets/beys/` named after the blade. Run
+`python tools/optimize_assets.py` afterwards. It accepts `.webp`, `.png`,
+`.jpg` and `.jpeg`, applies phone-photo EXIF orientation, caps oversized art at
+512 px, preserves alpha when present, and writes verified output atomically.
+WebP q92 is the default output and already-small WebP files are skipped. If
+there is no local file the renderer falls back to the entry's `image_url`; the
+same 512 px guidance applies to whatever you upload there.
 
 **Rarity tiers and spawn weights:**
 
