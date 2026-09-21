@@ -342,10 +342,11 @@ def _player_panel(img, draw, side: str, data: dict):
     x = margin if side == "left" else W - margin - panel_w
     right = side == "right"
 
-    # translucent framed HUD block
-    draw.rounded_rectangle((x - 16, PANEL_TOP - 14, x + panel_w + 16, 475),
-                           radius=22, fill=(8, 11, 22, 205),
-                           outline=accent + (210,), width=3)
+    # Keep player information directly on the arena. The previous dark panel
+    # hid too much of the battle background on mobile. A subtle team-colored
+    # edge is enough to group each side while leaving the HUD effectively transparent.
+    draw.line((x - 12, PANEL_TOP - 8, x - 12, 475),
+              fill=accent + (150,), width=3)
 
     name = _sanitize(data.get("name", "?"))[:24]
     blade = _sanitize(data.get("blade", "?"))[:28]
@@ -396,16 +397,11 @@ def render_battle_card(round_no: int, left: dict, right: dict) -> io.BytesIO:
     img = _background()
     draw = ImageDraw.Draw(img, "RGBA")
 
-    # central split and round header
+    # Central arena split only. Discord already displays the round number in
+    # the battle message, so repeating it inside the image wastes vertical space.
     draw.polygon([(W // 2 - 30, 0), (W // 2 + 30, 0),
                   (W // 2 + 8, H), (W // 2 - 8, H)],
                  fill=(8, 10, 22, 150))
-    title = f"ROUND {int(round_no)}"
-    tf = _font(38); tw = _text_w(draw, title, tf)
-    draw.rounded_rectangle(((W - tw) // 2 - 28, 24, (W + tw) // 2 + 28, 82),
-                           radius=18, fill=(4, 7, 16, 230),
-                           outline=(100, 120, 180), width=2)
-    draw.text(((W - tw) // 2, 31), title, font=tf, fill=TEXT)
 
     _player_panel(img, draw, "left", left)
     _player_panel(img, draw, "right", right)
