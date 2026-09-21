@@ -1,7 +1,7 @@
 # Ten opt-in ability effects
 
 These effects extend `abilities[].rules[].do[]` in the shared AbilityEngine.
-They run in PvP, Story and Horror battles. No existing Bey definition is changed
+They run in PvP and Story battles. No existing Bey definition is changed
 and no database migration is needed. Boss battles use a separate resolver:
 `BladeKit.unsupported()` reports these operations, even in an otherwise supported
 ability. They do **not** run in that resolver.

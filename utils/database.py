@@ -610,15 +610,10 @@ async def has_claimed(user_id: int, key: str) -> bool:
 
 async def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) -> float:
     """
-    Combat stat multiplier from blade mastery plus account-wide modifiers.
+    Combat stat multiplier from blade mastery.
 
     Trainer level no longer affects combat. Blade mastery still gives +0.5%
     per mastery level (up to the mastery subsystem's own cap).
-
-    Horror Story's Unknown curse is account-wide: while active it multiplies
-    the final combat stat scalar by 0.8. This path is shared by PvP, boss and
-    story battle setup, so the curse cannot be bypassed by changing modes or
-    equipping a boss copy.
     """
     bonus = 0.0
     if blade_name:
@@ -630,13 +625,7 @@ async def get_stat_multiplier(user_id: int, blade_name: Optional[str] = None) ->
         except Exception:
             pass
 
-    mult = 1.0 + bonus
-    try:
-        from utils.horror_state import curse_multiplier
-        mult *= curse_multiplier(user_id)
-    except Exception:
-        pass
-    return mult
+    return 1.0 + bonus
 
 
 def add_beyblade_to_inventory(user_id: int, beyblade_name: str) -> bool:
