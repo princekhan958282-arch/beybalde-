@@ -40,7 +40,8 @@ log = logging.getLogger("beyblade_bot.shop")
 # Parts (economy/shop.py)
 from cogs.economy.shop import (PARTS_CATALOG, PART_TYPE_EMOJI, PART_TYPE_LABEL,
                                part_effect_line, apply_part_purchase,
-                               PurchaseError)
+                               PurchaseError, BEY_SHOP_CATALOG,
+                               apply_bey_purchase)
 from utils.database import mutate_user
 
 # Casino premium (casino/casino_premium.py)
@@ -61,12 +62,16 @@ COLOR_HOME    = 0x5865F2  # blurple
 
 # ── Section keys ──────────────────────────────────────────────────────────────
 SECTION_HOME    = "home"
+SECTION_BEYS    = "beys"
 SECTION_PARTS   = "parts"
 SECTION_PREMIUM = "premium"
 SECTION_BOOSTER = "booster"
 SECTION_AVATAR  = "avatar"
 
 VALID_ARGS = {
+    "beys":    SECTION_BEYS,
+    "bey":     SECTION_BEYS,
+    "fighters": SECTION_BEYS,
     "parts":   SECTION_PARTS,
     "part":    SECTION_PARTS,
     "premium": SECTION_PREMIUM,
@@ -93,6 +98,15 @@ def _home_embed() -> discord.Embed:
             "──────────────────────────────────────────"
         ),
         color=COLOR_HOME,
+    )
+    e.add_field(
+        name="👹  Boss Fighters",
+        value=(
+            "Shop-exclusive Beys built for Boss battles.\n"
+            "**Epsilon** — 45,000 Beycoins\n"
+            "`;shop beys` to purchase"
+        ),
+        inline=False,
     )
     e.add_field(
         name="⚙️  Parts",
@@ -277,6 +291,30 @@ def _avatar_embed() -> discord.Embed:
     return e
 
 
+def _beys_embed() -> discord.Embed:
+    e = discord.Embed(
+        title="👹 Boss Fighter Shop",
+        description=(
+            "Shop-exclusive Beys designed for Boss battles.\n"
+            "**Currency:** Beycoins 💰\n"
+            "──────────────────────────────────────"
+        ),
+        color=discord.Color.red(),
+    )
+    e.add_field(
+        name="⚔️ Epsilon — 45,000 Beycoins",
+        value=(
+            "**Attack · Boss Fighter**\n"
+            "HP 135 · ATK 124 · DEF 43 · STM 65\n"
+            "Boss Breaker: +25% damage vs Bosses; Attack wins build +8% base ATK "
+            "(max 3 stacks).\n"
+            "Epsilon Overdrive: 175 base +55% ATK; +20% final Special damage vs Bosses."
+        ),
+        inline=False,
+    )
+    return e
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  View
 # ══════════════════════════════════════════════════════════════════════════════
@@ -326,6 +364,15 @@ class MainShopView(ui.View):
         home_btn.callback = self._go_home
         self.add_item(home_btn)
 
+        beys_btn = ui.Button(
+            label="👹 Fighters",
+            style=(discord.ButtonStyle.blurple if self.section == SECTION_BEYS
+                   else discord.ButtonStyle.secondary),
+            row=0,
+        )
+        beys_btn.callback = self._go_beys
+        self.add_item(beys_btn)
+
         parts_btn = ui.Button(
             label="⚙️ Parts",
             style=(
@@ -373,6 +420,13 @@ class MainShopView(ui.View):
         )
         avatar_btn.callback = self._go_avatar
         self.add_item(avatar_btn)
+
+        if self.section == SECTION_BEYS:
+            buy_bey = ui.Button(label="🪙 Buy Epsilon — 45,000",
+                                style=discord.ButtonStyle.success, row=1)
+            buy_bey.callback = self._buy_epsilon
+            self.add_item(buy_bey)
+            return
 
         if self.section != SECTION_PARTS:
             return
@@ -440,6 +494,25 @@ class MainShopView(ui.View):
 
     # ── Buying ────────────────────────────────────────────────────────────────
 
+    async def _buy_epsilon(self, i: discord.Interaction) -> None:
+        try:
+            result = await mutate_user(
+                self.author_id, lambda prof: apply_bey_purchase(prof, "Epsilon"))
+        except PurchaseError as exc:
+            return await i.response.send_message(f"❌ {exc}", ephemeral=True)
+        except Exception as exc:
+            from utils.inventory import InventoryFull
+            if isinstance(exc, InventoryFull):
+                return await i.response.send_message(f"❌ {exc}", ephemeral=True)
+            log.exception("[shop] Epsilon purchase failed")
+            return await i.response.send_message(
+                "⚠️ Couldn't complete that purchase — nothing was charged.",
+                ephemeral=True)
+        await i.response.send_message(
+            f"✅ Bought **{result['bey']}** for 🪙 **{result['spent']:,}**. "
+            f"Remaining: **{result['coins']:,}**.",
+            ephemeral=True)
+
     async def _select_part(self, i: discord.Interaction) -> None:
         self.selected = (i.data.get("values") or [None])[0]
         self._build_buttons()
@@ -481,6 +554,8 @@ class MainShopView(ui.View):
     def current_embed(self) -> discord.Embed:
         if self.section == SECTION_HOME:
             return _home_embed()
+        if self.section == SECTION_BEYS:
+            return _beys_embed()
         if self.section == SECTION_PARTS:
             return self.parts_pages[self.parts_page]
         if self.section == SECTION_PREMIUM:
@@ -505,6 +580,12 @@ class MainShopView(ui.View):
 
     async def _go_home(self, i: discord.Interaction) -> None:
         self.section = SECTION_HOME
+        self._build_buttons()
+        await i.response.edit_message(embed=self.current_embed(), view=self)
+
+    async def _go_beys(self, i: discord.Interaction) -> None:
+        self.section = SECTION_BEYS
+        self.selected = None
         self._build_buttons()
         await i.response.edit_message(embed=self.current_embed(), view=self)
 
