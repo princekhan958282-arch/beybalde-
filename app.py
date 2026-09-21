@@ -438,6 +438,32 @@ class BeybladeBot(commands.Bot):
         logger.info(f"➕ Joined {guild.name} ({guild.id}) — "
                     f"now in {len(self.guilds)} server(s)")
 
+        # New-server onboarding: point admins at the spawn-channel setup command.
+        me = guild.me
+        if me is not None:
+            for channel in guild.text_channels:
+                perms = channel.permissions_for(me)
+                if perms.view_channel and perms.send_messages and perms.embed_links:
+                    embed = discord.Embed(
+                        title="🌀 Beycord Setup",
+                        description=(
+                            "Thanks for adding **Beycord**!\n\n"
+                            "Set the channel for wild Beyblade spawns with:\n"
+                            "**`;setspawnchannel #channel`**\n\n"
+                            "If you don\'t set one, wild Beyblades can still spawn "
+                            "in eligible channels based on message activity."
+                        ),
+                        color=discord.Color.blurple(),
+                    )
+                    try:
+                        await channel.send(embed=embed)
+                    except discord.DiscordException as exc:
+                        logger.warning(
+                            "Could not send join setup message in %s (%s): %s",
+                            guild.name, guild.id, exc,
+                        )
+                    break
+
     async def on_guild_remove(self, guild: discord.Guild) -> None:
         directory = getattr(self, "_rest_guild_directory", None)
         if directory is not None:
