@@ -5,7 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 from utils.database import get_user, mutate_user, get_beyblade
 from utils.inventory import require_room, InventoryFull
-from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, SPECIAL_EFFECTS, STAT_TOTAL, build, CustomBeyError
+from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, CUSTOM_TRIGGERS, SPECIAL_EFFECTS, STAT_TOTAL, build, CustomBeyError
 
 ABILITY_EFFECT_CATALOG = (
     "ability_amp",
@@ -188,7 +188,7 @@ class CustomBeyView(discord.ui.View):
 class CustomBeyModal(discord.ui.Modal,title="Create Your Custom Bey"):
     name=discord.ui.TextInput(label="Bey name",placeholder="Dark Phoenix",max_length=32)
     stats=discord.ui.TextInput(label="Stats: HP, ATK, DEF, STM",placeholder="100,100,100,95",max_length=32)
-    abilities=discord.ui.TextInput(label="Abilities (0-2 keys, comma separated)",placeholder="pattern_reader,second_wind",required=False,max_length=64)
+    abilities=discord.ui.TextInput(label="Abilities: effect@trigger (0-2)",placeholder="pattern_reader@attack_win,second_wind@low_hp",required=False,max_length=100)
     special=discord.ui.TextInput(label="Special: name | damage | effect",placeholder="Phoenix Break | 120 | heal",max_length=80)
     image=discord.ui.TextInput(label="Image URL (optional)",required=False,placeholder="https://...",max_length=400)
     def __init__(self,bey_type):
@@ -203,8 +203,15 @@ class CustomBeyModal(discord.ui.Modal,title="Create Your Custom Bey"):
         if len(parts)!=3:
             return await interaction.response.send_message("❌ Special must be Name | damage | effect, for example Phoenix Break | 120 | heal.",ephemeral=True)
         try:
-            damage=int(parts[1]); keys=[x.strip().lower() for x in str(self.abilities).split(",") if x.strip()]
-            blade=build(str(self.name),self.bey_type,*vals,keys,parts[0],damage,parts[2].lower(),str(self.image))
+            damage=int(parts[1])
+            entries=[x.strip().lower() for x in str(self.abilities).split(",") if x.strip()]
+            keys=[]; triggers=[]
+            for entry in entries:
+                if "@" not in entry:
+                    raise CustomBeyError("Each ability needs a trigger: effect@trigger, for example pattern_reader@attack_win.")
+                key, trigger = (x.strip() for x in entry.split("@", 1))
+                keys.append(key); triggers.append(trigger)
+            blade=build(str(self.name),self.bey_type,*vals,keys,parts[0],damage,parts[2].lower(),str(self.image),triggers)
             if get_beyblade(blade["name"]): raise CustomBeyError("That name already belongs to an official Bey.")
         except (CustomBeyError,ValueError) as exc:
             return await interaction.response.send_message(f"❌ {exc}",ephemeral=True)
@@ -236,7 +243,7 @@ class CustomBeyCog(commands.Cog):
             return await interaction.response.send_modal(CustomBeyModal(bey_type.value))
         if act=="rules":
             abilities=", ".join(f"{k} ({v['cost']})" for k,v in ABILITY_PRESETS.items()); effects=", ".join(SPECIAL_EFFECTS)
-            return await interaction.response.send_message(f"### 🛠️ Custom Bey Rules\n• HP + ATK + DEF + STM = **{STAT_TOTAL}** exactly.\n• No individual maximum; minimum **20** each.\n• Up to **2 abilities**, **{ABILITY_BUDGET}** ability points.\n• Ability keys: {abilities}\n• Special damage **80-140**; effects: {effects}\n• One Custom Bey per player; server-side validation.",ephemeral=True)
+            return await interaction.response.send_message(f"### 🛠️ Custom Bey Rules\n• HP + ATK + DEF + STM = **{STAT_TOTAL}** exactly.\n• No individual maximum; minimum **20** each.\n• Up to **2 abilities**, **{ABILITY_BUDGET}** ability points.\n• Ability keys: {abilities}\n• Choose a trigger for every ability: **effect@trigger**.\n• Triggers: {", ".join(CUSTOM_TRIGGERS)}\n• Special damage **80-140**; effects: {effects}\n• One Custom Bey per player; server-side validation.",ephemeral=True)
         profile=await get_user(interaction.user.id); blade=profile.get("custom_bey")
         if not isinstance(blade,dict): return await interaction.response.send_message("❌ You don't have a Custom Bey yet. Use /custombey action:create.",ephemeral=True)
         if act=="view": return await interaction.response.send_message(embed=_summary(blade),view=CustomBeyView(interaction.user.id),ephemeral=True)
