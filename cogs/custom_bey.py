@@ -248,7 +248,7 @@ class CustomBeyBuilder(discord.ui.View):
             await mutate_user(i.user.id,save)
         except (CustomBeyError,InventoryFull) as exc:
             return await i.response.send_message(f"❌ {exc}",ephemeral=True)
-        self.stop(); await i.response.edit_message(content="✅ **Custom Bey created and added to your inventory!**",embed=_summary(blade),view=CustomBeyView(i.user.id))
+        self.stop(); await i.response.edit_message(content="🕒 **Custom Bey submitted for approval!** You can use it after an admin approves it.",embed=_summary(blade),view=CustomBeyView(i.user.id))
 
 class ImageChoiceView(discord.ui.View):
     def __init__(self,builder):
