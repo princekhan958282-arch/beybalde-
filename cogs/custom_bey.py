@@ -272,6 +272,75 @@ class ImageChoiceView(discord.ui.View):
         await i.followup.send("✅ Image uploaded. Return to the builder and continue.",ephemeral=True)
 
 
+class RejectReasonModal(discord.ui.Modal,title="Reject Custom Bey"):
+    reason=discord.ui.TextInput(label="Rejection reason",style=discord.TextStyle.paragraph,max_length=500)
+    def __init__(self,owner_id,target_id):
+        super().__init__(); self.owner_id=owner_id; self.target_id=target_id
+    async def on_submit(self,interaction):
+        if interaction.user.id!=self.owner_id: return await interaction.response.send_message("❌ Not your review panel.",ephemeral=True)
+        reason=str(self.reason).strip()
+        def reject(profile):
+            blade=profile.get("custom_bey")
+            if not isinstance(blade,dict) or blade.get("approval_status")!="pending": raise CustomBeyError("Submission is no longer pending.")
+            blade["approval_status"]="rejected"; blade["rejection_reason"]=reason
+            return blade.get("name","Custom Bey")
+        try: name=await mutate_user(self.target_id,reject)
+        except CustomBeyError as exc: return await interaction.response.send_message(f"❌ {exc}",ephemeral=True)
+        try:
+            user=interaction.client.get_user(self.target_id) or await interaction.client.fetch_user(self.target_id)
+            await user.send(f"❌ Your Custom Bey **{name}** was rejected.\n**Reason:** {reason}\nDelete it, fix it, and submit again.")
+        except Exception: pass
+        await interaction.response.edit_message(content=f"❌ **{name}** rejected.\nReason: {reason}",embed=None,view=None)
+
+class CustomApprovalView(discord.ui.View):
+    def __init__(self,owner_id,target_id):
+        super().__init__(timeout=300); self.owner_id=owner_id; self.target_id=target_id
+    async def interaction_check(self,i):
+        if i.user.id!=self.owner_id:
+            await i.response.send_message("❌ This review panel belongs to another admin.",ephemeral=True); return False
+        return True
+    @discord.ui.button(label="Approve",emoji="✅",style=discord.ButtonStyle.success)
+    async def approve(self,i,b):
+        def approve_profile(profile):
+            blade=profile.get("custom_bey")
+            if not isinstance(blade,dict) or blade.get("approval_status")!="pending": raise CustomBeyError("Submission is no longer pending.")
+            require_room(profile,1,blade["name"])
+            inv=profile.setdefault("inventory",[])
+            if blade["name"] not in inv: inv.append(blade["name"])
+            BL.entry_for(profile,blade["name"])
+            blade["approval_status"]="approved"; blade.pop("rejection_reason",None)
+            return blade["name"]
+        try: name=await mutate_user(self.target_id,approve_profile)
+        except (CustomBeyError,InventoryFull) as exc: return await i.response.send_message(f"❌ {exc}",ephemeral=True)
+        try:
+            user=i.client.get_user(self.target_id) or await i.client.fetch_user(self.target_id)
+            await user.send(f"✅ Your Custom Bey **{name}** was approved! It is now in your inventory and starts at Level 1.")
+        except Exception: pass
+        self.stop(); await i.response.edit_message(content=f"✅ **{name}** approved and added to <@{self.target_id}>'s inventory.",embed=None,view=None)
+    @discord.ui.button(label="Reject",emoji="❌",style=discord.ButtonStyle.danger)
+    async def reject(self,i,b): await i.response.send_modal(RejectReasonModal(self.owner_id,self.target_id))
+
+class CustomApprovalSelect(discord.ui.UserSelect):
+    def __init__(self,owner_id):
+        super().__init__(placeholder="Select player with pending Custom Bey",min_values=1,max_values=1); self.owner_id=owner_id
+    async def callback(self,i):
+        target=self.values[0]; profile=await get_user(target.id); blade=profile.get("custom_bey")
+        if not isinstance(blade,dict) or blade.get("approval_status")!="pending":
+            return await i.response.send_message("❌ That player has no pending Custom Bey.",ephemeral=True)
+        meta=blade.get("custom_meta",{}); stats=blade["stats"]
+        abilities=[f"• **{a.get('name','Ability')}** — {a.get('description','')} — trigger \`{a.get('trigger','?')}\`" for a in blade.get("abilities",[]) if not a.get("_custom_special_effect")]
+        e=discord.Embed(title=f"📝 Review • {blade['name']}",description=f"Player: {target.mention}\nType: **{blade['type']}**\nAbility cost: **{meta.get('ability_cost',0)}/{ABILITY_BUDGET}**",colour=0xF1C40F)
+        e.add_field(name="Stats",value=f"HP {stats['hp']} • ATK {stats['attack']} • DEF {stats['defense']} • STM {stats['stamina']}",inline=False)
+        e.add_field(name="Abilities",value="\n".join(abilities) or "None",inline=False)
+        sm=blade["special_move"]; e.add_field(name="Special",value=f"**{sm['name']}** • {sm['damage_per_hit']} damage\n{sm.get('description','')}",inline=False)
+        if blade.get("image_url"): e.set_image(url=blade["image_url"])
+        await i.response.send_message(embed=e,view=CustomApprovalView(self.owner_id,target.id),ephemeral=True)
+
+class CustomApprovalPicker(discord.ui.View):
+    def __init__(self,owner_id):
+        super().__init__(timeout=300); self.add_item(CustomApprovalSelect(owner_id))
+
+
 class CustomBeyCog(commands.Cog):
     def __init__(self,bot): self.bot=bot
     @app_commands.command(name="custombey",description="Create, view, equip, or delete your Custom Bey")
