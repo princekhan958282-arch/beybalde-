@@ -671,6 +671,7 @@ def set_active_beyblade(user_id: int, beyblade_name: str) -> bool:
         # pointer outlives the swap, so ";equip <blade>" would report success
         # while every battle still resolved to the boss copy.
         profile["active_copy"] = None
+        profile["active_custom_bey"] = False
         USER_STORE.put_one(uid, profile)
     return True
 
