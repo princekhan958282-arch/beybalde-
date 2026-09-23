@@ -19,39 +19,25 @@ CUSTOM_TRIGGERS = {
     "turn_start": "turn_start", "turn_end": "turn_end",
 }
 
-# Curated engine-native effects. Keeping authoring here prevents clients from
-# submitting arbitrary ops/values while still using the normal AbilityEngine.
+# Player-authorable effects. Each entry owns a bounded operation template;
+# clients choose only the effect and trigger, never arbitrary op parameters.
 ABILITY_PRESETS = {
-    "pattern_reader": {
-        "label": "Pattern Reader", "cost": 20,
-        "description": "Repeating an action becomes easier to read and resist.",
-        "rule": {"when": "setup", "do": [{"op": "pattern_reader"}]},
-    },
-    "second_wind": {
-        "label": "Second Wind", "cost": 25,
-        "description": "Once per battle, recover Stamina after falling below 30% HP.",
-        "rule": {"when": "setup", "do": [{"op": "second_wind"}]},
-    },
-    "opening_gambit": {
-        "label": "Opening Gambit", "cost": 15,
-        "description": "Your first Attack is a high-risk opening play.",
-        "rule": {"when": "setup", "do": [{"op": "opening_gambit"}]},
-    },
-    "lasting_guard": {
-        "label": "Lasting Guard", "cost": 20,
-        "description": "Successful guarding can carry protection forward.",
-        "rule": {"when": "setup", "do": [{"op": "lasting_guard"}]},
-    },
-    "battle_tempo": {
-        "label": "Battle Tempo", "cost": 15,
-        "description": "Charge becomes stronger after going unused.",
-        "rule": {"when": "setup", "do": [{"op": "battle_tempo"}]},
-    },
-    "measured_strike": {
-        "label": "Measured Strike", "cost": 20,
-        "description": "Heavy hits prepare a controlled follow-up.",
-        "rule": {"when": "setup", "do": [{"op": "measured_strike"}]},
-    },
+    "bonus_damage": {"label":"Bonus Damage","cost":15,"description":"Adds 15 damage when triggered.","op":{"op":"bonus_damage","value":15}},
+    "bonus_damage_pct": {"label":"Damage Boost","cost":20,"description":"Adds 15% damage when triggered.","op":{"op":"bonus_damage_pct","value":15}},
+    "true_damage": {"label":"True Damage","cost":25,"description":"Deals 12 true damage when triggered.","op":{"op":"true_damage","value":12}},
+    "heal": {"label":"Heal","cost":15,"description":"Restores 18 HP when triggered.","op":{"op":"heal","value":18}},
+    "heal_pct": {"label":"Percent Heal","cost":20,"description":"Restores 8% max HP when triggered.","op":{"op":"heal_pct","value":8}},
+    "shield": {"label":"Shield","cost":15,"description":"Gains a 20 HP shield when triggered.","op":{"op":"shield","value":20}},
+    "gain_stamina": {"label":"Stamina Recovery","cost":15,"description":"Restores 3 Stamina when triggered.","op":{"op":"gain_stamina","value":3}},
+    "gain_stability": {"label":"Stability Recovery","cost":15,"description":"Restores 8 Stability when triggered.","op":{"op":"gain_stability","value":8}},
+    "enemy_lose_stability": {"label":"Stability Break","cost":20,"description":"Removes 8 enemy Stability when triggered.","op":{"op":"enemy_lose_stability","value":8}},
+    "drain_stamina": {"label":"Stamina Drain","cost":20,"description":"Drains 2 enemy Stamina when triggered.","op":{"op":"drain_stamina","value":2}},
+    "reduce_damage_pct_turns": {"label":"Guard Window","cost":20,"description":"Take 15% less damage for 2 turns.","op":{"op":"reduce_damage_pct_turns","value":15,"turns":2}},
+    "reflect_pct_turns": {"label":"Reflect Window","cost":25,"description":"Reflect 15% damage for 2 turns.","op":{"op":"reflect_pct_turns","value":15,"turns":2}},
+    "ignore_defense": {"label":"Defense Pierce","cost":25,"description":"Gain 15% defense pierce for 1 turn.","op":{"op":"ignore_defense","value":15,"turns":1}},
+    "crit_chance": {"label":"Critical Focus","cost":15,"description":"Gain 10% critical chance.","op":{"op":"crit_chance","value":10}},
+    "crit_damage": {"label":"Critical Power","cost":20,"description":"Increase critical damage.","op":{"op":"crit_damage","value":0.2}},
+    "cleanse": {"label":"Cleanse","cost":20,"description":"Cleanse negative effects when triggered.","op":{"op":"cleanse"}},
 }
 ABILITY_BUDGET = 40
 
@@ -100,7 +86,7 @@ def validate(name: str, bey_type: str, hp: int, attack: int, defense: int,
     if unknown:
         raise CustomBeyError("Unknown ability: " + ", ".join(unknown))
     triggers = [str(t).strip().lower() for t in (ability_triggers or []) if str(t).strip()]
-    if triggers and len(triggers) != len(keys):
+    if keys and len(triggers) != len(keys):
         raise CustomBeyError("Choose one trigger for every selected ability.")
     unknown_triggers = [t for t in triggers if t not in CUSTOM_TRIGGERS]
     if unknown_triggers:
@@ -132,10 +118,11 @@ def build(name: str, bey_type: str, hp: int, attack: int, defense: int,
     abilities = []
     for index, key in enumerate(keys):
         cfg = ABILITY_PRESETS[key]
-        rule = copy.deepcopy(cfg["rule"])
-        if triggers:
-            rule["when"] = CUSTOM_TRIGGERS[triggers[index]]
-        rule["_name"] = cfg["label"]
+        rule = {
+            "when": CUSTOM_TRIGGERS[triggers[index]],
+            "do": [copy.deepcopy(cfg["op"])],
+            "_name": cfg["label"],
+        }
         abilities.append({
             "name": cfg["label"],
             "trigger": rule["when"],
