@@ -243,8 +243,9 @@ class CustomBeyBuilder(discord.ui.View):
                 for rule in built.get("rules",[]): rule["_name"]=chosen_ability["name"]
             def save(profile):
                 if profile.get("custom_bey"): raise CustomBeyError("You already own a Custom Bey.")
-                require_room(profile,1,blade["name"]); profile["custom_bey"]=blade
-                profile.setdefault("inventory",[]).append(blade["name"]); BL.entry_for(profile,blade["name"])
+                blade["approval_status"]="pending"
+                blade["submitted_by"]=i.user.id
+                profile["custom_bey"]=blade
             await mutate_user(i.user.id,save)
         except (CustomBeyError,InventoryFull) as exc:
             return await i.response.send_message(f"❌ {exc}",ephemeral=True)
@@ -343,6 +344,12 @@ class CustomApprovalPicker(discord.ui.View):
 
 class CustomBeyCog(commands.Cog):
     def __init__(self,bot): self.bot=bot
+
+    @commands.command(name="setcustom",hidden=True)
+    @commands.is_owner()
+    async def setcustom(self,ctx):
+        await ctx.send("🛠️ **Custom Bey Approval**\nSelect a player with a pending Custom Bey.",view=CustomApprovalPicker(ctx.author.id),delete_after=300)
+
     @app_commands.command(name="custombey",description="Create, view, equip, or delete your Custom Bey")
     @app_commands.describe(action="What you want to do",bey_type="Type used when creating a Bey")
     @app_commands.choices(action=[
@@ -370,6 +377,8 @@ class CustomBeyCog(commands.Cog):
         if not isinstance(blade,dict): return await interaction.response.send_message("❌ You don't have a Custom Bey yet. Use /custombey action:create.",ephemeral=True)
         if act=="view": return await interaction.response.send_message(embed=_summary(blade),view=CustomBeyView(interaction.user.id),ephemeral=True)
         if act=="equip":
+            if blade.get("approval_status") != "approved":
+                return await interaction.response.send_message("❌ Your Custom Bey is not approved yet.",ephemeral=True)
             def equip(prof):
                 current=prof.get("custom_bey")
                 if not isinstance(current,dict): raise CustomBeyError("Your Custom Bey no longer exists.")
