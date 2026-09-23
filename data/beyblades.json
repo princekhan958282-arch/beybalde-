@@ -12153,5 +12153,101 @@
     "shop_price": 45000,
     "spawnable": false,
     "booster_exclusive": false
+  },
+  "Sakura Blade": {
+    "id": "BB_SAKURA_BLADE",
+    "name": "Sakura Blade",
+    "rarity": "Limited",
+    "limited": true,
+    "image_url": "https://raw.githubusercontent.com/princekhan958282-arch/beybalde-/add-sakura-blade/assets/beys/sakura_blade.png",
+    "description": "A blossom-forged Attack type that reads repeated patterns, grows more dangerous after lost clashes, and cuts through exposed defenses with a decisive petal storm.",
+    "burst_height": "Mid",
+    "type": "Attack",
+    "stats": {
+      "attack": 134,
+      "defense": 112,
+      "stamina": 65,
+      "special": 170,
+      "hp": 150
+    },
+    "ability": {
+      "name": "Sakura Requiem",
+      "trigger": "setup",
+      "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes stores power from lost clashes and cashes it into a later winning damaging action.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "pattern_reader"
+            },
+            {
+              "op": "rising_stakes"
+            },
+            {
+              "op": "exposed_core"
+            }
+          ],
+          "_name": "Sakura Requiem"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.5
+            }
+          ],
+          "_name": "Thousand Blossom Execution"
+        }
+      ]
+    },
+    "special_move": {
+      "name": "Thousand Blossom Execution",
+      "description": "Sakura Blade releases a decisive blossom storm for 170 base damage plus 50% of its Attack. Exposed Core can let the strike cut through a primed defense.",
+      "hits": 1,
+      "damage_per_hit": 170,
+      "total_damage": 170,
+      "flavour_texts": [
+        "🌸 **Thousand Blossom Execution** — the battlefield disappears beneath a storm of petals!"
+      ]
+    },
+    "abilities": [
+      {
+        "name": "Sakura Requiem",
+        "trigger": "setup",
+        "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes stores power from lost clashes and cashes it into a later winning damaging action.",
+        "rules": [
+          {
+            "when": "setup",
+            "do": [
+              {
+                "op": "pattern_reader"
+              },
+              {
+                "op": "rising_stakes"
+              },
+              {
+                "op": "exposed_core"
+              }
+            ],
+            "_name": "Sakura Requiem"
+          },
+          {
+            "when": "on_special",
+            "do": [
+              {
+                "op": "bonus_damage_stat",
+                "stat": "attack",
+                "scale": 0.5
+              }
+            ],
+            "_name": "Thousand Blossom Execution"
+          }
+        ]
+      }
+    ],
+    "spin_direction": "Right"
   }
 }
