@@ -3,7 +3,7 @@ from __future__ import annotations
 import discord
 from discord import app_commands
 from discord.ext import commands
-from utils.database import get_user, mutate_user, get_beyblade
+from utils.database import get_user, mutate_user, get_beyblade, all_user_ids
 from utils import bey_levels as BL
 from utils.inventory import require_room, InventoryFull
 from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, CUSTOM_TRIGGERS, SPECIAL_EFFECTS, STAT_TOTAL, allowed_triggers, build, CustomBeyError
@@ -325,26 +325,26 @@ class CustomApprovalView(discord.ui.View):
     @discord.ui.button(label="Reject",emoji="❌",style=discord.ButtonStyle.danger)
     async def reject(self,i,b): await i.response.send_modal(RejectReasonModal(self.owner_id,self.target_id))
 
-class CustomApprovalSelect(discord.ui.UserSelect):
-    def __init__(self,owner_id):
-        super().__init__(placeholder="Select player with pending Custom Bey",min_values=1,max_values=1); self.owner_id=owner_id
-    async def callback(self,i):
-        target=self.values[0]; profile=await get_user(target.id); blade=profile.get("custom_bey")
-        if not isinstance(blade,dict) or blade.get("approval_status")!="pending":
-            return await i.response.send_message("❌ That player has no pending Custom Bey.",ephemeral=True)
-        meta=blade.get("custom_meta",{}); stats=blade["stats"]
-        abilities=[f"• **{a.get('name','Ability')}** — {a.get('description','')} — trigger \`{a.get('trigger','?')}\`" for a in blade.get("abilities",[]) if not a.get("_custom_special_effect")]
-        e=discord.Embed(title=f"📝 Review • {blade['name']}",description=f"Player: {target.mention}\nType: **{blade['type']}**\nAbility cost: **{meta.get('ability_cost',0)}/{ABILITY_BUDGET}**",colour=0xF1C40F)
-        e.add_field(name="Stats",value=f"HP {stats['hp']} • ATK {stats['attack']} • DEF {stats['defense']} • STM {stats['stamina']}",inline=False)
-        e.add_field(name="Abilities",value="\n".join(abilities) or "None",inline=False)
-        sm=blade["special_move"]; e.add_field(name="Special",value=f"**{sm['name']}** • {sm['damage_per_hit']} damage\n{sm.get('description','')}",inline=False)
-        if blade.get("image_url"): e.set_image(url=blade["image_url"])
-        await i.response.send_message(embed=e,view=CustomApprovalView(self.owner_id,target.id),ephemeral=True)
+async def _pending_custom_submissions():
+    rows=[]
+    for uid in all_user_ids():
+        profile=await get_user(uid)
+        blade=profile.get("custom_bey")
+        if isinstance(blade,dict) and blade.get("approval_status")=="pending":
+            rows.append((uid,blade))
+    return rows
 
-class CustomApprovalPicker(discord.ui.View):
-    def __init__(self,owner_id):
-        super().__init__(timeout=300); self.add_item(CustomApprovalSelect(owner_id))
-
+def _approval_embed(uid,blade):
+    meta=blade.get("custom_meta",{}); stats=blade["stats"]
+    abilities=[f"• **{a.get('name','Ability')}** — {a.get('description','')} — trigger \`{a.get('trigger','?')}\`" for a in blade.get("abilities",[]) if not a.get("_custom_special_effect")]
+    e=discord.Embed(title=f"📝 Custom Bey Approval • {blade['name']}",
+        description=f"Player: <@{uid}> • ID: \`{uid}\`\nType: **{blade['type']}**\nStatus: **Pending**\nAbility cost: **{meta.get('ability_cost',0)}/{ABILITY_BUDGET}**",
+        colour=0xF1C40F)
+    e.add_field(name="Stats",value=f"HP {stats['hp']} • ATK {stats['attack']} • DEF {stats['defense']} • STM {stats['stamina']}",inline=False)
+    e.add_field(name="Abilities",value="\n".join(abilities) or "None",inline=False)
+    sm=blade["special_move"]; e.add_field(name="Special",value=f"**{sm['name']}** • {sm['damage_per_hit']} damage\n{sm.get('description','')}",inline=False)
+    if blade.get("image_url"): e.set_image(url=blade["image_url"])
+    return e
 
 class CustomBeyCog(commands.Cog):
     def __init__(self,bot): self.bot=bot
@@ -352,7 +352,12 @@ class CustomBeyCog(commands.Cog):
     @commands.command(name="setcustom",hidden=True)
     @commands.is_owner()
     async def setcustom(self,ctx):
-        await ctx.send("🛠️ **Custom Bey Approval**\nSelect a player with a pending Custom Bey.",view=CustomApprovalPicker(ctx.author.id),delete_after=300)
+        pending=await _pending_custom_submissions()
+        if not pending:
+            return await ctx.send("✅ **Custom Bey Approval**\nThere are no pending Custom Bey submissions.")
+        await ctx.send(f"🛠️ **Custom Bey Approval** • {len(pending)} pending\nEach submission is shown below with its own Approve and Reject buttons.")
+        for uid,blade in pending:
+            await ctx.send(embed=_approval_embed(uid,blade),view=CustomApprovalView(ctx.author.id,uid))
 
     @app_commands.command(name="custombey",description="Create, view, equip, or delete your Custom Bey")
     @app_commands.describe(action="What you want to do",bey_type="Type used when creating a Bey")
