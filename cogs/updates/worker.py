@@ -100,6 +100,63 @@ def build_embed(upd: dict) -> discord.Embed:
     return e
 
 
+class UpdateDMButton(discord.ui.DynamicItem[discord.ui.Button],
+                     template=r"beyupdate:(?P<uid>\\d+):(?P<update>[A-Za-z0-9_]+):(?P<act>off|interested)"):
+    """Persistent actions attached to every update DM."""
+
+    def __init__(self, user_id: int, update_id: str, action: str) -> None:
+        self.user_id = int(user_id)
+        self.update_id = str(update_id)
+        self.action = action
+        if action == "off":
+            label, emoji, style = "Turn Off Notifications", "🔕", discord.ButtonStyle.secondary
+        else:
+            label, emoji, style = "Interested", "⭐", discord.ButtonStyle.success
+        super().__init__(discord.ui.Button(
+            label=label, emoji=emoji, style=style,
+            custom_id=f"beyupdate:{self.user_id}:{self.update_id}:{action}"))
+
+    @classmethod
+    async def from_custom_id(cls, interaction, item, match, /):
+        return cls(int(match["uid"]), match["update"], match["act"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if interaction.user.id != self.user_id:
+            return await interaction.response.send_message(
+                "These update buttons belong to the player who received this DM.",
+                ephemeral=True)
+
+        from utils.database import mutate_user
+
+        if self.action == "off":
+            def turn_off(profile):
+                P.set_switch(profile, P.K_UPDATES, False)
+                P.set_switch(profile, P.K_EVENTS, False)
+            await mutate_user(self.user_id, turn_off)
+            return await interaction.response.send_message(
+                "🔕 Notifications are now off. You can turn them back on with `;notifications`.",
+                ephemeral=True)
+
+        def mark_interested(profile):
+            interests = profile.setdefault("update_interests", [])
+            if self.update_id in interests:
+                return False
+            interests.append(self.update_id)
+            return True
+
+        added = await mutate_user(self.user_id, mark_interested)
+        await interaction.response.send_message(
+            "⭐ Interest saved!" if added else "⭐ You're already marked as interested.",
+            ephemeral=True)
+
+
+def update_dm_view(user_id: int, update_id: str) -> discord.ui.View:
+    view = discord.ui.View(timeout=None)
+    view.add_item(UpdateDMButton(user_id, update_id, "off"))
+    view.add_item(UpdateDMButton(user_id, update_id, "interested"))
+    return view
+
+
 class DeliveryWorker:
     """Walks the queue. One instance, owned by the cog."""
 
@@ -139,7 +196,7 @@ class DeliveryWorker:
             return RETRY, f"fetch failed: {exc}"
 
         try:
-            await user.send(embed=build_embed(upd))
+            await user.send(embed=build_embed(upd),\n                            view=update_dm_view(uid, upd["update_id"]))
             return SENT, ""
         except discord.Forbidden:
             # DMs closed, or no shared server. Terminal: retrying cannot
