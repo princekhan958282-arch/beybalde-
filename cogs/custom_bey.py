@@ -7,7 +7,8 @@ from utils.database import get_user, mutate_user, get_beyblade
 from utils.inventory import require_room, InventoryFull
 from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, CUSTOM_TRIGGERS, SPECIAL_EFFECTS, STAT_TOTAL, build, CustomBeyError
 
-ABILITY_EFFECT_CATALOG = tuple(ABILITY_PRESETS)\nABILITY_EFFECTS_PER_PAGE = 10
+ABILITY_EFFECT_CATALOG = tuple(ABILITY_PRESETS)
+ABILITY_EFFECTS_PER_PAGE = 10
 
 def _summary(blade):
     s=blade["stats"]; meta=blade.get("custom_meta",{})
@@ -37,7 +38,7 @@ class AbilityCatalogView(discord.ui.View):
         start = self.page * ABILITY_EFFECTS_PER_PAGE
         rows = ABILITY_EFFECT_CATALOG[start:start + ABILITY_EFFECTS_PER_PAGE]
         body = "\n".join(
-            f"**{start + i + 1}.** `{name}` — {name.replace('_', ' ').title()}"
+            f"**{start + i + 1}.** `{name}` — {ABILITY_PRESETS[name]['description']}"
             for i, name in enumerate(rows)
         )
         e = discord.Embed(
@@ -84,7 +85,7 @@ class CustomBeyView(discord.ui.View):
 class CustomBeyModal(discord.ui.Modal,title="Create Your Custom Bey"):
     name=discord.ui.TextInput(label="Bey name",placeholder="Dark Phoenix",max_length=32)
     stats=discord.ui.TextInput(label="Stats: HP, ATK, DEF, STM",placeholder="100,100,100,95",max_length=32)
-    abilities=discord.ui.TextInput(label="Abilities: effect@trigger (0-2)",placeholder="pattern_reader@attack_win,second_wind@low_hp",required=False,max_length=100)
+    abilities=discord.ui.TextInput(label="Abilities: effect@trigger (0-2)",placeholder="bonus_damage@attack_win,heal@low_hp",required=False,max_length=100)
     special=discord.ui.TextInput(label="Special: name | damage | effect",placeholder="Phoenix Break | 120 | heal",max_length=80)
     image=discord.ui.TextInput(label="Image URL (optional)",required=False,placeholder="https://...",max_length=400)
     def __init__(self,bey_type):
