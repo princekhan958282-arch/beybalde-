@@ -287,7 +287,13 @@ class CustomBeyCog(commands.Cog):
             if bey_type is None: return await interaction.response.send_message("❌ Choose a bey_type when creating your Bey.",ephemeral=True)
             if (await get_user(interaction.user.id)).get("custom_bey"):
                 return await interaction.response.send_message("❌ You already own a Custom Bey. View or delete it first.",ephemeral=True)
-            builder=CustomBeyBuilder(interaction.user.id,bey_type.value); builder._client=self.bot\n            return await interaction.response.send_message(embed=builder.embed(),view=builder,ephemeral=True)
+            builder=CustomBeyBuilder(interaction.user.id,bey_type.value); builder._client=self.bot
+            await interaction.response.send_message(embed=builder.embed(),view=builder,ephemeral=True)
+            try:
+                builder._message=await interaction.original_response()
+            except Exception:
+                builder._message=None
+            return
         if act=="rules":
             abilities=", ".join(f"{k} ({v['cost']})" for k,v in ABILITY_PRESETS.items()); effects=", ".join(SPECIAL_EFFECTS)
             return await interaction.response.send_message(f"### 🛠️ Custom Bey Rules\n• HP + ATK + DEF + STM = **{STAT_TOTAL}** exactly.\n• No individual maximum; minimum **20** each.\n• Up to **2 abilities**, **{ABILITY_BUDGET}** ability points.\n• Ability keys: {abilities}\n• Ability effects and triggers are selected from the creation panel.\n• Triggers: {", ".join(CUSTOM_TRIGGERS)}\n• Special damage **80-140**; effects: {effects}\n• Image URL is required.\n• Custom Beys start at **Level 1**, use the normal Bey XP/level system, and go directly into your regular inventory.\n• One Custom Bey per player; server-side validation.",ephemeral=True)
