@@ -5,7 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 from utils.database import get_user, mutate_user, get_beyblade
 from utils.inventory import require_room, InventoryFull
-from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, CUSTOM_TRIGGERS, SPECIAL_EFFECTS, STAT_TOTAL, build, CustomBeyError
+from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, CUSTOM_TRIGGERS, SPECIAL_EFFECTS, STAT_TOTAL, allowed_triggers, build, CustomBeyError
 
 ABILITY_EFFECT_CATALOG = tuple(ABILITY_PRESETS)
 ABILITY_EFFECTS_PER_PAGE = 10
@@ -97,22 +97,20 @@ class AbilitySetupView(discord.ui.View):
             discord.SelectOption(label=v["label"], value=k, description=v["description"][:100])
             for k, v in ABILITY_PRESETS.items()
         ]
-        trigger_options = [
-            discord.SelectOption(label=k.replace("_", " ").title(), value=k)
-            for k in CUSTOM_TRIGGERS
-        ]
         self.effect_one = discord.ui.Select(placeholder="Ability 1 effect", options=effect_options, row=0)
-        self.trigger_one = discord.ui.Select(placeholder="Ability 1 trigger", options=trigger_options, row=1)
+        self.trigger_one = discord.ui.Select(
+            placeholder="Choose Ability 1 effect first", options=[
+                discord.SelectOption(label="Choose an effect first", value="pending")
+            ], disabled=True, row=1)
         self.effect_two = discord.ui.Select(
             placeholder="Ability 2 effect (optional)", options=[
                 discord.SelectOption(label="None", value="none", description="Use only one ability"),
                 *effect_options,
             ], row=2)
         self.trigger_two = discord.ui.Select(
-            placeholder="Ability 2 trigger (optional)", options=[
-                discord.SelectOption(label="None", value="none", description="No second ability"),
-                *trigger_options,
-            ], row=3)
+            placeholder="Choose Ability 2 effect first", options=[
+                discord.SelectOption(label="None", value="none", description="No second ability")
+            ], disabled=True, row=3)
         self.effect_one.callback = self._effect_one
         self.trigger_one.callback = self._trigger_one
         self.effect_two.callback = self._effect_two
@@ -128,9 +126,22 @@ class AbilitySetupView(discord.ui.View):
             return False
         return True
 
+    def _trigger_options(self, effect_key, optional=False):
+        options = [
+            discord.SelectOption(label=k.replace("_", " ").title(), value=k)
+            for k in allowed_triggers(effect_key)
+        ]
+        if optional:
+            options.insert(0, discord.SelectOption(label="None", value="none", description="No second ability"))
+        return options
+
     async def _effect_one(self, interaction):
         self.effect1 = self.effect_one.values[0]
-        await interaction.response.defer()
+        self.trigger1 = None
+        self.trigger_one.options = self._trigger_options(self.effect1)
+        self.trigger_one.disabled = False
+        self.trigger_one.placeholder = "Ability 1 trigger"
+        await interaction.response.edit_message(view=self)
 
     async def _trigger_one(self, interaction):
         self.trigger1 = self.trigger_one.values[0]
@@ -138,7 +149,16 @@ class AbilitySetupView(discord.ui.View):
 
     async def _effect_two(self, interaction):
         self.effect2 = None if self.effect_two.values[0] == "none" else self.effect_two.values[0]
-        await interaction.response.defer()
+        self.trigger2 = None
+        if self.effect2:
+            self.trigger_two.options = self._trigger_options(self.effect2, optional=True)
+            self.trigger_two.disabled = False
+            self.trigger_two.placeholder = "Ability 2 trigger (optional)"
+        else:
+            self.trigger_two.options = [discord.SelectOption(label="None", value="none", description="No second ability")]
+            self.trigger_two.disabled = True
+            self.trigger_two.placeholder = "No second ability"
+        await interaction.response.edit_message(view=self)
 
     async def _trigger_two(self, interaction):
         self.trigger2 = None if self.trigger_two.values[0] == "none" else self.trigger_two.values[0]
