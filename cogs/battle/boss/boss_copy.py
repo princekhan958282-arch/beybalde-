@@ -480,6 +480,11 @@ async def equipped_blade(user_id: int) -> tuple[Optional[dict], Optional[dict]]:
     """
     from utils.database import get_beyblade
     profile = await get_user(user_id)
+    if profile.get("active_custom_bey"):
+        custom = profile.get("custom_bey")
+        if isinstance(custom, dict):
+            from copy import deepcopy
+            return deepcopy(custom), None
     cid = profile.get("active_copy")
     if cid:
         for c in (profile.get("boss_copies") or []):
