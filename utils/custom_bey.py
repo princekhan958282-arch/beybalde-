@@ -49,7 +49,6 @@ SPECIAL_EFFECTS = {
     "none": ("No secondary effect", 0, []),
     "heal": ("Restore 20 HP", 10, [{"op": "heal", "value": 20}]),
     "shield": ("Gain a 20-point shield", 10, [{"op": "shield", "value": 20}]),
-    "gauge": ("Recover 15 Special Gauge", 10, [{"op": "add_gauge", "value": 15}]),
 }
 SPECIAL_DAMAGE_MIN = 80
 SPECIAL_DAMAGE_MAX = 140
