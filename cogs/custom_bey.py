@@ -270,6 +270,10 @@ class ImageChoiceView(discord.ui.View):
         if not (att.content_type or "").startswith("image/"):
             return await i.followup.send("❌ That attachment is not an image.",ephemeral=True)
         self.builder.draft["image"]=att.url
+        self.builder.rebuild()
+        if getattr(self.builder,"_message",None):
+            try: await self.builder._message.edit(embed=self.builder.embed(),view=self.builder)
+            except Exception: pass
         await i.followup.send("✅ Image uploaded. Return to the builder and continue.",ephemeral=True)
 
 
@@ -395,6 +399,8 @@ class CustomBeyCog(commands.Cog):
                 except ValueError: pass
                 prof["inventory"]=inv
                 if prof.get("active_custom_bey"): prof["active_custom_bey"]=False; prof["active_beyblade"]=None
+                progress=prof.get("bey_progress")
+                if isinstance(progress,dict): progress.pop(name,None)
                 return name
             try: name=await mutate_user(interaction.user.id,delete)
             except CustomBeyError as exc: return await interaction.response.send_message(f"❌ {exc}",ephemeral=True)
