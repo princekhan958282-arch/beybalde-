@@ -150,6 +150,7 @@ class InventoryView(discord.ui.View):
         # is equipped no bey should render the ✅ — active_copy is the tiebreak.
         active = ("" if prof.get("active_copy")
                   else str(prof.get("active_beyblade") or "").lower())
+        custom = prof.get("custom_bey") if isinstance(prof.get("custom_bey"), dict) else None
 
         beys = []
         # `beyblade_ref` hands back the SHARED cached record instead of a
@@ -160,7 +161,8 @@ class InventoryView(discord.ui.View):
         # which also only reads.
         for nm in prof.get("inventory", []):
             name  = nm.get("name") if isinstance(nm, dict) else nm
-            blade = (custom if custom and str(name).lower() == str(custom.get("name", "")).lower()\n                     else beyblade_ref(str(name))) or {}
+            blade = (custom if custom and str(name).lower() == str(custom.get("name", "")).lower()
+                     else beyblade_ref(str(name))) or {}
             beys.append({
                 "kind": "bey", "name": str(name),
                 "rarity": blade.get("rarity", "?"),
