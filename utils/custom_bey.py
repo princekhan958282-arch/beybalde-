@@ -8,6 +8,16 @@ STAT_TOTAL = 395
 STAT_MIN = 20
 TYPES = ("Attack", "Defense", "Stamina", "Balance")
 MAX_ABILITIES = 2
+CUSTOM_TRIGGERS = {
+    "attack_win": "on_attack_win", "attack_loss": "on_attack_loss",
+    "attack_hit": "on_attack_hit", "defense_win": "on_defense_win",
+    "defense_loss": "on_defense_loss", "stamina_win": "on_stamina_win",
+    "stamina_loss": "on_stamina_loss", "any_win": "on_any_win",
+    "any_loss": "on_any_loss", "special": "on_special",
+    "low_hp": "on_low_hp", "low_stamina": "on_low_stamina",
+    "low_stability": "on_low_stability", "charge": "on_charge",
+    "turn_start": "turn_start", "turn_end": "turn_end",
+}
 
 # Curated engine-native effects. Keeping authoring here prevents clients from
 # submitting arbitrary ops/values while still using the normal AbilityEngine.
@@ -72,7 +82,8 @@ def _image_ok(value: str) -> bool:
 
 def validate(name: str, bey_type: str, hp: int, attack: int, defense: int,
              stamina: int, ability_keys: list[str], special_name: str,
-             special_damage: int, special_effect: str, image_url: str = "") -> None:
+             special_damage: int, special_effect: str, image_url: str = "",
+             ability_triggers: list[str] | None = None) -> None:
     if not _NAME_RE.fullmatch(name.strip()):
         raise CustomBeyError("Name must be 3-32 characters using letters, numbers, spaces, apostrophes or hyphens.")
     if bey_type not in TYPES:
@@ -88,6 +99,12 @@ def validate(name: str, bey_type: str, hp: int, attack: int, defense: int,
     unknown = [k for k in keys if k not in ABILITY_PRESETS]
     if unknown:
         raise CustomBeyError("Unknown ability: " + ", ".join(unknown))
+    triggers = [str(t).strip().lower() for t in (ability_triggers or []) if str(t).strip()]
+    if triggers and len(triggers) != len(keys):
+        raise CustomBeyError("Choose one trigger for every selected ability.")
+    unknown_triggers = [t for t in triggers if t not in CUSTOM_TRIGGERS]
+    if unknown_triggers:
+        raise CustomBeyError("Unknown ability trigger: " + ", ".join(unknown_triggers))
     cost = sum(ABILITY_PRESETS[k]["cost"] for k in keys)
     if cost > ABILITY_BUDGET:
         raise CustomBeyError(f"Ability cost is {cost}/{ABILITY_BUDGET}; choose a cheaper combination.")
@@ -103,17 +120,21 @@ def validate(name: str, bey_type: str, hp: int, attack: int, defense: int,
 
 def build(name: str, bey_type: str, hp: int, attack: int, defense: int,
           stamina: int, ability_keys: list[str], special_name: str,
-          special_damage: int, special_effect: str, image_url: str = "") -> dict:
+          special_damage: int, special_effect: str, image_url: str = "",
+          ability_triggers: list[str] | None = None) -> dict:
     name = name.strip()
     keys = [str(k).strip().lower() for k in ability_keys if str(k).strip()]
     special_effect = special_effect.strip().lower()
+    triggers = [str(t).strip().lower() for t in (ability_triggers or []) if str(t).strip()]
     validate(name, bey_type, hp, attack, defense, stamina, keys,
-             special_name, special_damage, special_effect, image_url)
+             special_name, special_damage, special_effect, image_url, triggers)
 
     abilities = []
-    for key in keys:
+    for index, key in enumerate(keys):
         cfg = ABILITY_PRESETS[key]
         rule = copy.deepcopy(cfg["rule"])
+        if triggers:
+            rule["when"] = CUSTOM_TRIGGERS[triggers[index]]
         rule["_name"] = cfg["label"]
         abilities.append({
             "name": cfg["label"],
@@ -157,6 +178,7 @@ def build(name: str, bey_type: str, hp: int, attack: int, defense: int,
         "custom_meta": {
             "stat_total": STAT_TOTAL,
             "ability_keys": keys,
+            "ability_triggers": triggers,
             "ability_cost": sum(ABILITY_PRESETS[k]["cost"] for k in keys),
             "special_effect": special_effect,
         },
