@@ -7,6 +7,112 @@ from utils.database import get_user, mutate_user, get_beyblade
 from utils.inventory import require_room, InventoryFull
 from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, SPECIAL_EFFECTS, STAT_TOTAL, build, CustomBeyError
 
+ABILITY_EFFECT_CATALOG = (
+    "ability_amp",
+    "battle_tempo",
+    "bonus_damage",
+    "bonus_damage_enemy_hp_pct",
+    "bonus_damage_pct",
+    "bonus_damage_stat",
+    "bonus_special_hits",
+    "buff",
+    "buff_all",
+    "buff_all_pct",
+    "burn",
+    "charge_overflow",
+    "clean_break",
+    "cleanse",
+    "comeback_circuit",
+    "consume_stack_burst_enemy_hp_pct",
+    "consume_stack_damage_pct",
+    "counter_burst",
+    "counterweight",
+    "create_zone",
+    "crit_chance",
+    "crit_damage",
+    "damage_boost",
+    "debuff_immune",
+    "debuff_ward",
+    "disable_ability_2",
+    "dmg_amp",
+    "drain_stamina",
+    "emergency_reserve",
+    "enemy_debuff",
+    "enemy_debuff_pct",
+    "enemy_lose_stability",
+    "evolve_form",
+    "execute",
+    "exposed_core",
+    "final_rotation",
+    "finishers_mark",
+    "gain_counter",
+    "gain_gauge",
+    "gain_stability",
+    "gain_stamina",
+    "guaranteed_crit",
+    "guard_fracture",
+    "heal",
+    "heal_pct",
+    "heal_per_drain",
+    "hp_regen",
+    "ignore_defense",
+    "invulnerable",
+    "lasting_guard",
+    "lifesteal_pct",
+    "lose_stability",
+    "measured_strike",
+    "negate_damage",
+    "opening_gambit",
+    "pattern_reader",
+    "perfect_timing",
+    "precision_window",
+    "pressure_gauge",
+    "prime_bonus",
+    "purification_domain",
+    "queue_chain",
+    "recoil",
+    "recoil_engine",
+    "reduce_damage_flat",
+    "reduce_damage_pct",
+    "reduce_damage_pct_turns",
+    "reflect_flat",
+    "reflect_pct",
+    "reflect_pct_turns",
+    "reset_counter",
+    "revive",
+    "revive_pct",
+    "rising_stakes",
+    "sacrificial_guard",
+    "second_wind",
+    "set_mode",
+    "shield",
+    "shield_momentum",
+    "shield_pct",
+    "silence",
+    "special_amp_stack",
+    "special_boost",
+    "special_pierce_pct",
+    "spend_stacks",
+    "spin_siphon",
+    "stability_anchor",
+    "stability_cost_increase",
+    "stack_scaled_lifesteal_pct",
+    "stacking_buff",
+    "stacking_resist",
+    "staggered_rhythm",
+    "stamina_cost_increase",
+    "stamina_cost_reduction",
+    "stamina_regen",
+    "start_cooldown",
+    "status_apply",
+    "steal_hp",
+    "true_damage",
+    "true_damage_stat_pct",
+    "true_damage_turns",
+    "undodgeable",
+)
+ABILITY_EFFECTS_PER_PAGE = 10
+
 def _summary(blade):
     s=blade["stats"]; meta=blade.get("custom_meta",{})
     abilities=[a["name"] for a in blade.get("abilities",[]) if not a.get("_custom_special_effect")]
@@ -17,6 +123,67 @@ def _summary(blade):
     e.add_field(name=f"✨ {sm['name']}",value=f"Base damage **{sm['damage_per_hit']}**\n{sm.get('description','No secondary effect')}",inline=False)
     if blade.get("image_url"): e.set_thumbnail(url=blade["image_url"])
     return e
+
+class AbilityCatalogView(discord.ui.View):
+    """Read-only browser for the 102 player-facing Ability Engine effects."""
+    def __init__(self, owner_id: int, page: int = 0):
+        super().__init__(timeout=180)
+        self.owner_id = owner_id
+        self.page = page
+        self.pages = (len(ABILITY_EFFECT_CATALOG) + ABILITY_EFFECTS_PER_PAGE - 1) // ABILITY_EFFECTS_PER_PAGE
+        self._sync_buttons()
+
+    def _sync_buttons(self):
+        self.previous.disabled = self.page <= 0
+        self.next.disabled = self.page >= self.pages - 1
+
+    def embed(self):
+        start = self.page * ABILITY_EFFECTS_PER_PAGE
+        rows = ABILITY_EFFECT_CATALOG[start:start + ABILITY_EFFECTS_PER_PAGE]
+        body = "\n".join(
+            f"**{start + i + 1}.** `{name}` — {name.replace('_', ' ').title()}"
+            for i, name in enumerate(rows)
+        )
+        e = discord.Embed(
+            title=f"⚙️ Ability Effects • {len(ABILITY_EFFECT_CATALOG)}",
+            description=body,
+            colour=0x5865F2,
+        )
+        e.set_footer(text=f"Page {self.page + 1}/{self.pages} • View only")
+        return e
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.owner_id:
+            await interaction.response.send_message("❌ This Ability browser belongs to another player.", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="◀ Previous", style=discord.ButtonStyle.secondary)
+    async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page = max(0, self.page - 1)
+        self._sync_buttons()
+        await interaction.response.edit_message(embed=self.embed(), view=self)
+
+    @discord.ui.button(label="Next ▶", style=discord.ButtonStyle.secondary)
+    async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page = min(self.pages - 1, self.page + 1)
+        self._sync_buttons()
+        await interaction.response.edit_message(embed=self.embed(), view=self)
+
+
+class CustomBeyView(discord.ui.View):
+    """Actions shown with a Custom Bey card."""
+    def __init__(self, owner_id: int):
+        super().__init__(timeout=180)
+        self.owner_id = owner_id
+
+    @discord.ui.button(label="Ability", emoji="⚙️", style=discord.ButtonStyle.primary)
+    async def ability(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.owner_id:
+            return await interaction.response.send_message("❌ This Custom Bey panel belongs to another player.", ephemeral=True)
+        browser = AbilityCatalogView(self.owner_id)
+        await interaction.response.send_message(embed=browser.embed(), view=browser, ephemeral=True)
+
 
 class CustomBeyModal(discord.ui.Modal,title="Create Your Custom Bey"):
     name=discord.ui.TextInput(label="Bey name",placeholder="Dark Phoenix",max_length=32)
@@ -47,7 +214,9 @@ class CustomBeyModal(discord.ui.Modal,title="Create Your Custom Bey"):
         try: await mutate_user(interaction.user.id,save)
         except (CustomBeyError,InventoryFull) as exc:
             return await interaction.response.send_message(f"❌ {exc}",ephemeral=True)
-        await interaction.response.send_message("✅ **Custom Bey created!** Use /custombey action:equip to equip it.",embed=_summary(blade),ephemeral=True)
+        await interaction.response.send_message(
+            "✅ **Custom Bey created!** Use /custombey action:equip to equip it.",
+            embed=_summary(blade), view=CustomBeyView(interaction.user.id), ephemeral=True)
 
 class CustomBeyCog(commands.Cog):
     def __init__(self,bot): self.bot=bot
@@ -70,7 +239,7 @@ class CustomBeyCog(commands.Cog):
             return await interaction.response.send_message(f"### 🛠️ Custom Bey Rules\n• HP + ATK + DEF + STM = **{STAT_TOTAL}** exactly.\n• No individual maximum; minimum **20** each.\n• Up to **2 abilities**, **{ABILITY_BUDGET}** ability points.\n• Ability keys: {abilities}\n• Special damage **80-140**; effects: {effects}\n• One Custom Bey per player; server-side validation.",ephemeral=True)
         profile=await get_user(interaction.user.id); blade=profile.get("custom_bey")
         if not isinstance(blade,dict): return await interaction.response.send_message("❌ You don't have a Custom Bey yet. Use /custombey action:create.",ephemeral=True)
-        if act=="view": return await interaction.response.send_message(embed=_summary(blade),ephemeral=True)
+        if act=="view": return await interaction.response.send_message(embed=_summary(blade),view=CustomBeyView(interaction.user.id),ephemeral=True)
         if act=="equip":
             def equip(prof):
                 current=prof.get("custom_bey")
