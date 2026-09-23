@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from utils.database import get_user, mutate_user, get_beyblade
+from utils import bey_levels as BL
 from utils.inventory import require_room, InventoryFull
 from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, CUSTOM_TRIGGERS, SPECIAL_EFFECTS, STAT_TOTAL, allowed_triggers, build, CustomBeyError
 
@@ -18,6 +19,7 @@ def _summary(blade):
     e.add_field(name=f"Stats • {STAT_TOTAL}/{STAT_TOTAL}",value=f"❤️ HP **{s['hp']}**\n⚔️ ATK **{s['attack']}**\n🛡️ DEF **{s['defense']}**\n🌀 STM **{s['stamina']}**",inline=True)
     e.add_field(name=f"Abilities • {meta.get('ability_cost',0)}/{ABILITY_BUDGET}",value="\n".join("• "+x for x in abilities) if abilities else "None",inline=True)
     e.add_field(name=f"✨ {sm['name']}",value=f"Base damage **{sm['damage_per_hit']}**\n{sm.get('description','No secondary effect')}",inline=False)
+    e.add_field(name="📈 Level", value=f"Starts at **Level 1** • Max **{BL.MAX_LEVEL}**", inline=False)
     if blade.get("image_url"): e.set_thumbnail(url=blade["image_url"])
     return e
 
@@ -184,7 +186,9 @@ class AbilitySetupView(discord.ui.View):
                     raise CustomBeyError("You already own a Custom Bey. Delete it before creating another.")
                 require_room(profile, 1, blade["name"])
                 profile["custom_bey"] = blade
+                # Custom Beys live in the same inventory and level progression as normal Beys.
                 profile.setdefault("inventory", []).append(blade["name"])
+                BL.entry_for(profile, blade["name"])
                 return blade
             await mutate_user(interaction.user.id, save)
         except (CustomBeyError, InventoryFull) as exc:
@@ -196,30 +200,47 @@ class AbilitySetupView(discord.ui.View):
 
 class CustomBeyModal(discord.ui.Modal,title="Create Your Custom Bey"):
     name=discord.ui.TextInput(label="Bey name",placeholder="Dark Phoenix",max_length=32)
-    stats=discord.ui.TextInput(label="Stats: HP, ATK, DEF, STM",placeholder="100,100,100,95",max_length=32)
-    special=discord.ui.TextInput(label="Special: name | damage | effect",placeholder="Phoenix Break | 120 | heal",max_length=80)
-    image=discord.ui.TextInput(label="Image URL (optional)",required=False,placeholder="https://...",max_length=400)
+    hp=discord.ui.TextInput(label="HP",placeholder="100",max_length=3)
+    attack=discord.ui.TextInput(label="Attack",placeholder="100",max_length=3)
+    defense=discord.ui.TextInput(label="Defense",placeholder="100",max_length=3)
+    stamina=discord.ui.TextInput(label="Stamina",placeholder="95",max_length=3)
 
     def __init__(self,bey_type):
         super().__init__(); self.bey_type=bey_type
 
     async def on_submit(self,interaction):
         try:
-            vals=[int(x.strip()) for x in str(self.stats).split(",")]
-            if len(vals)!=4: raise ValueError
+            vals=[int(str(x).strip()) for x in (self.hp,self.attack,self.defense,self.stamina)]
         except (TypeError,ValueError):
-            return await interaction.response.send_message("❌ Stats must be HP,ATK,DEF,STM, for example 100,100,100,95.",ephemeral=True)
+            return await interaction.response.send_message("❌ HP, Attack, Defense and Stamina must each be a number.",ephemeral=True)
+        try:
+            # Validate stats now; Special and image are collected in the next step.
+            if any(v < 20 for v in vals):
+                raise CustomBeyError("Every stat must be at least 20.")
+            if sum(vals) != STAT_TOTAL:
+                raise CustomBeyError(f"HP + ATK + DEF + STM must equal exactly {STAT_TOTAL}; yours totals {sum(vals)}.")
+        except CustomBeyError as exc:
+            return await interaction.response.send_message(f"❌ {exc}",ephemeral=True)
+        await interaction.response.send_modal(CustomBeyDetailsModal(self.bey_type,str(self.name),vals))
+
+class CustomBeyDetailsModal(discord.ui.Modal,title="Custom Bey Details"):
+    special=discord.ui.TextInput(label="Special: name | damage | effect",placeholder="Phoenix Break | 120 | heal",max_length=80)
+    image=discord.ui.TextInput(label="Image URL",required=True,placeholder="https://...",max_length=400)
+
+    def __init__(self,bey_type,name,stats):
+        super().__init__(); self.bey_type=bey_type; self.name=name; self.stats=stats
+
+    async def on_submit(self,interaction):
         parts=[x.strip() for x in str(self.special).split("|")]
         if len(parts)!=3:
             return await interaction.response.send_message("❌ Special must be Name | damage | effect, for example Phoenix Break | 120 | heal.",ephemeral=True)
         try:
             damage=int(parts[1])
-            # Validate the non-ability fields before opening the selector.
-            build(str(self.name),self.bey_type,*vals,[],parts[0],damage,parts[2].lower(),str(self.image),[])
+            build(self.name,self.bey_type,*self.stats,[],parts[0],damage,parts[2].lower(),str(self.image),[])
         except (CustomBeyError,ValueError) as exc:
             return await interaction.response.send_message(f"❌ {exc}",ephemeral=True)
         draft={
-            "name":str(self.name), "bey_type":self.bey_type, "stats":vals,
+            "name":self.name, "bey_type":self.bey_type, "stats":self.stats,
             "special_name":parts[0], "special_damage":damage,
             "special_effect":parts[2].lower(), "image":str(self.image),
         }
@@ -252,7 +273,7 @@ class CustomBeyCog(commands.Cog):
             return await interaction.response.send_modal(CustomBeyModal(bey_type.value))
         if act=="rules":
             abilities=", ".join(f"{k} ({v['cost']})" for k,v in ABILITY_PRESETS.items()); effects=", ".join(SPECIAL_EFFECTS)
-            return await interaction.response.send_message(f"### 🛠️ Custom Bey Rules\n• HP + ATK + DEF + STM = **{STAT_TOTAL}** exactly.\n• No individual maximum; minimum **20** each.\n• Up to **2 abilities**, **{ABILITY_BUDGET}** ability points.\n• Ability keys: {abilities}\n• Ability effects and triggers are selected from the creation panel.\n• Triggers: {", ".join(CUSTOM_TRIGGERS)}\n• Special damage **80-140**; effects: {effects}\n• One Custom Bey per player; server-side validation.",ephemeral=True)
+            return await interaction.response.send_message(f"### 🛠️ Custom Bey Rules\n• HP + ATK + DEF + STM = **{STAT_TOTAL}** exactly.\n• No individual maximum; minimum **20** each.\n• Up to **2 abilities**, **{ABILITY_BUDGET}** ability points.\n• Ability keys: {abilities}\n• Ability effects and triggers are selected from the creation panel.\n• Triggers: {", ".join(CUSTOM_TRIGGERS)}\n• Special damage **80-140**; effects: {effects}\n• Image URL is required.\n• Custom Beys start at **Level 1**, use the normal Bey XP/level system, and go directly into your regular inventory.\n• One Custom Bey per player; server-side validation.",ephemeral=True)
         profile=await get_user(interaction.user.id); blade=profile.get("custom_bey")
         if not isinstance(blade,dict): return await interaction.response.send_message("❌ You don't have a Custom Bey yet. Use /custombey action:create.",ephemeral=True)
         if act=="view": return await interaction.response.send_message(embed=_summary(blade),view=CustomBeyView(interaction.user.id),ephemeral=True)
