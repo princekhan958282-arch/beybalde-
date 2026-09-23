@@ -160,6 +160,9 @@ class DamageFilter:
             mover_key, other_key, other_blade,
             move, dmg_dealt, is_first_hit, logs,
         )
+        tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
+        if tactical is not None:
+            dmg_dealt = tactical.mitigate(other_key, mover_key, move, dmg_dealt, logs)
 
         # ── Step 4b: Knockout resistance (% damage reduction) ─────────────────
         # Applied after shield so the reduction only affects damage that
@@ -412,7 +415,10 @@ class DamageFilter:
         extra = runtime(self.session)
         multiplier = extra.shield_multiplier(mover_key) if extra is not None else 1
         absorbed = sm.absorb_shield(other_key, math.ceil(dmg_dealt * multiplier))
+        tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
         dmg_dealt = max(0, dmg_dealt - math.ceil(absorbed / multiplier))
+        if tactical is not None:
+            tactical.shield_absorbed(mover_key, other_key, absorbed, dmg_dealt, logs)
         remaining  = sm.get_shield(other_key)
         logs.append(
             f"  🔵 **Shield** — {other_blade['name']}'s shield absorbed **{absorbed} dmg**! "

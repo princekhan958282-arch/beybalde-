@@ -386,6 +386,9 @@ class AttackManager:
             hp[k2] = max(0, hp[k2] - dmg_p1)
             if extra is not None:
                 extra.committed(k1, k2, m1, actual, logs)
+            tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
+            if tactical is not None:
+                tactical.committed(k1, k2, m1, actual, logs)
         if m2 not in (MOVE_STAMINA, MOVE_CHARGE):
             dmg_p2, _ctr, _avl = AVC.absorb_incoming(self.session, k1, k2, dmg_p2)
             logs.extend(_avl)
@@ -397,6 +400,8 @@ class AttackManager:
             hp[k1] = max(0, hp[k1] - dmg_p2)
             if extra is not None:
                 extra.committed(k2, k1, m2, actual, logs)
+            if tactical is not None:
+                tactical.committed(k2, k1, m2, actual, logs)
 
         # ── Apply counter-hit reflections ─────────────────────────────────────
         # counter_pN is non-zero only for Attack-vs-Defense hits.
