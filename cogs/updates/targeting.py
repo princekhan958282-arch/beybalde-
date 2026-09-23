@@ -63,8 +63,7 @@ def describe(audience: dict) -> str:
         bits.append(f"missed `{a.get('update_id')}`")
     elif kind == USERS:
         bits.append(f"{len(a.get('ids') or [])} named")
-    if a.get("skip_no_beys", True):
-        bits.append("owning at least one blade")
+    bits.append("owning at least one blade")
     return " · ".join(bits)
 
 
@@ -137,7 +136,9 @@ def resolve(bot, audience: dict) -> dict:
     ids = list(dict.fromkeys(_base_ids(bot, a)))
     before = len(ids)
     dropped = 0
-    if a.get("skip_no_beys", True) and ids:
+    # Update DMs are only for database players who own at least one Bey.
+    # This is mandatory rather than an audience option.
+    if ids:
         empty = S._store().ids_without_beys(ids)
         if empty:
             ids = [u for u in ids if u not in empty]

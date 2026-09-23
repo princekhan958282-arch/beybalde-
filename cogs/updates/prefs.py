@@ -80,8 +80,6 @@ def wants(profile: dict, *, event, priority) -> tuple[bool, str]:
     player chose and the other is a wall. Both would otherwise land in the
     ledger as BLOCKED with nothing to tell them apart.
     """
-    if overrides_optout(priority):
-        return True, ""
     key = switch_for(event)
     if get(profile, key):
         return True, ""
@@ -103,4 +101,4 @@ def summary(profile: dict) -> str:
     off = "🚫 off"
     return (f"📣 **Update DMs** — {on if get(profile, K_UPDATES) else off}\n"
             f"🎉 **Event DMs** — {on if get(profile, K_EVENTS) else off}\n"
-            f"-# ⚠️ Important and 🚨 Critical notices are always delivered.")
+            f"-# Turning these off stops those DM notifications.")
