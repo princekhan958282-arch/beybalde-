@@ -84,176 +84,193 @@ class CustomBeyView(discord.ui.View):
         await interaction.response.send_message(embed=browser.embed(), view=browser, ephemeral=True)
 
 
-class AbilitySetupView(discord.ui.View):
-    """Single ephemeral panel for choosing both Custom Bey abilities and triggers."""
-    def __init__(self, owner_id: int, draft: dict):
-        super().__init__(timeout=300)
-        self.owner_id = owner_id
-        self.draft = draft
-        self.effect1 = None
-        self.trigger1 = None
-        self.effect2 = None
-        self.trigger2 = None
-
-        effect_options = [
-            discord.SelectOption(label=v["label"], value=k, description=v["description"][:100])
-            for k, v in ABILITY_PRESETS.items()
-        ]
-        self.effect_one = discord.ui.Select(placeholder="Ability 1 effect", options=effect_options, row=0)
-        self.trigger_one = discord.ui.Select(
-            placeholder="Choose Ability 1 effect first", options=[
-                discord.SelectOption(label="Choose an effect first", value="pending")
-            ], disabled=True, row=1)
-        self.effect_two = discord.ui.Select(
-            placeholder="Ability 2 effect (optional)", options=[
-                discord.SelectOption(label="None", value="none", description="Use only one ability"),
-                *effect_options,
-            ], row=2)
-        self.trigger_two = discord.ui.Select(
-            placeholder="Choose Ability 2 effect first", options=[
-                discord.SelectOption(label="None", value="none", description="No second ability")
-            ], disabled=True, row=3)
-        self.effect_one.callback = self._effect_one
-        self.trigger_one.callback = self._trigger_one
-        self.effect_two.callback = self._effect_two
-        self.trigger_two.callback = self._trigger_two
-        self.add_item(self.effect_one)
-        self.add_item(self.trigger_one)
-        self.add_item(self.effect_two)
-        self.add_item(self.trigger_two)
-
-    async def interaction_check(self, interaction):
-        if interaction.user.id != self.owner_id:
-            await interaction.response.send_message("❌ This Custom Bey setup belongs to another player.", ephemeral=True)
-            return False
-        return True
-
-    def _trigger_options(self, effect_key, optional=False):
-        options = [
-            discord.SelectOption(label=k.replace("_", " ").title(), value=k)
-            for k in allowed_triggers(effect_key)
-        ]
-        if optional:
-            options.insert(0, discord.SelectOption(label="None", value="none", description="No second ability"))
-        return options
-
-    async def _effect_one(self, interaction):
-        self.effect1 = self.effect_one.values[0]
-        self.trigger1 = None
-        self.trigger_one.options = self._trigger_options(self.effect1)
-        self.trigger_one.disabled = False
-        self.trigger_one.placeholder = "Ability 1 trigger"
-        await interaction.response.edit_message(view=self)
-
-    async def _trigger_one(self, interaction):
-        self.trigger1 = self.trigger_one.values[0]
-        await interaction.response.defer()
-
-    async def _effect_two(self, interaction):
-        self.effect2 = None if self.effect_two.values[0] == "none" else self.effect_two.values[0]
-        self.trigger2 = None
-        if self.effect2:
-            self.trigger_two.options = self._trigger_options(self.effect2, optional=True)
-            self.trigger_two.disabled = False
-            self.trigger_two.placeholder = "Ability 2 trigger (optional)"
+class BuilderTextModal(discord.ui.Modal):
+    def __init__(self, builder, kind):
+        titles={"name":"Set Bey Name","stats":"Set Bey Stats","special":"Set Special Move","image_url":"Set Image URL","ability_name":"Name Ability"}
+        super().__init__(title=titles[kind])
+        self.builder=builder; self.kind=kind
+        if kind=="name":
+            self.value=discord.ui.TextInput(label="Bey name",placeholder="Dark Phoenix",max_length=32)
+            self.add_item(self.value)
+        elif kind=="stats":
+            self.hp=discord.ui.TextInput(label="HP",placeholder="100",max_length=3)
+            self.attack=discord.ui.TextInput(label="Attack",placeholder="100",max_length=3)
+            self.defense=discord.ui.TextInput(label="Defense",placeholder="100",max_length=3)
+            self.stamina=discord.ui.TextInput(label="Stamina",placeholder="95",max_length=3)
+            for item in (self.hp,self.attack,self.defense,self.stamina): self.add_item(item)
+        elif kind=="special":
+            self.special_name=discord.ui.TextInput(label="Special name",placeholder="Phoenix Break",max_length=32)
+            self.damage=discord.ui.TextInput(label="Base damage (80-140)",placeholder="120",max_length=3)
+            self.effect=discord.ui.TextInput(label="Effect: none | heal | shield",placeholder="none",max_length=10)
+            for item in (self.special_name,self.damage,self.effect): self.add_item(item)
+        elif kind=="image_url":
+            self.value=discord.ui.TextInput(label="Direct image URL",placeholder="https://...",max_length=400)
+            self.add_item(self.value)
         else:
-            self.trigger_two.options = [discord.SelectOption(label="None", value="none", description="No second ability")]
-            self.trigger_two.disabled = True
-            self.trigger_two.placeholder = "No second ability"
-        await interaction.response.edit_message(view=self)
-
-    async def _trigger_two(self, interaction):
-        self.trigger2 = None if self.trigger_two.values[0] == "none" else self.trigger_two.values[0]
-        await interaction.response.defer()
-
-    @discord.ui.button(label="Create Custom Bey", emoji="✅", style=discord.ButtonStyle.success, row=4)
-    async def create(self, interaction, button):
-        if not self.effect1 or not self.trigger1:
-            return await interaction.response.send_message("❌ Select Ability 1 effect and trigger.", ephemeral=True)
-        if bool(self.effect2) != bool(self.trigger2):
-            return await interaction.response.send_message("❌ Ability 2 needs both an effect and a trigger, or choose None for both.", ephemeral=True)
-        keys = [self.effect1] + ([self.effect2] if self.effect2 else [])
-        triggers = [self.trigger1] + ([self.trigger2] if self.trigger2 else [])
-        try:
-            blade = build(
-                self.draft["name"], self.draft["bey_type"], *self.draft["stats"],
-                keys, self.draft["special_name"], self.draft["special_damage"],
-                self.draft["special_effect"], self.draft["image"], triggers)
-            if get_beyblade(blade["name"]):
-                raise CustomBeyError("That name already belongs to an official Bey.")
-            def save(profile):
-                if profile.get("custom_bey"):
-                    raise CustomBeyError("You already own a Custom Bey. Delete it before creating another.")
-                require_room(profile, 1, blade["name"])
-                profile["custom_bey"] = blade
-                # Custom Beys live in the same inventory and level progression as normal Beys.
-                profile.setdefault("inventory", []).append(blade["name"])
-                BL.entry_for(profile, blade["name"])
-                return blade
-            await mutate_user(interaction.user.id, save)
-        except (CustomBeyError, InventoryFull) as exc:
-            return await interaction.response.send_message(f"❌ {exc}", ephemeral=True)
-        self.stop()
-        await interaction.response.edit_message(
-            content="✅ **Custom Bey created!** Use /custombey action:equip to equip it.",
-            embed=_summary(blade), view=CustomBeyView(interaction.user.id))
-
-class CustomBeyModal(discord.ui.Modal,title="Create Your Custom Bey"):
-    name=discord.ui.TextInput(label="Bey name",placeholder="Dark Phoenix",max_length=32)
-    hp=discord.ui.TextInput(label="HP",placeholder="100",max_length=3)
-    attack=discord.ui.TextInput(label="Attack",placeholder="100",max_length=3)
-    defense=discord.ui.TextInput(label="Defense",placeholder="100",max_length=3)
-    stamina=discord.ui.TextInput(label="Stamina",placeholder="95",max_length=3)
-
-    def __init__(self,bey_type):
-        super().__init__(); self.bey_type=bey_type
+            self.value=discord.ui.TextInput(label="Ability name",placeholder="Dragon Rage",max_length=32)
+            self.add_item(self.value)
 
     async def on_submit(self,interaction):
         try:
-            vals=[int(str(x).strip()) for x in (self.hp,self.attack,self.defense,self.stamina)]
-        except (TypeError,ValueError):
-            return await interaction.response.send_message("❌ HP, Attack, Defense and Stamina must each be a number.",ephemeral=True)
-        try:
-            # Validate stats now; Special and image are collected in the next step.
-            if any(v < 20 for v in vals):
-                raise CustomBeyError("Every stat must be at least 20.")
-            if sum(vals) != STAT_TOTAL:
-                raise CustomBeyError(f"HP + ATK + DEF + STM must equal exactly {STAT_TOTAL}; yours totals {sum(vals)}.")
-        except CustomBeyError as exc:
-            return await interaction.response.send_message(f"❌ {exc}",ephemeral=True)
-        await interaction.response.send_modal(CustomBeyDetailsModal(self.bey_type,str(self.name),vals))
-
-class CustomBeyDetailsModal(discord.ui.Modal,title="Custom Bey Details"):
-    special=discord.ui.TextInput(label="Special: name | damage | effect",placeholder="Phoenix Break | 120 | heal",max_length=80)
-    image=discord.ui.TextInput(label="Image URL",required=True,placeholder="https://...",max_length=400)
-
-    def __init__(self,bey_type,name,stats):
-        super().__init__(); self.bey_type=bey_type; self.name=name; self.stats=stats
-
-    async def on_submit(self,interaction):
-        parts=[x.strip() for x in str(self.special).split("|")]
-        if len(parts)!=3:
-            return await interaction.response.send_message("❌ Special must be Name | damage | effect, for example Phoenix Break | 120 | heal.",ephemeral=True)
-        try:
-            damage=int(parts[1])
-            build(self.name,self.bey_type,*self.stats,[],parts[0],damage,parts[2].lower(),str(self.image),[])
+            if self.kind=="name":
+                name=str(self.value).strip()
+                if len(name)<3: raise CustomBeyError("Bey name must be at least 3 characters.")
+                self.builder.draft["name"]=name
+            elif self.kind=="stats":
+                vals=[int(str(x).strip()) for x in (self.hp,self.attack,self.defense,self.stamina)]
+                if any(v<20 for v in vals): raise CustomBeyError("Every stat must be at least 20.")
+                if sum(vals)!=STAT_TOTAL: raise CustomBeyError(f"Stats must total {STAT_TOTAL}; yours total {sum(vals)}.")
+                self.builder.draft["stats"]=vals
+            elif self.kind=="special":
+                damage=int(str(self.damage).strip()); effect=str(self.effect).strip().lower()
+                if not 80<=damage<=140: raise CustomBeyError("Special base damage must be 80-140.")
+                if effect not in SPECIAL_EFFECTS: raise CustomBeyError("Special effect must be none, heal, or shield.")
+                self.builder.draft["special_name"]=str(self.special_name).strip()
+                self.builder.draft["special_damage"]=damage; self.builder.draft["special_effect"]=effect
+            elif self.kind=="image_url":
+                value=str(self.value).strip()
+                if not value.startswith(("http://","https://")): raise CustomBeyError("Enter a valid http/https image URL.")
+                self.builder.draft["image"]=value
+            else:
+                idx=self.builder.editing_ability
+                self.builder.abilities[idx]["name"]=str(self.value).strip()
         except (CustomBeyError,ValueError) as exc:
             return await interaction.response.send_message(f"❌ {exc}",ephemeral=True)
-        draft={
-            "name":self.name, "bey_type":self.bey_type, "stats":self.stats,
-            "special_name":parts[0], "special_damage":damage,
-            "special_effect":parts[2].lower(), "image":str(self.image),
-        }
-        view=AbilitySetupView(interaction.user.id,draft)
-        embed=discord.Embed(
-            title="⚙️ Choose Custom Bey Abilities",
-            description=(
-                "Select **Ability 1 + its trigger** and optionally **Ability 2 + its trigger** below.\n"
-                f"Ability budget: **{ABILITY_BUDGET} points**. The bot validates the final combination."
-            ),
-            colour=0x5865F2,
-        )
-        await interaction.response.send_message(embed=embed,view=view,ephemeral=True)
+        self.builder.mode="main" if self.kind!="ability_name" else "ability"
+        self.builder.rebuild()
+        await interaction.response.edit_message(embed=self.builder.embed(),view=self.builder)
+
+class CustomBeyBuilder(discord.ui.View):
+    def __init__(self,owner_id,bey_type):
+        super().__init__(timeout=600)
+        self.owner_id=owner_id; self.mode="main"; self.editing_ability=0
+        self.draft={"name":None,"bey_type":bey_type,"stats":None,"image":None,
+                    "special_name":None,"special_damage":None,"special_effect":None}
+        self.abilities=[{"name":None,"effect":None,"trigger":None},{"name":None,"effect":None,"trigger":None}]
+        self.rebuild()
+
+    async def interaction_check(self,interaction):
+        if interaction.user.id!=self.owner_id:
+            await interaction.response.send_message("❌ This builder belongs to another player.",ephemeral=True); return False
+        return True
+
+    def embed(self):
+        if self.mode=="ability":
+            a=self.abilities[self.editing_ability]; cfg=ABILITY_PRESETS.get(a["effect"] or "")
+            desc=cfg["description"] if cfg else "Choose an effect to see exactly what it does."
+            cost=cfg["cost"] if cfg else 0
+            triggers=", ".join(x.replace("_"," ").title() for x in allowed_triggers(a["effect"])) if a["effect"] else "Choose an effect first"
+            return discord.Embed(title=f"⚙️ Ability {self.editing_ability+1} Builder",
+                description=f"**Name:** {a['name'] or 'Not Set'}\n**Effect:** {(cfg or {}).get('label','Not Set')}\n**Effect details:** {desc}\n**Cost:** {cost}/{ABILITY_BUDGET}\n**Compatible triggers:** {triggers}",
+                colour=0x5865F2)
+        stats=self.draft["stats"]; total=sum(stats) if stats else 0
+        a1=self.abilities[0]; a2=self.abilities[1]
+        def aline(a):
+            cfg=ABILITY_PRESETS.get(a["effect"] or "")
+            return f"{a['name'] or 'Not Set'}" + (f" • {cfg['label']} • {(a['trigger'] or 'No trigger').replace('_',' ').title()}" if cfg else "")
+        e=discord.Embed(title="🛠️ CUSTOM BEY BUILDER",
+            description=f"**Name:** {self.draft['name'] or 'Not Set'}\n**Type:** {self.draft['bey_type']}\n**Level:** 1\n\n"
+                        f"❤️ **HP:** {stats[0] if stats else 'Not Set'}\n⚔️ **Attack:** {stats[1] if stats else 'Not Set'}\n"
+                        f"🛡️ **Defense:** {stats[2] if stats else 'Not Set'}\n🌀 **Stamina:** {stats[3] if stats else 'Not Set'}\n📊 **Total:** {total}/{STAT_TOTAL}\n\n"
+                        f"🖼️ **Image:** {'Set ✅' if self.draft['image'] else 'Not Set'}\n"
+                        f"⚙️ **Ability 1:** {aline(a1)}\n⚙️ **Ability 2:** {aline(a2)}\n"
+                        f"✨ **Special:** {self.draft['special_name'] or 'Not Set'}",
+            colour=0x9B59B6)
+        if self.draft["image"]: e.set_thumbnail(url=self.draft["image"])
+        return e
+
+    def button(self,label,emoji,callback,row=0,style=discord.ButtonStyle.secondary):
+        b=discord.ui.Button(label=label,emoji=emoji,style=style,row=row); b.callback=callback; self.add_item(b)
+
+    def rebuild(self):
+        self.clear_items()
+        if self.mode=="ability":
+            opts=[discord.SelectOption(label=v["label"],value=k,description=f"{v['description']} • {v['cost']} pts"[:100]) for k,v in ABILITY_PRESETS.items()]
+            effect=discord.ui.Select(placeholder="Ability Effect — view all 16 effects",options=opts,row=0); effect.callback=self.pick_effect; self.add_item(effect)
+            a=self.abilities[self.editing_ability]
+            trig_opts=[discord.SelectOption(label=x.replace("_"," ").title(),value=x) for x in allowed_triggers(a["effect"])] if a["effect"] else [discord.SelectOption(label="Choose an effect first",value="pending")]
+            trig=discord.ui.Select(placeholder="Activation Trigger",options=trig_opts,disabled=not bool(a["effect"]),row=1); trig.callback=self.pick_trigger; self.add_item(trig)
+            self.button("Name Ability","✏️",self.name_ability,row=2)
+            self.button("Ability Guide","📖",self.guide,row=2)
+            self.button("Back","⬅️",self.back,row=3)
+            if self.editing_ability==1: self.button("Clear Ability 2","🗑️",self.clear_ability,row=3,style=discord.ButtonStyle.danger)
+        else:
+            self.button("Name","✏️",self.set_name,row=0); self.button("Stats","📊",self.set_stats,row=0); self.button("Image","🖼️",self.image_menu,row=0)
+            self.button("Ability 1","1️⃣",self.ability1,row=1); self.button("Ability 2","2️⃣",self.ability2,row=1); self.button("Special","✨",self.set_special,row=1)
+            self.button("Create Bey","✅",self.create,row=2,style=discord.ButtonStyle.success)
+
+    async def set_name(self,i): await i.response.send_modal(BuilderTextModal(self,"name"))
+    async def set_stats(self,i): await i.response.send_modal(BuilderTextModal(self,"stats"))
+    async def set_special(self,i): await i.response.send_modal(BuilderTextModal(self,"special"))
+    async def name_ability(self,i): await i.response.send_modal(BuilderTextModal(self,"ability_name"))
+    async def ability1(self,i): self.editing_ability=0; self.mode="ability"; self.rebuild(); await i.response.edit_message(embed=self.embed(),view=self)
+    async def ability2(self,i): self.editing_ability=1; self.mode="ability"; self.rebuild(); await i.response.edit_message(embed=self.embed(),view=self)
+    async def back(self,i): self.mode="main"; self.rebuild(); await i.response.edit_message(embed=self.embed(),view=self)
+    async def clear_ability(self,i): self.abilities[1]={"name":None,"effect":None,"trigger":None}; self.mode="main"; self.rebuild(); await i.response.edit_message(embed=self.embed(),view=self)
+
+    async def pick_effect(self,i):
+        a=self.abilities[self.editing_ability]; a["effect"]=i.data["values"][0]; a["trigger"]=None
+        self.rebuild(); await i.response.edit_message(embed=self.embed(),view=self)
+    async def pick_trigger(self,i):
+        self.abilities[self.editing_ability]["trigger"]=i.data["values"][0]
+        await i.response.edit_message(embed=self.embed(),view=self)
+    async def guide(self,i):
+        browser=AbilityCatalogView(self.owner_id)
+        await i.response.send_message(embed=browser.embed(),view=browser,ephemeral=True)
+
+    async def image_menu(self,i):
+        view=ImageChoiceView(self)
+        await i.response.send_message("🖼️ **Set Custom Bey Image**\nChoose URL or upload an image from your device.",view=view,ephemeral=True)
+
+    async def create(self,i):
+        if not self.draft["name"] or not self.draft["stats"] or not self.draft["image"] or not self.draft["special_name"]:
+            return await i.response.send_message("❌ Complete Name, Stats, Image and Special first.",ephemeral=True)
+        a1,a2=self.abilities
+        if not all((a1["name"],a1["effect"],a1["trigger"])):
+            return await i.response.send_message("❌ Complete Ability 1: name, effect and trigger.",ephemeral=True)
+        if any(a2.values()) and not all(a2.values()):
+            return await i.response.send_message("❌ Complete all Ability 2 fields or clear Ability 2.",ephemeral=True)
+        chosen=[a1]+([a2] if all(a2.values()) else [])
+        keys=[a["effect"] for a in chosen]; triggers=[a["trigger"] for a in chosen]
+        try:
+            blade=build(self.draft["name"],self.draft["bey_type"],*self.draft["stats"],keys,
+                        self.draft["special_name"],self.draft["special_damage"],self.draft["special_effect"],self.draft["image"],triggers)
+            if get_beyblade(blade["name"]): raise CustomBeyError("That name already belongs to an official Bey.")
+            # Player-written ability names are cosmetic; the server-owned effect operation stays unchanged.
+            normal=[a for a in blade["abilities"] if not a.get("_custom_special_effect")]
+            for built,chosen_ability in zip(normal,chosen):
+                built["name"]=chosen_ability["name"]
+                for rule in built.get("rules",[]): rule["_name"]=chosen_ability["name"]
+            def save(profile):
+                if profile.get("custom_bey"): raise CustomBeyError("You already own a Custom Bey.")
+                require_room(profile,1,blade["name"]); profile["custom_bey"]=blade
+                profile.setdefault("inventory",[]).append(blade["name"]); BL.entry_for(profile,blade["name"])
+            await mutate_user(i.user.id,save)
+        except (CustomBeyError,InventoryFull) as exc:
+            return await i.response.send_message(f"❌ {exc}",ephemeral=True)
+        self.stop(); await i.response.edit_message(content="✅ **Custom Bey created and added to your inventory!**",embed=_summary(blade),view=CustomBeyView(i.user.id))
+
+class ImageChoiceView(discord.ui.View):
+    def __init__(self,builder):
+        super().__init__(timeout=120); self.builder=builder
+    async def interaction_check(self,i):
+        if i.user.id!=self.builder.owner_id:
+            await i.response.send_message("❌ This image setup belongs to another player.",ephemeral=True); return False
+        return True
+    @discord.ui.button(label="Image URL",emoji="🔗")
+    async def url(self,i,b): await i.response.send_modal(BuilderTextModal(self.builder,"image_url"))
+    @discord.ui.button(label="Upload Image",emoji="📤",style=discord.ButtonStyle.primary)
+    async def upload(self,i,b):
+        await i.response.send_message("📤 Upload **one image** in this channel within 60 seconds. I will use its Discord attachment URL.",ephemeral=True)
+        def check(m): return m.author.id==i.user.id and m.channel.id==i.channel.id and bool(m.attachments)
+        try: msg=await self.builder._client.wait_for("message",timeout=60,check=check)
+        except Exception: return await i.followup.send("❌ Image upload timed out. Press Image and try again.",ephemeral=True)
+        att=msg.attachments[0]
+        if not (att.content_type or "").startswith("image/"):
+            return await i.followup.send("❌ That attachment is not an image.",ephemeral=True)
+        self.builder.draft["image"]=att.url
+        await i.followup.send("✅ Image uploaded. Return to the builder and continue.",ephemeral=True)
+
 
 class CustomBeyCog(commands.Cog):
     def __init__(self,bot): self.bot=bot
@@ -270,7 +287,7 @@ class CustomBeyCog(commands.Cog):
             if bey_type is None: return await interaction.response.send_message("❌ Choose a bey_type when creating your Bey.",ephemeral=True)
             if (await get_user(interaction.user.id)).get("custom_bey"):
                 return await interaction.response.send_message("❌ You already own a Custom Bey. View or delete it first.",ephemeral=True)
-            return await interaction.response.send_modal(CustomBeyModal(bey_type.value))
+            builder=CustomBeyBuilder(interaction.user.id,bey_type.value); builder._client=self.bot\n            return await interaction.response.send_message(embed=builder.embed(),view=builder,ephemeral=True)
         if act=="rules":
             abilities=", ".join(f"{k} ({v['cost']})" for k,v in ABILITY_PRESETS.items()); effects=", ".join(SPECIAL_EFFECTS)
             return await interaction.response.send_message(f"### 🛠️ Custom Bey Rules\n• HP + ATK + DEF + STM = **{STAT_TOTAL}** exactly.\n• No individual maximum; minimum **20** each.\n• Up to **2 abilities**, **{ABILITY_BUDGET}** ability points.\n• Ability keys: {abilities}\n• Ability effects and triggers are selected from the creation panel.\n• Triggers: {", ".join(CUSTOM_TRIGGERS)}\n• Special damage **80-140**; effects: {effects}\n• Image URL is required.\n• Custom Beys start at **Level 1**, use the normal Bey XP/level system, and go directly into your regular inventory.\n• One Custom Bey per player; server-side validation.",ephemeral=True)
