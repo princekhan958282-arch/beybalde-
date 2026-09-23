@@ -48,7 +48,7 @@ class NotificationCog(commands.Cog, name="Notifications"):
         # this a button pressed after a restart does nothing at all — the view
         # it belonged to died with the previous process.
         try:
-            self.bot.add_dynamic_items(R.ReportButton)
+            self.bot.add_dynamic_items(R.ReportButton, W.UpdateDMButton)
         except Exception:                                # noqa: BLE001
             log.exception("[updates] could not register report buttons")
         self.delivery_loop.start()
