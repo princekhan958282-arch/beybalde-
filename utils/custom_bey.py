@@ -39,6 +39,22 @@ ABILITY_PRESETS = {
     "crit_damage": {"label":"Critical Power","cost":20,"description":"Increase critical damage.","op":{"op":"crit_damage","value":0.2}},
     "cleanse": {"label":"Cleanse","cost":20,"description":"Cleanse negative effects when triggered.","op":{"op":"cleanse"}},
 }
+# Effects that modify the current damage packet need a combat/damage trigger.
+# Stateful/recovery effects can safely activate from any exposed player trigger.
+DAMAGE_TRIGGERS = ("attack_win", "attack_hit", "defense_win", "stamina_win", "any_win", "special")
+ABILITY_TRIGGER_COMPAT = {
+    "bonus_damage": DAMAGE_TRIGGERS,
+    "bonus_damage_pct": DAMAGE_TRIGGERS,
+    "true_damage": DAMAGE_TRIGGERS,
+    "ignore_defense": DAMAGE_TRIGGERS,
+    "crit_chance": DAMAGE_TRIGGERS,
+    "crit_damage": DAMAGE_TRIGGERS,
+}
+ALL_CUSTOM_TRIGGER_KEYS = tuple(CUSTOM_TRIGGERS)
+
+def allowed_triggers(effect_key: str) -> tuple[str, ...]:
+    return ABILITY_TRIGGER_COMPAT.get(effect_key, ALL_CUSTOM_TRIGGER_KEYS)
+
 ABILITY_BUDGET = 40
 
 SPECIAL_EFFECTS = {
@@ -91,6 +107,12 @@ def validate(name: str, bey_type: str, hp: int, attack: int, defense: int,
     unknown_triggers = [t for t in triggers if t not in CUSTOM_TRIGGERS]
     if unknown_triggers:
         raise CustomBeyError("Unknown ability trigger: " + ", ".join(unknown_triggers))
+    incompatible = [
+        f"{key}@{trigger}" for key, trigger in zip(keys, triggers)
+        if trigger not in allowed_triggers(key)
+    ]
+    if incompatible:
+        raise CustomBeyError("Incompatible ability trigger: " + ", ".join(incompatible))
     cost = sum(ABILITY_PRESETS[k]["cost"] for k in keys)
     if cost > ABILITY_BUDGET:
         raise CustomBeyError(f"Ability cost is {cost}/{ABILITY_BUDGET}; choose a cheaper combination.")
