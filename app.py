@@ -115,7 +115,8 @@ COGS = [
     "cogs.economy",    # Shop, Profile
     "cogs.ranked",     # Ranked ladder, leaderboards, verification
     "cogs.spawn",      # Wild spawns & claiming
-    "cogs.ui",         # Help & logging\n    "cogs.custom_bey", # /custombey player-created Bey builder
+    "cogs.ui",         # Help & logging
+    "cogs.custom_bey", # /custombey player-created Bey builder
     "cogs.admin",      # /admin panel + ;sync ;reload ;version
     "cogs.avatar",     # Avatar system (optional)
     # ── Casino ──────────────────────────────────────────────
