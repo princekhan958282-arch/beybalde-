@@ -44,7 +44,10 @@ happen and to whom.
 
 from __future__ import annotations
 
+import json
 import logging
+import os
+import re
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -188,6 +191,78 @@ class AdminCog(commands.Cog, name="Admin"):
                            interaction.channel)
         await interaction.response.send_message(embed=panel.embed(), view=panel,
                                                 ephemeral=True)
+
+    @app_commands.command(
+        name="checkbeyassets",
+        description="[Admin] Find Beys missing from the local assets/beys folder")
+    async def check_bey_assets(self, interaction: discord.Interaction) -> None:
+        """Compare the authored Bey roster with the live local Bey art folder."""
+        if not A.is_admin(interaction.user):
+            return await interaction.response.send_message(
+                "Not authorized.", ephemeral=True)
+
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        root = os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))))
+        roster_path = os.path.join(root, "data", "beyblades.json")
+        assets_dir = os.path.join(root, "assets", "beys")
+
+        try:
+            with open(roster_path, encoding="utf-8") as fh:
+                roster = json.load(fh)
+        except (OSError, json.JSONDecodeError) as exc:
+            return await interaction.followup.send(
+                f"⚠️ Could not read Bey database: `{type(exc).__name__}`",
+                ephemeral=True)
+
+        if not os.path.isdir(assets_dir):
+            return await interaction.followup.send(
+                "⚠️ `assets/beys/` does not exist on this bot install.",
+                ephemeral=True)
+
+        def key(value: str) -> str:
+            # Match names independent of spaces, punctuation, case and file
+            # extension: "Aegis Valorian" == "Aegis Valorian.png".
+            return re.sub(r"[^a-z0-9]+", "", str(value).lower())
+
+        image_exts = {".png", ".jpg", ".jpeg", ".webp"}
+        local = set()
+        for filename in os.listdir(assets_dir):
+            stem, ext = os.path.splitext(filename)
+            if ext.lower() in image_exts:
+                local.add(key(stem))
+
+        missing = []
+        for roster_key, data in roster.items():
+            name = (data or {}).get("name") or roster_key
+            if key(name) not in local and key(roster_key) not in local:
+                missing.append(str(name))
+        missing.sort(key=str.casefold)
+
+        total = len(roster)
+        present = total - len(missing)
+        if not missing:
+            return await interaction.followup.send(
+                f"✅ **Bey Asset Check**\nAll **{total}** database Beys have a "
+                "local asset in `assets/beys/`.",
+                ephemeral=True)
+
+        header = (f"🖼️ **Bey Asset Check**\n"
+                  f"Database: **{total}** · Found: **{present}** · "
+                  f"Missing: **{len(missing)}**\n\n")
+        chunks, current = [], header
+        for name in missing:
+            line = f"• {name}\n"
+            if len(current) + len(line) > 1900:
+                chunks.append(current)
+                current = ""
+            current += line
+        if current:
+            chunks.append(current)
+
+        await interaction.followup.send(chunks[0], ephemeral=True)
+        for chunk in chunks[1:]:
+            await interaction.followup.send(chunk, ephemeral=True)
 
     # ── the three recovery commands ──────────────────────────────────────────
     #
