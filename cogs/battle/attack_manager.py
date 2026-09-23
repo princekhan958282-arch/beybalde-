@@ -375,6 +375,7 @@ class AttackManager:
         # Immortality is checked last, on whatever actually got through.
         from cogs.abilities.extended_effects import runtime
         extra = runtime(self.session)
+        tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
         if m1 not in (MOVE_STAMINA, MOVE_CHARGE):
             dmg_p1, _ctr, _avl = AVC.absorb_incoming(self.session, k2, k1, dmg_p1)
             logs.extend(_avl)
@@ -386,7 +387,6 @@ class AttackManager:
             hp[k2] = max(0, hp[k2] - dmg_p1)
             if extra is not None:
                 extra.committed(k1, k2, m1, actual, logs)
-            tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
             if tactical is not None:
                 tactical.committed(k1, k2, m1, actual, logs)
         if m2 not in (MOVE_STAMINA, MOVE_CHARGE):
@@ -852,7 +852,8 @@ class AttackManager:
             # a CONDITIONAL pierce granted by `special_pierce_pct` (e.g. "only
             # if the enemy is below 40% HP") only exists from this point on.
             _pierce_pct = max(0.0, min(100.0, _static_pierce_pct
-                                       + ab_eng.special_pierce_pct.pop(mkey, 0.0)))
+                                       + ab_eng.special_pierce_pct.pop(mkey, 0.0)
+                                       + ab_eng.tactical.special_defense_pierce(mkey)))
 
             # Type defense mitigation (skipped if special pierces defense or
             # defender's type bonus is not active for this matchup)

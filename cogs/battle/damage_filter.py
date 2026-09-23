@@ -100,6 +100,8 @@ class DamageFilter:
         dmg_dealt:   int,
         dmg_taken:   int,
         is_first_hit: bool = True,
+        matchup: str = "",
+        is_last_hit: bool = True,
     ) -> tuple[int, int, list[str], bool]:
         """Run steps 1–4 of the resolution order.
 
@@ -121,6 +123,11 @@ class DamageFilter:
             self._step1_tick(mover_key, logs)
 
         mover_silenced = self._sm.is_silenced(mover_key)
+        tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
+        if tactical is not None and not mover_silenced:
+            dmg_dealt = tactical.before_damage(
+                mover_key, other_key, move, matchup, dmg_dealt, logs,
+                is_first_hit, is_last_hit)
 
         # Announce silence once — without this guard, a multi-hit Special would
         # emit "Ability Sealed" on every hit instead of once.

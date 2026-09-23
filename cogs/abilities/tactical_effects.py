@@ -80,8 +80,9 @@ class TacticalEffects:
             old = self.session.stamina_manager.gauge.get(key, 0)
             overflow = max(0, old + gain - SPECIAL_GAUGE_MAX)
             d = self.data(key, "charge_overflow")
-            if overflow and d.get("round") != getattr(self.session, "round", 0):
-                self.session.status.add_shield(key, overflow // 2)
+            shield = overflow // 2
+            if shield and d.get("round") != getattr(self.session, "round", 0):
+                self.session.status.add_shield(key, shield)
                 d["round"] = getattr(self.session, "round", 0)
         return gain
 
@@ -90,7 +91,9 @@ class TacticalEffects:
             return 0
         d = self.data(key, "emergency_reserve")
         current = self.session.stamina_manager.stamina.get(key, 0)
-        shortage = max(0, cost - current)
+        # Leaving exactly zero Stamina causes an immediate Stamina KO later in
+        # the same real round. The HP payment must cover a minimal spin margin.
+        shortage = round(max(0, cost - current) + .01, 2)
         payment = math.ceil(shortage * 2)
         d["used"] = True
         self.session.hp[key] -= payment
@@ -99,8 +102,9 @@ class TacticalEffects:
     def can_pay_shortfall(self, key, cost):
         if not self.has(key, "emergency_reserve"):
             return False
-        shortage = max(0, cost - self.session.stamina_manager.stamina.get(key, 0))
-        return (shortage > 0 and not self.data(key, "emergency_reserve").get("used")
+        needed = cost - self.session.stamina_manager.stamina.get(key, 0)
+        shortage = round(max(0, needed) + .01, 2)
+        return (needed > 0 and not self.data(key, "emergency_reserve").get("used")
                 and self.session.hp.get(key, 0) > math.ceil(shortage * 2))
 
     def special_spent(self, key, spent):
@@ -144,7 +148,10 @@ class TacticalEffects:
             d = self.data(key, "exposed_core")
             if d.pop("ready", False):
                 d["consuming"] = True
-                enemy_stats["defense"] = max(0, enemy_stats["defense"] * .90)
+                if move == "attack":
+                    enemy_stats["defense"] = max(0, enemy_stats["defense"] * .90)
+                else:
+                    d["special_pierce"] = True
                 logs.append("🎯 Exposed Core cuts through 10% Defense.")
         if self.has(key, "guard_fracture") and enemy_move == "defense":
             if self.data(key, "guard_fracture").pop("ready", False):
@@ -234,6 +241,11 @@ class TacticalEffects:
             incoming = math.ceil(incoming * .90)
         return incoming
 
+    def special_defense_pierce(self, key):
+        """Extra pierce applied to every hit of this Special's type mitigation."""
+        return 10 if (self.has(key, "exposed_core") and
+                      self.data(key, "exposed_core").get("special_pierce")) else 0
+
     def shield_absorbed(self, attacker, defender, amount, through, logs):
         if amount <= 0:
             return
@@ -245,9 +257,13 @@ class TacticalEffects:
                 d["gained"] = d.get("gained", 0) + gained
                 self.add_gauge(defender, gained)
         if through > 0 and self.has(attacker, "exposed_core"):
-            self.data(attacker, "exposed_core")["ready"] = True
+            self.data(attacker, "exposed_core")["candidate"] = True
 
     def committed(self, attacker, defender, move, actual, logs):
+        if self.has(attacker, "exposed_core"):
+            d = self.data(attacker, "exposed_core")
+            if d.pop("candidate", False) and actual > 0:
+                d["ready"] = True
         if actual <= 0:
             return
         self.round_hits[attacker] = self.round_hits.get(attacker, 0) + actual
@@ -285,7 +301,7 @@ class TacticalEffects:
             d = self.data(key, "guard_fracture")
             if move == "defense" and matchup == "win":
                 d["wins"] = d.get("wins", 0) + 1
-            if d["wins"] >= 2:
+            if d.get("wins", 0) >= 2:
                 d["ready"] = True
                 d["wins"] = 0
         if self.has(key, "precision_window") and move == "attack" and matchup == "win":
@@ -315,6 +331,15 @@ class TacticalEffects:
         if self.has(key, "battle_tempo"):
             d = self.data(key, "battle_tempo")
             d["skipped"] = 0 if move == "charge" else min(3, d.get("skipped", 0) + 1)
+        if self.has(key, "sacrificial_guard") and move == "defense" and matchup == "win":
+            # A one-on-one trade: spend HP now to protect this Bey next round.
+            # Never spend the last HP, and refresh only once per round.
+            hp = self.session.hp
+            cost = min(25, max(0, hp.get(key, 0) - 1))
+            if cost > 0:
+                hp[key] -= cost
+                self.session.status.add_shield(key, cost * 2)
+                logs.append(f"🛡️ Sacrificial Guard spends {cost} HP for a {cost * 2} shield.")
         if self.has(key, "shield_momentum"):
             self.data(key, "shield_momentum")["gained"] = 0
             self.data(key, "shield_momentum")["absorbed"] = 0
@@ -322,20 +347,10 @@ class TacticalEffects:
             d = self.data(key, "exposed_core")
             if d.pop("consuming", False):
                 d["ready"] = True
+            d.pop("special_pierce", None)
         if self.has(key, "pattern_reader"):
             self.data(key, "pattern_reader").pop("against", None)
         if self.has(key, "perfect_timing") and move == "special":
             self.data(key, "perfect_timing")["was_ready"] = False
         self.previous[key] = move
         self.history[key] = (self.history.get(key, []) + [move])[-2:]
-
-    def redirect_ally_damage(self, protector, target, damage, protection_active=False):
-        """Team-mode hook: caller applies returned (target, protector) damage.
-
-        No current one-on-one resolver has an ally target. The hook remains
-        inert until a future team resolver supplies one explicitly.
-        """
-        if protector == target or not protection_active or not self.has(protector, "sacrificial_guard"):
-            return damage, 0
-        amount = min(25, max(0, int(damage)))
-        return damage - amount, amount
