@@ -58,6 +58,7 @@ from cogs.battle.damage_filter import DamageFilter
 from cogs.battle import purification
 from .legacy_convert import legacy_convert
 from .extended_effects import ExtendedEffects, OPS as EXTENDED_OPS
+from .tactical_effects import TacticalEffects, OPS as TACTICAL_OPS
 
 # ── Vocabulary ────────────────────────────────────────────────────────────────
 
@@ -128,6 +129,7 @@ class AbilityEngine:
         self.st      = session.status                 # StatusManager
         self.damage_filter = DamageFilter(session)
         self.extended = ExtendedEffects(self)
+        self.tactical = TacticalEffects(self)
 
         # ── Generic rule state (the ONLY ability memory that exists) ─────────
         self.counters:   dict[tuple[str, str], int] = {}   # (key, name) -> value
@@ -759,6 +761,9 @@ class AbilityEngine:
                 dmg_dealt, dmg_taken = self.extended.execute(
                     op, ab_name, key, okey, move, dmg_dealt, dmg_taken, logs, matchup)
                 continue
+            if kind in TACTICAL_OPS:
+                self.tactical.register(op, key, logs)
+                continue
             val  = self._amped(key, op, op.get("value", 0))
 
             # ── outgoing damage ──────────────────────────────────────────────
@@ -1266,6 +1271,7 @@ class AbilityEngine:
                     cleared = self.st.cleanse_one(key)
                     if cleared:
                         logs.append(f"🧼 **{ab_name}** — cleansed {cleared}!")
+                        self.tactical.cleansed(key, cleared)
                     else:
                         break
             elif kind == "start_cooldown":
@@ -1823,6 +1829,8 @@ class AbilityEngine:
         extended = getattr(self, "extended", None)
         if extended is not None:
             dmg_dealt = extended.before_hit(mover_key, dmg_dealt, is_first_hit)
+        dmg_dealt = self.tactical.before_damage(
+            mover_key, other_key, move, matchup, dmg_dealt, logs, is_first_hit, is_last_hit)
 
         # Steps 1–4: buffs tick, ATK buffs & amp, invuln, shields (unchanged)
         dmg_dealt, dmg_taken, f_logs, mover_silenced = self.damage_filter.run(
@@ -1899,6 +1907,8 @@ class AbilityEngine:
 
             # engine-side ability crit (crit_chance / crit_damage ops)
             p = self.crit_chance_bonus.get(mover_key, 0.0)
+            if is_first_hit:
+                p += self.tactical.crit_bonus(mover_key, move)
             if p > 0 and dmg_dealt > 0 and matchup == "win" and is_first_hit \
                     and random.random() < min(0.95, p):
                 mult = self.crit_damage_mult.get(mover_key, 1.5)

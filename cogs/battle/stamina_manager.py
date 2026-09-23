@@ -288,6 +288,12 @@ class StaminaManager:
     def deduct_cost(self, key: str, move: str) -> list[str]:
         """Deduct the stamina cost for the given move. Returns log lines."""
         cost, note = self._cost_and_note(key, move)
+        tactical = getattr(self, "tactical_runtime", None)
+        if tactical is not None:
+            shortfall = tactical.cost_shortfall(key, cost)
+            if shortfall:
+                self.stamina[key] += shortfall
+                note += f" *(Emergency Reserve paid {math.ceil(shortfall * 2)} HP)*"
         if cost <= 0:
             return []
         self.stamina[key] = round(max(0.0, self.stamina.get(key, 0.0) - cost), 2)
@@ -389,6 +395,9 @@ class StaminaManager:
         # the same GAUGE_PER_* constants the literal map used to hold, so the
         # 113 blades that have not opted in gain exactly what they always did.
         gain = button_profile.gauge_gain(self._blades.get(key), source)
+        tactical = getattr(self, "tactical_runtime", None)
+        if tactical is not None:
+            gain = tactical.gauge_gain(key, gain, source)
         self.gauge[key] = min(SPECIAL_GAUGE_MAX, self.gauge.get(key, 0) + gain)
 
     def gauge_ready(self, key: str) -> bool:
@@ -434,4 +443,7 @@ class StaminaManager:
         """
         if move not in STAMINA_COST:
             raise ValueError(f"Unknown move: {move}. Valid moves: {list(STAMINA_COST.keys())}")
-        return self.stamina.get(key, 0.0) >= self.cost_for(key, move)
+        cost = self.cost_for(key, move)
+        tactical = getattr(self, "tactical_runtime", None)
+        return (self.stamina.get(key, 0.0) >= cost or
+                (tactical is not None and tactical.can_pay_shortfall(key, cost)))

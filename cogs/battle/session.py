@@ -1078,6 +1078,9 @@ class BattleSession:
         sm     = self.stamina_manager
 
         round_log: list[str] = []
+        tactical = self.ability.tactical
+        tactical.round_start(k1, k2, m1, m2, s1, s2, round_log)
+        tactical.round_start(k2, k1, m2, m1, s2, s1, round_log)
 
         # ── Round-start stamina regen from active buffs (e.g. Cosmic Mode) ───
         for _key in (k1, k2):
@@ -1194,6 +1197,8 @@ class BattleSession:
             dmg_p2, counter_p2, matchup_p2,
         )
         round_log.extend(hp_logs)
+        tactical.round_end(k1, k2, m1, m2, matchup_p1, round_log)
+        tactical.round_end(k2, k1, m2, m1, matchup_p2, round_log)
 
         # ── Intermediate ring-out check (ability-driven stability drops) ──────
         # apply_pair_results may trigger on_win / on_special abilities that drain

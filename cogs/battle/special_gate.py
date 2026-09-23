@@ -188,6 +188,9 @@ def spend(session: Any, key: str, blade: Optional[dict]) -> int:
     try:
         sm = session.stamina_manager
         sm.gauge[key] = max(0, int(sm.gauge.get(key, 0)) - cost)
+        tactical = getattr(getattr(session, "ability", None), "tactical", None)
+        if tactical is not None:
+            tactical.special_spent(key, cost)
     except Exception:                                    # noqa: BLE001
         log.debug("could not deduct special gauge for %s", key, exc_info=True)
         cost = 0

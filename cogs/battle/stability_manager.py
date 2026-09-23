@@ -389,6 +389,9 @@ class StabilityManager:
                     break
 
         old = self.stability.get(key, STABILITY_DEFAULT)
+        tactical = getattr(self, "tactical_runtime", None)
+        if tactical is not None and delta < 0:
+            delta = tactical.prevent_ring_out(key, old, delta)
         cap = self.max.get(key, STABILITY_DEFAULT)
         new = max(0, min(cap, old + delta))
         self.stability[key] = new

@@ -131,8 +131,7 @@ def affordable(session, key: str, move: str) -> bool:
     # blade's stats — so reading it here cleared moves at the base price that
     # `deduct_cost` then charged at the scaled one, which is precisely the
     # stamina KO this function exists to prevent (see the module docstring).
-    have = float(session.stamina_manager.stamina.get(key, 0.0))
-    return have >= float(session.stamina_manager.cost_for(key, move))
+    return session.stamina_manager.can_afford(key, move)
 
 
 def legal_moves(session, key: str) -> list[str]:
