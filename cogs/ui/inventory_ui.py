@@ -160,7 +160,7 @@ class InventoryView(discord.ui.View):
         # which also only reads.
         for nm in prof.get("inventory", []):
             name  = nm.get("name") if isinstance(nm, dict) else nm
-            blade = beyblade_ref(str(name)) or {}
+            blade = (custom if custom and str(name).lower() == str(custom.get("name", "")).lower()\n                     else beyblade_ref(str(name))) or {}
             beys.append({
                 "kind": "bey", "name": str(name),
                 "rarity": blade.get("rarity", "?"),
