@@ -1829,13 +1829,12 @@ class AbilityEngine:
         extended = getattr(self, "extended", None)
         if extended is not None:
             dmg_dealt = extended.before_hit(mover_key, dmg_dealt, is_first_hit)
-        dmg_dealt = self.tactical.before_damage(
-            mover_key, other_key, move, matchup, dmg_dealt, logs, is_first_hit, is_last_hit)
 
         # Steps 1–4: buffs tick, ATK buffs & amp, invuln, shields (unchanged)
         dmg_dealt, dmg_taken, f_logs, mover_silenced = self.damage_filter.run(
             mover_key, other_key, mover_blade, other_blade,
             move, dmg_dealt, dmg_taken, is_first_hit=is_first_hit,
+            matchup=matchup, is_last_hit=is_last_hit,
         )
         logs.extend(f_logs)
 

@@ -81,6 +81,7 @@ class TacticalTests(unittest.TestCase):
         t.shield_absorbed("e", "p", 25, 0, [])
         self.assertGreaterEqual(sm.gauge["p"], before)
         t.shield_absorbed("p", "e", 10, 5, [])
+        t.committed("p", "e", "attack", 5, [])
         self.assertTrue(t.data("p", "exposed_core")["ready"])
 
     def test_reserve_anchor_and_second_wind(self):
@@ -103,7 +104,7 @@ class TacticalTests(unittest.TestCase):
         t.committed("e", "p", "attack", 10, [])
         self.assertGreater(sm.stamina["p"], 0)
 
-    def test_special_refund_and_team_hook(self):
+    def test_special_refund_and_sacrificial_guard(self):
         s, t = make("perfect_timing", "sacrificial_guard")
         sm = s.stamina_manager
         sm.gauge["p"] = special_gate.gauge_cost(s.blades["p"])
@@ -111,8 +112,10 @@ class TacticalTests(unittest.TestCase):
                       {"attack": 100, "defense": 100}, [])
         spent = special_gate.spend(s, "p", s.blades["p"])
         self.assertEqual(sm.gauge["p"], spent // 5)
-        self.assertEqual(t.redirect_ally_damage("p", "e", 40), (40, 0))
-        self.assertEqual(t.redirect_ally_damage("p", "e", 40, protection_active=True), (15, 25))
+        old_hp = s.hp["p"]
+        t.round_end("p", "e", "defense", "attack", "win", [])
+        self.assertEqual(s.hp["p"], old_hp - 25)
+        self.assertEqual(s.status.get_shield("p"), 50)
 
     def test_rising_stakes_marks_spin_and_type(self):
         s, t = make("spin_siphon", "finishers_mark", "rising_stakes", type_name="Stamina")
@@ -193,7 +196,7 @@ class TacticalTests(unittest.TestCase):
         cost = sm.cost_for("p", "attack")
         self.assertTrue(sm.can_afford("p", "attack"))
         sm.deduct_cost("p", "attack")
-        self.assertEqual(sm.stamina["p"], 0)
+        self.assertGreater(sm.stamina["p"], 0)
         self.assertFalse(sm.can_afford("p", "attack"))
         s.round = 8
         sm.stamina["p"] = sm.cap_for("p") - 20

@@ -30,11 +30,11 @@ roster authoring rule; these ops are choices, not an automatic grant of 25.
 | `perfect_timing` | Special used on its first available turn: refund 20% of its gauge cost after payment. |
 | `rising_stakes` | Lost clash adds a stack (max 4); next winning damaging action consumes for +5% each. |
 | `battle_tempo` | No Charge for three turns: next Charge gets +20 gauge. |
-| `sacrificial_guard` | Team-mode adapter `redirect_ally_damage(protector, ally, damage, protection_active=True)`: shift up to 25 incoming damage to the protector. One-on-one battles have no ally and do not activate this effect. |
+| `sacrificial_guard` | Defense win in one-on-one: spend up to 25 HP (never the last HP) and gain a shield worth twice that amount for the next hit. |
 | `stability_anchor` | Defense type only: first Stability loss that would cause ring-out leaves 1 Stability. |
 | `precision_window` | Attack type only: Attack win gives the next Attack +10 percentage points to the ability crit roll. |
 | `spin_siphon` | Stamina type only: Stamina win transfers up to 2 Stamina from foe, once per round. |
-| `exposed_core` | Damage through a shield primes the next Attack or Special to use 10% less enemy DEF; a fully absorbed hit does not prime it. |
+| `exposed_core` | Damage through a shield primes the next Attack to use 10% less enemy DEF, or the next Special to pierce 10% of type Defense mitigation on each hit. A fully absorbed hit does not prime it. |
 | `comeback_circuit` | Behind in HP percentage and Stamina at round start: +12% to normal gauge gains (rounded to whole points). |
 | `measured_strike` | Direct hit exceeding 25% of target max HP primes next damaging action for -15% damage and +8 Stamina. |
 | `final_rotation` | At start of turn 8 or later: restore 15 Stamina if missing at least 15; otherwise gain 25 Charge. Once per battle. |
@@ -45,7 +45,7 @@ mutation. BattleSession owns the action-history and end-of-round hooks.
 Damage changes pass through the normal shield, HP, revival and finish paths.
 
 PvP and Story use the shared resolver. The separately implemented boss
-resolver does not execute these operations. Sacrificial Guard is an adapter
-for a future ally-capable resolver and has no one-on-one activation.
+resolver does not execute these operations. Sacrificial Guard is a one-on-one
+HP-for-shield trade and has no ally target.
 
 Focused checks: `python tools/sim_tactical_effects.py`.
