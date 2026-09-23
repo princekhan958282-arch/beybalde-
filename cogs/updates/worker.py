@@ -101,7 +101,7 @@ def build_embed(upd: dict) -> discord.Embed:
 
 
 class UpdateDMButton(discord.ui.DynamicItem[discord.ui.Button],
-                     template=r"beyupdate:(?P<uid>\\d+):(?P<update>[A-Za-z0-9_]+):(?P<act>off|interested)"):
+                     template=r"beyupdate:(?P<uid>\d+):(?P<update>[A-Za-z0-9_]+):(?P<act>off|interested)"):
     """Persistent actions attached to every update DM."""
 
     def __init__(self, user_id: int, update_id: str, action: str) -> None:
