@@ -196,7 +196,8 @@ class DeliveryWorker:
             return RETRY, f"fetch failed: {exc}"
 
         try:
-            await user.send(embed=build_embed(upd),\n                            view=update_dm_view(uid, upd["update_id"]))
+            await user.send(embed=build_embed(upd),
+                            view=update_dm_view(uid, upd["update_id"]))
             return SENT, ""
         except discord.Forbidden:
             # DMs closed, or no shared server. Terminal: retrying cannot
