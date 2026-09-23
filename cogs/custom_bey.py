@@ -270,6 +270,10 @@ class ImageChoiceView(discord.ui.View):
         if not (att.content_type or "").startswith("image/"):
             return await i.followup.send("❌ That attachment is not an image.",ephemeral=True)
         self.builder.draft["image"]=att.url
+        self.builder.rebuild()
+        if getattr(self.builder,"_message",None):
+            try: await self.builder._message.edit(embed=self.builder.embed(),view=self.builder)
+            except Exception: pass
         await i.followup.send("✅ Image uploaded. Return to the builder and continue.",ephemeral=True)
 
 
@@ -372,7 +376,7 @@ class CustomBeyCog(commands.Cog):
             return
         if act=="rules":
             abilities=", ".join(f"{k} ({v['cost']})" for k,v in ABILITY_PRESETS.items()); effects=", ".join(SPECIAL_EFFECTS)
-            return await interaction.response.send_message(f"### 🛠️ Custom Bey Rules\n• HP + ATK + DEF + STM = **{STAT_TOTAL}** exactly.\n• No individual maximum; minimum **20** each.\n• Up to **2 abilities**, **{ABILITY_BUDGET}** ability points.\n• Ability keys: {abilities}\n• Ability effects and triggers are selected from the creation panel.\n• Triggers: {", ".join(CUSTOM_TRIGGERS)}\n• Special damage **80-140**; effects: {effects}\n• Image URL is required.\n• Custom Beys start at **Level 1**, use the normal Bey XP/level system, and go directly into your regular inventory.\n• One Custom Bey per player; server-side validation.",ephemeral=True)
+            return await interaction.response.send_message(f"### 🛠️ Custom Bey Rules\n• HP + ATK + DEF + STM = **{STAT_TOTAL}** exactly.\n• No individual maximum; minimum **20** each.\n• Up to **2 abilities**, **{ABILITY_BUDGET}** ability points.\n• Ability keys: {abilities}\n• Ability effects and triggers are selected from the creation panel.\n• Triggers: {", ".join(CUSTOM_TRIGGERS)}\n• Special damage **80-140**; effects: {effects}\n• Image URL is required.\n• Custom Beys require **owner approval**. After approval they enter your regular inventory at **Level 1** and use the normal Bey XP/level system.\n• One Custom Bey per player; server-side validation.",ephemeral=True)
         profile=await get_user(interaction.user.id); blade=profile.get("custom_bey")
         if not isinstance(blade,dict): return await interaction.response.send_message("❌ You don't have a Custom Bey yet. Use /custombey action:create.",ephemeral=True)
         if act=="view": return await interaction.response.send_message(embed=_summary(blade),view=CustomBeyView(interaction.user.id),ephemeral=True)
@@ -395,6 +399,8 @@ class CustomBeyCog(commands.Cog):
                 except ValueError: pass
                 prof["inventory"]=inv
                 if prof.get("active_custom_bey"): prof["active_custom_bey"]=False; prof["active_beyblade"]=None
+                progress=prof.get("bey_progress")
+                if isinstance(progress,dict): progress.pop(name,None)
                 return name
             try: name=await mutate_user(interaction.user.id,delete)
             except CustomBeyError as exc: return await interaction.response.send_message(f"❌ {exc}",ephemeral=True)
