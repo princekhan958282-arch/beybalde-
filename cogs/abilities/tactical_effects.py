@@ -206,11 +206,13 @@ class TacticalEffects:
                     self.add_gauge(key, 15)
         if damage <= 0:
             return damage
-        for name, scale in (("pressure_gauge", .08), ("rising_stakes", .05)):
+        for name, default_scale in (("pressure_gauge", .08), ("rising_stakes", .05)):
             if self.has(key, name) and matchup == "win":
                 d = self.data(key, name)
                 stacks = d.pop("stacks", 0)
                 if stacks:
+                    cfg = self.owned.get((key, name), {})
+                    scale = float(cfg.get("pct", default_scale * 100)) / 100
                     damage = math.ceil(damage * (1 + stacks * scale))
                     logs.append(f"✨ {name.replace('_', ' ').title()} consumes {stacks} stacks.")
         if self.has(key, "recoil_engine") and self.data(key, "recoil_engine").pop("ready", False):
@@ -296,7 +298,9 @@ class TacticalEffects:
                 d["stacks"] = min(3, d.get("stacks", 0) + 1)
         if self.has(key, "rising_stakes") and matchup in ("lose", "lose_grind"):
             d = self.data(key, "rising_stakes")
-            d["stacks"] = min(4, d.get("stacks", 0) + 1)
+            cfg = self.owned.get((key, "rising_stakes"), {})
+            cap = int(cfg.get("cap", 4))
+            d["stacks"] = min(cap, d.get("stacks", 0) + 1)
         if self.has(key, "guard_fracture"):
             d = self.data(key, "guard_fracture")
             if move == "defense" and matchup == "win":
