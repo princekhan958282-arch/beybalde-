@@ -9509,7 +9509,7 @@
       {
         "name": "Champion's Resolve",
         "trigger": "on_low_hp",
-        "description": "Below 40% HP, Aegis Valorian steels itself: +20% Attack and 20% less stamina spent, for the rest of the battle. Once per battle.",
+        "description": "Below 70% HP, Aegis Valorian steels itself: +25% Attack and 20% less stamina spent, for the rest of the battle. Once per battle.",
         "rules": [
           {
             "when": "on_low_hp",
@@ -9518,7 +9518,7 @@
               {
                 "op": "buff",
                 "stat": "attack",
-                "pct": 20,
+                "pct": 25,
                 "turns": 99
               },
               {
@@ -9534,7 +9534,7 @@
             "if": [
               {
                 "cond": "hp_below_pct",
-                "value": 0.4
+                "value": 0.7
               }
             ]
           }
