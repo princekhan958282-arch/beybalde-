@@ -11192,7 +11192,7 @@
     "ability": {
       "name": "Blazing Ascension",
       "trigger": "on_attack_win",
-      "description": "Every Attack win grants 1 Blaze Stack, up to 4. Each stack adds 7% of Hermiblaze's base Attack. Building momentum is costly: every Attack win also burns 0.4 stamina immediately.",
+      "description": "Every Attack win grants 1 Blaze Stack, up to 4. Each Blaze Stack adds 3% damage and increases Attack stamina cost by 1, up to 4 stacks. The Special consumes all Blaze Stacks.",
       "rules": [
         {
           "when": "on_attack_win",
@@ -11200,7 +11200,7 @@
             {
               "op": "stacking_buff",
               "stat": "attack",
-              "per_stack_pct": 7,
+              "per_stack_pct": 3,
               "max": 4,
               "name": "blaze_stack"
             },
@@ -11217,7 +11217,7 @@
       {
         "name": "Blazing Ascension",
         "trigger": "on_attack_win",
-        "description": "Every Attack win grants 1 Blaze Stack, up to 4. Each stack adds 7% of Hermiblaze's base Attack. Building momentum is costly: every Attack win also burns 0.4 stamina immediately.",
+        "description": "Every Attack win grants 1 Blaze Stack, up to 4. Each Blaze Stack adds 3% damage and increases Attack stamina cost by 1, up to 4 stacks. The Special consumes all Blaze Stacks.",
         "rules": [
           {
             "when": "on_attack_win",
@@ -11225,7 +11225,7 @@
               {
                 "op": "stacking_buff",
                 "stat": "attack",
-                "per_stack_pct": 7,
+                "per_stack_pct": 3,
                 "max": 4,
                 "name": "blaze_stack"
               },
@@ -11241,19 +11241,19 @@
       {
         "name": "Aether Rush",
         "trigger": "on_attack_mirror",
-        "description": "When both blades choose Attack, Hermiblaze deals 20% more damage, gains 1 Blaze Stack and burns 0.8 stamina. It has a 45% chance to gain one additional Blaze Stack, which burns 0.2 more stamina.",
+        "description": "When both blades choose Attack, Hermiblaze deals 5% more damage, gains 1 Blaze Stack and pays extra stamina. It has a 20% chance to gain one additional Blaze Stack.",
         "rules": [
           {
             "when": "on_attack_mirror",
             "do": [
               {
                 "op": "bonus_damage_pct",
-                "value": 20
+                "value": 5
               },
               {
                 "op": "stacking_buff",
                 "stat": "attack",
-                "per_stack_pct": 7,
+                "per_stack_pct": 3,
                 "max": 4,
                 "name": "blaze_stack"
               },
@@ -11266,12 +11266,12 @@
           },
           {
             "when": "on_attack_mirror",
-            "chance": 0.45,
+            "chance": 0.2,
             "do": [
               {
                 "op": "stacking_buff",
                 "stat": "attack",
-                "per_stack_pct": 7,
+                "per_stack_pct": 3,
                 "max": 4,
                 "name": "blaze_stack"
               },
