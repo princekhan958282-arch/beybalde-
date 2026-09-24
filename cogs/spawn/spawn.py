@@ -134,6 +134,10 @@ def _roll_hidden_spawn(beyblades: dict) -> Optional[dict]:
         n = _hidden_spawn_n(data)
         if n <= 0:
             continue
+        # Booster-exclusive blades must stay pack-only even if stale or
+        # accidental hidden-drop metadata is present.
+        if data.get("booster_exclusive"):
+            continue
         if data.get("rarity") in _NEVER_SPAWN or not obtainable(data):
             continue
         if random.randrange(n) == 0:
