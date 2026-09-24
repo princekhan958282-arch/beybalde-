@@ -7099,14 +7099,14 @@
     "ability": {
       "name": "Ultimate Blade",
       "trigger": "on_attack_hit",
-      "description": "Pure offence. Every Attack that lands hits for +20%, every hit of the Special for +15%, and the crit rate is raised by 15%. The cost: until Ultimate Valkyrie is mastered, Attack and Special each drain **35% more stamina**. At **bey level 100** the blade is fully awakened and that surcharge is removed — the offence stays.",
+      "description": "Pure offence. Every Attack that lands hits for +13%, every hit of the Special for +10%, and the crit rate is raised by 15%. Until Ultimate Valkyrie is mastered, Attack and Special each drain 35% more stamina. At bey level 100 the surcharge is removed. Its Special ignores Defense for that turn.",
       "rules": [
         {
           "when": "on_attack_hit",
           "do": [
             {
               "op": "bonus_damage_pct",
-              "value": 20
+              "value": 13
             }
           ],
           "_name": "Ultimate Blade"
@@ -7116,7 +7116,7 @@
           "do": [
             {
               "op": "bonus_damage_pct",
-              "value": 15
+              "value": 10
             }
           ],
           "_name": "Ultimate Blade",
@@ -7170,14 +7170,14 @@
       {
         "name": "Ultimate Blade",
         "trigger": "on_attack_hit",
-        "description": "Pure offence. Every Attack that lands hits for +20%, every hit of the Special for +15%, and the crit rate is raised by 15%. The cost: until Ultimate Valkyrie is mastered, Attack and Special each drain **35% more stamina**. At **bey level 100** the blade is fully awakened and that surcharge is removed — the offence stays.",
+        "description": "Pure offence. Every Attack that lands hits for +13%, every hit of the Special for +10%, and the crit rate is raised by 15%. Until Ultimate Valkyrie is mastered, Attack and Special each drain 35% more stamina. At bey level 100 the surcharge is removed. Its Special ignores Defense for that turn.",
         "rules": [
           {
             "when": "on_attack_hit",
             "do": [
               {
                 "op": "bonus_damage_pct",
-                "value": 20
+                "value": 13
               }
             ],
             "_name": "Ultimate Blade"
@@ -7187,7 +7187,7 @@
             "do": [
               {
                 "op": "bonus_damage_pct",
-                "value": 15
+                "value": 10
               }
             ],
             "_name": "Ultimate Blade",
@@ -7260,14 +7260,14 @@
     "ability": {
       "name": "Ultimate Blade",
       "trigger": "on_attack_hit",
-      "description": "The same offence, sharpened. Every Attack that lands hits for +28%, every hit of the Special for +22%, the crit rate is raised by 22% and crits land at 1.8x instead of 1.5x. The black layer is efficient with it too: the unmastered stamina surcharge on Attack and Special is only **20%**, and it is still removed entirely at **bey level 100**.",
+      "description": "The black edition trades raw excess for controlled offence. Every Attack that lands hits for +20%, every hit of the Special for +22%, and crits land at 1.8x. Until mastered, Attack and Special drain 20% more stamina; at bey level 100 the surcharge is removed. Ultimate Wing V is undodgeable.",
       "rules": [
         {
           "when": "on_attack_hit",
           "do": [
             {
               "op": "bonus_damage_pct",
-              "value": 28
+              "value": 20
             }
           ],
           "_name": "Ultimate Blade"
@@ -7285,10 +7285,6 @@
         {
           "when": "setup",
           "do": [
-            {
-              "op": "crit_chance",
-              "value": 22
-            },
             {
               "op": "crit_damage",
               "value": 1.8
@@ -7333,14 +7329,14 @@
       {
         "name": "Ultimate Blade",
         "trigger": "on_attack_hit",
-        "description": "The same offence, sharpened. Every Attack that lands hits for +28%, every hit of the Special for +22%, the crit rate is raised by 22% and crits land at 1.8x instead of 1.5x. The black layer is efficient with it too: the unmastered stamina surcharge on Attack and Special is only **20%**, and it is still removed entirely at **bey level 100**.",
+        "description": "The black edition trades raw excess for controlled offence. Every Attack that lands hits for +20%, every hit of the Special for +22%, and crits land at 1.8x. Until mastered, Attack and Special drain 20% more stamina; at bey level 100 the surcharge is removed. Ultimate Wing V is undodgeable.",
         "rules": [
           {
             "when": "on_attack_hit",
             "do": [
               {
                 "op": "bonus_damage_pct",
-                "value": 28
+                "value": 20
               }
             ],
             "_name": "Ultimate Blade"
@@ -7358,10 +7354,6 @@
           {
             "when": "setup",
             "do": [
-              {
-                "op": "crit_chance",
-                "value": 22
-              },
               {
                 "op": "crit_damage",
                 "value": 1.8
@@ -7392,10 +7384,6 @@
           {
             "when": "on_special",
             "do": [
-              {
-                "op": "ignore_defense",
-                "turns": 1
-              },
               {
                 "op": "undodgeable",
                 "turns": 1
@@ -12173,7 +12161,7 @@
     "ability": {
       "name": "Sakura Requiem",
       "trigger": "setup",
-      "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes stores power from lost clashes and cashes it into a later winning damaging action.",
+      "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes gains a stack only from lost clashes, up to 3; the next winning damaging action consumes all stacks for +3% damage each (maximum +9%). Mirror/draw results do not grant stacks.",
       "rules": [
         {
           "when": "setup",
@@ -12182,7 +12170,9 @@
               "op": "pattern_reader"
             },
             {
-              "op": "rising_stakes"
+              "op": "rising_stakes",
+              "pct": 3,
+              "cap": 3
             },
             {
               "op": "exposed_core"
@@ -12217,7 +12207,7 @@
       {
         "name": "Sakura Requiem",
         "trigger": "setup",
-        "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes stores power from lost clashes and cashes it into a later winning damaging action.",
+        "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes gains a stack only from lost clashes, up to 3; the next winning damaging action consumes all stacks for +3% damage each (maximum +9%). Mirror/draw results do not grant stacks.",
         "rules": [
           {
             "when": "setup",
@@ -12226,7 +12216,9 @@
                 "op": "pattern_reader"
               },
               {
-                "op": "rising_stakes"
+                "op": "rising_stakes",
+                "pct": 3,
+                "cap": 3
               },
               {
                 "op": "exposed_core"
