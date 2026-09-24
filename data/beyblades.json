@@ -12161,7 +12161,7 @@
     "ability": {
       "name": "Sakura Requiem",
       "trigger": "setup",
-      "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes stores power from lost clashes and cashes it into a later winning damaging action.",
+      "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes gains a stack only from lost clashes, up to 3; the next winning damaging action consumes all stacks for +3% damage each (maximum +9%). Mirror/draw results do not grant stacks.",
       "rules": [
         {
           "when": "setup",
@@ -12170,7 +12170,9 @@
               "op": "pattern_reader"
             },
             {
-              "op": "rising_stakes"
+              "op": "rising_stakes",
+              "pct": 3,
+              "cap": 3
             },
             {
               "op": "exposed_core"
@@ -12205,7 +12207,7 @@
       {
         "name": "Sakura Requiem",
         "trigger": "setup",
-        "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes stores power from lost clashes and cashes it into a later winning damaging action.",
+        "description": "Pattern Reader adapts against repeated enemy actions. Rising Stakes gains a stack only from lost clashes, up to 3; the next winning damaging action consumes all stacks for +3% damage each (maximum +9%). Mirror/draw results do not grant stacks.",
         "rules": [
           {
             "when": "setup",
@@ -12214,7 +12216,9 @@
                 "op": "pattern_reader"
               },
               {
-                "op": "rising_stakes"
+                "op": "rising_stakes",
+                "pct": 3,
+                "cap": 3
               },
               {
                 "op": "exposed_core"
