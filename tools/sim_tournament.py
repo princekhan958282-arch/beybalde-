@@ -229,12 +229,38 @@ print("\n── 2. only an admin opens one; anyone may join ──────�
 check("the owner is an admin", T.is_tournament_admin(Member(T.MASTER_ID)))
 check("the admin role is an admin",
       T.is_tournament_admin(Member(5, roles=[Role(T.ADMIN_ROLE)])))
+hoster = Member(1030250591651385354)
+check("the configured Tournament Hoster may open a tournament",
+      T.is_tournament_admin(hoster))
 check("a plain player is not", not T.is_tournament_admin(Member(5)))
 check("...nor is someone with a similarly-named role",
       not T.is_tournament_admin(Member(5, roles=[Role("Tournament")])))
 check("a role list of None does not crash the gate — roles is absent on a "
       "User, which is what a DM gives you",
       not T.is_tournament_admin(types.SimpleNamespace(id=5, roles=None)))
+from cogs.admin import actions as A                               # noqa: E402
+check("a Tournament Hoster has no general admin access",
+      not A.is_admin(hoster) and
+      all(not A.may_run(action, hoster) for action in A.REGISTRY.values()))
+
+for label, member, allowed in (
+    ("owner", Member(T.MASTER_ID), True),
+    ("Tournament Admin", Member(6, roles=[Role(T.ADMIN_ROLE)]), True),
+    ("Tournament Hoster", hoster, True),
+    ("plain player", Member(7), False),
+):
+    cog, sent = Cog(), []
+
+    async def send(content=None, *, embed=None, view=None, ephemeral=False):
+        sent.append((ephemeral, view))
+        return types.SimpleNamespace()
+
+    run(T.TournamentCog.open_panel(cog, send, types.SimpleNamespace(id=1),
+                                   member, types.SimpleNamespace(id=1)))
+    check(f"{label}: command opens a public lobby" if allowed else
+          f"{label}: command refuses privately",
+          len(sent) == 1 and sent[0][0] is not allowed and
+          (cog.lobbies.get(1) is not None) == allowed)
 
 _src = open(os.path.join(ROOT, "cogs", "tournament", "tournament.py"),
             encoding="utf-8").read()
