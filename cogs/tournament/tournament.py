@@ -51,6 +51,7 @@ from utils.database import (get_beyblade, get_user, load_beyblades,
                             mutate_user)
 
 from . import brackets
+from .hosters import is_tournament_hoster
 from .models import Match, MatchState, Mode
 
 log = logging.getLogger("beyblade_bot.tournament")
@@ -95,13 +96,12 @@ RARITY_WEIGHT = {
 
 
 def is_tournament_admin(user) -> bool:
-    """Owner, or anyone holding the admin role.
+    """Owner, Tournament Hoster, or anyone holding the admin role.
 
     Checked on every call rather than once at registration, because roles
-    change mid-tournament. Lifted verbatim from the retired cog — the auth rule
-    was never the thing that was wrong.
+    change mid-tournament.
     """
-    if getattr(user, "id", None) == MASTER_ID:
+    if getattr(user, "id", None) == MASTER_ID or is_tournament_hoster(user):
         return True
     roles = getattr(user, "roles", None) or []
     return any(getattr(r, "name", "") == ADMIN_ROLE for r in roles)
