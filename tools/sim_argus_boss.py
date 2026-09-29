@@ -451,19 +451,16 @@ check("...while a just-fought Drakos still has hours to run",
 import asyncio                                                      # noqa: E402
 
 _writes = []
-_real_get, _real_upd = BB.get_user, BB.update_user
+_real_mutate = BB.mutate_user
 
 
-async def _fake_get_boss_daily(uid):
-    return {"boss_daily": {}}
-
-
-async def _fake_update_boss_daily(uid, prof):
+async def _fake_mutate_boss_daily(uid, fn):
+    prof = {"boss_daily": {}}
+    fn(prof)
     _writes.append((uid, prof))
 
 
-BB.get_user = _fake_get_boss_daily
-BB.update_user = _fake_update_boss_daily
+BB.mutate_user = _fake_mutate_boss_daily
 try:
     asyncio.run(BB.charge_daily(1, "argus"))
     check("charging an untimed boss writes nothing", _writes == [], _writes)
@@ -471,7 +468,7 @@ try:
     check("...while a timed one still records the attempt",
           len(_writes) == 1 and "drakos" in _writes[0][1]["boss_daily"], _writes)
 finally:
-    BB.get_user, BB.update_user = _real_get, _real_upd
+    BB.mutate_user = _real_mutate
 
 print("\n── 9e. the Special counter no longer dodges the 20% rule ───────")
 # _fire_special hand-rolls the player's counter-hit instead of going through

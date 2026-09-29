@@ -20,13 +20,14 @@ import logging
 import random
 import re
 import time
+import uuid
 from typing import Optional
 
 import discord
 from discord.ext import commands
 
 from cogs.casino import casino_wallet
-from utils.database import get_beyblade, get_user, update_user, grant_xp
+from utils.database import get_beyblade, get_user, update_user, mutate_user, grant_xp
 from utils import bey_levels as bcopy_levels
 from utils.mobile_ui import MobileListView
 from utils.embeds import RARITY_EMOJIS, rarity_colour
@@ -136,11 +137,11 @@ async def charge_daily(user_id: int, key: str, now: Optional[float] = None) -> N
         # back on the clock later is a one-line change with no data to clean up.
         return
     now = now if now is not None else time.time()
-    profile = await get_user(user_id)
-    daily = dict(profile.get("boss_daily") or {})
-    daily[key] = now
-    profile["boss_daily"] = daily
-    await update_user(user_id, profile)
+    def record(profile):
+        daily = dict(profile.get("boss_daily") or {})
+        daily[key] = now
+        profile["boss_daily"] = daily
+    await mutate_user(user_id, record)
 
 
 def _fmt_wait(seconds: float) -> str:
@@ -387,32 +388,30 @@ def lobby_card_state(key: str, party: list = None, footer: str = "",
     # numbers a party reads before pressing Start are the numbers they get.
     tcfg = btiers.get(tier)
     hp = btiers.scale_hp(scaled_boss_hp(cfg, extra), tcfg["key"])
+    base_atk, base_def, base_sta = boss_stats(cfg)
     atk = btiers.scale_attack(
-        boss_stats(cfg)[0] * (1 + BOSS_ATK_PER_JOIN * extra), tcfg["key"])
+        base_atk * (1 + BOSS_ATK_PER_JOIN * extra), tcfg["key"])
     reward = cfg.get("reward", {})
 
     stats = [
         ("HP",        f"{hp:,}"),
         ("Attack",    f"{atk:.0f}"),
-        ("Defense",   f"{cfg['defense']}"),
-        ("Stamina",   f"{cfg['stamina']}"),
-        ("Difficulty", f"{tcfg['label']} · "
-                       + btiers.walk_difficulty(
-                           cfg.get("difficulty", ""), tcfg["key"]).title()),
-        # What a higher tier actually buys, stated up front. Difficulty that is
-        # only a bigger health bar reads as padding and can be out-levelled;
-        # IQ is the half the player can feel and cannot out-stat, so it belongs
-        # on the card next to the price rather than hidden in the AI.
-        ("Boss IQ",   ai.iq_label(btiers.walk_difficulty(
-                          cfg.get("difficulty", ""), tcfg["key"]))
-                      + " — reads your habits"),
-        ("Entry",     "free" if not tcfg["price"]
-                      else f"{tcfg['price']:,} coins each"),
-        ("Reward",    f"{btiers.scale_reward(reward.get('coins', 0), tcfg['key']):,} coins"),
+        ("Defense",   f"{base_def:.0f}"),
+        ("Stamina",   f"{base_sta:.0f}"),
+        ("Boss AI",    btiers.walk_difficulty(
+                           cfg.get("difficulty", ""), tcfg["key"]).title()
+                       + " · " + ai.iq_label(btiers.walk_difficulty(
+                           cfg.get("difficulty", ""), tcfg["key"]))),
+        ("Entry",     "free" if not btiers.price_of(tcfg["key"], key)
+                      else f"{btiers.price_of(tcfg['key'], key):,} coins each"),
+        ("Reward",    (f"{btiers.scale_reward(reward.get('coins', 0), tcfg['key']):,} coins"
+                        if reward.get("coins") else "No coin payout")
+                       + (" · boss copy" if prof else "")),
     ]
     return {
         "boss_name": cfg["name"],
-        "tier":      prof.get("rarity", cfg.get("difficulty", "boss")),
+        "tier":      tcfg["label"],
+        "rarity":    prof.get("rarity", cfg.get("difficulty", "boss")),
         "blurb":     cfg.get("blurb", ""),
         "art_src":   art,
         "accent":    accent, "glow": glow, "tint": tint,
@@ -573,6 +572,8 @@ class BossFight:
         self.kit = self.kits[player.id]
         self.blades = dict(_blades)
         self.turn_index = 0
+        self.round_offset = 0
+        self.round_number = 1
         self.target = player
 
         # Scale the boss to the party. One extra body would otherwise halve the
@@ -599,6 +600,7 @@ class BossFight:
         self.log: list[str] = []
         self.finished = False
         self.result: Optional[str] = None
+        self.reward_id = uuid.uuid4().hex
         self.phase_two = False
         self.line = ""
         self.last_special = None
@@ -628,12 +630,18 @@ class BossFight:
         alive = self.alive_party
         if not alive:
             return self.party[0]
-        return alive[self.turn_index % len(alive)]
+        return alive[(self.round_offset + self.turn_index) % len(alive)]
 
     def _advance_turn(self) -> None:
         alive = self.alive_party
         if alive:
-            self.turn_index = (self.turn_index + 1) % len(alive)
+            self.turn_index += 1
+            if self.turn_index >= len(alive):
+                self.turn_index = 0
+                self.round_number += 1
+                # The last actor of a round takes the boss's reply. Rotate
+                # that position so the same teammate isn't focused forever.
+                self.round_offset = (self.round_offset + 1) % len(alive)
         self.player = self.active
         self.foe = self.fighters[self.player.id]
         self.kit = self.kits[self.player.id]
@@ -672,32 +680,12 @@ class BossFight:
                 self.boss.hp / self.boss.max_hp,
             )
 
-        # The boss swings at a random living member, not whoever just moved.
-        # Focusing the actor meant one player soaked every hit while the rest
-        # watched — and in a party the same person kept getting hit because
-        # they were the one taking turns.
-        alive_now = self.alive_party
-        if is_round_end and len(alive_now) > 1:
-            if god_special == "zerohour":
-                # The Protocol is an execution order, not a swing — it goes to
-                # the biggest threat rather than a random member. "Strongest"
-                # is remaining HP x attack: raw attack alone would send it at
-                # a glass cannon already at 5% HP.
-                self.target = max(
-                    alive_now,
-                    key=lambda m: (self.fighters[m.id].hp
-                                   * self.fighters[m.id].eff_attack))
-            else:
-                self.target = random.choice(alive_now)
-        else:
-            self.target = self.player
-        target_fighter = self.fighters[self.target.id]
-
-        # Snapshot the fighter outcome() will actually judge (self.foe, the
-        # actor), not target_fighter. In a party the boss swings at a random
-        # member, so those are different objects, and feeding outcome() another
-        # player's HP fraction decides the double-KO tiebreak off the wrong
-        # health bar.
+        # Resolve the boss's reply against the fighter who chose this move.
+        # Redirecting damage after resolve used the actor's guard, defense and
+        # gauge, then removed HP from an unrelated teammate. It also paid the
+        # actor's defensive abilities for somebody else's hit. The rotating
+        # round order above spreads the reply across teammates fairly.
+        self.target = self.player
         before = ai.hp_fractions(self.boss, self.foe)
 
         # Blade abilities: stat multipliers are applied to the fighter for the
@@ -717,12 +705,6 @@ class BossFight:
             else:
                 report = ai.resolve(self.boss, self.foe, boss_move, player_move)
 
-            # Move the boss's damage onto whoever it actually aimed at.
-            if target_fighter is not self.foe and report.get("dmg_to_b", 0) > 0:
-                dmg = report["dmg_to_b"]
-                self.foe.hp = min(self.foe.max_hp, self.foe.hp + dmg)
-                target_fighter.hp = max(0.0, target_fighter.hp - dmg)
-                report["redirected_to"] = self.target
         finally:
             self.foe.attack, self.foe.defense, self.foe.stamina_stat = (
                 base_atk, base_def, base_sta)
@@ -951,7 +933,8 @@ class BossFight:
                        "draw": "🤝 DOUBLE KO"}.get(self.result, "")
         return {
             "boss_name":  cfg["name"],
-            "tier":       prof.get("rarity", cfg.get("difficulty", "boss")),
+            "tier":       self.tier_cfg["label"],
+            "rarity":     prof.get("rarity", cfg.get("difficulty", "boss")),
             # The AI rung this fight is ACTUALLY running at, not the one
             # printed in the boss profile — otherwise a Nightmare card claims
             # to be an elite fight.
@@ -959,6 +942,7 @@ class BossFight:
                                                  self.tier),
             "boss_hp":    self.boss.hp, "boss_max": self.boss.max_hp,
             "boss_gauge": self.boss.gauge, "boss_sp": self.boss.sp,
+            "boss_ready": self.boss.gauge >= ai.SPECIAL_GAUGE_MAX,
             "gauge_max":  ai.SPECIAL_GAUGE_MAX,
             "art_src":    art,
             "accent":     theme.get("accent", "#c77dff"),
@@ -966,7 +950,9 @@ class BossFight:
             "tint":       theme.get("tint", "#140a1e"),
             "line":       self.line,
             "turn":       self.turn,
+            "round":      self.round_number,
             "alive":      len(self.alive_party), "total": len(self.party),
+            "active_name": self.active.display_name if not self.finished else "",
             "verdict":    verdict,
             "log":        [re.sub(r"\*\*|`", "", l) for l in self.log[-3:]],
             "party": [
@@ -1216,6 +1202,8 @@ class BossView(discord.ui.View):
         return e
 
     async def on_timeout(self):
+        if self.fight.finished:
+            return
         # Release the player. Without this an idle fight left them in _active
         # forever and every later ;boss answered "you're already in a fight".
         self.fight.finished = True
@@ -1247,6 +1235,10 @@ class BossLobbyView(discord.ui.View):
         self.key     = key
         self.party   = [host]
         self.started = False
+        self._launch_lock = asyncio.Lock()
+        self._paid: dict[int, int] = {}
+        self._daily_charged: set[int] = set()
+        self._fight_posted = False
         self.tier    = btiers.DEFAULT_TIER
         self.message: Optional[discord.Message] = None
         self._add_tier_select()
@@ -1284,9 +1276,10 @@ class BossLobbyView(discord.ui.View):
                 return await interaction.response.defer()
             self.tier = btiers.get(sel.values[0])["key"]
             t = btiers.get(self.tier)
+            price = btiers.price_of(self.tier, self.key)
             sel.placeholder = (f"{t['emoji']} Difficulty: {t['label']}"
-                               + (" (free)" if not t["price"]
-                                  else f" ({t['price']:,} coins)"))
+                               + (" (free)" if not price
+                                  else f" ({price:,} coins)"))
             for o in sel.options:
                 o.default = (o.value == self.tier)
             await self.refresh(interaction)
@@ -1305,12 +1298,8 @@ class BossLobbyView(discord.ui.View):
         try:
             buf = await bcard.render_lobby(lobby_card_state(
                 self.key, self.party, tier=self.tier,
-                footer="HP by party size: "
-                       + " / ".join(
-                           f"{btiers.scale_hp(scaled_boss_hp(BOSSES[self.key], i), self.tier):,}"
-                           for i in range(MAX_PARTY))
-                       + f"  ·  +{int(BOSS_ATK_PER_JOIN * 100)}% attack per "
-                         f"player  ·  starts in {LOBBY_SECONDS}s"))
+                footer=f"Starts in {LOBBY_SECONDS}s  ·  Host can start now  ·  +"
+                       f"{int(BOSS_ATK_PER_JOIN * 100)}% ATK per teammate"))
             if buf is None:
                 return None
             return discord.File(buf, filename=getattr(buf, "name", "boss.png"))
@@ -1366,17 +1355,15 @@ class BossLobbyView(discord.ui.View):
         # Everybody pays their own way in, so the price has to be on the card
         # BEFORE anyone presses Join — not sprung on them at launch.
         t = btiers.get(self.tier)
+        price = btiers.price_of(self.tier, self.key)
         e.add_field(
             name="Difficulty",
-            value=(btiers.summary_line(self.tier)
-                   + ("\n*Free — this is the standard fight.*" if not t["price"]
-                      else f"\n*Each player pays 🪙 {t['price']:,} to enter.*")),
+            value=(btiers.summary_line(self.tier, self.key)
+                   + ("\n*Free — this is the standard fight.*" if not price
+                      else f"\n*Each player pays 🪙 {price:,} to enter.*")),
             inline=False,
         )
-        e.set_footer(text="HP by party size: "
-                          + " / ".join(f"{scaled_boss_hp(cfg, i):,}"
-                                       for i in range(MAX_PARTY))
-                          + f"  •  starts in {LOBBY_SECONDS}s")
+        e.set_footer(text=f"Starts in {LOBBY_SECONDS}s · Host can start early")
         return e
 
     @discord.ui.button(label="Join", emoji="⚔️", style=discord.ButtonStyle.success)
@@ -1422,11 +1409,55 @@ class BossLobbyView(discord.ui.View):
         await self._launch(interaction)
 
     async def _launch(self, interaction: Optional[discord.Interaction]):
+        async with self._launch_lock:
+            if self.started:
+                return
+            try:
+                await self._launch_once(interaction)
+            except Exception:
+                log.exception("[boss] lobby launch failed for %s", self.host.id)
+                if not self._fight_posted:
+                    # The lobby may have collected fees before Discord refused
+                    # the battle message. Put those fees and attempts back.
+                    for uid, amount in self._paid.items():
+                        try:
+                            await mutate_user(uid, lambda p, n=amount: p.__setitem__(
+                                "coins", int(p.get("coins", 0) or 0) + n))
+                        except Exception:
+                            log.exception("[boss] entry refund failed for %s", uid)
+                    for uid in self._daily_charged:
+                        try:
+                            def restore(p):
+                                daily = dict(p.get("boss_daily") or {})
+                                daily.pop(self.key, None)
+                                p["boss_daily"] = daily
+                            await mutate_user(uid, restore)
+                        except Exception:
+                            log.exception("[boss] attempt restore failed for %s", uid)
+                    for member in self.party:
+                        self.cog._active.discard(member.id)
+                    self.stop()
+                if self._fight_posted:
+                    return
+                if interaction is not None and not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        "❌ The boss fight couldn't start. Please try again.",
+                        ephemeral=True)
+                elif self.message:
+                    await self.message.channel.send(
+                        "❌ The boss fight couldn't start. Please try again.")
+
+    async def _launch_once(self, interaction: Optional[discord.Interaction]):
         if self.started:
             return
         self.started = True
         for c in self.children:
             c.disabled = True
+
+        # Resolve equipment and kits before taking an entry fee. A missing or
+        # broken blade must never consume coins for a fight that cannot exist.
+        fight = await BossFight.create(self.host, self.key,
+                                       party=self.party, tier=self.tier)
 
         # ── Charge the difficulty tier ───────────────────────────────────────
         # Under the user lock, per member, with the balance re-read there — the
@@ -1443,13 +1474,15 @@ class BossLobbyView(discord.ui.View):
         broke: list[discord.Member] = []
         if btiers.price_of(tier, self.key) > 0:
             try:
-                await btiers.charge_for(self.host.id, tier, self.key)
+                self._paid[self.host.id] = await btiers.charge_for(
+                    self.host.id, tier, self.key)
             except btiers.TierError:
                 tier = btiers.DEFAULT_TIER
             else:
                 for member in self.party[1:]:
                     try:
-                        await btiers.charge_for(member.id, tier, self.key)
+                        self._paid[member.id] = await btiers.charge_for(
+                            member.id, tier, self.key)
                     except btiers.TierError:
                         broke.append(member)
                     except Exception as e:           # noqa: BLE001
@@ -1459,15 +1492,16 @@ class BossLobbyView(discord.ui.View):
             self.party.remove(m)
             self.cog._active.discard(m.id)
 
-        fight = await BossFight.create(self.host, self.key, party=self.party, tier=tier)
+        if broke or tier != self.tier:
+            fight = await BossFight.create(self.host, self.key,
+                                           party=self.party, tier=tier)
         # Charge the daily attempt for EVERY member, at launch. Charging only
         # the host would let three friends farm a boss by taking turns hosting,
         # and charging on the result would make a loss free.
         for member in self.party:
-            try:
-                await charge_daily(member.id, self.key)
-            except Exception as e:                   # noqa: BLE001
-                log.warning("couldn't charge daily for %s: %s", member.id, e)
+            await charge_daily(member.id, self.key)
+            if self.key not in UNTIMED_BOSSES:
+                self._daily_charged.add(member.id)
         view  = BossView(self.cog, fight)
         fight.line = gemini.canned("intro", fight.cfg["name"])
 
@@ -1492,6 +1526,9 @@ class BossLobbyView(discord.ui.View):
         elif self.message:
             await self.message.edit(view=self)
             view.message = await self.message.channel.send(**payload)
+        if view.message is None:
+            raise RuntimeError("boss fight has no message")
+        self._fight_posted = True
 
         # Say so out loud when the tier didn't land the way the lobby showed —
         # a player silently dropped from a fight, or a party that quietly got
@@ -1699,35 +1736,40 @@ class BossCog(commands.Cog, name="Boss"):
         t_casino = btiers.scale_reward(reward["casino"], fight.tier)
 
         for member in fight.party:
-            profile = await get_user(member.id)
-            first   = fight.key not in set(profile.get("bosses_cleared") or [])
+            rolled = (bcopy.roll_copy(prof,
+                                      perfect_odds=tcfg["perfect_odds"],
+                                      bands=tcfg["bands"])
+                      if prof is not None else None)
+
+            def grant(profile):
+                receipts = list(profile.get("boss_reward_receipts") or [])
+                if fight.reward_id in receipts:
+                    return None
+                first = fight.key not in set(profile.get("bosses_cleared") or [])
+                profile["coins"] = int(profile.get("coins", 0) or 0) + t_coins * (2 if first else 1)
+                cleared = list(profile.get("bosses_cleared") or [])
+                if first:
+                    cleared.append(fight.key)
+                profile["bosses_cleared"] = cleared
+                if rolled is not None:
+                    bcopy.grant_copy(profile, rolled)
+                bey_gain = None
+                blade = profile.get("active_beyblade")
+                if blade and not profile.get("active_copy"):
+                    try:
+                        bey_gain = bcopy_levels.award(
+                            profile, blade,
+                            btiers.scale_reward(BOSS_BEY_XP, fight.tier))
+                    except Exception:
+                        log.exception("boss bey XP failed for %s", member.id)
+                profile["boss_reward_receipts"] = (receipts + [fight.reward_id])[-50:]
+                return first, bey_gain
+
+            granted = await mutate_user(member.id, grant)
+            if granted is None:
+                continue
+            first, bey_gain = granted
             first_any = first_any or first
-
-            profile["coins"] = profile.get("coins", 0) + t_coins * (2 if first else 1)
-            cleared = list(profile.get("bosses_cleared") or [])
-            if first:
-                cleared.append(fight.key)
-            profile["bosses_cleared"] = cleared
-
-            # EXP. Bosses used to grant NONE of either kind — the marquee
-            # content in the game paid coins, casino chips and a copy, and
-            # advanced no progression at all. Scaled by the difficulty tier,
-            # like the coins beside it.
-            #
-            # Ordering, as documented in session.py and story_cog.py: bey XP
-            # lands on the profile dict already in hand and is persisted with
-            # everything else, and grant_xp runs AFTER that write because it
-            # re-reads the profile from the store.
-            bey_gain = None
-            blade = profile.get("active_beyblade")
-            if blade and not profile.get("active_copy"):
-                try:
-                    bey_gain = bcopy_levels.award(
-                        profile, blade,
-                        btiers.scale_reward(BOSS_BEY_XP, fight.tier))
-                except Exception:                    # noqa: BLE001
-                    log.warning("boss bey XP failed for %s", member.id)
-            await update_user(member.id, profile)
             try:
                 grant_xp(member.id,
                          btiers.scale_reward(BOSS_TRAINER_XP, fight.tier))
@@ -1739,14 +1781,6 @@ class BossCog(commands.Cog, name="Boss"):
                 member.id, t_casino * (2 if first else 1))
             self._cooldowns[(member.id, fight.key)] = time.time()
 
-            rolled = None
-            if prof is not None:
-                rolled = bcopy.roll_copy(prof,
-                                         perfect_odds=tcfg["perfect_odds"],
-                                         bands=tcfg["bands"])
-                # add_copy re-reads the profile, so it must run AFTER the
-                # update_user above or the coin write would clobber the copy.
-                await bcopy.add_copy(member.id, rolled)
             drops.append((member, rolled))
 
         # Headline numbers reflect a first clear if it was one for anybody.
