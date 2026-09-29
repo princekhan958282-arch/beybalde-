@@ -262,6 +262,16 @@ async def all_copies(user_id: int) -> list[dict]:
 MAX_COPIES = 200
 
 
+def grant_copy(profile: dict, copy: dict) -> None:
+    """Add a rolled copy to a profile already held under the user lock."""
+    copies = list(profile.get("boss_copies") or [])
+    copies.append(copy)
+    if len(copies) > MAX_COPIES:
+        copies.sort(key=lambda c: (-_rank(c), -c.get("rolled_at", 0)))
+        copies = copies[:MAX_COPIES]
+    profile["boss_copies"] = copies
+
+
 async def add_copy(user_id: int, copy: dict) -> None:
     """Store a rolled copy, trimming the WORST when over the cap.
 
@@ -270,17 +280,9 @@ async def add_copy(user_id: int, copy: dict) -> None:
     simply by winning more fights. Now the lowest grade goes first, oldest
     within that grade, so anything rare survives no matter how much you farm.
     """
-    profile = await get_user(user_id)
-    copies = list(profile.get("boss_copies") or [])
-    copies.append(copy)
+    from utils.database import mutate_user
 
-    if len(copies) > MAX_COPIES:
-        # keep best grade, then newest, then cut from the tail
-        copies.sort(key=lambda c: (-_rank(c), -c.get("rolled_at", 0)))
-        copies = copies[:MAX_COPIES]
-
-    profile["boss_copies"] = copies
-    await update_user(user_id, profile)
+    await mutate_user(user_id, lambda profile: grant_copy(profile, copy))
 
 
 async def find_copy(user_id: int, ref: str) -> Optional[dict]:

@@ -99,6 +99,16 @@ def _fit(d, text: str, max_w: int, start: int, floor: int = 13):
     return _font(size)
 
 
+def _clip(d, text: str, max_w: int, font) -> str:
+    """Fit a label without drawing into the next panel or off the canvas."""
+    text = str(text)
+    if _tw(d, text, font) <= max_w:
+        return text
+    while text and _tw(d, text + "…", font) > max_w:
+        text = text[:-1]
+    return text + "…"
+
+
 def _bar(d, x, y, w, h, cur, mx, colour):
     _rr(d, (x, y, x + w, y + h), h // 2, fill=TRACK, outline=(38, 45, 61), width=1)
     frac = max(0.0, min(1.0, (cur / mx) if mx else 0.0))
@@ -177,7 +187,7 @@ def _battle(state: dict) -> io.BytesIO:
 
     party = state.get("party") or []
     log_lines = [l for l in (state.get("log") or [])][-3:]
-    height = (200 + max(1, len(party)) * 46
+    height = (238 + max(1, len(party)) * 48
               + (34 + len(log_lines) * 18 if log_lines else 0)
               + (40 if state.get("verdict") else 0) + 44)
     img, d = _canvas(height, tint, accent)
@@ -188,11 +198,15 @@ def _battle(state: dict) -> io.BytesIO:
     nf = _fit(d, str(state.get("boss_name", "")), W - tx - PAD, 26, 15)
     d.text((tx, PAD + 8), str(state.get("boss_name", "")), font=nf, fill=(255, 255, 255))
 
-    tag = str(state.get("tier", "boss")).upper()
+    tag = str(state.get("tier", "Standard")).upper()
     tf = _font(12)
     tw_ = _tw(d, tag, tf) + 18
     _rr(d, (tx, PAD + 42, tx + tw_, PAD + 64), 11, outline=accent, width=1)
     d.text((tx + 9, PAD + 46), tag, font=tf, fill=accent)
+    rarity = str(state.get("rarity", "Boss"))
+    d.text((tx + tw_ + 10, PAD + 46),
+           _clip(d, rarity, W - tx - tw_ - PAD - 10, tf),
+           font=tf, fill=SUBTEXT)
 
     bw = W - tx - PAD
     _bar(d, tx, PAD + 74, bw, 12, state.get("boss_hp", 0), state.get("boss_max", 1), accent)
@@ -202,6 +216,17 @@ def _battle(state: dict) -> io.BytesIO:
     d.text((tx, PAD + 92), sub, font=_font(12), fill=SUBTEXT)
 
     y = PAD + 128
+    if not state.get("verdict"):
+        status = ("BOSS SPECIAL READY" if state.get("boss_ready") else
+                  f"{state.get('active_name', '')} to move")
+        _rr(d, (PAD, y, W - PAD, y + 32), 8, fill=(21, 28, 43))
+        sf = _font(13)
+        d.text((PAD + 10, y + 8), _clip(d, status, W - 165, sf),
+               font=sf, fill=(255, 209, 102) if state.get("boss_ready") else TEXT)
+        round_text = f"ROUND {state.get('round', 1)}"
+        d.text((W - PAD - 10 - _tw(d, round_text, sf), y + 8),
+               round_text, font=sf, fill=SUBTEXT)
+    y += 46
     d.text((PAD, y), f"PARTY ({state.get('alive', 0)}/{state.get('total', 0)})",
            font=_font(12), fill=accent)
     y += 22
@@ -210,8 +235,9 @@ def _battle(state: dict) -> io.BytesIO:
         alive = m.get("alive", True)
         col = TEXT if alive else DIM
         mark = "▶" if m.get("active") else ("✖" if not alive else " ")
-        nf2 = _fit(d, f"{mark} {m.get('name', '?')}", 168, 13, 10)
-        d.text((PAD, y + 2), f"{mark} {m.get('name', '?')}", font=nf2,
+        nf2 = _font(13)
+        label = _clip(d, f"{mark} {m.get('name', '?')}", 168, nf2)
+        d.text((PAD, y + 2), label, font=nf2,
                fill=accent if m.get("active") else col)
         bx = PAD + 178
         _bar(d, bx, y + 4, W - bx - PAD, 10,
@@ -220,14 +246,15 @@ def _battle(state: dict) -> io.BytesIO:
                f"{m.get('hp', 0):.0f} hp   ·   gauge {m.get('gauge', 0):.0f}"
                f"   ·   sp {m.get('sp', 0):.1f}",
                font=_font(11), fill=SUBTEXT if alive else DIM)
-        y += 46
+        y += 48
 
     if log_lines:
         d.text((PAD, y), "LAST EXCHANGES", font=_font(12), fill=accent)
         y += 20
         for line in log_lines:
-            lf = _fit(d, str(line), W - 2 * PAD, 12, 9)
-            d.text((PAD, y), str(line), font=lf, fill=SUBTEXT)
+            lf = _font(12)
+            d.text((PAD, y), _clip(d, line, W - 2 * PAD, lf),
+                   font=lf, fill=SUBTEXT)
             y += 18
 
     if state.get("verdict"):
@@ -237,7 +264,8 @@ def _battle(state: dict) -> io.BytesIO:
         y += 40
 
     foot = f"TURN {state.get('turn', 0)}   ·   {state.get('difficulty', '')}"
-    d.text((PAD, height - 26), foot, font=_font(11), fill=DIM)
+    d.text((PAD, height - 26), _clip(d, foot, W - 2 * PAD, _font(12)),
+           font=_font(12), fill=SUBTEXT)
     return _out(img)
 
 
@@ -264,7 +292,7 @@ def _lobby(state: dict) -> io.BytesIO:
     # Height is derived from the SAME arithmetic the draw pass uses below.
     # Computing it independently is how the party list ended up running off the
     # bottom of the card — keep these two in step.
-    y_body = PAD + 226 + 26                      # art + name + tag + blurb
+    y_body = PAD + 246 + 26                      # art + name + tags + blurb
     h_stats = len(stats) * 22
     h_party = (6 + 20 + len(party) * 24) if party else 0
     height = y_body + h_stats + h_party + 40     # + footer band
@@ -282,11 +310,16 @@ def _lobby(state: dict) -> io.BytesIO:
     _rr(d, ((W - tw_) // 2, PAD + 182, (W + tw_) // 2, PAD + 208), 13,
         outline=accent, width=2)
     d.text(((W - _tw(d, tag, tf)) // 2, PAD + 188), tag, font=tf, fill=accent)
+    rarity = str(state.get("rarity", "Boss")).upper()
+    rf = _font(12)
+    d.text(((W - _tw(d, rarity, rf)) // 2, PAD + 214),
+           _clip(d, rarity, W - 2 * PAD, rf), font=rf, fill=SUBTEXT)
 
-    y = PAD + 226
+    y = PAD + 246
     if state.get("blurb"):
-        bf = _fit(d, state["blurb"], W - 2 * PAD, 13, 10)
-        d.text(((W - _tw(d, state["blurb"], bf)) // 2, y), str(state["blurb"]),
+        bf = _font(13)
+        blurb = _clip(d, state["blurb"], W - 2 * PAD, bf)
+        d.text(((W - _tw(d, blurb, bf)) // 2, y), blurb,
                font=bf, fill=SUBTEXT)
     y += 26
 
@@ -302,9 +335,12 @@ def _lobby(state: dict) -> io.BytesIO:
                font=_font(12), fill=accent)
         y += 20
         for p in party:
-            d.text((PAD + 6, y), f"• {p}", font=_font(12), fill=TEXT)
+            d.text((PAD + 6, y), _clip(d, f"• {p}", W - 2 * PAD, _font(12)),
+                   font=_font(12), fill=TEXT)
             y += 24
 
     if state.get("footer"):
-        d.text((PAD, height - 26), str(state["footer"]), font=_font(11), fill=DIM)
+        d.text((PAD, height - 26),
+               _clip(d, state["footer"], W - 2 * PAD, _font(12)),
+               font=_font(12), fill=SUBTEXT)
     return _out(img)

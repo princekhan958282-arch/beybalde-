@@ -40,6 +40,16 @@ def _bar_html(cur: float, mx: float, colour: str) -> str:
             f'style="width:{pct:.1f}%;background:{colour}"></div></div>')
 
 
+def _art_html(state: dict) -> str:
+    """Keep an initial visible when remote art expires or fails to load."""
+    name = str(state.get("boss_name") or "Boss")
+    initial = _esc(name[0].upper())
+    art = state.get("art_src") or ""
+    img = (f'<img class="art" src="{_esc(art)}" alt="" '
+           'onerror="this.style.display=\'none\'">') if art else ""
+    return f'<div class="art-wrap">{initial}{img}</div>'
+
+
 def build_html(state: dict) -> str:
     """state comes from BossFight.card_state()."""
     accent = state.get("accent", "#c77dff")
@@ -47,9 +57,7 @@ def build_html(state: dict) -> str:
     tint   = state.get("tint", "#140a1e")
 
     boss_pct = (state["boss_hp"] / state["boss_max"] * 100) if state["boss_max"] else 0
-    art = state.get("art_src") or ""
-    art_html = (f'<img class="art" src="{art}" alt="">' if art
-                else '<div class="art noart"></div>')
+    art_html = _art_html(state)
 
     rows = []
     for m in state["party"]:
@@ -70,6 +78,11 @@ def build_html(state: dict) -> str:
     log_html = "".join(
         f'<div class="logline">{_esc(l)}</div>' for l in state.get("log", [])[-3:])
 
+    status = ('<span class="alert">⚡ BOSS SPECIAL READY</span>'
+              if state.get("boss_ready") else
+              f'<span class="next">▶ {_esc(state.get("active_name", ""))} to move</span>'
+              if state.get("active_name") else '')
+
     verdict = ""
     if state.get("verdict"):
         verdict = f'<div class="verdict">{_esc(state["verdict"])}</div>'
@@ -86,21 +99,28 @@ def build_html(state: dict) -> str:
         border:1px solid {accent}44;border-radius:18px;padding:18px 20px;
         color:#e8ecf4;box-shadow:0 0 40px {glow}33 inset}}
   .head{{display:flex;gap:16px;align-items:center}}
-  .art{{width:120px;height:120px;border-radius:50%;object-fit:cover;
-       border:2px solid {accent};box-shadow:0 0 22px {glow}}}
-  .noart{{background:#11151f}}
+  .art-wrap{{position:relative;flex:none;width:120px;height:120px;border-radius:50%;
+       display:grid;place-items:center;background:#11151f;color:{accent};
+       font-size:62px;font-weight:800;border:2px solid {accent};
+       box-shadow:0 0 22px {glow};overflow:hidden}}
+  .art{{position:absolute;width:100%;height:100%;object-fit:cover}}
   .htext{{flex:1;min-width:0}}
   .bname{{font-size:26px;font-weight:800;letter-spacing:.4px;color:#fff;
          text-shadow:0 0 16px {glow}}}
-  .tag{{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;
+  .tag{{display:inline-block;margin-top:4px;padding:3px 10px;border-radius:999px;
        background:{accent}22;border:1px solid {accent}66;color:{accent};
-       font-size:11px;letter-spacing:1.2px;text-transform:uppercase}}
+       font-size:12px;letter-spacing:1px;text-transform:uppercase;font-weight:700}}
+  .rarity{{display:inline-block;margin-left:6px;color:#aebbd0;font-size:12px}}
   .bar{{height:12px;border-radius:99px;background:#1b2130;overflow:hidden;
        border:1px solid #262d3d}}
   .fill{{height:100%;border-radius:99px}}
   .bosshp{{margin-top:10px}}
   .bosshp .sub{{margin-top:4px;font-size:12px;color:#93a0b5}}
   .quote{{margin:12px 0 4px;font-style:italic;color:#c9d3e4;font-size:13px}}
+  .status{{display:flex;align-items:center;justify-content:space-between;
+           margin-top:12px;padding:8px 10px;background:#151c2b;border-radius:8px;
+           color:#dce6f5;font-size:13px;font-weight:700}}
+  .alert{{color:#ffd166}}
   .sect{{margin-top:14px;font-size:11px;letter-spacing:1.6px;color:{accent};
         text-transform:uppercase}}
   .row{{display:flex;gap:12px;align-items:center;padding:7px 0;
@@ -108,23 +128,24 @@ def build_html(state: dict) -> str:
   .row:last-child{{border-bottom:none}}
   .row.dead{{opacity:.42}}
   .row.active .pname{{color:{accent}}}
-  .pname{{width:150px;font-size:13px;font-weight:700;white-space:nowrap;
+  .pname{{width:160px;font-size:14px;font-weight:700;white-space:nowrap;
          overflow:hidden;text-overflow:ellipsis}}
   .ready{{color:#ffd166;margin-left:4px}}
   .pbars{{flex:1}}
-  .sub{{margin-top:3px;font-size:11px;color:#8d99ad}}
+  .sub{{margin-top:3px;font-size:12px;color:#a9b6c9}}
   .dot{{color:#3a4356;margin:0 4px}}
-  .logline{{font-size:11.5px;color:#9aa6ba;padding:2px 0}}
+  .logline{{font-size:12px;color:#b4c1d2;padding:3px 0;overflow-wrap:anywhere}}
   .verdict{{margin-top:12px;text-align:center;font-size:18px;font-weight:800;
            color:{accent};text-shadow:0 0 18px {glow}}}
-  .foot{{margin-top:12px;font-size:10.5px;color:#5d6a7a;letter-spacing:.6px}}
+  .foot{{margin-top:12px;font-size:12px;color:#9aa9be;letter-spacing:.4px}}
 </style></head><body>
 <div class="card">
   <div class="head">
     {art_html}
     <div class="htext">
       <div class="bname">{_esc(state["boss_name"])}</div>
-      <div class="tag">{_esc(state.get("tier", "boss"))}</div>
+      <div class="tag">{_esc(state.get("tier", "Standard"))}</div>
+      <div class="rarity">{_esc(state.get("rarity", "Boss"))}</div>
       <div class="bosshp">
         {_bar_html(state["boss_hp"], state["boss_max"], accent)}
         <div class="sub">{state["boss_hp"]:.0f} / {state["boss_max"]:.0f}
@@ -134,11 +155,12 @@ def build_html(state: dict) -> str:
     </div>
   </div>
   {line}
+  {f'<div class="status">{status}<span>ROUND {state.get("round", 1)}</span></div>' if not state.get("verdict") else ''}
   <div class="sect">Party ({state["alive"]}/{state["total"]})</div>
   {"".join(rows)}
   {'<div class="sect">Last exchanges</div>' + log_html if log_html else ''}
   {verdict}
-  <div class="foot">TURN {state["turn"]} &nbsp;·&nbsp; {_esc(state.get("difficulty",""))}</div>
+  <div class="foot">TURN {state["turn"]} &nbsp;·&nbsp; {_esc(state.get("difficulty",""))} AI</div>
 </div></body></html>"""
 
 
@@ -155,9 +177,7 @@ def build_lobby_html(state: dict) -> str:
     glow   = state.get("glow", "#6a0dad")
     tint   = state.get("tint", "#140a1e")
 
-    art = state.get("art_src") or ""
-    art_html = (f'<img class="art" src="{art}" alt="">' if art
-                else '<div class="art noart"></div>')
+    art_html = _art_html(state)
 
     stats_html = "".join(
         f'<div class="srow"><span class="slabel">{_esc(k)}</span>'
@@ -183,14 +203,17 @@ def build_lobby_html(state: dict) -> str:
   .card{{width:{CARD_WIDTH}px;background:linear-gradient(160deg,{tint},#05070c 72%);
         border:1px solid {accent}55;border-radius:18px;padding:22px 22px 18px;
         color:#e8ecf4;box-shadow:0 0 46px {glow}33 inset;text-align:center}}
-  .art{{width:150px;height:150px;border-radius:50%;object-fit:cover;
+  .art-wrap{{position:relative;margin:0 auto;width:150px;height:150px;
+       display:grid;place-items:center;border-radius:50%;overflow:hidden;
+       background:#11151f;color:{accent};font-size:78px;font-weight:800;
        border:3px solid {accent};box-shadow:0 0 30px {glow}}}
-  .noart{{background:#11151f;display:inline-block}}
+  .art{{position:absolute;width:100%;height:100%;object-fit:cover}}
   .bname{{margin-top:14px;font-size:32px;font-weight:800;letter-spacing:.4px;
          color:#fff;text-shadow:0 0 20px {glow}}}
   .tag{{display:inline-block;margin-top:8px;padding:4px 16px;border-radius:999px;
        background:{accent}22;border:1.5px solid {accent}88;color:{accent};
        font-size:12px;letter-spacing:1.8px;text-transform:uppercase;font-weight:700}}
+  .rarity{{margin-top:5px;font-size:12px;color:#aebbd0;letter-spacing:1px}}
   .blurb{{margin-top:12px;font-size:13px;font-style:italic;color:#c9d3e4}}
   .stats{{margin-top:16px;text-align:left}}
   .srow{{display:flex;justify-content:space-between;padding:6px 2px;
@@ -201,12 +224,13 @@ def build_lobby_html(state: dict) -> str:
   .sect{{margin-top:16px;text-align:left;font-size:11px;letter-spacing:1.6px;
         color:{accent};text-transform:uppercase}}
   .pline{{text-align:left;font-size:13px;color:#dce3ef;padding:3px 2px}}
-  .foot{{margin-top:14px;font-size:10.5px;color:#5d6a7a;letter-spacing:.6px}}
+  .foot{{margin-top:14px;font-size:12px;color:#a9b6c9;letter-spacing:.4px}}
 </style></head><body>
 <div class="card">
   {art_html}
   <div class="bname">{_esc(state.get("boss_name", ""))}</div>
   <div class="tag">{_esc(state.get("tier", "boss"))}</div>
+  <div class="rarity">{_esc(state.get("rarity", "Boss"))}</div>
   {blurb}
   <div class="stats">{stats_html}</div>
   {party_html}
@@ -294,10 +318,8 @@ async def _shoot(html: str) -> Optional[io.BytesIO]:
             await page.set_content(html, wait_until="domcontentloaded")
             try:
                 await page.wait_for_function(
-                    """() => { const i = document.querySelector('.art');
-                               return !i || i.tagName !== 'IMG'
-                                      || (i.complete && i.naturalWidth > 0); }""",
-                    timeout=3000,
+                    "() => { const i = document.querySelector('.art'); return !i || i.complete; }",
+                    timeout=1000,
                 )
             except Exception:
                 pass

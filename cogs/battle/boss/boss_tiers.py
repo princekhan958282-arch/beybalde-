@@ -254,10 +254,11 @@ def can_afford(profile: dict, key: Optional[str],
     return int(profile.get("coins", 0) or 0) >= price_of(key, boss_key)
 
 
-def summary_line(key: Optional[str]) -> str:
+def summary_line(key: Optional[str], boss_key: Optional[str] = None) -> str:
     """One line for a lobby card / embed."""
     t = get(key)
-    price = "free" if not t["price"] else f"🪙 {t['price']:,}"
+    entry = price_of(key, boss_key)
+    price = "free" if not entry else f"🪙 {entry:,}"
     return (f"{t['emoji']} **{t['label']}** — {price}  ·  "
             f"❤️ ×{t['hp_mult']:g}  ·  ⚔️ ×{t['atk_mult']:g}  ·  "
             f"👑 1 in {t['perfect_odds']:,}")
