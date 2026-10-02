@@ -168,19 +168,26 @@ def project(session, key: str, okey: str) -> ai.Fighter:
     from cogs.battle.purification import effective_stats
     from cogs.battle.damage_rules import resolve_special
     stats = effective_stats(session, key)
+    gimmicks = getattr(session, 'type_gimmicks', None)
+    morph_factor = gimmicks.stat_multiplier(key) if gimmicks else 1
     formula_damage = (resolve_special(blade, effective_stats=stats)[1]
                       if (blade.get("special_move") or {}).get("damage_formula") else None)
     return ai.Fighter(
         special_damage=formula_damage,
         bey_type=blade.get("type", ""), level=stats.get("level", 1),
         stats_pretyped=True,
+        morph_rounds=gimmicks.states[key].adaptive_morph_rounds if gimmicks else 0,
+        morph_stat_factor=morph_factor,
+        morph_hp_factor=morph_factor,
+        base_max_hp=float(session.max_hp_per_player.get(key, 1)) / morph_factor,
+        gimmick_controls=gimmicks.export_controls(key) if gimmicks else [],
         move_costs={move: sm.cost_for(key, move) for move in ai.ALL_MOVES},
         name=str(name),
         hp=float(session.hp.get(key, 0)),
         max_hp=float(session.max_hp_per_player.get(key, 1) or 1),
-        attack=float(stats.get("attack", 0)),
-        defense=float(stats.get("defense", 0)),
-        stamina_stat=float(stats.get("stamina", 0)),
+        attack=float(stats.get("attack", 0)) / morph_factor,
+        defense=float(stats.get("defense", 0)) / morph_factor,
+        stamina_stat=float(stats.get("stamina", 0)) / morph_factor,
         sp=float(sm.stamina.get(key, 0.0)),
         sp_max=sp_max,
         gauge=float(sm.gauge.get(key, 0.0)),

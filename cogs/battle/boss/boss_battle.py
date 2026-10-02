@@ -577,6 +577,21 @@ class BossFight:
         self.foe = self.fighters[player.id]
         self.kit = self.kits[player.id]
         self.blades = dict(_blades)
+        from ..type_gimmicks import GIMMICK_OPS
+        for uid, fighter in self.fighters.items():
+            kit = self.kits[uid]
+            fighter.incoming_reduction = kit.reduction
+            fighter.incoming_flat_reduction = kit.flat_reduction
+            fighter.outgoing_amp = kit.dmg_amp + kit.boss_damage_amp
+            fighter.special_outgoing_amp = kit.boss_special_amp * (1 + kit.boss_damage_amp)
+            fighter.outgoing_flat = kit.flat_damage
+            fighter.reflected_flat = kit.reflect
+            fighter.ability_blade = self.blades.get(uid, {})
+            fighter.gimmick_rules = [
+                {**rule, '_name': ability.get('name', fighter.name)}
+                for ability in fighter.ability_blade.get('abilities', [])
+                for rule in ability.get('rules', [])
+                if any(op.get('op') in GIMMICK_OPS for op in rule.get('do', []))]
         self.turn_index = 0
         self.round_offset = 0
         self.round_number = 1
@@ -725,7 +740,7 @@ class BossFight:
 
         # Boss Fighter bonuses live only in this boss engine.
         dealt_before = float(report.get("dmg_to_a", 0.0) or 0.0)
-        if dealt_before > 0 and getattr(kit, "boss_damage_amp", 0.0):
+        if dealt_before > 0 and getattr(kit, "boss_damage_amp", 0.0) and not report.get('mitigation_applied'):
             bonus = dealt_before * kit.boss_damage_amp
             self.boss.hp = max(0.0, self.boss.hp - bonus)
             report["boss_fighter_bonus"] = bonus
@@ -791,7 +806,7 @@ class BossFight:
         dealt = report.get("dmg_to_a", 0.0)
         taken = report.get("dmg_to_b", 0.0)
 
-        if dealt > 0 and kit.dmg_amp:
+        if dealt > 0 and kit.dmg_amp and not report.get('mitigation_applied'):
             bonus = dealt * kit.dmg_amp
             self.boss.hp = max(0.0, self.boss.hp - bonus)
             extra["ability_bonus"] = bonus
@@ -805,35 +820,28 @@ class BossFight:
         # field nothing reads is exactly the bug this whole change is fixing —
         # Argus's crit sat unread for two versions.
         flat = getattr(kit, "flat_damage", 0.0)
-        if dealt > 0 and flat:
+        if dealt > 0 and flat and not report.get('mitigation_applied'):
             self.boss.hp = max(0.0, self.boss.hp - flat)
             extra["ability_bonus"] = extra.get("ability_bonus", 0.0) + flat
 
-        # Damage reduction and lifesteal are paid out as HP AFTER resolve() has
-        # already clamped the loser to 0, so a fighter that died this exchange
-        # was refunded back above zero and simply carried on. Anything with
-        # reduction or heal_pct was therefore unkillable: Eternal Blaze Garuda
-        # (reduction 0.20, heal_pct 0.25) beat both bosses 100% of the time,
-        # while Azeroth Veyrath — 0.00 on both — died normally and won 0%.
-        # That, not healing, is why Stamina blades could not lose.
-        #
-        # These stay refunds rather than becoming pre-damage modifiers because
-        # `report` is already resolved by the time we get here; gating them on
-        # still being alive is the minimal correct fix.
+        # Live hits resolve offense/mitigation/reflection before HP commit.
+        # The refund branches below are compatibility for detached historical
+        # report callers; mitigation_applied prevents them running twice.
+        # Lifesteal still requires a survivor and uses the resolved hit report.
         alive = self.foe.hp > 0
-        if taken > 0 and kit.reduction and alive:
+        if taken > 0 and kit.reduction and alive and not report.get('mitigation_applied'):
             back = taken * kit.reduction
             self.foe.hp = min(self.foe.max_hp, self.foe.hp + back)
             extra["ability_soak"] = back
         flat_red = getattr(kit, "flat_reduction", 0.0)
-        if taken > 0 and flat_red and alive:
+        if taken > 0 and flat_red and alive and not report.get('mitigation_applied'):
             # Capped at the damage that actually landed: a flat soak larger
             # than the hit would otherwise HEAL the player for the difference,
             # which is a refund turning into a fountain.
             back = min(float(flat_red), taken)
             self.foe.hp = min(self.foe.max_hp, self.foe.hp + back)
             extra["ability_soak"] = extra.get("ability_soak", 0.0) + back
-        if taken > 0 and kit.reflect:
+        if taken > 0 and kit.reflect and not report.get('mitigation_applied') and not report.get('kinetic_return_a'):
             self.boss.hp = max(0.0, self.boss.hp - kit.reflect)
             extra["ability_reflect"] = kit.reflect
         if dealt > 0 and kit.heal_pct and alive:

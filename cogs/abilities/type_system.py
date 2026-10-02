@@ -263,8 +263,9 @@ class TypeModifiers:
         self.btype = btype
 
         # Stat passives are applied by effective_stats, never again to damage.
-        self.atk_mult = 1.10 if btype == "attack" else 1.033 if btype == "balance" else 1.0
-        self.def_mult = 1.14 if btype == "defense" else 1.0
+        from cogs.battle.type_gimmicks import passive_stat_multiplier, defense_reduction
+        self.atk_mult = passive_stat_multiplier(btype, "attack")
+        self.def_mult = 1 + defense_reduction(btype)
         self.sta_mult = 1.0
 
         # ── Stability starting value ──────────────────────────────────────────

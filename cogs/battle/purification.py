@@ -43,7 +43,7 @@ def effective_stats(session, key):
         value = (base.get(stat, 0) + session.status.get_buff_bonus(key, stat) + parts.get(stat, 0)) * mult
         if avatar and avatar.has_any_bonus:
             value = getattr(avatar, method)(value)
-        if getattr(session, "combat_v3", False):
+        if getattr(session, "type_gimmicks", None):
             from .type_gimmicks import passive_stat_multiplier
             value *= passive_stat_multiplier(session.blades[key].get("type"), stat)
             value *= session.type_gimmicks.stat_multiplier(key)

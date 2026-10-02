@@ -357,7 +357,6 @@ class BattleSession:
         self.channel = channel
         self.players = [p1, p2]
         self.blades  = {str(p1.id): copy.deepcopy(blade1), str(p2.id): copy.deepcopy(blade2)}
-        self.combat_v3 = True
         # Defaults to False so every existing caller — tournament matches
         # included — keeps producing casual results until it opts in. A ladder
         # that counted friendly matches would let two players trade wins to
@@ -1081,8 +1080,6 @@ class BattleSession:
         # needs to re-apply stat_mult to the damage output.
         from .purification import effective_stats
 
-        s1 = effective_stats(self, k1)
-        s2 = effective_stats(self, k2)
         sm     = self.stamina_manager
 
         round_log: list[str] = []
@@ -1115,7 +1112,19 @@ class BattleSession:
         for _key in (k1, k2):
             round_log.extend(self.defense_manager.tick_grind(_key))
 
-        gimmick_logs = self.type_gimmicks.begin_round({k1: m1, k2: m2})
+        # Both sides expire old durations before either side attacks. New
+        # effects granted during this exchange wait until the next boundary.
+        self.damage_status_round = self.round
+        for key in (k1, k2):
+            self.ability.damage_filter._step1_tick(key, round_log)
+
+        self.type_gimmicks.start_round()
+        # New authored controls can change this round's roll using the normal
+        # condition/cooldown/once machinery, before gimmicks and stats resolve.
+        for key, other, blade, move in ((k1, k2, b1, m1), (k2, k1, b2, m2)):
+            self.ability._fire('on_round_start', key, other, blade, move,
+                               'mirror', 0, 0, round_log)
+        gimmick_logs = self.type_gimmicks.begin_round({k1: m1, k2: m2}, started=True)
         for key in (k1, k2):
             gimmick_logs = [line.replace(f"— {key} activates", f"— {self.blades[key]['name']} activates") for line in gimmick_logs]
         round_log.extend(gimmick_logs)
@@ -1273,17 +1282,9 @@ class BattleSession:
             self._sync_morph_hp(key)
             sm.stamina[key] = max(0, min(sm.cap_for(key), sm.stamina[key]))
 
-        # tick_buffs / tick_silence / tick_universal are DELIBERATELY NOT
-        # called here. Each player already gets ticked exactly once per round
-        # via DamageFilter._step1_tick, reached through AbilityEngine.apply()
-        # during that player's own resolve_pair() call above (k1 as mover,
-        # then k2 as mover) — see damage_filter.py's docstring: step 1 "must
-        # run once per round", gated by is_first_hit so a multi-hit Special
-        # doesn't over-tick either. A second call here duplicated every one of
-        # those three ticks, silently halving every "N turns" buff, debuff,
-        # silence, ignore_invuln and true_damage window in the entire roster.
-        # invulnerable_turns (a separate dict from ignore_invuln_turns) has no
-        # other tick site, so decrement_invulnerable still runs here.
+        # Both sides' buffs, silence and universal durations were aged at the
+        # round boundary. Newly granted effects keep their full duration.
+        # Invulnerability uses its separate existing end-of-round lifetime.
         st = self.status
         # Timed dmg_amp grants (Overdrive and friends). Once for the whole
         # session, not per player — the list carries its own owner key.

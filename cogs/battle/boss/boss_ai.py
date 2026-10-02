@@ -32,6 +32,7 @@ How the AI plays "like a pro":
 
 import math
 import random
+import copy
 from dataclasses import dataclass, field, replace
 from typing import Optional
 
@@ -200,6 +201,18 @@ class Fighter:
     hp_pretyped: bool = False
     base_max_hp: Optional[float] = None
     morph_hp_factor: float = 1.0
+    morph_stat_factor: float = 1.05
+    gimmick_controls: list = field(default_factory=list)
+    gimmick_rules: list = field(default_factory=list)
+    gimmick_once: set = field(default_factory=set)
+    ability_blade: Optional[dict] = None
+    combat_round: int = 0
+    incoming_reduction: float = 0
+    incoming_flat_reduction: float = 0
+    outgoing_amp: float = 0
+    special_outgoing_amp: float = 0
+    outgoing_flat: float = 0
+    reflected_flat: float = 0
 
     def __post_init__(self):
         if not self.hp_pretyped and not self.stats_pretyped:
@@ -214,7 +227,7 @@ class Fighter:
         expected = hp_damage(self.base_max_hp * self.morph_hp_factor)
         if self.max_hp != expected:
             self.base_max_hp = self.max_hp / self.morph_hp_factor
-        self.morph_hp_factor = 1.05 if self.morph_rounds else 1.0
+        self.morph_hp_factor = self.morph_stat_factor if self.morph_rounds else 1.0
         self.max_hp = hp_damage(self.base_max_hp * self.morph_hp_factor)
         self.hp = min(self.hp, self.max_hp)
 
@@ -222,7 +235,8 @@ class Fighter:
         if self.move_costs is not None:
             return self.move_costs[move]
         cost = STAMINA_COST[move]
-        return cost * (.8 if normalise_type(self.bey_type) == "stamina" else 1)
+        from ..combat_rules import type_stamina_cost
+        return type_stamina_cost(self.bey_type, cost)
 
     @property
     def eff_stamina(self):
@@ -230,7 +244,7 @@ class Fighter:
 
     def stat_factor(self, stat):
         passive = 1 if self.stats_pretyped else passive_stat_multiplier(self.bey_type, stat)
-        return passive * (1.05 if self.morph_rounds > 0 else 1)
+        return passive * (self.morph_stat_factor if self.morph_rounds > 0 else 1)
 
     def alive(self) -> bool:
         return self.hp > 0
@@ -273,7 +287,19 @@ class Fighter:
                        special_ignores_defense=self.special_ignores_defense,
                        move_costs=dict(self.move_costs) if self.move_costs else None,
                        hp_pretyped=True, base_max_hp=self.base_max_hp,
-                       morph_hp_factor=self.morph_hp_factor)
+                       morph_hp_factor=self.morph_hp_factor,
+                       morph_stat_factor=self.morph_stat_factor,
+                       gimmick_controls=copy.deepcopy(self.gimmick_controls),
+                       gimmick_rules=copy.deepcopy(self.gimmick_rules),
+                       gimmick_once=set(self.gimmick_once),
+                       ability_blade=copy.deepcopy(self.ability_blade),
+                       combat_round=self.combat_round,
+                       incoming_reduction=self.incoming_reduction,
+                       incoming_flat_reduction=self.incoming_flat_reduction,
+                       outgoing_amp=self.outgoing_amp,
+                       special_outgoing_amp=self.special_outgoing_amp,
+                       outgoing_flat=self.outgoing_flat,
+                       reflected_flat=self.reflected_flat)
 
     # ── Stance-adjusted stats (plain fighters are unaffected) ────────────────
     @property
@@ -369,11 +395,19 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
                                 rng=(lambda: .99) if simulate else None)
     for key, fighter in (("a", a), ("b", b)):
         engine.states[key].adaptive_morph_rounds = fighter.morph_rounds
-    log["gimmicks"] = engine.begin_round({"a": move_a, "b": move_b})
+        engine.restore_controls(key, 'b' if key == 'a' else 'a', fighter.gimmick_controls)
+    engine.start_round()
+    from .gimmick_adapter import prepare
+    ability_logs = []
+    fire_controls = prepare(engine, a, b, {'a': move_a, 'b': move_b}, ability_logs, simulate=simulate)
+    ability_logs.extend(engine.begin_round({"a": move_a, "b": move_b}, started=True))
+    log["gimmicks"] = ability_logs
     for key, fighter, move in (("a", a, move_a), ("b", b, move_b)):
         fighter.morph_rounds = engine.states[key].adaptive_morph_rounds
+        fighter.morph_stat_factor = engine.stat_multiplier(key)
         fighter.sync_morph_hp()
-        fighter.sp = max(0, fighter.sp - fighter.cost_for(move))
+        from ..combat_rules import spend_resource
+        fighter.sp = spend_resource(fighter.sp, fighter.cost_for(move))
 
     def offence(src, dst, move, other_move, tag):
         if move not in (MOVE_ATTACK, MOVE_SPECIAL):
@@ -415,13 +449,31 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             if crit is not None:
                 dmg *= max(1.0, float(crit()))
         other = "b" if tag == "a" else "a"
+        if dmg > 0:
+            dmg = dmg * max(0, 1 + src.outgoing_amp + (src.special_outgoing_amp if special else 0)) + max(0, src.outgoing_flat)
+        if fire_controls:
+            from ..damage_rules import calc_damage
+            matchup = 'win' if special else calc_damage(move, {}, {}, {}, other_move)[2]
+            result = {'lose': 'loss', 'lose_grind': 'loss'}.get(matchup, matchup)
+            fire_controls(tag, 'on_' + move + '_' + result, matchup=matchup)
+            fire_controls(tag, 'on_any_' + result, matchup=matchup)
+            fire_controls(tag, 'on_special' if special else 'on_attack_hit', matchup=matchup)
         dmg = engine.critical(tag, move, dmg, [])
-        return engine.mitigate(tag, other, move, dmg,
-                               true_damage=special and src.special_true_damage,
-                               bypass_reduction=special and src.special_ignores_defense)
+        if fire_controls and dmg > 0:
+            fire_controls(other, 'on_take_damage', move, matchup)
+            if other_move == MOVE_DEFENSE:
+                fire_controls(other, 'on_defend', move, matchup)
+        if not (special and (src.special_true_damage or src.special_ignores_defense)):
+            dmg = max(0, dmg * (1 - min(.95, max(0, dst.incoming_reduction)))
+                      - max(0, dst.incoming_flat_reduction))
+        return max(0, dmg)
 
     dmg_b = offence(a, b, move_a, move_b, "a")
     dmg_a = offence(b, a, move_b, move_a, "b")
+    if engine.nullifies('a', 'b', move_a, true_damage=move_a == MOVE_SPECIAL and a.special_true_damage):
+        dmg_b = 0
+    if engine.nullifies('b', 'a', move_b, true_damage=move_b == MOVE_SPECIAL and b.special_true_damage):
+        dmg_a = 0
 
     # Crystal layers eat a slice of one incoming hit, then shatter.
     if b.state is not None and hasattr(b.state, "absorb") and dmg_b > 0 and not (move_a == MOVE_SPECIAL and a.special_true_damage):
@@ -432,6 +484,14 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         dmg_a, shattered = a.state.absorb(dmg_a)
         if shattered:
             log["note_a"] = "shard shattered"
+
+    # Defensive effects precede the shared type reduction/counter stage.
+    dmg_b = engine.mitigate('a', 'b', move_a, dmg_b,
+                           true_damage=move_a == MOVE_SPECIAL and a.special_true_damage,
+                           bypass_reduction=move_a == MOVE_SPECIAL and a.special_ignores_defense)
+    dmg_a = engine.mitigate('b', 'a', move_b, dmg_a,
+                           true_damage=move_b == MOVE_SPECIAL and b.special_true_damage,
+                           bypass_reduction=move_b == MOVE_SPECIAL and b.special_ignores_defense)
 
     # Riposte: a successful block punishes the attacker.
     if move_a == MOVE_DEFENSE and move_b in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("b", "a", move_b):
@@ -458,28 +518,35 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             return 0.0
         key = "a" if src is a else "b"
         heal, stability, recovery = engine.recovery(key, src.eff_stamina)
-        src.stability = min(src.max_stability, src.stability + stability)
+        from ..combat_rules import recover_resource
+        src.stability = recover_resource(src.stability, src.max_stability, stability)
         if recovery is not None:
-            src.sp = min(src.sp_max, src.sp + recovery)
+            src.sp = recover_resource(src.sp, src.sp_max, recovery)
         return min(max(0, src.max_hp - src.hp), hp_damage(heal))
 
     # Final HP rounding and capped actual damage, before terminal counter.
     dmg_a, dmg_b = hp_damage(dmg_a), hp_damage(dmg_b)
-    actual_a, actual_b = min(a.hp, dmg_a), min(b.hp, dmg_b)
-    b.hp = max(0, b.hp - dmg_b)
-    a.hp = max(0, a.hp - dmg_a)
+    from ..combat_rules import damage_hp, recover_hp, recover_resource
+    a.hp, actual_a = damage_hp(a.hp, dmg_a)
+    b.hp, actual_b = damage_hp(b.hp, dmg_b)
     if engine.returns_damage("a", "b", move_a):
-        a.hp = max(0, a.hp - actual_b)
+        a.hp, _ = damage_hp(a.hp, actual_b, already_final=True)
         log["kinetic_return_a"] = actual_b
     if engine.returns_damage("b", "a", move_b):
-        b.hp = max(0, b.hp - actual_a)
+        b.hp, _ = damage_hp(b.hp, actual_a, already_final=True)
         log["kinetic_return_b"] = actual_a
+    if actual_a > 0 and a.reflected_flat and not engine.returns_damage('b', 'a', move_b):
+        b.hp, reflected = damage_hp(b.hp, a.reflected_flat)
+        log['ability_reflect_a'] = reflected
+    if actual_b > 0 and b.reflected_flat and not engine.returns_damage('a', 'b', move_a):
+        a.hp, reflected = damage_hp(a.hp, b.reflected_flat)
+        log['ability_reflect_b'] = reflected
     # Recovery uses HP after direct and returned damage, just like live PvP.
     # A fighter knocked out by this exchange cannot recover resources.
     heal_a = healing(a, move_a, move_b)
     heal_b = healing(b, move_b, move_a)
-    a.hp = min(a.max_hp, a.hp + heal_a)
-    b.hp = min(b.max_hp, b.hp + heal_b)
+    a.hp, heal_a = recover_hp(a.hp, a.max_hp, heal_a)
+    b.hp, heal_b = recover_hp(b.hp, b.max_hp, heal_b)
     a.healed_total += heal_a
     b.healed_total += heal_b
 
@@ -526,10 +593,10 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         key = "a" if f is a else "b"
         if mv == MOVE_STAMINA:
             if f.alive() and not engine.states[key].overdrive_active:
-                f.sp = min(max(f.sp_max, f.sp), f.sp + 2.5)
+                f.sp = recover_resource(f.sp, f.sp_max, 2.5, preserve_reserve=True)
             f.heal_streak += 1
         else:
-            f.sp = min(max(f.sp_max, f.sp), f.sp + 0.5)
+            f.sp = recover_resource(f.sp, f.sp_max, .5, preserve_reserve=True)
             if mv in (MOVE_ATTACK, MOVE_SPECIAL):
                 # Walk the streak back rather than clearing it — see
                 # HEAL_STREAK_RECOVERY.
@@ -546,8 +613,14 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             log["ascended"] = f.name
 
     engine.end_round()
+    for key, fighter in (("a", a), ("b", b)):
+        fighter.gimmick_controls = engine.export_controls(key)
+        fighter.combat_round += 1
+    log['mitigation_applied'] = True
     a.morph_rounds = engine.states["a"].adaptive_morph_rounds
     b.morph_rounds = engine.states["b"].adaptive_morph_rounds
+    a.morph_stat_factor = engine.stat_multiplier('a')
+    b.morph_stat_factor = engine.stat_multiplier('b')
     a.sync_morph_hp()
     b.sync_morph_hp()
 

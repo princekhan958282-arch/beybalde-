@@ -182,7 +182,7 @@ class DefenseManager:
         # 2. Active defense buff on the defender
         from .purification import stat_bonus
         def_buf = ab_eng._get_buf_bonus(okey, "defense") - stat_bonus(self.session, okey, "defense")
-        if def_buf and not getattr(self.session, "combat_v3", False):
+        if def_buf and not getattr(self.session, "type_gimmicks", None):
             ostats = dict(ostats)
             base_def = ostats.get("defense", 50)
             ostats["defense"] = base_def + def_buf

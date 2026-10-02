@@ -76,6 +76,8 @@ class FakeSession:
         self.last_moves = {}
         self.moves = {}
         self.round = 1
+        from cogs.battle.type_gimmicks import TypeGimmickEngine
+        self.type_gimmicks = TypeGimmickEngine({k: b.get('type') for k, b in self.blades.items()})
         self.stat_mult = {}
         self.status = StatusManager(self)
         self.status_manager = self.status
@@ -85,6 +87,7 @@ class FakeSession:
         self.stability_manager = StabilityManager(self.blades, self.type_mods)
         self.chain_handler = _t.SimpleNamespace(resolve=lambda *a, **k: [])
         self.ability = AbilityEngine(self)
+        self.attack_manager = AttackManager(self)
         for _k in self.blades:
             self.ability.setup(_k, self.blades[_k])
 
@@ -142,15 +145,15 @@ def main() -> int:
     base_def = s.blades["e"]["stats"]["defense"]
 
     out1, logs1 = attack(s, dmg=100)
-    check("1st attack: no bonus damage", out1 == 100, out1)
+    check("1st attack: no bonus damage", out1 == 86, out1)
     check("1st attack: no DEF debuff yet",
           s.ability._get_buf_bonus("e", "defense") == 0)
 
     out2, logs2 = attack(s, dmg=100)
-    check("2nd attack: still no bonus damage", out2 == 100, out2)
+    check("2nd attack: still no bonus damage", out2 == 86, out2)
 
     out3, logs3 = attack(s, dmg=100)
-    check("3rd attack: +25% bonus damage", out3 == 125, out3)
+    check("3rd attack: +25% bonus damage", out3 == 107.5, out3)
     check("3rd attack: enemy DEF cut by 10% of THEIR base, for 2 turns",
           s.ability._get_buf_bonus("e", "defense") == -round(base_def * 0.10),
           s.ability._get_buf_bonus("e", "defense"))
@@ -159,12 +162,12 @@ def main() -> int:
 
     out4, logs4 = attack(s, dmg=100)
     check("4th attack: counter reset — no bonus damage",
-          out4 == 100, out4)
+          out4 == 86, out4)
 
     out5, _ = attack(s, dmg=100)
     out6, _ = attack(s, dmg=100)
-    check("5th attack: still building, no bonus", out5 == 100, out5)
-    check("6th attack: procs again", out6 == 125, out6)
+    check("5th attack: still building, no bonus", out5 == 86, out5)
+    check("6th attack: procs again", out6 == 107.5, out6)
 
     # ── 3. Celestial Dragon Breaker — conditional pierce, proven live ───────
     print("\n── 3. Celestial Dragon Breaker — 180% ATK, conditional +30%/pierce ──")
