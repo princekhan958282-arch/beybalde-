@@ -67,7 +67,7 @@ The central engine has battle-local chance bonuses, forced/suppressed gimmicks a
 
 `python -m compileall -q cogs tools tests` and `git diff --check` passed.
 
-`python -m unittest discover -s tests -v`: **29 passed**. Includes formula ratios and zero Defense; all gimmick action gates and 5% boundary; passives and composed costs; buffs/debuffs; both player orders; capped critical returns with reflect/avatar effects; Specials and true damage/shields; recovery caps; non-stacking Morph; button validation; form evolution; Burst/Ring-Out/Spin/Draw; and boss resolver/search-clone paths.
+`python -m unittest discover -s tests -v`: **33 passed**. Includes formula ratios and zero Defense; all gimmick action gates and 5% boundary; passives and composed costs; buffs/debuffs; both player orders; capped critical returns with reflect/avatar effects; Specials and true damage/shields; recovery caps; non-stacking Morph; button validation; form evolution; Burst/Ring-Out/Spin/Draw; and boss resolver/search-clone paths.
 
 Passing existing suites: battle ticks, tactical PvP, tactical effects, extended effects, ranked (211 checks), buttons, types, Kirindael Domain, stat pipeline, Cosmic Phoenix, multi-hit nerf, Guilty/Hades, Heaven's Ring, Azure Drakonyx, Odax/Horusood, boss tiers, boss flow, avatars, Story (197 checks), and Argus (119 checks).
 
@@ -90,3 +90,11 @@ Existing integrations: `cogs/battle/boss/boss_ai.py`, `boss_battle.py`, `cogs/st
 Tests: `tests/test_combat_rework.py`; `tools/sim_types.py`, `sim_tactical_pvp.py`, `sim_story.py`, `sim_ranked.py`, `sim_azure_drakonyx.py`, `sim_argus_boss.py`, `sim_boss_iq.py`.
 
 Documentation: this report. Commands, Bey data, ability definitions, Special definitions, reward logic and unrelated systems are retained.
+
+## Follow-up bug pass
+
+Four recovery regressions were covered with new tests. The boss resolver capped healing before damage, preventing full-HP fighters from recovering damage taken in the exchange. It also granted Stability/Battle Stamina and logged healing for knocked-out Stamina users. Named boss Specials discarded the player's healing report. Their drain report could exceed actual HP recovery at the cap.
+
+Healing now resolves after direct and terminal counter damage, with alive checks before recovery. Named Specials retain shared-resolver healing and report only capped drain recovery. Focused tests cover both fighter orders, lethal damage, Overdrive caps, named Argus Specials, and capped drain. All 33 focused tests pass; syntax and whitespace checks pass. This pass does not retune boss difficulty. The prior IQ benchmark failures above remain a release blocker; that benchmark was not rerun in this follow-up.
+
+Follow-up regression run: 1,044 checks/tests passed across battle ticks, tactical PvP, extended effects, ranked, types, stat pipeline, boss tiers, boss flow, Story, Argus, and avatars. No new failures in these suites.
