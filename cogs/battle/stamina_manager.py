@@ -111,7 +111,7 @@ STAMINA_REGEN_PER_STAT = 0.004      # +0.4 per 100 stat
 # the bey's OWN ceiling (max_stamina_for) rather than a global 15.
 # Continuous per-point scaling: 1 stat = 0.05 stamina, so 20 stat = +1.
 # At STA 1: 3.05 | STA 100: 8 | STA 240: 15 | STA 400: 23 — no longer flat-topped.
-STAMINA_START_BASE     = 3
+STAMINA_START_BASE     = 0
 STAMINA_START_PER_STAT = 0.05
 
 
@@ -163,7 +163,7 @@ class StaminaManager:
         """Player's stamina stat — modified (parts/avatar/level) if available."""
         eff = self._eff.get(key)
         if eff and "stamina" in eff:
-            return max(0, int(eff.get("stamina", 0)))
+            return max(0, float(eff.get("stamina", 0)))
         return max(0, int(self._blades.get(key, {}).get("stats", {}).get("stamina", 0)))
 
     # ── Initialisation helper ─────────────────────────────────────────────────
@@ -274,6 +274,9 @@ class StaminaManager:
             if adjusted != cost:
                 note += f" *(ability cost {cost:g} → {adjusted:g})*"
             cost = adjusted
+        from cogs.abilities.type_system import normalise_type
+        if normalise_type(self._blades.get(key, {}).get("type")) == "stamina":
+            cost *= .80
         return max(0.0, cost), note
 
     def cost_for(self, key: str, move: str) -> float:
@@ -303,7 +306,7 @@ class StaminaManager:
     # ── Public: action-based stamina recovery (MOVE_STAMINA) ─────────────────
 
     def apply_stamina_action(self, key: str, hp: dict[str, int], type_mod, type_active: bool = False,
-                             attacked: bool = False, max_hp: int | None = None) -> list[str]:
+                             attacked: bool = False, max_hp: int | None = None, gimmicks=None) -> list[str]:
         """Process the 'Use Stamina' action: recover stamina + heal HP.
 
         ``type_mod``    — TypeModifiers for this player (or None).
@@ -317,50 +320,22 @@ class StaminaManager:
         ``max_hp``      — this player's real max HP (avatar bonuses can push it
                           above BASE_HP). Heal cap and low-HP ratio use this.
         """
-        blade    = self._blades[key]
-        sta_stat = self._sta_stat(key)   # modified stat (parts/avatar/level)
-        cap_hp   = int(max_hp) if max_hp else BASE_HP
-        # Scales with the stat now — see STAMINA_RECOVERY_PER_STAT for why the
-        # old flat +3 was wrong.
-        base_recovery = STAMINA_RECOVERY_BASE + sta_stat * STAMINA_RECOVERY_PER_STAT
-        type_bonus = 0
-        if type_mod is not None and type_active:
-            btype = str(self._blades[key].get("type", "")).lower()
-            if "stamina" in btype:
-                type_bonus = 1
-        total_recovery = round(base_recovery + type_bonus, 2)
-        self.stamina[key] = round(
-            min(self.cap_for(key), self.stamina.get(key, 0.0) + total_recovery), 2)
-        hp_ratio  = hp.get(key, 0) / cap_hp if cap_hp else 0.0
-        heal_mult = 1.0 + max(0.0, (0.40 - hp_ratio) / 0.40) * 0.2
-        # Use type_mod.apply_stamina() to scale heal when the bonus is active
-        if sta_stat > 0:
-            raw_heal = max(STAMINA_HEAL_MIN, math.ceil(sta_stat * STAMINA_HEAL_RATIO * heal_mult))
-            heal_amt = type_mod.apply_stamina(raw_heal) if (type_mod and type_active) else raw_heal
-        else:
-            heal_amt = 0
-        # Interrupted heal: attacked mid-recovery → heal halved
-        if attacked and heal_amt > 0:
-            heal_amt = max(1, math.ceil(heal_amt * STAMINA_HEAL_INTERRUPT_MULT))
+        from .type_gimmicks import TypeGimmickEngine, hp_damage
+        blade = self._blades[key]
+        engine = gimmicks or TypeGimmickEngine({key: blade.get("type")})
+        heal, _, recovery = engine.recovery(key, self._sta_stat(key))
+        if recovery is None:
+            # Keep the existing normal resource recovery; Overdrive replaces it.
+            recovery = STAMINA_RECOVERY_BASE + self._sta_stat(key) * STAMINA_RECOVERY_PER_STAT
+        self.stamina[key] = min(self.cap_for(key), max(0, self.stamina[key] + recovery))
         from .purification import heal_amount
         session = getattr(self, "purification_session", None)
         if session is not None:
-            heal_amt = heal_amount(session, key, heal_amt)
-        if heal_amt > 0:
-            hp[key] = min(cap_hp, hp.get(key, 0) + heal_amt)
-        name       = blade["name"]
-        type_note  = f" (+{type_bonus} stamina-type bonus)" if type_bonus > 0 else ""
-        heal_note  = (
-            f" and restores **{heal_amt} HP** (stamina healing"
-            + (", boosted by low HP" if hp_ratio < 0.40 else "")
-            + (", **halved — interrupted by attack!**" if attacked else "")
-            + ")!"
-        ) if heal_amt > 0 else ""
-        return [
-            f"⚡ **{name}** recovers **+{total_recovery:g}** stamina → "
-            f"`{self.stamina[key]:g}/{self.cap_for(key):g}`"
-            + type_note + heal_note
-        ]
+            heal = heal_amount(session, key, heal)
+        cap = BASE_HP if max_hp is None else max_hp
+        actual = min(max(0, cap - hp[key]), hp_damage(heal))
+        hp[key] += actual
+        return [f"⚡ **{blade['name']}** recovers **{actual} HP** and **+{recovery:g} Battle Stamina**!"]
 
     # ── Public: passive regen ─────────────────────────────────────────────────
     def apply_passive_regen(self, key: str, hp: dict[str, int]) -> list[str]:

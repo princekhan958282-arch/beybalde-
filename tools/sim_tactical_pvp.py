@@ -29,6 +29,7 @@ def build(*effects, blade_type="Balance", enemy_type="Balance", additional_rules
     foe["abilities"] = []
     s = BattleSession(None, FakeChannel(), FakePlayer(1001, "A"),
                       FakePlayer(1002, "B"), mine, foe, payout=False)
+    s.bey_levels = {P: 100, E: 100}
     original_send = s.channel.send
     async def send_with_args(*args, **kwargs):
         message = await original_send(*args, **kwargs)
@@ -97,13 +98,13 @@ class PvpRounds(unittest.IsolatedAsyncioTestCase):
 
     async def test_recoil_second_wind_and_lasting_guard(self):
         s = build("recoil_engine", "second_wind", "lasting_guard")
-        s.max_hp_per_player[P] = 80
-        s.hp[P] = 33
+        s.max_hp_per_player[P] = 200
+        s.hp[P] = 90
         before = s.stamina_manager.stamina[P]
         await turn(s, DEFENSE, ATTACK)
         self.assertTrue(s.ability.tactical.data(P, "lasting_guard").get("active"))
         self.assertTrue(s.ability.tactical.data(P, "recoil_engine").get("ready"))
-        s.hp[P] = 80
+        s.hp[P] = 200
         log = await turn(s, STAMINA, ATTACK)
         self.assertIn("Lasting Guard", log)
         await turn(s, ATTACK, STAMINA)
@@ -207,8 +208,8 @@ class PvpRounds(unittest.IsolatedAsyncioTestCase):
     async def test_measured_strike_reduces_followup_real_hit(self):
         measured, plain = build("measured_strike"), build()
         for s in (measured, plain):
-            s.max_hp_per_player[E] = 60
-            s.hp[E] = 2101
+            s.max_hp_per_player[E] = 200
+            s.hp[E] = 200
         await turn(measured, ATTACK, DEFENSE)
         await turn(plain, ATTACK, DEFENSE)
         self.assertTrue(measured.ability.tactical.data(P, "measured_strike").get("ready"))

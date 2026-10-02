@@ -149,6 +149,13 @@ def _num(blade: Optional[dict], button: str, key: str, default: Any) -> Any:
 
 # ── Public getters ───────────────────────────────────────────────────────────
 
+def move_power(blade: Optional[dict], move: str) -> float:
+    """Core normal-combat power; malformed authored settings fall back safely."""
+    import math
+    power = _num(blade, _MOVE_BUTTON.get(move, move), "move_power", 100.0)
+    return max(0.0, power) if math.isfinite(power) else 100.0
+
+
 def gauge_gain(blade: Optional[dict], source: str) -> int:
     """Gauge for one action or event. `source` matches StaminaManager's names."""
     if source == "dmg_taken":

@@ -172,6 +172,9 @@ def project(session, key: str, okey: str) -> ai.Fighter:
                       if (blade.get("special_move") or {}).get("damage_formula") else None)
     return ai.Fighter(
         special_damage=formula_damage,
+        bey_type=blade.get("type", ""), level=stats.get("level", 1),
+        stats_pretyped=True,
+        move_costs={move: sm.cost_for(key, move) for move in ai.ALL_MOVES},
         name=str(name),
         hp=float(session.hp.get(key, 0)),
         max_hp=float(session.max_hp_per_player.get(key, 1) or 1),

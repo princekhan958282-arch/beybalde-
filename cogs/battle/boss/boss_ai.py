@@ -36,6 +36,9 @@ from dataclasses import dataclass, field, replace
 from typing import Optional
 
 from .boss_abilities import BossState
+from ..type_gimmicks import (TypeGimmickEngine, GimmickState, base_damage,
+                             passive_stat_multiplier, hp_damage)
+from cogs.abilities.type_system import normalise_type
 
 # ── Rules mirrored from cogs/core/constants.py ───────────────────────────────
 MOVE_ATTACK  = "attack"
@@ -184,13 +187,58 @@ class Fighter:
     state:   Optional[BossState] = None
     special_damage: Optional[float] = None  # Authored stat formula, when supplied.
 
+    bey_type: str = ""
+    level: int = 1
+    move_power: float = 100
+    stats_pretyped: bool = False
+    morph_rounds: int = 0
+    stability: float = 100
+    max_stability: float = 100
+    special_true_damage: bool = False
+    special_ignores_defense: bool = False
+    move_costs: Optional[dict] = None
+    hp_pretyped: bool = False
+    base_max_hp: Optional[float] = None
+    morph_hp_factor: float = 1.0
+
+    def __post_init__(self):
+        if not self.hp_pretyped and not self.stats_pretyped:
+            factor = passive_stat_multiplier(self.bey_type, "hp")
+            self.hp = hp_damage(self.hp * factor)
+            self.max_hp = hp_damage(self.max_hp * factor)
+        self.hp_pretyped = True
+        if self.base_max_hp is None:
+            self.base_max_hp = self.max_hp
+
+    def sync_morph_hp(self):
+        expected = hp_damage(self.base_max_hp * self.morph_hp_factor)
+        if self.max_hp != expected:
+            self.base_max_hp = self.max_hp / self.morph_hp_factor
+        self.morph_hp_factor = 1.05 if self.morph_rounds else 1.0
+        self.max_hp = hp_damage(self.base_max_hp * self.morph_hp_factor)
+        self.hp = min(self.hp, self.max_hp)
+
+    def cost_for(self, move):
+        if self.move_costs is not None:
+            return self.move_costs[move]
+        cost = STAMINA_COST[move]
+        return cost * (.8 if normalise_type(self.bey_type) == "stamina" else 1)
+
+    @property
+    def eff_stamina(self):
+        return self.stamina_stat * self.stat_factor("stamina")
+
+    def stat_factor(self, stat):
+        passive = 1 if self.stats_pretyped else passive_stat_multiplier(self.bey_type, stat)
+        return passive * (1.05 if self.morph_rounds > 0 else 1)
+
     def alive(self) -> bool:
         return self.hp > 0
 
     def can(self, move: str) -> bool:
         if move == MOVE_SPECIAL and self.gauge < SPECIAL_GAUGE_MAX:
             return False
-        return self.sp >= STAMINA_COST[move]
+        return self.sp >= self.cost_for(move)
 
     def legal_moves(self) -> list[str]:
         return [m for m in ALL_MOVES if self.can(m)] or [MOVE_STAMINA]
@@ -216,20 +264,29 @@ class Fighter:
                        special_mult=self.special_mult,
                        special_atk_pct=self.special_atk_pct,
                        state=self.state.copy() if self.state else None,
-                       special_damage=self.special_damage)
+                       special_damage=self.special_damage,
+                       bey_type=self.bey_type, level=self.level,
+                       move_power=self.move_power, stats_pretyped=self.stats_pretyped,
+                       morph_rounds=self.morph_rounds, stability=self.stability,
+                       max_stability=self.max_stability,
+                       special_true_damage=self.special_true_damage,
+                       special_ignores_defense=self.special_ignores_defense,
+                       move_costs=dict(self.move_costs) if self.move_costs else None,
+                       hp_pretyped=True, base_max_hp=self.base_max_hp,
+                       morph_hp_factor=self.morph_hp_factor)
 
     # ── Stance-adjusted stats (plain fighters are unaffected) ────────────────
     @property
     def eff_attack(self) -> float:
         if not self.state:
-            return self.attack
-        return (self.attack + self.state.attack_bonus()) * self.state.stat_multiplier()
+            return self.attack * self.stat_factor("attack")
+        return (self.attack + self.state.attack_bonus()) * self.state.stat_multiplier() * self.stat_factor("attack")
 
     @property
     def eff_defense(self) -> float:
         if not self.state:
-            return self.defense
-        return (self.defense + self.state.defense_bonus()) * self.state.stat_multiplier()
+            return self.defense * self.stat_factor("defense")
+        return (self.defense + self.state.defense_bonus()) * self.state.stat_multiplier() * self.stat_factor("defense")
 
 
 # Blade type had NO mechanical effect in boss fights — only raw stats mattered,
@@ -245,7 +302,7 @@ TYPE_DAMAGE_MULT = {
 
 
 def type_damage_mult(blade_type: Optional[str]) -> float:
-    return TYPE_DAMAGE_MULT.get(str(blade_type or "").strip().lower(), 1.0)
+    return 1.0  # Type identity modifies live stats instead of outgoing damage.
 
 
 # How much of a PLAYER's Special reaches a boss.
@@ -278,10 +335,12 @@ CRIT_DAMAGE_BONUS = 0.55
 
 
 def _raw_damage(src: Fighter, special: bool = False,
-                vs_boss: bool = False) -> float:
+                vs_boss: bool = False, dst: Optional[Fighter] = None) -> float:
     base = src.eff_attack * DMG_SCALE * src.dmg_mult
     if not special:
-        return base
+        pierce = src.state.pierce() if src.state else 0
+        defense = dst.eff_defense * (1 - pierce) if dst else 50
+        return base_damage(src.level, src.move_power, src.eff_attack, defense) * src.dmg_mult
     if src.special_damage is not None:
         return src.special_damage * src.dmg_mult * (PLAYER_SPECIAL_VS_BOSS if vs_boss else 1.0)
     # Bosses replace the formula outright with a flat percentage of attack.
@@ -296,7 +355,7 @@ def _raw_damage(src: Fighter, special: bool = False,
     return out
 
 
-def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
+def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False) -> dict:
     """Apply one exchange. Mutates both fighters. Returns a small report.
 
     Deterministic on purpose — the AI searches over this exact function, so
@@ -306,8 +365,15 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
     log = {"dmg_to_a": 0.0, "dmg_to_b": 0.0, "heal_a": 0.0, "heal_b": 0.0,
            "note_a": "", "note_b": ""}
 
-    a.sp = max(0.0, a.sp - STAMINA_COST[move_a])
-    b.sp = max(0.0, b.sp - STAMINA_COST[move_b])
+    engine = TypeGimmickEngine({"a": a.bey_type, "b": b.bey_type},
+                                rng=(lambda: .99) if simulate else None)
+    for key, fighter in (("a", a), ("b", b)):
+        engine.states[key].adaptive_morph_rounds = fighter.morph_rounds
+    log["gimmicks"] = engine.begin_round({"a": move_a, "b": move_b})
+    for key, fighter, move in (("a", a, move_a), ("b", b, move_b)):
+        fighter.morph_rounds = engine.states[key].adaptive_morph_rounds
+        fighter.sync_morph_hp()
+        fighter.sp = max(0, fighter.sp - fighter.cost_for(move))
 
     def offence(src, dst, move, other_move, tag):
         if move not in (MOVE_ATTACK, MOVE_SPECIAL):
@@ -320,10 +386,14 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
         # bosses and Story deliberately leaves unset; the comment at that
         # assignment says so in as many words.
         dmg = _raw_damage(src, special,
-                          vs_boss=getattr(dst, "special_atk_pct", None) is not None)
+                          vs_boss=getattr(dst, "special_atk_pct", None) is not None, dst=dst)
 
-        if other_move == MOVE_DEFENSE:
+        if special and src.special_true_damage:
+            pass
+        elif other_move == MOVE_DEFENSE:
             soak = DEFENSE_SOAK * (1 + dst.eff_defense / 200.0)
+            if special and src.special_ignores_defense:
+                soak = 0
             if special:
                 soak *= (1 - SPECIAL_PIERCE)
             dmg *= max(0.15, 1 - soak)
@@ -337,11 +407,6 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
         elif other_move == MOVE_CHARGE:
             log[f"note_{tag}"] = "caught mid-charge"
 
-        # Wrath ignores part of the target's guard.
-        pierce = src.state.pierce() if src.state else 0.0
-        eff_def = dst.eff_defense * (1.0 - pierce)
-        dmg *= max(0.4, 1 - eff_def / 400.0)
-
         # Crit. Applied after mitigation so it is a clean multiplier on what
         # actually lands, and read from the state so a boss without a crit
         # ability is bit-for-bit unchanged (BaseBossState.crit_mult returns 1.0).
@@ -349,59 +414,54 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
             crit = getattr(src.state, "crit_mult", None)
             if crit is not None:
                 dmg *= max(1.0, float(crit()))
-        return max(1.0, dmg)
+        other = "b" if tag == "a" else "a"
+        dmg = engine.critical(tag, move, dmg, [])
+        return engine.mitigate(tag, other, move, dmg,
+                               true_damage=special and src.special_true_damage,
+                               bypass_reduction=special and src.special_ignores_defense)
 
     dmg_b = offence(a, b, move_a, move_b, "a")
     dmg_a = offence(b, a, move_b, move_a, "b")
 
     # Crystal layers eat a slice of one incoming hit, then shatter.
-    if b.state is not None and hasattr(b.state, "absorb") and dmg_b > 0:
+    if b.state is not None and hasattr(b.state, "absorb") and dmg_b > 0 and not (move_a == MOVE_SPECIAL and a.special_true_damage):
         dmg_b, shattered = b.state.absorb(dmg_b)
         if shattered:
             log["note_b"] = "shard shattered"
-    if a.state is not None and hasattr(a.state, "absorb") and dmg_a > 0:
+    if a.state is not None and hasattr(a.state, "absorb") and dmg_a > 0 and not (move_b == MOVE_SPECIAL and b.special_true_damage):
         dmg_a, shattered = a.state.absorb(dmg_a)
         if shattered:
             log["note_a"] = "shard shattered"
 
     # Riposte: a successful block punishes the attacker.
-    if move_a == MOVE_DEFENSE and move_b in (MOVE_ATTACK, MOVE_SPECIAL):
+    if move_a == MOVE_DEFENSE and move_b in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("b", "a", move_b):
         # dmg_mult belongs here too. The type bonus was only reaching attacks
         # and Specials via _raw_damage, so an Attack blade's riposte — a real
         # damage source at 0.55 of its attack stat — was still unbuffed and the
         # blade got noticeably less than the advertised 40% overall.
         dmg_b += a.eff_attack * DMG_SCALE * RIPOSTE_RATIO * a.dmg_mult
         log["note_a"] = "riposte"
-    if move_b == MOVE_DEFENSE and move_a in (MOVE_ATTACK, MOVE_SPECIAL):
+    if move_b == MOVE_DEFENSE and move_a in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("a", "b", move_a):
         dmg_a += b.eff_attack * DMG_SCALE * RIPOSTE_RATIO * b.dmg_mult
         log["note_b"] = "riposte"
 
     # Judgement stance reflects a slice of whatever connected.
-    if a.state and a.state.reflect() and move_b in (MOVE_ATTACK, MOVE_SPECIAL):
+    if a.state and a.state.reflect() and move_b in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("b", "a", move_b):
         dmg_b += a.state.reflect()
         log["note_a"] = "reflected"
-    if b.state and b.state.reflect() and move_a in (MOVE_ATTACK, MOVE_SPECIAL):
+    if b.state and b.state.reflect() and move_a in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("a", "b", move_a):
         dmg_a += b.state.reflect()
         log["note_b"] = "reflected"
 
     def healing(src, own_move, other_move):
         if own_move != MOVE_STAMINA:
             return 0.0
-        heal = src.stamina_stat * HEAL_RATIO
-        if other_move in (MOVE_ATTACK, MOVE_SPECIAL):
-            heal *= HEAL_INTERRUPT
-        if src.hp < src.max_hp * 0.4:
-            heal *= 1.2
-        decay = max(HEAL_DECAY_FLOOR, HEAL_DECAY ** src.heal_streak)
-        # Cap any single heal against the fighter's own health bar. Heal scaled
-        # off stamina_stat with nothing holding it down, so a top Stamina blade
-        # simply out-healed the boss's damage per turn and could not lose.
-        ceiling = (BOSS_MAX_HEAL_FRACTION if src.is_boss else MAX_HEAL_FRACTION)
-        amount  = min(src.max_hp * ceiling, heal * decay)
-        # Spend from the lifetime budget; once it's gone, Stamina still
-        # restores sp and still dodges damage, it just stops giving HP back.
-        budget  = max(0.0, src.max_hp * HEAL_BUDGET_FRACTION - src.healed_total)
-        return min(amount, budget)
+        key = "a" if src is a else "b"
+        heal, stability, recovery = engine.recovery(key, src.eff_stamina)
+        src.stability = min(src.max_stability, src.stability + stability)
+        if recovery is not None:
+            src.sp = min(src.sp_max, src.sp + recovery)
+        return min(max(0, src.max_hp - src.hp), hp_damage(heal))
 
     heal_a = healing(a, move_a, move_b)
     heal_b = healing(b, move_b, move_a)
@@ -410,8 +470,21 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
     a.healed_total += heal_a
     b.healed_total += heal_b
 
-    b.hp = max(0.0, min(b.max_hp, b.hp - dmg_b + heal_b))
-    a.hp = max(0.0, min(a.max_hp, a.hp - dmg_a + heal_a))
+    # Final HP rounding and capped actual damage, before terminal counter.
+    dmg_a, dmg_b = hp_damage(dmg_a), hp_damage(dmg_b)
+    actual_a, actual_b = min(a.hp, dmg_a), min(b.hp, dmg_b)
+    b.hp = max(0, b.hp - dmg_b)
+    a.hp = max(0, a.hp - dmg_a)
+    if engine.returns_damage("a", "b", move_a):
+        a.hp = max(0, a.hp - actual_b)
+        log["kinetic_return_a"] = actual_b
+    if engine.returns_damage("b", "a", move_b):
+        b.hp = max(0, b.hp - actual_a)
+        log["kinetic_return_b"] = actual_a
+    if a.hp > 0:
+        a.hp = min(a.max_hp, a.hp + heal_a)
+    if b.hp > 0:
+        b.hp = min(b.max_hp, b.hp + heal_b)
 
     # Immortality, applied AFTER hp is written rather than before the damage is
     # computed. A state that claims to be unkillable has to survive damage that
@@ -453,8 +526,10 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
         # entire surplus on its very first turn. Capping at max(ceiling,
         # current) means regen can only ever add, which is what regeneration
         # is supposed to mean.
+        key = "a" if f is a else "b"
         if mv == MOVE_STAMINA:
-            f.sp = min(max(f.sp_max, f.sp), f.sp + 2.5)
+            if not engine.states[key].overdrive_active:
+                f.sp = min(max(f.sp_max, f.sp), f.sp + 2.5)
             f.heal_streak += 1
         else:
             f.sp = min(max(f.sp_max, f.sp), f.sp + 0.5)
@@ -472,6 +547,12 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str) -> dict:
         if f.alive() and f.state.should_ascend(f.hp / f.max_hp):
             f.state.ascend()
             log["ascended"] = f.name
+
+    engine.end_round()
+    a.morph_rounds = engine.states["a"].adaptive_morph_rounds
+    b.morph_rounds = engine.states["b"].adaptive_morph_rounds
+    a.sync_morph_hp()
+    b.sync_morph_hp()
 
     log.update(dmg_to_a=dmg_a, dmg_to_b=dmg_b, heal_a=heal_a, heal_b=heal_b)
     return log
@@ -603,7 +684,7 @@ def move_values(boss: Fighter, foe: Fighter, model: OpponentModel,
             if p <= 0:
                 continue
             b, f = boss.clone(), foe.clone()
-            resolve(b, f, my_move, their_move)
+            resolve(b, f, my_move, their_move, simulate=True)
 
             score = evaluate(b, f)
             if depth > 1 and b.alive() and f.alive():
@@ -624,7 +705,7 @@ def _best_reply_score(boss: Fighter, foe: Fighter, model: OpponentModel) -> floa
         total = 0.0
         for their_move, p in prediction.items():
             b, f = boss.clone(), foe.clone()
-            resolve(b, f, my_move, their_move)
+            resolve(b, f, my_move, their_move, simulate=True)
             total += p * evaluate(b, f)
         best = max(best, total)
     return best if best > -math.inf else 0.0
@@ -786,7 +867,7 @@ def choose_move(boss: Fighter, foe: Fighter, model: OpponentModel,
     # Never pass up a lethal special.
     if MOVE_SPECIAL in values:
         b, f = boss.clone(), foe.clone()
-        resolve(b, f, MOVE_SPECIAL, MOVE_DEFENSE)   # even through a block
+        resolve(b, f, MOVE_SPECIAL, MOVE_DEFENSE, simulate=True)   # even through a block
         if not f.alive():
             return MOVE_SPECIAL, values
 

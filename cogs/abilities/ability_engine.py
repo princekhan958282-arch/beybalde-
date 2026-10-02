@@ -1738,6 +1738,9 @@ class AbilityEngine:
                         bl["image_url"] = str(new_img)
                     if new_type:
                         bl["type"] = str(new_type)
+                        gimmicks = getattr(self.session, "type_gimmicks", None)
+                        if gimmicks is not None:
+                            gimmicks.set_type(key, new_type)
                         try:
                             from cogs.abilities.type_system import TypeModifiers
                             type_mods = getattr(self.session, "type_mods", None)
@@ -1825,6 +1828,7 @@ class AbilityEngine:
         # here rather than in __init__ so a crit on one hit cannot leak into
         # the next.
         self.last_hit_was_crit = False
+        engine = getattr(self.session, "type_gimmicks", None)
 
         extended = getattr(self, "extended", None)
         if extended is not None:
@@ -1915,11 +1919,56 @@ class AbilityEngine:
                 self.last_hit_was_crit = True
                 logs.append(f"🎯 **CRITICAL!** — damage ×{mult:g}!")
 
+        if engine is not None:
+            # Offensive effects have completed; type crit precedes defenses.
+            forced = self.guaranteed_crit_turns.get(mover_key, 0)
+            natural = engine.states[mover_key].critical_strike_active
+            avatar_crit = False
+            if move == MOVE_ATTACK and not natural and not forced:
+                from cogs.battle import avatar_combat
+                avatar_crit = avatar_combat.roll_extra_crit(self.session, mover_key, False)
+            if move == MOVE_ATTACK and (forced or avatar_crit) and not natural:
+                dmg_dealt *= 2.0
+                self.last_hit_was_crit = True
+                if forced:
+                    self.guaranteed_crit_turns[mover_key] = max(0, forced - 1)
+            else:
+                dmg_dealt = engine.critical(mover_key, move, dmg_dealt, logs)
+                self.last_hit_was_crit |= move == MOVE_ATTACK and natural
+            true = self.st.get_duration("true_damage_turns", mover_key) > 0
+            # A nullified normal hit must not consume shields or invoke reflects.
+            if (not true and move == MOVE_ATTACK
+                    and engine.states[other_key].kinetic_counter_active and not natural):
+                dmg_dealt = 0
+                dmg_taken = 0
+            dmg_dealt, defensive_logs = self.damage_filter.defensive(
+                mover_key, other_key, mover_blade, other_blade,
+                move, dmg_dealt, is_first_hit)
+            logs.extend(defensive_logs)
+            evaded = dmg_dealt == 0 and any("EVADED" in l for l in defensive_logs)
+
         # Defender reactive triggers (blocked only by evasion, not mover silence)
         if not evaded and dmg_dealt > 0:
             dmg_dealt, dmg_taken = self._fire_defensive(
                 other_key, mover_key, other_blade, move, matchup,
                 dmg_dealt, dmg_taken, logs)
+
+        if engine is not None:
+            special = mover_blade.get("special_move") or {}
+            true = self.st.get_duration("true_damage_turns", mover_key) > 0 or (move == MOVE_SPECIAL and special.get("true_damage", False))
+            bypass = (move == MOVE_SPECIAL and special.get("ignores_defense", False)) or self.st.get_duration("ignore_defense_turns", mover_key) > 0 or getattr(self.session, "_damage_bypass", {}).get(mover_key, False)
+            pierce = special.get("pierce_defense_pct", 0) if move == MOVE_SPECIAL else 0
+            if move == MOVE_SPECIAL:
+                pierce += self.special_pierce_pct.pop(mover_key, 0) + self.tactical.special_defense_pierce(mover_key)
+            if not true and not bypass:
+                dmg_dealt, logs = self.session.attack_manager._apply_passive_reduction(
+                    other_key, other_blade, dmg_dealt, logs)
+            dmg_dealt = engine.mitigate(mover_key, other_key, move, dmg_dealt,
+                                       true_damage=true, bypass_reduction=bypass,
+                                       pierce_pct=pierce)
+            if engine.states[other_key].kinetic_counter_active and move == MOVE_ATTACK:
+                # Do not add ordinary guard counter to the special exact-return.
+                dmg_taken = 0
 
         if is_first_hit and move == MOVE_SPECIAL:
             purification.mark(self.session, mover_key, ("special",), logs)

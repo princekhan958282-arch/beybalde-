@@ -472,7 +472,7 @@ async def suite(trials: int) -> None:
           "Longinus Strike" in blob, blob[:0])
     check("...and the opponent's, which is an NPC's blade",
           "Wyvern Wall" in blob)
-    check("the type system is in play", "Type " in blob)
+    check("the centralized type system is in play", hasattr(s, "type_gimmicks"))
     check("HP really moved", s.hp[str(player.id)] != s.max_hp_per_player[
         str(player.id)] or s.hp[str(npc.id)] != s.max_hp_per_player[
         str(npc.id)])
@@ -1067,14 +1067,14 @@ async def suite(trials: int) -> None:
                                            seed=1, battle_no=1)
     pk13 = str(player.id)
     check("the levelled stats reach the battle itself",
-          all(s13.battle_stats[pk13][k] == want[k]
+          all(s13.base_stats[pk13][k] == want[k]
               for k in ("attack", "defense", "stamina")),
           s13.battle_stats[pk13])
     check("...and the stamina bar follows the stamina stat up with it",
           abs(s13.stamina_manager.cap_for(pk13)
-              - SM.max_stamina_for(want["stamina"])) < 0.01,
+              - SM.max_stamina_for(s13.battle_stats[pk13]["stamina"])) < 0.01,
           (s13.stamina_manager.cap_for(pk13),
-           SM.max_stamina_for(want["stamina"])))
+           SM.max_stamina_for(s13.battle_stats[pk13]["stamina"])))
     check("...which is a bigger bar than the printed blade would have given",
           s13.stamina_manager.cap_for(pk13)
           > SM.max_stamina_for(_get_blade(BLADE)["stats"]["stamina"]))

@@ -86,6 +86,11 @@ class DamageFilter:
             )
         return self.session.status
 
+    def is_true_damage(self, key, move):
+        special = (self.session.blades.get(key, {}).get("special_move") or {})
+        return (self._sm.get_duration("true_damage_turns", key) > 0
+                or (move == MOVE_SPECIAL and special.get("true_damage", False)))
+
     # =========================================================================
     #  Public entry point
     # =========================================================================
@@ -144,6 +149,17 @@ class DamageFilter:
         if not mover_silenced and is_first_hit and dmg_dealt > 0:
             dmg_dealt = self._step2_atk_amp(mover_key, move, dmg_dealt, logs)
 
+        if getattr(self.session, "combat_v3", False):
+            return dmg_dealt, dmg_taken, logs, mover_silenced
+        dmg_dealt, defensive_logs = self.defensive(
+            mover_key, other_key, mover_blade, other_blade, move,
+            dmg_dealt, is_first_hit)
+        logs.extend(defensive_logs)
+        return dmg_dealt, dmg_taken, logs, mover_silenced
+
+    def defensive(self, mover_key, other_key, mover_blade, other_blade,
+                  move, dmg_dealt, is_first_hit=True):
+        logs = []
         # ── Step 3: Invulnerability check ─────────────────────────────────────
         dmg_dealt = self._step3_invuln(
             mover_key, other_key, mover_blade, other_blade,
@@ -168,13 +184,13 @@ class DamageFilter:
             move, dmg_dealt, is_first_hit, logs,
         )
         tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
-        if tactical is not None:
+        if tactical is not None and not self.is_true_damage(mover_key, move):
             dmg_dealt = tactical.mitigate(other_key, mover_key, move, dmg_dealt, logs)
 
         # ── Step 4b: Knockout resistance (% damage reduction) ─────────────────
         # Applied after shield so the reduction only affects damage that
         # actually reaches the Bey.
-        if dmg_dealt > 0:
+        if dmg_dealt > 0 and not self.is_true_damage(mover_key, move):
             dmg_dealt = self._step4b_knockout_resist(other_key, other_blade, dmg_dealt, logs)
 
         # ── Step 4c: a wobbling defender takes more ───────────────────────────
@@ -191,7 +207,7 @@ class DamageFilter:
         if dmg_dealt > 0:
             self._break_charge_stacks(other_key, other_blade, logs)
 
-        return dmg_dealt, dmg_taken, logs, mover_silenced
+        return dmg_dealt, logs
 
     def _step4c_stability_strain(self, key: str, blade: dict,
                                  dmg_dealt: int, logs: list[str]) -> int:
@@ -272,6 +288,9 @@ class DamageFilter:
         blade = self.session.blades.get(mover_key, {})
         if move == MOVE_SPECIAL and (blade.get("special_move") or {}).get("damage_formula"):
             atk_bonus = 0  # Formula already uses the live buffed ATK stat.
+        if getattr(self.session, "combat_v3", False):
+            if move == MOVE_ATTACK or (blade.get("special_move") or {}).get("damage_formula"):
+                atk_bonus = 0  # Already included in the live stat formula.
         if atk_bonus and move in (MOVE_ATTACK, MOVE_SPECIAL):
             dmg_dealt += atk_bonus
             logs.append(
@@ -355,7 +374,7 @@ class DamageFilter:
 
         is_invuln     = sm.is_invulnerable(other_key)
         ignore_invuln = sm.get_duration("ignore_invuln_turns", mover_key) > 0
-        is_true_dmg   = sm.get_duration("true_damage_turns",  mover_key) > 0
+        is_true_dmg   = self.is_true_damage(mover_key, move)
 
         # Stamina moves are never blocked by invulnerability
         if not is_invuln or move == MOVE_STAMINA:
@@ -404,7 +423,7 @@ class DamageFilter:
         sm = self._sm
 
         shield      = sm.get_shield(other_key)
-        is_true_dmg = sm.get_duration("true_damage_turns", mover_key) > 0
+        is_true_dmg = self.is_true_damage(mover_key, move)
 
         if shield <= 0 or dmg_dealt <= 0:
             return dmg_dealt

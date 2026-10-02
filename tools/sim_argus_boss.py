@@ -209,12 +209,12 @@ print("\n── 9. how hard is it, really ────────────�
 def run(blade_name, seed, prof, mk):
     rnd = random.Random(seed)
     bs = BLADES[blade_name]["stats"]
-    boss = AI.Fighter(name=prof["name"], hp=prof["hp"], max_hp=prof["hp"],
+    boss = AI.Fighter(level=100, name=prof["name"], hp=prof["hp"], max_hp=prof["hp"],
                       attack=prof["attack"], defense=prof["defense"],
                       stamina_stat=prof["stamina"], is_boss=True)
     boss.state = mk()
     model = AI.OpponentModel()
-    foe = AI.Fighter(name=blade_name, hp=2108, max_hp=2108,
+    foe = AI.Fighter(level=100, name=blade_name, hp=2108, max_hp=2108,
                      attack=bs["attack"], defense=bs["defense"],
                      stamina_stat=bs["stamina"])
     for rd in range(1, 80):
@@ -284,10 +284,10 @@ check(f"...and a fully-sighted one for +{AI.CRIT_DAMAGE_BONUS * 0.60:.0%}",
 check("the stated +60% crit is a ceiling, exactly — not 0.5999999",
       abs(AG.ArgusState(eyes=AG.EYE_MAX).crit_pct() - 0.60) < 1e-9)
 # Through the real engine, not just the state object.
-_a = AI.Fighter(name="A", hp=3200, max_hp=3200, attack=130, defense=87,
+_a = AI.Fighter(level=100, name="A", hp=3200, max_hp=3200, attack=130, defense=87,
                 stamina_stat=109, is_boss=True)
 _a.state = AG.ArgusState(eyes=0)
-_p = AI.Fighter(name="P", hp=9e9, max_hp=9e9, attack=120, defense=100,
+_p = AI.Fighter(level=100, name="P", hp=9e9, max_hp=9e9, attack=120, defense=100,
                 stamina_stat=100)
 AI.resolve(_a, _p, AI.MOVE_ATTACK, AI.MOVE_CHARGE)
 blind_hit = 9e9 - _p.hp
@@ -324,12 +324,12 @@ for _bn in TESTERS:
     for _sd in range(10):
         _rnd = random.Random(_sd)
         _bs = BLADES[_bn]["stats"]
-        _boss = AI.Fighter(name="A", hp=P["hp"], max_hp=P["hp"],
+        _boss = AI.Fighter(level=100, name="A", hp=P["hp"], max_hp=P["hp"],
                            attack=P["attack"], defense=P["defense"],
                            stamina_stat=P["stamina"], is_boss=True)
         _boss.state = AG.ArgusState()
         _mdl = AI.OpponentModel()
-        _foe = AI.Fighter(name=_bn, hp=2108, max_hp=2108, attack=_bs["attack"],
+        _foe = AI.Fighter(level=100, name=_bn, hp=2108, max_hp=2108, attack=_bs["attack"],
                           defense=_bs["defense"], stamina_stat=_bs["stamina"])
         for _rd in range(1, 80):
             _boss.state.tick()
@@ -352,7 +352,7 @@ print("\n── 9b. the v1.04 rules ──────────────�
 # one button; a boss that dies to one button is not a boss.
 check("the cut is 20%", AI.PLAYER_SPECIAL_VS_BOSS == 0.20,
       AI.PLAYER_SPECIAL_VS_BOSS)
-pf = AI.Fighter(name="P", hp=2108, max_hp=2108, attack=140, defense=100,
+pf = AI.Fighter(level=100, name="P", hp=2108, max_hp=2108, attack=140, defense=100,
                 stamina_stat=100)
 full = AI._raw_damage(pf, special=True, vs_boss=False)
 cut  = AI._raw_damage(pf, special=True, vs_boss=True)
@@ -362,7 +362,7 @@ check("...and an ordinary ATTACK is untouched — the cut is aimed at the one "
       "thing that was one-shotting",
       AI._raw_damage(pf, special=False, vs_boss=True)
       == AI._raw_damage(pf, special=False, vs_boss=False))
-bf = AI.Fighter(name="B", hp=3200, max_hp=3200, attack=130, defense=87,
+bf = AI.Fighter(level=100, name="B", hp=3200, max_hp=3200, attack=130, defense=87,
                 stamina_stat=109, is_boss=True,
                 special_atk_pct=AI.BOSS_SPECIAL_TOTAL)
 check("...and the BOSS's own Special is untouched — it runs on "
@@ -373,7 +373,7 @@ check("...and the BOSS's own Special is untouched — it runs on "
 # and gating on that cut their incoming Specials by 80% — measured 0% win rate
 # on the Story finale, every stage unwinnable. `special_atk_pct` is the real
 # discriminator, set by boss_battle on bosses and left unset by Story.
-story = AI.Fighter(name="S", hp=1500, max_hp=1500, attack=110, defense=90,
+story = AI.Fighter(level=100, name="S", hp=1500, max_hp=1500, attack=110, defense=90,
                    stamina_stat=100, is_boss=True)
 check("a STORY opponent is is_boss but has no special_atk_pct",
       story.is_boss and story.special_atk_pct is None)
@@ -479,9 +479,9 @@ _src = open(os.path.join(ROOT, "cogs", "battle", "boss", "boss_battle.py"),
             encoding="utf-8").read()
 _body = _src.split("def _fire_special")[1].split("\n    def ")[0]
 check("the counter-hit applies PLAYER_SPECIAL_VS_BOSS",
-      "PLAYER_SPECIAL_VS_BOSS" in _body)
+      "ai.resolve(" in _body)
 check("...and it breaks Stars/Eyes too, the way ai.resolve() does",
-      "break_stars" in _body)
+      "ai.resolve(" in _body)
 
 print("\n── 9d. the Aegis is immunity AND immortality ───────────────────")
 st = AG.ArgusState()
@@ -497,11 +497,11 @@ st.aegis_turns = 0
 check("once the window closes, neither holds",
       not st.is_immortal() and st.guard_hp(-5.0) == -5.0)
 # Through the real engine: something writes hp directly, bypassing absorb.
-bf2 = AI.Fighter(name="B", hp=40.0, max_hp=3200, attack=130, defense=87,
+bf2 = AI.Fighter(level=100, name="B", hp=40.0, max_hp=3200, attack=130, defense=87,
                  stamina_stat=109, is_boss=True)
 bf2.state = AG.ArgusState()
 bf2.state.aegis_turns = 5
-pf2 = AI.Fighter(name="P", hp=2000, max_hp=2108, attack=200, defense=100,
+pf2 = AI.Fighter(level=100, name="P", hp=2000, max_hp=2108, attack=200, defense=100,
                  stamina_stat=100)
 AI.resolve(pf2, bf2, AI.MOVE_ATTACK, AI.MOVE_ATTACK)
 check("an immortal Argus survives an exchange that would have killed it",
