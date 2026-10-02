@@ -454,7 +454,7 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         log["note_b"] = "reflected"
 
     def healing(src, own_move, other_move):
-        if own_move != MOVE_STAMINA:
+        if own_move != MOVE_STAMINA or not src.alive():
             return 0.0
         key = "a" if src is a else "b"
         heal, stability, recovery = engine.recovery(key, src.eff_stamina)
@@ -462,13 +462,6 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         if recovery is not None:
             src.sp = min(src.sp_max, src.sp + recovery)
         return min(max(0, src.max_hp - src.hp), hp_damage(heal))
-
-    heal_a = healing(a, move_a, move_b)
-    heal_b = healing(b, move_b, move_a)
-    # Spend the lifetime budget. Without this healed_total stayed 0 forever and
-    # HEAL_BUDGET_FRACTION never bound — the cap existed but did nothing.
-    a.healed_total += heal_a
-    b.healed_total += heal_b
 
     # Final HP rounding and capped actual damage, before terminal counter.
     dmg_a, dmg_b = hp_damage(dmg_a), hp_damage(dmg_b)
@@ -481,10 +474,14 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     if engine.returns_damage("b", "a", move_b):
         b.hp = max(0, b.hp - actual_a)
         log["kinetic_return_b"] = actual_a
-    if a.hp > 0:
-        a.hp = min(a.max_hp, a.hp + heal_a)
-    if b.hp > 0:
-        b.hp = min(b.max_hp, b.hp + heal_b)
+    # Recovery uses HP after direct and returned damage, just like live PvP.
+    # A fighter knocked out by this exchange cannot recover resources.
+    heal_a = healing(a, move_a, move_b)
+    heal_b = healing(b, move_b, move_a)
+    a.hp = min(a.max_hp, a.hp + heal_a)
+    b.hp = min(b.max_hp, b.hp + heal_b)
+    a.healed_total += heal_a
+    b.healed_total += heal_b
 
     # Immortality, applied AFTER hp is written rather than before the damage is
     # computed. A state that claims to be unkillable has to survive damage that
@@ -528,7 +525,7 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         # is supposed to mean.
         key = "a" if f is a else "b"
         if mv == MOVE_STAMINA:
-            if not engine.states[key].overdrive_active:
+            if f.alive() and not engine.states[key].overdrive_active:
                 f.sp = min(max(f.sp_max, f.sp), f.sp + 2.5)
             f.heal_streak += 1
         else:
