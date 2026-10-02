@@ -212,7 +212,7 @@ class AttackManager:
         # it again here — doing so would double-scale the level bonus.
 
         # ── Passive flat damage reduction — skipped when piercing defense ──────
-        if not piercing_defense and not getattr(self.session, "combat_v3", False):
+        if not piercing_defense and not getattr(self.session, "type_gimmicks", None):
             dmg_dealt, logs = self._apply_passive_reduction(okey, oblade, dmg_dealt, logs)
 
         # ── Avatar: every Nth strike carries a slice of total Attack ─────────
@@ -352,11 +352,12 @@ class AttackManager:
             logs.extend(_imm)
             from .type_gimmicks import hp_damage
             dmg_p1 = hp_damage(dmg_p1)
-            actual = min(hp[k2], max(0, dmg_p1))
+            from .combat_rules import damage_hp
+            remaining, actual = damage_hp(hp[k2], dmg_p1)
             if engine and engine.returns_damage(k1, k2, m1):
                 returned.append((k1, actual))
                 counter_p1 = 0
-            hp[k2] = max(0, hp[k2] - dmg_p1)
+            hp[k2] = remaining
             self.committed_damage[k1] = actual
             if extra is not None:
                 extra.committed(k1, k2, m1, actual, logs)
@@ -371,11 +372,12 @@ class AttackManager:
             logs.extend(_imm)
             from .type_gimmicks import hp_damage
             dmg_p2 = hp_damage(dmg_p2)
-            actual = min(hp[k1], max(0, dmg_p2))
+            from .combat_rules import damage_hp
+            remaining, actual = damage_hp(hp[k1], dmg_p2)
             if engine and engine.returns_damage(k2, k1, m2):
                 returned.append((k2, actual))
                 counter_p2 = 0
-            hp[k1] = max(0, hp[k1] - dmg_p2)
+            hp[k1] = remaining
             self.committed_damage[k2] = actual
             if extra is not None:
                 extra.committed(k2, k1, m2, actual, logs)
@@ -388,7 +390,8 @@ class AttackManager:
             {"kind": "counter", "target": key, "amount": amount}
             for key, amount in returned]
         for key, amount in returned:
-            hp[key] = max(0, hp[key] - amount)
+            from .combat_rules import damage_hp
+            hp[key], _ = damage_hp(hp[key], amount, already_final=True)
             logs.append(f"↩️ **Kinetic Counter** — returns **{amount} actual HP damage**!")
 
         # ── Apply counter-hit reflections ─────────────────────────────────────
@@ -618,7 +621,6 @@ class AttackManager:
         logs:   list[str],
     ) -> tuple[int, list[str]]:
         """Resolve a MOVE_SPECIAL: multi-hit loop with per-hit procs."""
-        from cogs.abilities.type_system import resolve_active_bonuses
         sm         = self.session.stamina_manager
         ab_eng     = self.session.ability
         # The effective special stat scales the authored damage — this is what
@@ -630,7 +632,6 @@ class AttackManager:
         # (see below), so a Special that only wants to shave a few percent off
         # mitigation, rather than ignore it outright, had no way to say so.
         _sm_block    = mblade.get("special_move") or {}
-        _static_pierce_pct = max(0.0, float(_sm_block.get("pierce_defense_pct", 0) or 0))
         _min_hit_dmg = int(_sm_block.get("min_hit_damage", 0) or 0)
         _spc = getattr(self.session, "special_stats", {}).get(mkey)
         from .purification import effective_stats
@@ -656,18 +657,6 @@ class AttackManager:
 
         mult       = (1.0 if _sm_block.get("damage_formula")
                       else self.session.stat_mult.get(mkey, 1.0))
-        atk_sp_mod = self.session.type_mods.get(mkey)
-
-        # Resolve type-advantage gate once for the whole special sequence
-        _atk_mod_obj  = atk_sp_mod
-        _def_mod_obj  = self.session.type_mods.get(okey)
-        _atk_type     = _atk_mod_obj.btype if _atk_mod_obj else ""
-        _def_type     = _def_mod_obj.btype if _def_mod_obj else ""
-        _sp_atk_active, _sp_def_active = resolve_active_bonuses(_atk_type, _def_type)
-        # Suppress mods that aren't active this matchup
-        if not _sp_atk_active:
-            atk_sp_mod = None
-
         # ── Honor active defense-pierce turns for Special moves ──────────────
         # preprocess_defender_stats is bypassed for SPECIAL, so we check and
         # consume ignore_defense_turns here manually.  If the attacker has an
@@ -810,16 +799,12 @@ class AttackManager:
             if rider_log:
                 logs.append(rider_log)
             hit_base = math.ceil((base_for_hit + rider) * mult)
-            if atk_sp_mod and not getattr(self.session, "combat_v3", False):
-                hit_base = atk_sp_mod.apply_attack(hit_base)
-
-            if getattr(self.session, "combat_v3", False):
-                av = self.session.avatar_bonuses.get(mkey)
-                if av is not None and hit_base > 0:
-                    percent = float(getattr(av, "special_move_percent", 0))
-                    flat = float(getattr(av, "special_move_flat", 0)) if hit_n == 0 else 0
-                    rider = _ult_atk if hit_n == 0 and getattr(av, "ult_adds_attack_stat", False) else 0
-                    hit_base = (hit_base + flat) * (1 + percent) + rider
+            av = getattr(self.session, "avatar_bonuses", {}).get(mkey)
+            if av is not None and hit_base > 0:
+                percent = float(getattr(av, "special_move_percent", 0))
+                flat = float(getattr(av, "special_move_flat", 0)) if hit_n == 0 else 0
+                rider = _ult_atk if hit_n == 0 and getattr(av, "ult_adds_attack_stat", False) else 0
+                hit_base = (hit_base + flat) * (1 + percent) + rider
 
             # Per-hit proc (on_hit abilities — Reckless Fury etc.)
             hit_base, proc_logs = self.session.ability.process_hit_proc(
@@ -842,35 +827,8 @@ class AttackManager:
 
             # Passive flat damage reduction (Dead Phoenix / Undying Blaze)
             # Skipped if the Special explicitly ignores defense
-            if not ignores_def and not getattr(self.session, "combat_v3", False):
+            if not ignores_def and not getattr(self.session, "type_gimmicks", None):
                 hit_dmg, logs = self._apply_passive_reduction(okey, oblade, hit_dmg, logs)
-
-            # Combined AFTER ability.apply() for this hit, not before the loop
-            # starts — `ability.apply()` is what runs the on_special rules, so
-            # a CONDITIONAL pierce granted by `special_pierce_pct` (e.g. "only
-            # if the enemy is below 40% HP") only exists from this point on.
-            _pierce_pct = max(0.0, min(100.0, _static_pierce_pct
-                                       + ab_eng.special_pierce_pct.pop(mkey, 0.0)
-                                       + ab_eng.tactical.special_defense_pierce(mkey)))
-
-            # Type defense mitigation (skipped if special pierces defense or
-            # defender's type bonus is not active for this matchup)
-            def_sp_mod = self.session.type_mods.get(okey) if _sp_def_active else None
-            if def_sp_mod and not ignores_def and hit_dmg > 0 and not getattr(self.session, "combat_v3", False):
-                if _pierce_pct > 0:
-                    # Partial pierce: shave the mitigation itself by the pierce
-                    # percentage rather than applying it in full — half a
-                    # pierce should cut half the mitigation, not most of it.
-                    before = hit_dmg
-                    reduction = (def_sp_mod.def_mult - 1.0) * (1.0 - _pierce_pct / 100)
-                    hit_dmg = (max(1, math.ceil(before * (1.0 - reduction)))
-                              if reduction > 0 else before)
-                    if hit_dmg != before:
-                        logs.append(
-                            f"  🗡️ **{mblade['name']}** cuts through "
-                            f"**{_pierce_pct:g}%** of {oblade['name']}'s Defense!")
-                else:
-                    hit_dmg = def_sp_mod.apply_defense(hit_dmg)
 
             # Authored per-hit floor (`special_move.min_hit_damage`) — nothing
             # guarantees a Special can't be reduced to 0 by passive reduction
@@ -901,12 +859,6 @@ class AttackManager:
             logs.extend(ab_logs)
             if hits > 1:
                 logs.append(f"  💥 **Hit {hit_n + 1}/{hits}** — **{hit_dmg} dmg**")
-
-        # ── Avatar: Special multiplier + full Attack stat rider ──────────────
-        if not self_managed and total_dmg > 0 and not getattr(self.session, "combat_v3", False):
-            total_dmg, _ult_logs = AVC.apply_ult_bonus(
-                self.session, mkey, total_dmg, _ult_atk)
-            logs.extend(_ult_logs)
 
         if hits > 1:
             logs.append(f"  🔥 **Total Special Damage: {total_dmg}**")

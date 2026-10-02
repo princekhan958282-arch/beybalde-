@@ -738,7 +738,7 @@ class AbilityEngine:
     def _run_ops(self, rule: dict, ab_name: str, key: str, okey: str,
                  move: str, dmg_dealt: int, dmg_taken: int,
                  logs: list[str], matchup: str = "") -> tuple[int, int]:
-        for op in rule.get("do") or []:
+        for op_index, op in enumerate(rule.get("do") or []):
             kind = op.get("op")
             # Per-OP gate, as distinct from the rule-level `if`. One rule often
             # needs half its ops gated and half not — "every hit builds a stack,
@@ -754,6 +754,12 @@ class AbilityEngine:
             gate = op.get("_if")
             if gate and not all(self._check(c, key, okey, move, matchup)
                                 for c in gate):
+                continue
+            from cogs.battle.type_gimmicks import GIMMICK_OPS
+            if kind in GIMMICK_OPS:
+                engine = getattr(self.session, 'type_gimmicks', None)
+                if engine is not None:
+                    engine.register_op(op, key, okey, f'{ab_name}:{op_index}', logs)
                 continue
             if kind in EXTENDED_OPS:
                 if not hasattr(self, "extended"):
@@ -1922,7 +1928,7 @@ class AbilityEngine:
         if engine is not None:
             # Offensive effects have completed; type crit precedes defenses.
             forced = self.guaranteed_crit_turns.get(mover_key, 0)
-            natural = engine.states[mover_key].critical_strike_active
+            natural = engine.critical_applies(mover_key, move)
             avatar_crit = False
             if move == MOVE_ATTACK and not natural and not forced:
                 from cogs.battle import avatar_combat
@@ -1934,11 +1940,10 @@ class AbilityEngine:
                     self.guaranteed_crit_turns[mover_key] = max(0, forced - 1)
             else:
                 dmg_dealt = engine.critical(mover_key, move, dmg_dealt, logs)
-                self.last_hit_was_crit |= move == MOVE_ATTACK and natural
+                self.last_hit_was_crit |= natural
             true = self.st.get_duration("true_damage_turns", mover_key) > 0
             # A nullified normal hit must not consume shields or invoke reflects.
-            if (not true and move == MOVE_ATTACK
-                    and engine.states[other_key].kinetic_counter_active and not natural):
+            if engine.nullifies(mover_key, other_key, move, true_damage=true):
                 dmg_dealt = 0
                 dmg_taken = 0
             dmg_dealt, defensive_logs = self.damage_filter.defensive(
@@ -1966,6 +1971,8 @@ class AbilityEngine:
             dmg_dealt = engine.mitigate(mover_key, other_key, move, dmg_dealt,
                                        true_damage=true, bypass_reduction=bypass,
                                        pierce_pct=pierce)
+            if pierce > 0 and not true and not bypass and engine.types[other_key] == 'defense':
+                logs.append(f"  🗡️ **{mover_blade['name']}** cuts through **{min(100, pierce):g}%** of {other_blade['name']}'s Defense mitigation!")
             if engine.states[other_key].kinetic_counter_active and move == MOVE_ATTACK:
                 # Do not add ordinary guard counter to the special exact-return.
                 dmg_taken = 0

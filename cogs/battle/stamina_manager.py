@@ -170,7 +170,7 @@ class StaminaManager:
 
     @staticmethod
     def _initial_stamina(sta_stat: int, ceiling: float | None = None) -> float:
-        """Battle-start stamina = 3 + (stamina stat × 0.05), clamped to `ceiling`.
+        """Battle-start stamina = stamina stat / 20, clamped to `ceiling`.
 
         Continuous scaling — every single stat point counts (1 = +0.05).
         Rounded to 2 decimals so every single point shows.
@@ -179,8 +179,8 @@ class StaminaManager:
         is what made every bey above 240 stamina start identically.
         """
         cap = max_stamina_for(sta_stat) if ceiling is None else float(ceiling)
-        start = STAMINA_START_BASE + (float(sta_stat) * STAMINA_START_PER_STAT)
-        return round(min(cap, start), 2)
+        from .combat_rules import starting_stamina
+        return starting_stamina(float(sta_stat), cap)
 
     def cap_for(self, key: str) -> float:
         """This player's stamina ceiling. Falls back to the legacy flat max."""
@@ -274,10 +274,8 @@ class StaminaManager:
             if adjusted != cost:
                 note += f" *(ability cost {cost:g} → {adjusted:g})*"
             cost = adjusted
-        from cogs.abilities.type_system import normalise_type
-        if normalise_type(self._blades.get(key, {}).get("type")) == "stamina":
-            cost *= .80
-        return max(0.0, cost), note
+        from .combat_rules import type_stamina_cost
+        return type_stamina_cost(self._blades.get(key, {}).get("type"), cost), note
 
     def cost_for(self, key: str, move: str) -> float:
         """What `move` will ACTUALLY cost `key` right now, all in.
@@ -299,7 +297,8 @@ class StaminaManager:
                 note += f" *(Emergency Reserve paid {math.ceil(shortfall * 2)} HP)*"
         if cost <= 0:
             return []
-        self.stamina[key] = round(max(0.0, self.stamina.get(key, 0.0) - cost), 2)
+        from .combat_rules import spend_resource
+        self.stamina[key] = round(spend_resource(self.stamina.get(key, 0.0), cost), 2)
         name = self._blades.get(key, {}).get("name", "Unknown")
         return [f"💨 **{name}** stamina cost: -{cost:g} → `{self.stamina[key]:g}`{note}"]
 
@@ -309,32 +308,25 @@ class StaminaManager:
                              attacked: bool = False, max_hp: int | None = None, gimmicks=None) -> list[str]:
         """Process the 'Use Stamina' action: recover stamina + heal HP.
 
-        ``type_mod``    — TypeModifiers for this player (or None).
-        ``type_active`` — True when this player's type bonus is active for the
-                          current matchup (resolved by session via
-                          resolve_active_bonuses before calling here).
-                          When False the stamina-type +1 recovery bonus and the
-                          sta_mult heal scaling are both suppressed.
-        ``attacked``    — True when the opponent used Attack/Special this same
-                          round; the HP heal is cut by 50% (interrupted heal).
-        ``max_hp``      — this player's real max HP (avatar bonuses can push it
-                          above BASE_HP). Heal cap and low-HP ratio use this.
+        Legacy arguments remain accepted for external callers. Type healing and
+        Overdrive are resolved centrally; matchup and interruption do not reduce
+        the new standard healing. `max_hp` supplies the battle-local HP cap.
         """
-        from .type_gimmicks import TypeGimmickEngine, hp_damage
+        from .type_gimmicks import TypeGimmickEngine
         blade = self._blades[key]
         engine = gimmicks or TypeGimmickEngine({key: blade.get("type")})
         heal, _, recovery = engine.recovery(key, self._sta_stat(key))
         if recovery is None:
             # Keep the existing normal resource recovery; Overdrive replaces it.
             recovery = STAMINA_RECOVERY_BASE + self._sta_stat(key) * STAMINA_RECOVERY_PER_STAT
-        self.stamina[key] = min(self.cap_for(key), max(0, self.stamina[key] + recovery))
+        from .combat_rules import recover_hp, recover_resource
+        self.stamina[key] = recover_resource(self.stamina[key], self.cap_for(key), recovery)
         from .purification import heal_amount
         session = getattr(self, "purification_session", None)
         if session is not None:
             heal = heal_amount(session, key, heal)
         cap = BASE_HP if max_hp is None else max_hp
-        actual = min(max(0, cap - hp[key]), hp_damage(heal))
-        hp[key] += actual
+        hp[key], actual = recover_hp(hp[key], cap, heal)
         return [f"⚡ **{blade['name']}** recovers **{actual} HP** and **+{recovery:g} Battle Stamina**!"]
 
     # ── Public: passive regen ─────────────────────────────────────────────────

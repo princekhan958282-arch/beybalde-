@@ -5,7 +5,7 @@ DamageFilter — pure damage pre-processor for one BattleSession.
 
 Handles the four steps that happen *before* any ability fires:
 
-  Step 1 — Tick / expire duration buffs & silences
+  Step 1 — Standalone adapter fallback for duration expiry
   Step 2 — Apply mover's active ATK buffs & damage-amp stacks
   Step 3 — Invulnerability check (bypassable by ignore_invuln / true_damage)
   Step 4 — Shield absorption (bypassable by true_damage)
@@ -121,10 +121,9 @@ class DamageFilter:
         logs: list[str] = []
 
         # ── Step 1: Tick buffs & silences ─────────────────────────────────────
-        # Guard with is_first_hit: multi-hit Specials call apply() once per hit.
-        # Ticking on every hit would drain buff durations N× per round and could
-        # expire a silence mid-special.
-        if is_first_hit:
+        # Live sessions age both sides at the round boundary. Standalone
+        # adapters retain a once-per-action fallback; never age per Special hit.
+        if is_first_hit and getattr(self.session, 'damage_status_round', None) != getattr(self.session, 'round', -1):
             self._step1_tick(mover_key, logs)
 
         mover_silenced = self._sm.is_silenced(mover_key)
@@ -149,7 +148,7 @@ class DamageFilter:
         if not mover_silenced and is_first_hit and dmg_dealt > 0:
             dmg_dealt = self._step2_atk_amp(mover_key, move, dmg_dealt, logs)
 
-        if getattr(self.session, "combat_v3", False):
+        if getattr(self.session, "type_gimmicks", None):
             return dmg_dealt, dmg_taken, logs, mover_silenced
         dmg_dealt, defensive_logs = self.defensive(
             mover_key, other_key, mover_blade, other_blade, move,
@@ -288,7 +287,7 @@ class DamageFilter:
         blade = self.session.blades.get(mover_key, {})
         if move == MOVE_SPECIAL and (blade.get("special_move") or {}).get("damage_formula"):
             atk_bonus = 0  # Formula already uses the live buffed ATK stat.
-        if getattr(self.session, "combat_v3", False):
+        if getattr(self.session, "type_gimmicks", None):
             if move == MOVE_ATTACK or (blade.get("special_move") or {}).get("damage_formula"):
                 atk_bonus = 0  # Already included in the live stat formula.
         if atk_bonus and move in (MOVE_ATTACK, MOVE_SPECIAL):
