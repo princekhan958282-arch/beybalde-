@@ -104,6 +104,13 @@ class BladeKit:
 
         self.applied: list[str] = []
         self.dormant: list[str] = []
+        self.team_bonus = {"attack": 0.0, "defense": 0.0}
+        for ability in self.blade.get("abilities") or []:
+            support = ability.get("boss_support") or {}
+            stat, pct = support.get("stat"), support.get("percent")
+            if stat in self.team_bonus and isinstance(pct, (int, float)):
+                self.team_bonus[stat] = max(
+                    self.team_bonus[stat], min(0.30, max(0.0, pct / 100)))
 
         self._parse()
         if str(self.blade.get("rarity", "")).lower() == "boss fighter":
@@ -423,6 +430,9 @@ class BladeKit:
         # than printed as "+0% STA" — a real kit should not read as broken
         # because one channel rounds to nothing.
         bits = []
+        for stat, bonus in self.team_bonus.items():
+            if bonus:
+                bits.append(f"+{bonus * 100:.0f}% teammate {stat[:3].upper()} while alive")
         for s, v in self.stat_mult.items():
             if round((v - 1) * 100) >= 1:
                 bits.append(f"+{(v - 1) * 100:.0f}% {s[:3].upper()}")
