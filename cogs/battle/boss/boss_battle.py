@@ -875,7 +875,8 @@ class BossFight:
             (self.boss.special_damage, self.boss.special_true_damage,
              self.boss.special_ignores_defense) = previous
         back, dmg = report["dmg_to_a"], report["dmg_to_b"]
-        heal = effects.get("drain", 0.0)
+        heal = min(max(0, self.boss.max_hp - self.boss.hp),
+                   max(0, effects.get("drain", 0.0)))
         self.boss.hp = min(self.boss.max_hp, self.boss.hp + heal)
 
         if effects.get("strip"):
@@ -895,7 +896,7 @@ class BossFight:
 
         self.last_special = spec
         return {**report, "dmg_to_a": back, "dmg_to_b": dmg,
-                "heal_a": heal, "heal_b": 0.0,
+                "heal_a": report["heal_a"] + heal,
                 "note_a": spec["name"], "note_b": "",
                 "debt_spent": effects.get("debt_spent", 0.0)}
 

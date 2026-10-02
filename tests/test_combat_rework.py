@@ -325,6 +325,61 @@ class BossTests(unittest.TestCase):
         self.assertEqual(a.sp, 6)
         self.assertEqual(a.stability, 70)
 
+    def test_boss_heals_after_damage_in_both_player_orders(self):
+        for healer_first in (True, False):
+            healer, attacker = self.fighter(), self.fighter()
+            actors = (healer, attacker) if healer_first else (attacker, healer)
+            moves = ('stamina', 'attack') if healer_first else ('attack', 'stamina')
+            with patch('random.random', return_value=.99):
+                result = boss_ai.resolve(*actors, *moves)
+            tag = 'a' if healer_first else 'b'
+            damage = result['dmg_to_' + tag]
+            self.assertGreater(damage, 0)
+            self.assertEqual(result['heal_' + tag], min(100, damage))
+            self.assertEqual(healer.hp, 1000 - damage + min(100, damage))
+
+    def test_dead_boss_healer_does_not_recover_or_report_healing(self):
+        healer, attacker = self.fighter('Stamina'), self.fighter()
+        healer.hp, healer.stability, healer.sp = 1, 40, 0
+        with patch('random.random', return_value=0):
+            result = boss_ai.resolve(attacker, healer, 'attack', 'stamina')
+        self.assertEqual(healer.hp, 0)
+        self.assertEqual(result['heal_b'], 0)
+        self.assertEqual(healer.healed_total, 0)
+        self.assertEqual(healer.stability, 40)
+        self.assertEqual(healer.sp, 0)
+
+    def test_boss_overdrive_heals_current_turn_damage_with_caps(self):
+        healer, attacker = self.fighter('Stamina'), self.fighter()
+        healer.stability, healer.sp = 95, 9
+        with patch('random.random', return_value=0):
+            result = boss_ai.resolve(attacker, healer, 'attack', 'stamina')
+        self.assertEqual(result['heal_b'], result['dmg_to_b'])
+        self.assertEqual(healer.hp, healer.max_hp)
+        self.assertEqual(healer.sp, healer.sp_max)
+        self.assertEqual(healer.stability, healer.max_stability)
+
+    def test_named_boss_special_preserves_player_healing_report(self):
+        from cogs.battle.boss import boss_battle as bb, argus
+        from cogs.battle.boss.blade_abilities import BladeKit
+        player = SimpleNamespace(id=1, display_name='Player', mention='<@1>')
+        actor = self.fighter('Stamina', hp=10000)
+        actor.hp = 8000
+        fight = bb.BossFight(player, 'argus', party=[player],
+                             _fighters={1: actor}, _kits={1: BladeKit({})},
+                             _blades={1: {}})
+        with patch('random.random', return_value=.99):
+            result = fight._fire_special('watchfire', 'stamina', argus)
+        self.assertEqual(result['heal_b'], 140)
+        self.assertEqual(actor.hp, 8000 - result['dmg_to_b'] + 140)
+        # Authored drain logs only the HP it actually restores at the cap.
+        fight.boss.hp = fight.boss.max_hp - 10
+        with patch.object(argus, 'special_damage', return_value=(0, {'drain': 500})), \
+             patch('random.random', return_value=.99):
+            result = fight._fire_special('watchfire', 'charge', argus)
+        self.assertEqual(result['heal_a'], 10)
+        self.assertEqual(fight.boss.hp, fight.boss.max_hp)
+
     def test_named_boss_special_uses_shared_kinetic_pipeline(self):
         from cogs.battle.boss import boss_battle as bb
         from cogs.battle.boss import argus as argus
