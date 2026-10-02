@@ -692,6 +692,14 @@ class BossFight:
         # exchange, then restored, so the modifiers never compound turn on turn.
         kit  = self.kit
         mult = kit.stats_for(self.foe.hp / self.foe.max_hp)
+        # Recompute from living allies each exchange; never mutate base stats.
+        # Identical support auras use the strongest bonus rather than stacking.
+        for stat in ("attack", "defense"):
+            bonus = max((other.team_bonus[stat]
+                         for uid, other in self.kits.items()
+                         if uid != self.player.id and self.fighters[uid].alive()),
+                        default=0.0)
+            mult[stat] *= 1.0 + bonus
         stacks = self.boss_fighter_stacks.get(self.player.id, 0)
         if stacks and getattr(kit, "boss_attack_win_pct", 0.0):
             mult["attack"] *= 1.0 + stacks * kit.boss_attack_win_pct

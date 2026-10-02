@@ -1,5 +1,7 @@
 """Focused boss flow regressions. Run with: python -m unittest tools.test_boss_flow"""
 import unittest
+import json
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -16,6 +18,28 @@ def member(uid):
 
 
 class BossFlowTests(unittest.IsolatedAsyncioTestCase):
+    def test_cure_support_applies_to_allies_and_restores_stats(self):
+        blades = json.loads((Path(__file__).resolve().parents[1] /
+                             "data/beyblades.json").read_text())
+        for name, stat in (("Cure Black", "attack"), ("Cure White", "defense")):
+            fight = self.make_fight()
+            fight.kits[2] = bk.kit_for(blades[name])
+            observed = []
+            def resolve(boss, actor, *moves):
+                observed.append((actor.attack, actor.defense))
+                return {"dmg_to_a": 0.0, "dmg_to_b": 0.0, "heal_a": 0.0, "heal_b": 0.0}
+            with (patch.object(ai, "resolve", side_effect=resolve),
+                  patch.object(ai, "choose_move", return_value=(ai.MOVE_ATTACK, {}))):
+                fight.step(ai.MOVE_ATTACK)
+                self.assertEqual(observed[-1], (156, 120) if stat == "attack" else (120, 156))
+                self.assertEqual(fight.fighters[1].attack, 120)
+                self.assertEqual(fight.fighters[1].defense, 120)
+                fight.step(ai.MOVE_ATTACK)
+                self.assertEqual(observed[-1], (120, 120))  # No self buff.
+                fight.fighters[2].hp = 0
+                fight.step(ai.MOVE_ATTACK)
+                self.assertEqual(observed[-1], (120, 120))
+
     def make_fight(self):
         party = [member(1), member(2)]
         fighters = {
