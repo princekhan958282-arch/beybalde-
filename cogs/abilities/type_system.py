@@ -1,58 +1,9 @@
-"""
-battle/type_system.py
----------------------
-Type advantage system.
+"""Type names, the existing stability-advantage chart, and display modifiers.
 
-Types affect PASSIVE PERFORMANCE, not action counters.
-Actions remain: Attack > Stamina > Defense > Attack (rock-paper-scissors).
-
-Modifier ranges (all stat-scaled):
-  Attack  type: +10–15% outgoing damage     (scales with attack stat)
-  Defense type: +10–15% incoming mitigation (scales with defense stat)
-  Stamina type: +10–15% stamina efficiency  (scales with stamina stat)
-  Balance type: small boost to all three    (scales with all three stats)
-
-Formula:
-  base_bonus = BASE_TYPE_BONUS (0.10)
-  stat_bonus = stat / STAT_SCALE_DIVISOR   (adds up to 0.05 at stat=100)
-  total_mod  = base_bonus + stat_bonus     (0.10 – 0.15)
-
-Balance type uses BALANCE_SCALE_FACTOR (0.5) on each sub-modifier so it
-gets ~half the bonus per dimension but benefits across all three.
-
-Type advantage — which bonuses are active per matchup:
-  Only the advantaged type activates its bonus; the loser's is suppressed.
-  Triangle: Attack > Stamina > Defense > Attack
-
-  Matchup             Active bonuses
-  Attack  vs Stamina   Attack only
-  Stamina vs Defense   Stamina only
-  Defense vs Attack    Defense only
-  Stamina vs Attack    Attack only        (the same row, read the other way)
-  Defense vs Stamina   Stamina only
-  Attack  vs Defense   Defense only
-  any mirror           neither
-  Balance vs anyone    Balance + opponent
-  Balance vs Balance   both
-
-Use resolve_active_bonuses(type_a, type_b) → (bool, bool) to get which
-side has its bonus active before applying TypeModifiers helpers.
-
-Signature effects
------------------
-Having the advantage does more than scale a stat. Each type gets one effect
-that fires only while it is the advantaged side:
-
-  Attack  (vs Stamina)  every landing Attack strips ATTACK_STABILITY_STRIP
-                        stability — it knocks a grinder off its axis.
-  Stamina (vs Defense)  its own move costs are cut STAMINA_COST_CUT — the
-                        answer to a type that wins by outlasting you.
-  Defense (vs Attack)   DEFENSE_REFLECT of the damage it mitigates is
-                        returned to the attacker.
-  Balance               takes only BALANCE_EFFECT_SCALE of any of the above
-                        aimed at it. That, plus its halved multipliers, is
-                        what "never fully advantaged, never fully
-                        disadvantaged" means in code.
+The main combat passives and gimmicks are owned by battle/type_gimmicks.py.
+They are unconditional by matchup. ADVANTAGE and resolve_active_bonuses remain
+for existing stability rules. Legacy signature constants/helpers remain import
+compatible but are not applied by the main damage pipeline.
 """
 
 import math
@@ -311,37 +262,10 @@ class TypeModifiers:
 
         self.btype = btype
 
-        if btype == "attack":
-            bonus         = _bonus(atk)
-            self.atk_mult = round(1.0 + bonus, 4)
-            self.def_mult = 1.0
-            self.sta_mult = 1.0
-
-        elif btype == "defense":
-            bonus         = _bonus(defn)
-            self.atk_mult = 1.0
-            self.def_mult = round(1.0 + bonus, 4)
-            self.sta_mult = 1.0
-
-        elif btype == "stamina":
-            bonus         = _bonus(sta)
-            self.atk_mult = 1.0
-            self.def_mult = 1.0
-            self.sta_mult = round(1.0 + bonus, 4)
-
-        elif btype == "balance":
-            a_b = _bonus(atk)  * BALANCE_SCALE_FACTOR
-            d_b = _bonus(defn) * BALANCE_SCALE_FACTOR
-            s_b = _bonus(sta)  * BALANCE_SCALE_FACTOR
-            self.atk_mult = round(1.0 + a_b, 4)
-            self.def_mult = round(1.0 + d_b, 4)
-            self.sta_mult = round(1.0 + s_b, 4)
-
-        else:
-            # Unknown / no type — neutral modifiers
-            self.atk_mult = 1.0
-            self.def_mult = 1.0
-            self.sta_mult = 1.0
+        # Stat passives are applied by effective_stats, never again to damage.
+        self.atk_mult = 1.10 if btype == "attack" else 1.033 if btype == "balance" else 1.0
+        self.def_mult = 1.14 if btype == "defense" else 1.0
+        self.sta_mult = 1.0
 
         # ── Stability starting value ──────────────────────────────────────────
         # Defense type starts at 150; all others start at 100.
@@ -373,12 +297,7 @@ class TypeModifiers:
         return math.ceil(base_recovery * self.sta_mult)
 
     def summary(self) -> str:
-        """One-line description of all active bonuses (for battle start log)."""
-        parts = []
-        if self.atk_mult > 1.0:
-            parts.append(f"ATK ×{self.atk_mult:.3f}")
-        if self.def_mult > 1.0:
-            parts.append(f"DEF -{int((self.def_mult - 1) * 100)}% dmg taken")
-        if self.sta_mult > 1.0:
-            parts.append(f"STA ×{self.sta_mult:.3f} recovery")
-        return ", ".join(parts) if parts else "no type bonus"
+        return {"attack": "+10% effective Attack",
+                "defense": "14% incoming damage reduction",
+                "stamina": "20% lower Battle Stamina costs; 70% stat HP healing",
+                "balance": "+3.3% HP/Attack/Defense/Stamina"}.get(self.btype, "no type bonus")

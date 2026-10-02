@@ -60,7 +60,7 @@ NAME = "Azure Drakonyx"
 AD = get_beyblade(NAME)
 ALL = load_beyblades()
 
-DUMMY = {"name": "Dummy", "type": "Balance", "spin_direction": "Left",
+DUMMY = {"name": "Dummy", "type": "Defense", "spin_direction": "Left",
         "stats": {"attack": 100, "defense": 100, "stamina": 100, "hp": 100}}
 
 

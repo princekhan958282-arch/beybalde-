@@ -470,8 +470,10 @@ async def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
     # Bound before the branch: the else path below reads _breakdown, so a player
     # with neither an equipped blade nor a copy raised UnboundLocalError here.
     _breakdown: dict = {}
+    _bey_level = 1
     if blade:
-        from utils.loadout import effective_blade
+        from utils.loadout import effective_blade, bey_level_and_stats
+        _bey_level, _ = bey_level_and_stats(profile, blade)
         blade, _breakdown, av = await effective_blade(
             user_id, profile, blade,
             # A copy is a fixed roll; parts on top would make a farmed copy
@@ -517,15 +519,19 @@ async def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
     # Stamina bar derived from the stamina stat, matching PvP, instead of a
     # flat 10 for everyone.
     from cogs.battle import stamina_manager as _SM
-    _eff_sta = sta * mult
+    from cogs.battle.type_gimmicks import passive_stat_multiplier
+    btype = (blade or {}).get("type")
+    _eff_sta = sta * mult * passive_stat_multiplier(btype, "stamina")
     _sp_max = _SM.max_stamina_for(_eff_sta)
 
     f  = ai.Fighter(name or "Unequipped", hp, hp,
-                    atk * mult, dfn * mult, _eff_sta,
+                    atk * mult, dfn * mult, sta * mult,
                     sp=_SM.StaminaManager._initial_stamina(int(_eff_sta), _sp_max),
                     sp_max=_sp_max,
                     dmg_mult=ai.type_damage_mult((blade or {}).get("type")),
-                    special_mult=special_mult)
+                    special_mult=special_mult,
+                    bey_type=(blade or {}).get("type", ""),
+                    level=_bey_level)
     return f, (blade or {})
 
 
@@ -594,7 +600,7 @@ class BossFight:
                                # opponents — which are also is_boss=True — keep
                                # the standard Special and their tuned curve.
                                special_atk_pct=ai.BOSS_SPECIAL_TOTAL,
-                               state=_make_state(cfg))
+                               state=_make_state(cfg), level=BOSS_LEVEL)
         self.model   = ai.OpponentModel()
         self.turn    = 0
         self.log: list[str] = []
@@ -754,6 +760,11 @@ class BossFight:
         bm = (f"{mod.SPECIALS[god_special]['emoji']} {mod.SPECIALS[god_special]['name']}"
               if god_special and mod else MOVE_META[boss_move][1])
         bits = [f"**T{self.turn}** you **{pm}** vs **{bm}**"]
+        bits.extend(report.get("gimmicks", []))
+        if report.get("kinetic_return_a"):
+            bits.append(f"↩️ Kinetic Counter returns {report['kinetic_return_a']:.0f} damage")
+        if report.get("kinetic_return_b"):
+            bits.append(f"↩️ Kinetic Counter returns {report['kinetic_return_b']:.0f} damage")
         if report["dmg_to_a"] > 0:
             bits.append(f"→ 💥 {report['dmg_to_a']:.0f} to boss")
         if report["dmg_to_b"] > 0:
@@ -837,9 +848,6 @@ class BossFight:
         st   = self.boss.state
         spec = mod.SPECIALS[key]
 
-        self.boss.sp = max(0.0, self.boss.sp - ai.STAMINA_COST[ai.MOVE_SPECIAL])
-        self.foe.sp  = max(0.0, self.foe.sp - ai.STAMINA_COST[player_move])
-
         dmg, effects = mod.special_damage(
             key, self.boss.eff_attack, st,
             self.foe.eff_defense, self.foe.hp / self.foe.max_hp,
@@ -856,35 +864,19 @@ class BossFight:
             log.warning("[boss] %s.special_damage returned %s, expected dict",
                         getattr(mod, "__name__", mod), type(effects).__name__)
             effects = {}
-        # A block still helps, unless the move is flagged true damage.
-        if player_move == ai.MOVE_DEFENSE and not spec.get("true_damage"):
-            dmg *= 0.55
-
-        # The player's own move still lands.
-        back = 0.0
-        if player_move in (ai.MOVE_ATTACK, ai.MOVE_SPECIAL):
-            mult = ai.SPECIAL_MULT if player_move == ai.MOVE_SPECIAL else 1.0
-            # Same reason as the riposte in ai.resolve(): this hand-rolled
-            # damage line bypasses _raw_damage, so it needs dmg_mult explicitly
-            # or the player's counter during a boss Special ignores their type.
-            raw  = self.foe.eff_attack * ai.DMG_SCALE * mult * self.foe.dmg_mult
-            if player_move == ai.MOVE_SPECIAL:
-                # The 20% Special cut applies here too. This branch hand-rolls
-                # its damage instead of going through ai._raw_damage, so it was
-                # the one path where a player Special still hit a boss at full
-                # strength — and it is reachable on any turn the boss fires a
-                # Special, which is exactly when a player is most likely to
-                # answer with theirs. A rule with a hole that size is not a rule.
-                raw *= ai.PLAYER_SPECIAL_VS_BOSS
-            back = max(1.0, raw * max(0.4, 1 - self.boss.eff_defense / 400.0))
-            if hasattr(st, "absorb"):
-                back, _shattered = st.absorb(back)
-            if st.reflect():
-                dmg += st.reflect()
-
+        previous = (self.boss.special_damage, self.boss.special_true_damage,
+                    self.boss.special_ignores_defense)
+        self.boss.special_damage = dmg
+        self.boss.special_true_damage = bool(spec.get("true_damage"))
+        self.boss.special_ignores_defense = bool(spec.get("ignores_defense"))
+        try:
+            report = ai.resolve(self.boss, self.foe, ai.MOVE_SPECIAL, player_move)
+        finally:
+            (self.boss.special_damage, self.boss.special_true_damage,
+             self.boss.special_ignores_defense) = previous
+        back, dmg = report["dmg_to_a"], report["dmg_to_b"]
         heal = effects.get("drain", 0.0)
-        self.foe.hp  = max(0.0, self.foe.hp - dmg)
-        self.boss.hp = max(0.0, min(self.boss.max_hp, self.boss.hp - back + heal))
+        self.boss.hp = min(self.boss.max_hp, self.boss.hp + heal)
 
         if effects.get("strip"):
             self.foe.gauge = 0.0
@@ -892,17 +884,6 @@ class BossFight:
             st.freeze_turns = effects["freeze"]
 
         self.boss.gauge = 0.0
-        if back > 0:
-            st.bank_debt(back)
-            # ...and break_stars, which ai.resolve() calls alongside bank_debt
-            # and this path did not. Countering through a boss Special was the
-            # one way to hit a boss without ever shaking its Stars or Eyes
-            # loose, which made firing a Special the safest moment in the fight
-            # for exactly the bosses those mechanics are meant to punish.
-            if hasattr(st, "break_stars"):
-                st.break_stars(back, self.boss.max_hp)
-            self.foe.gauge = min(ai.SPECIAL_GAUGE_MAX,
-                                 self.foe.gauge + ai.GAUGE_PER_DMG_TAKEN)
         if spec["ultimate"]:
             if hasattr(st, "ultimates_used"):
                 st.ultimates_used.add(key)
@@ -912,13 +893,8 @@ class BossFight:
             # Once only, for the whole fight.
             st.protocol_fired = True
 
-        st.tick()
-        st.flip_stance()
-        if self.boss.alive() and st.should_ascend(self.boss.hp / self.boss.max_hp):
-            st.ascend()
-
         self.last_special = spec
-        return {"dmg_to_a": back, "dmg_to_b": dmg,
+        return {**report, "dmg_to_a": back, "dmg_to_b": dmg,
                 "heal_a": heal, "heal_b": 0.0,
                 "note_a": spec["name"], "note_b": "",
                 "debt_spent": effects.get("debt_spent", 0.0)}

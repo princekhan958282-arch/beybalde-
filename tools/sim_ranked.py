@@ -409,10 +409,10 @@ print("\n── 8d. finish detection in the engine ─────────�
 import inspect as _insp                                  # noqa: E402
 import cogs.battle.session as _S                         # noqa: E402
 ssrc = _insp.getsource(_S)
-check("ring-outs are tagged", ssrc.count('_mark_finish(key, "ringout")') == 2,
+check("ring-outs are tagged", ssrc.count('_mark_finish(key, "ringout")') >= 3,
       ssrc.count('_mark_finish(key, "ringout")'))
 check("both ring-out sites are covered — ability-driven and stability-zero",
-      ssrc.count('_mark_finish(key, "ringout")') == 2)
+      ssrc.count('_mark_finish(key, "ringout")') >= 3)
 check("stamina KO is tagged as a survival",
       '_mark_finish(key, "survival")' in ssrc)
 check("an unmarked loss defaults to burst — HP reduced to 0 by damage",

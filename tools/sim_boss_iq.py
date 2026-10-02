@@ -110,7 +110,7 @@ check("the IQ is shown on the boss card, next to the price",
 
 # ══════════════════════════════════════════════════════════════════════════════
 print("\n── 3. read accuracy actually changes the prediction ─────────────")
-_f = AI.Fighter(name="P", hp=2000, max_hp=2108, attack=120, defense=100,
+_f = AI.Fighter(level=100, name="P", hp=2000, max_hp=2108, attack=120, defense=100,
                 stamina_stat=100, sp=10.0)
 _m = AI.OpponentModel()
 for _ in range(12):
@@ -147,10 +147,10 @@ def winrate(rung, habit, blades, seeds=90):
         bs = BLADES[bn]["stats"]
         for sd in range(seeds):
             rnd = random.Random(sd)
-            boss = AI.Fighter(name="B", hp=2108, max_hp=2108,
+            boss = AI.Fighter(level=100, name="B", hp=2108, max_hp=2108,
                               attack=bs["attack"], defense=bs["defense"],
                               stamina_stat=bs["stamina"], is_boss=True)
-            foe = AI.Fighter(name="P", hp=2108, max_hp=2108,
+            foe = AI.Fighter(level=100, name="P", hp=2108, max_hp=2108,
                              attack=bs["attack"], defense=bs["defense"],
                              stamina_stat=bs["stamina"])
             model = AI.OpponentModel()
@@ -274,14 +274,14 @@ check("...and the flat soak is capped at the hit that landed, or a refund "
 print("\n── 6. nothing else moved ───────────────────────────────────────")
 check("the fight still resolves for every boss",
       all(BB._make_state(BB.BOSSES[k]) is not None for k in BB.BOSSES))
-_probe = AI.Fighter(name="x", hp=100, max_hp=100, attack=100, defense=100,
+_probe = AI.Fighter(level=100, name="x", hp=100, max_hp=100, attack=100, defense=100,
                     stamina_stat=100)
 check("resolve() is still deterministic — the search evaluates it, so a die "
       "roll in there would make the AI plan against a fight that never happens",
       True)
-_a1 = AI.Fighter(name="a", hp=999, max_hp=999, attack=120, defense=90,
+_a1 = AI.Fighter(level=100, name="a", hp=999, max_hp=999, attack=120, defense=90,
                  stamina_stat=100)
-_b1 = AI.Fighter(name="b", hp=999, max_hp=999, attack=110, defense=95,
+_b1 = AI.Fighter(level=100, name="b", hp=999, max_hp=999, attack=110, defense=95,
                  stamina_stat=100)
 _a2, _b2 = _a1.clone(), _b1.clone()
 _r1 = AI.resolve(_a1, _b1, AI.MOVE_ATTACK, AI.MOVE_DEFENSE)

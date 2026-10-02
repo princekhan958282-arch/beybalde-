@@ -356,7 +356,8 @@ class BattleSession:
         self.bot     = bot
         self.channel = channel
         self.players = [p1, p2]
-        self.blades  = {str(p1.id): blade1, str(p2.id): blade2}
+        self.blades  = {str(p1.id): copy.deepcopy(blade1), str(p2.id): copy.deepcopy(blade2)}
+        self.combat_v3 = True
         # Defaults to False so every existing caller — tournament matches
         # included — keeps producing casual results until it opts in. A ladder
         # that counted friendly matches would let two players trade wins to
@@ -474,6 +475,17 @@ class BattleSession:
             str(p2.id): _start_stats(str(p2.id), blade2),
         }
 
+        from .type_gimmicks import TypeGimmickEngine, passive_stat_multiplier
+        self.type_gimmicks = TypeGimmickEngine({k: b.get("type") for k, b in self.blades.items()})
+        self.base_stats = copy.deepcopy(self.battle_stats)
+        for key, stats in self.battle_stats.items():
+            for stat in stats:
+                stats[stat] *= passive_stat_multiplier(self.blades[key].get("type"), stat)
+            self.hp[key] = math.floor(self.hp[key] * passive_stat_multiplier(self.blades[key].get("type"), "hp"))
+            self.max_hp_per_player[key] = self.hp[key]
+        self.base_max_hp = dict(self.max_hp_per_player)
+        self._morph_hp_factor = {key: 1.0 for key in self.hp}
+
         # ── Effective SPECIAL stat (levelled + parts + avatar) ────────────────
         # Resolved once at battle start and handed to damage_rules.resolve_special
         # so a Special scales with the bey's level instead of being the flat
@@ -530,33 +542,6 @@ class BattleSession:
         self.stability_manager = StabilityManager(self.blades, self.type_mods,
                                                     self.avatar_bonuses)
 
-        # Stamina's signature type effect: while it holds the advantage, its
-        # own move costs are cut. Resolved ONCE, here — both blades' types are
-        # fixed for the whole fight, so the advantage cannot change mid-match
-        # and there is nothing to recompute per round.
-        #
-        # It reuses drain_reduction, the same field the `stamina_cost_reduction`
-        # ability op writes, and that field is combined with max() rather than
-        # summed — a blade with both gets the larger, not both. That is the
-        # right answer (two independent 25% cuts stacking to 44% is a different
-        # game) and it is asserted in tools/sim_types.py rather than left to be
-        # rediscovered.
-        from cogs.abilities.type_system import (
-            resolve_active_bonuses as _rab, normalise_type as _nt,
-            STAMINA_COST_CUT as _SCC)
-        for _k, _other in ((str(p1.id), str(p2.id)), (str(p2.id), str(p1.id))):
-            if _nt(self.blades.get(_k, {}).get("type")) != "stamina":
-                continue
-            _mine, _ = _rab(self.blades.get(_k, {}).get("type", ""),
-                            self.blades.get(_other, {}).get("type", ""))
-            if not _mine:
-                continue
-            _cut = _SCC
-            if _nt(self.blades.get(_other, {}).get("type")) == "balance":
-                from cogs.abilities.type_system import BALANCE_EFFECT_SCALE
-                _cut *= BALANCE_EFFECT_SCALE
-            sm = self.stamina_manager
-            sm.drain_reduction[_k] = max(sm.drain_reduction.get(_k, 0.0), _cut)
         self.status = StatusManager(self)          # FIX #1/#3: Initialize StatusManager
         self.chain_handler = ChainHandler(self)    # FIX #1/#3: Initialize ChainHandler
         self.ability = AbilityEngine(self)
@@ -958,6 +943,17 @@ class BattleSession:
         embed.set_footer(text="▸ Choose your move below  •  Stamina regens each round")
         return embed
 
+    def _sync_morph_hp(self, key):
+        """Refresh temporary HP capacity while preserving ability-owned changes."""
+        previous = self._morph_hp_factor[key]
+        expected = math.floor(self.base_max_hp[key] * previous)
+        if self.max_hp_per_player[key] != expected:
+            self.base_max_hp[key] = self.max_hp_per_player[key] / previous
+        current = self.type_gimmicks.stat_multiplier(key)
+        self.max_hp_per_player[key] = math.floor(self.base_max_hp[key] * current)
+        self._morph_hp_factor[key] = current
+        self.hp[key] = min(self.hp[key], self.max_hp_per_player[key])
+
     # ── Move submission ───────────────────────────────────────────────────────
 
     async def submit_move(
@@ -973,6 +969,18 @@ class BattleSession:
             )
             return
 
+        if move not in (MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_CHARGE, MOVE_SPECIAL):
+            await interaction.response.send_message("❌ Invalid battle action.", ephemeral=True)
+            return
+        if not self.stamina_manager.can_afford(key, move):
+            await interaction.response.send_message("⚠️ Not enough Battle Stamina. Use Stamina to recover.", ephemeral=True)
+            return
+        if move == MOVE_SPECIAL:
+            reason = special_gate.blocked_reason(self, key, self.blades.get(key),
+                                                self.stamina_manager.gauge.get(key, 0))
+            if reason:
+                await interaction.response.send_message(reason, ephemeral=True)
+                return
         self.moves[key] = move
         # The REAL price for THIS blade, from the same call that charges it.
         # The label used to carry a hardcoded number and every one of them was
@@ -1079,8 +1087,6 @@ class BattleSession:
 
         round_log: list[str] = []
         tactical = self.ability.tactical
-        tactical.round_start(k1, k2, m1, m2, s1, s2, round_log)
-        tactical.round_start(k2, k1, m2, m1, s2, s1, round_log)
 
         # ── Round-start stamina regen from active buffs (e.g. Cosmic Mode) ───
         for _key in (k1, k2):
@@ -1099,6 +1105,7 @@ class BattleSession:
         # ── Ring-out check after DoT (stability can't drop from DoT but guard anyway) ─
         for key in (k1, k2):
             if self._ring_out_guard(key, round_log):
+                self._mark_finish(key, "ringout")
                 self.hp[key] = 0
         if self.hp[k1] <= 0 or self.hp[k2] <= 0:
             await self._end_battle()
@@ -1108,36 +1115,16 @@ class BattleSession:
         for _key in (k1, k2):
             round_log.extend(self.defense_manager.tick_grind(_key))
 
-        # ── MOVE_STAMINA: recover stamina + heal ──────────────────────────────
-        for key, move in ((k1, m1), (k2, m2)):
-            if move == MOVE_STAMINA:
-                from cogs.abilities.type_system import resolve_active_bonuses
-                enemy_key  = k2 if key == k1 else k1
-                _my_mod    = self.type_mods.get(key)
-                _en_mod    = self.type_mods.get(enemy_key)
-                _my_type   = _my_mod.btype if _my_mod else ""
-                _en_type   = _en_mod.btype if _en_mod else ""
-                _sta_active, _ = resolve_active_bonuses(_my_type, _en_type)
-                # Interrupted heal: opponent attacked during our Stamina move
-                _enemy_move = m2 if key == k1 else m1
-                _attacked   = _enemy_move in (MOVE_ATTACK, MOVE_SPECIAL)
-                round_log.extend(
-                    sm.apply_stamina_action(key, self.hp, _my_mod, type_active=_sta_active,
-                                            attacked=_attacked,
-                                            max_hp=self.max_hp_per_player.get(key, self.max_hp))
-                )
-                sm.add_gauge(key, "stamina")
-                try:
-                    self.bot.dispatch("beycord_stamina_move", int(key))
-                except Exception:
-                    pass
-                # Stability recovery for using stamina move → +25 (halved if attacked)
-                # Gated behind type-advantage check: Stamina recovery only
-                # applies when stability effects are active for this matchup.
-                if self.stability_manager.is_effects_active(key, enemy_key):
-                    round_log.extend(
-                        self.stability_manager.apply_stamina_recovery(key, reduced=_attacked)
-                    )
+        gimmick_logs = self.type_gimmicks.begin_round({k1: m1, k2: m2})
+        for key in (k1, k2):
+            gimmick_logs = [line.replace(f"— {key} activates", f"— {self.blades[key]['name']} activates") for line in gimmick_logs]
+        round_log.extend(gimmick_logs)
+        for key in (k1, k2):
+            self._sync_morph_hp(key)
+        s1, s2 = effective_stats(self, k1), effective_stats(self, k2)
+        tactical.round_start(k1, k2, m1, m2, s1, s2, round_log)
+        tactical.round_start(k2, k1, m2, m1, s2, s1, round_log)
+        sm._eff = {k1: s1, k2: s2}
 
         # ── MOVE_CHARGE: fills Special Gauge by +50 ──────────────────────────
         for key, move in ((k1, m1), (k2, m2)):
@@ -1197,6 +1184,20 @@ class BattleSession:
             dmg_p2, counter_p2, matchup_p2,
         )
         round_log.extend(hp_logs)
+        dmg_p1 = am.committed_damage[k1]
+        dmg_p2 = am.committed_damage[k2]
+        for key, move in ((k1, m1), (k2, m2)):
+            if move == MOVE_STAMINA and self.hp[key] > 0:
+                round_log.extend(sm.apply_stamina_action(
+                    key, self.hp, self.type_mods.get(key),
+                    max_hp=self.max_hp_per_player[key], gimmicks=self.type_gimmicks))
+                _, recovery, _ = self.type_gimmicks.recovery(key, sm._sta_stat(key))
+                round_log.extend(self.stability_manager._apply(key, recovery))
+                sm.add_gauge(key, "stamina")
+                try:
+                    self.bot.dispatch("beycord_stamina_move", int(key))
+                except Exception:
+                    pass
         tactical.round_end(k1, k2, m1, m2, matchup_p1, round_log)
         tactical.round_end(k2, k1, m2, m1, matchup_p2, round_log)
 
@@ -1267,6 +1268,11 @@ class BattleSession:
         # immediately expire, but BEFORE the next panel is posted so the status
         # embed reflects the updated durations.
         #
+        self.type_gimmicks.end_round()
+        for key in (k1, k2):
+            self._sync_morph_hp(key)
+            sm.stamina[key] = max(0, min(sm.cap_for(key), sm.stamina[key]))
+
         # tick_buffs / tick_silence / tick_universal are DELIBERATELY NOT
         # called here. Each player already gets ticked exactly once per round
         # via DamageFilter._step1_tick, reached through AbilityEngine.apply()

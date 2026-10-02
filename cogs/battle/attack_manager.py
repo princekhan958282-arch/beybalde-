@@ -149,6 +149,7 @@ class AttackManager:
         # ── Check active defense-pierce before preprocessing ──────────────────
         pierce_turns = self.session.status.get_duration("ignore_defense_turns", mkey)
         piercing_defense = pierce_turns > 0
+        self.session._damage_bypass = {mkey: piercing_defense}
 
         # ── Pre-process defender stats (pierce / shatter / def buff) ──────────
         ostats, pre_logs = self.session.defense_manager.preprocess_defender_stats(
@@ -165,39 +166,9 @@ class AttackManager:
             mmove, mstats, ostats, mblade, omove
         )
 
-        # ── Avatar: extra crit roll on top of the blade's own chance ──────────
-        if mmove == MOVE_ATTACK:
-            is_crit = AVC.roll_extra_crit(self.session, mkey, is_crit)
-
-        # ── Guaranteed crit override (Guilty Longinus — Condemned Mode) ───────
-        # guaranteed_crit_turns is set by on_win / ChainHandler but was never
-        # read here — the feature was completely dead.  Wire it up: if the
-        # attacker has turns remaining and this is an attack-type move that
-        # didn't already crit naturally, force a crit and consume one turn.
-        if mmove == MOVE_ATTACK and not is_crit:
-            gc_turns = self.session.ability.guaranteed_crit_turns.get(mkey, 0)
-            if gc_turns > 0:
-                atk_stat = mstats.get("attack", 50)
-                def_stat = ostats.get("defense", 50)
-                import math as _math
-                from .constants import NORMAL_ATTACK_DAMAGE_SCALE
-                raw_crit = max(5, _math.ceil(atk_stat * 1.6))
-                if omove == MOVE_DEFENSE:
-                    from .damage_rules import SHIELD_FLAT_RATIO, _deficit_bleed
-                    flat_red = _math.ceil(def_stat * SHIELD_FLAT_RATIO)
-                    dmg_dealt = max(5, raw_crit - flat_red)
-                    dmg_dealt = _deficit_bleed(dmg_dealt, atk_stat, def_stat)
-                    dmg_dealt = max(5, _math.ceil(dmg_dealt * NORMAL_ATTACK_DAMAGE_SCALE))
-                    dmg_taken = 0   # no counter on a crit
-                    matchup   = "win"
-                else:
-                    dmg_dealt = max(5, _math.ceil(raw_crit * NORMAL_ATTACK_DAMAGE_SCALE))
-                is_crit = True
-                self.session.ability.guaranteed_crit_turns[mkey] = gc_turns - 1
-                logs.append(
-                    f"  ⚖️ **Condemned Mode** — {mblade['name']} forces a GUARANTEED CRIT! "
-                    f"({gc_turns - 1} turn(s) remaining)"
-                )
+        # Explicit avatar/ability crits remain overrides; natural type crits
+        # are rolled centrally, once per valid action, before either pairing.
+        is_crit = False
 
         # ── Ignore Defense: suppress the counter-hit when piercing defense ────
         # When defense is pierced the counter is nullified and we announce once.
@@ -241,15 +212,8 @@ class AttackManager:
         # it again here — doing so would double-scale the level bonus.
 
         # ── Passive flat damage reduction — skipped when piercing defense ──────
-        if not piercing_defense:
+        if not piercing_defense and not getattr(self.session, "combat_v3", False):
             dmg_dealt, logs = self._apply_passive_reduction(okey, oblade, dmg_dealt, logs)
-
-        # ── Type modifier — outgoing ATK bonus ────────────────────────────────
-        dmg_dealt, logs = self._apply_atk_type_mod(mkey, mblade, mmove, dmg_dealt, logs, okey=okey)
-
-        # ── Type modifier — incoming DEF mitigation — skipped when piercing ───
-        if not piercing_defense:
-            dmg_dealt, logs = self._apply_def_type_mod(okey, oblade, dmg_dealt, logs, mkey=mkey)
 
         # ── Avatar: every Nth strike carries a slice of total Attack ─────────
         if mmove == MOVE_ATTACK and dmg_dealt > 0:
@@ -376,15 +340,24 @@ class AttackManager:
         from cogs.abilities.extended_effects import runtime
         extra = runtime(self.session)
         tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
+        engine = getattr(self.session, "type_gimmicks", None)
+        returned = []
+        self.committed_damage = {k1: 0, k2: 0}
         if m1 not in (MOVE_STAMINA, MOVE_CHARGE):
             dmg_p1, _ctr, _avl = AVC.absorb_incoming(self.session, k2, k1, dmg_p1)
             logs.extend(_avl)
-            if _ctr:
+            if _ctr and not (engine and engine.returns_damage(k1, k2, m1)):
                 hp[k1] = max(0, hp[k1] - _ctr)
             dmg_p1, _imm = AVC.guard_lethal(self.session, k2, dmg_p1)
             logs.extend(_imm)
+            from .type_gimmicks import hp_damage
+            dmg_p1 = hp_damage(dmg_p1)
             actual = min(hp[k2], max(0, dmg_p1))
+            if engine and engine.returns_damage(k1, k2, m1):
+                returned.append((k1, actual))
+                counter_p1 = 0
             hp[k2] = max(0, hp[k2] - dmg_p1)
+            self.committed_damage[k1] = actual
             if extra is not None:
                 extra.committed(k1, k2, m1, actual, logs)
             if tactical is not None:
@@ -392,16 +365,31 @@ class AttackManager:
         if m2 not in (MOVE_STAMINA, MOVE_CHARGE):
             dmg_p2, _ctr, _avl = AVC.absorb_incoming(self.session, k1, k2, dmg_p2)
             logs.extend(_avl)
-            if _ctr:
+            if _ctr and not (engine and engine.returns_damage(k2, k1, m2)):
                 hp[k2] = max(0, hp[k2] - _ctr)
             dmg_p2, _imm = AVC.guard_lethal(self.session, k1, dmg_p2)
             logs.extend(_imm)
+            from .type_gimmicks import hp_damage
+            dmg_p2 = hp_damage(dmg_p2)
             actual = min(hp[k1], max(0, dmg_p2))
+            if engine and engine.returns_damage(k2, k1, m2):
+                returned.append((k2, actual))
+                counter_p2 = 0
             hp[k1] = max(0, hp[k1] - dmg_p2)
+            self.committed_damage[k2] = actual
             if extra is not None:
                 extra.committed(k2, k1, m2, actual, logs)
             if tactical is not None:
                 tactical.committed(k2, k1, m2, actual, logs)
+
+        # Tagged terminal HP damage: deliberately does not re-enter abilities,
+        # avatar reflection, crit rolls, or the mitigation pipeline.
+        self.session.counter_damage_events = [
+            {"kind": "counter", "target": key, "amount": amount}
+            for key, amount in returned]
+        for key, amount in returned:
+            hp[key] = max(0, hp[key] - amount)
+            logs.append(f"↩️ **Kinetic Counter** — returns **{amount} actual HP damage**!")
 
         # ── Apply counter-hit reflections ─────────────────────────────────────
         # counter_pN is non-zero only for Attack-vs-Defense hits.
@@ -697,6 +685,8 @@ class AttackManager:
             )
             pierce_logged = True
 
+        self.session._damage_bypass = {mkey: ignores_def}
+
         if flavour:
             logs.append(f"  🌟 {flavour[0]}")
         if hits > 1:
@@ -720,7 +710,7 @@ class AttackManager:
         # than per hit, so a 5-hit Special isn't multiplied five times over.
         _ult_atk = 0
         try:
-            _ult_atk = self.session.battle_stats.get(mkey, {}).get("attack", 0)
+            _ult_atk = _live_stats.get("attack", 0)
         except Exception:
             _ult_atk = mblade.get("stats", {}).get("attack", 0)
 
@@ -820,8 +810,16 @@ class AttackManager:
             if rider_log:
                 logs.append(rider_log)
             hit_base = math.ceil((base_for_hit + rider) * mult)
-            if atk_sp_mod:
+            if atk_sp_mod and not getattr(self.session, "combat_v3", False):
                 hit_base = atk_sp_mod.apply_attack(hit_base)
+
+            if getattr(self.session, "combat_v3", False):
+                av = self.session.avatar_bonuses.get(mkey)
+                if av is not None and hit_base > 0:
+                    percent = float(getattr(av, "special_move_percent", 0))
+                    flat = float(getattr(av, "special_move_flat", 0)) if hit_n == 0 else 0
+                    rider = _ult_atk if hit_n == 0 and getattr(av, "ult_adds_attack_stat", False) else 0
+                    hit_base = (hit_base + flat) * (1 + percent) + rider
 
             # Per-hit proc (on_hit abilities — Reckless Fury etc.)
             hit_base, proc_logs = self.session.ability.process_hit_proc(
@@ -844,7 +842,7 @@ class AttackManager:
 
             # Passive flat damage reduction (Dead Phoenix / Undying Blaze)
             # Skipped if the Special explicitly ignores defense
-            if not ignores_def:
+            if not ignores_def and not getattr(self.session, "combat_v3", False):
                 hit_dmg, logs = self._apply_passive_reduction(okey, oblade, hit_dmg, logs)
 
             # Combined AFTER ability.apply() for this hit, not before the loop
@@ -858,7 +856,7 @@ class AttackManager:
             # Type defense mitigation (skipped if special pierces defense or
             # defender's type bonus is not active for this matchup)
             def_sp_mod = self.session.type_mods.get(okey) if _sp_def_active else None
-            if def_sp_mod and not ignores_def and hit_dmg > 0:
+            if def_sp_mod and not ignores_def and hit_dmg > 0 and not getattr(self.session, "combat_v3", False):
                 if _pierce_pct > 0:
                     # Partial pierce: shave the mitigation itself by the pierce
                     # percentage rather than applying it in full — half a
@@ -905,7 +903,7 @@ class AttackManager:
                 logs.append(f"  💥 **Hit {hit_n + 1}/{hits}** — **{hit_dmg} dmg**")
 
         # ── Avatar: Special multiplier + full Attack stat rider ──────────────
-        if not self_managed and total_dmg > 0:
+        if not self_managed and total_dmg > 0 and not getattr(self.session, "combat_v3", False):
             total_dmg, _ult_logs = AVC.apply_ult_bonus(
                 self.session, mkey, total_dmg, _ult_atk)
             logs.extend(_ult_logs)

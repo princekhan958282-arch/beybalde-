@@ -1,44 +1,10 @@
-"""
-battle/damage_rules.py
-----------------------
-Pure damage calculation functions. No session state, no side effects.
+"""Shared normal-damage and authored-Special helpers.
 
-calc_damage()     — resolves one attacker-vs-defender move pair into raw numbers.
-resolve_special() — reads a blade's special_move block into (hits, per_hit, flavours).
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DEFENSE SYSTEM  (replaces old flat-mitigation approach)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. SHIELD GATE
-   Any hit whose raw value is below  def_stat × SHIELD_GATE_RATIO  is
-   completely nullified (0 damage).  Hits that break through are reduced
-   by a flat  def_stat × SHIELD_FLAT_RATIO  amount.
-
-2. DEFENSE COUNTER HIT
-   When Defense wins vs Attack, the counter scales with how much of the
-   incoming hit was absorbed:
-       counter = (absorbed × COUNTER_ABSORB_RATIO) + (def_stat × COUNTER_STAT_RATIO)
-   Minimum is COUNTER_MIN so there is always some pushback.
-
-3. DEFENSE DEFICIT BLEED MULTIPLIER
-   If the attacker's ATK stat exceeds the defender's DEF stat, the gap
-   amplifies outgoing damage:
-       bleed_mult = 1.0 + (deficit / DEFICIT_DIVISOR)
-   Applied after shield-gate / flat reduction — low-DEF blades take
-   escalating punishment against high-ATK opponents.
-
-4. CRIT VS DEFENSE
-   Crits bypass Shield Gate (they always land something) but defense
-   mitigation still applies — crits are no longer a full pierce.
-
-5. GRIND DEBUFF (flag only — applied in session.py)
-   When Defense loses to Stamina, calc_damage returns matchup="lose_grind"
-   instead of plain "lose".  session.py watches for this string and applies
-   the stamina-regen reduction to the opponent for:
-       1 + floor(def_stat / GRIND_LEVEL_DIVISOR)  rounds
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Normal combat uses the level/power/Attack/Defense formula, followed by
+existing action matchup modifiers. Natural gimmicks are session-owned,
+never rolled in this pure helper. Legacy defense helpers remain exported
+for import compatibility; shield gate and deficit bleed are no longer part
+of the normal calculation. Specials retain their authored damage shape.
 """
 
 import math
@@ -348,110 +314,31 @@ def calc_damage(
     MOVE_SPECIAL is NOT handled here — it is resolved per-hit in session.py
     so passive, ATK-buff, and rage modifiers apply to each individual hit.
     """
-    is_crit = False
-
-    # ── Stamina / Charge: no outgoing damage ─────────────────────────────────
+    from .type_gimmicks import base_damage
+    from .button_profile import move_power
     if attacker_move in (MOVE_STAMINA, MOVE_CHARGE):
-        if attacker_move == MOVE_STAMINA and defender_move == MOVE_DEFENSE:
-            return 0, 0, "win", False
-        if attacker_move == MOVE_STAMINA and defender_move == MOVE_ATTACK:
-            return 0, 0, "lose", False
+        matchup = ("win" if attacker_move == MOVE_STAMINA and defender_move == MOVE_DEFENSE
+                   else "lose" if attacker_move == MOVE_STAMINA and defender_move == MOVE_ATTACK
+                   else "mirror")
+        return 0, 0, matchup, False
+    if attacker_move == MOVE_DEFENSE and defender_move == MOVE_ATTACK:
+        return 0, 0, "win", False  # Counter is returned by the Attack pairing.
+    if attacker_move not in (MOVE_ATTACK, MOVE_DEFENSE):
         return 0, 0, "mirror", False
-
-    # ── Attack ────────────────────────────────────────────────────────────────
-    if attacker_move == MOVE_ATTACK:
-        atk_stat = attacker_stats.get("attack", 50)
-
-        if attacker_move == defender_move:
-            # ── Attack vs Attack ──────────────────────────────────────────
-            # Previously a flat MIRROR_CHIP_DAMAGE both ways: the same 32
-            # damage whether a 47-attack blade or a 300-attack one threw it,
-            # so the clash ignored everything the player had built.
-            #
-            # Now the attacker converts a slice of the enemy's DEFENCE into
-            # bonus attack — heavier armour gives more to bite into — and the
-            # result is a real damage roll, so stats finally matter here.
-            clash_def = defender_stats.get("defense", 50)
-            atk_stat  = atk_stat + clash_def * ATTACK_CLASH_DEF_CONVERSION
-
-            raw = atk_stat * ATTACK_CLASH_MULT
-            if random.random() < _crit_chance(atk_stat):
-                raw     = raw * 1.6
-                is_crit = True
-            raw = raw * NORMAL_ATTACK_DAMAGE_SCALE
-            # Symmetric: the caller resolves the other half from the other
-            # side, so only outgoing damage is returned here.
-            return max(5, math.ceil(raw)), 0, "mirror", is_crit
-
-        # ── Attack vs Defense ─────────────────────────────────────────────────
-        if defender_move == MOVE_DEFENSE:
-            def_stat = defender_stats.get("defense", 50)
-            # When defense-pierce is active, defense_manager zeroes out DEF for
-            # gate/mitigation but stores the real value under "_real_defense".
-            # Use it for deficit_bleed so pierce doesn't artificially inflate
-            # the bleed multiplier by treating the opponent as having 0 DEF.
-            real_def_stat = defender_stats.get("_real_defense", def_stat)
-
-            # Crits bypass the Shield Gate but mitigation still applies
-            if random.random() < _crit_chance(atk_stat):
-                raw_crit          = max(5, math.ceil(atk_stat * 1.6))
-                flat_red          = math.ceil(def_stat * SHIELD_FLAT_RATIO)
-                crit_dmg          = max(5, raw_crit - flat_red)
-                crit_dmg          = _deficit_bleed(crit_dmg, atk_stat, real_def_stat)
-                crit_dmg          = max(5, math.ceil(crit_dmg * NORMAL_ATTACK_DAMAGE_SCALE))
-                return crit_dmg, 0, "win", True
-
-            # Normal Attack vs Defense
-            raw_hit             = math.ceil(atk_stat * LOSING_PENALTY_MULT)
-            mitigated, absorbed = _shield_gate(raw_hit, def_stat)
-            mitigated           = _deficit_bleed(mitigated, atk_stat, real_def_stat)
-            counter_dmg         = _counter_hit(absorbed, def_stat)
-            # Scale only the attacker's outgoing damage — the counter keeps its
-            # own COUNTER_MIN floor so defense pushback isn't nerfed.
-            if mitigated > 0:
-                mitigated = max(1, math.ceil(mitigated * NORMAL_ATTACK_DAMAGE_SCALE))
-
-            return mitigated, counter_dmg, "lose", False
-
-        # ── Attack vs everything else ─────────────────────────────────────────
-        if COUNTER.get(attacker_move) == defender_move:   # Attack beats Stamina
-            mult, matchup = ATTACK_VS_STAMINA_MULT, "win"
-        elif defender_move == MOVE_CHARGE:
-            mult, matchup = WINNING_BONUS_MULT, "win"
-        else:
-            mult, matchup = LOSING_PENALTY_MULT, "lose"
-
-        raw = atk_stat * mult
-        if random.random() < _crit_chance(atk_stat):
-            raw     = raw * 1.6
-            is_crit = True
-        raw = raw * NORMAL_ATTACK_DAMAGE_SCALE
-        return max(5, math.ceil(raw)), 0, matchup, is_crit
-
-    # ── Defense ───────────────────────────────────────────────────────────────
-    if attacker_move == MOVE_DEFENSE:
-        def_stat = attacker_stats.get("defense", 50)
-
-        if attacker_move == defender_move:
-            return MIRROR_CHIP_DAMAGE, MIRROR_CHIP_DAMAGE, "mirror", False
-
-        # ── Defense vs Attack — counter hit (handled in Attack branch) ──
-        # This branch fires when ATTACKER pressed Defense and OPPONENT pressed Attack.
-        # The real counter-hit damage is already returned by resolve_pair for the opponent
-        # (Attack vs Defense → dmg_taken = counter), so we return 0 here to avoid a double hit.
-        if defender_move == MOVE_ATTACK:
-            return 0, 0, "win", False
-
-        # ── Defense vs Stamina: Stamina wins but Grind debuff triggers ─────────
-        raw = def_stat * LOSING_PENALTY_MULT
-        return max(5, math.ceil(raw)), 0, "lose_grind", False
-
-    # ── Fallback ──────────────────────────────────────────────────────────────
+    stat = "attack"
+    raw = base_damage(attacker_stats.get("level", attacker_blade.get("level", 1)),
+                      move_power(attacker_blade, attacker_move),
+                      attacker_stats.get(stat, 50), defender_stats.get("defense", 50))
     if attacker_move == defender_move:
-        return MIRROR_CHIP_DAMAGE, MIRROR_CHIP_DAMAGE, "mirror", False
-    if COUNTER.get(attacker_move) == defender_move:
-        mult, matchup = WINNING_BONUS_MULT, "win"
-    else:
-        mult, matchup = LOSING_PENALTY_MULT, "lose"
-    raw = attacker_stats.get("attack", 50) * mult * NORMAL_ATTACK_DAMAGE_SCALE
-    return max(5, math.ceil(raw)), 0, matchup, False
+        return raw, 0, "mirror", False
+    if attacker_move == MOVE_DEFENSE:
+        return raw * LOSING_PENALTY_MULT, 0, "lose_grind", False
+    if defender_move == MOVE_DEFENSE:
+        # DEF is already in the formula. Retain the authored action penalty
+        # and ordinary counter, but do not also apply the old shield gate.
+        return raw * LOSING_PENALTY_MULT, _counter_hit(0, defender_stats.get("defense", 50)), "lose", False
+    if defender_move == MOVE_STAMINA:
+        return raw * ATTACK_VS_STAMINA_MULT, 0, "win", False
+    if defender_move == MOVE_CHARGE:
+        return raw * WINNING_BONUS_MULT, 0, "win", False
+    return raw * LOSING_PENALTY_MULT, 0, "lose", False

@@ -153,7 +153,7 @@ class DefenseManager:
             # Save the real DEF BEFORE zeroing so deficit_bleed isn't
             # inflated by treating the opponent as having 0 DEF.
             ostats["_real_defense"] = ostats.get("defense", 50)
-            ostats["defense"]       = 0
+            ostats["defense"]       = 1  # Safe denominator for the core formula
             logs.append(
                 f"  🎯 **Defense Pierce** — {mblade['name']} ignores all defense!"
             )
@@ -182,7 +182,7 @@ class DefenseManager:
         # 2. Active defense buff on the defender
         from .purification import stat_bonus
         def_buf = ab_eng._get_buf_bonus(okey, "defense") - stat_bonus(self.session, okey, "defense")
-        if def_buf:
+        if def_buf and not getattr(self.session, "combat_v3", False):
             ostats = dict(ostats)
             base_def = ostats.get("defense", 50)
             ostats["defense"] = base_def + def_buf

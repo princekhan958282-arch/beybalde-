@@ -131,16 +131,12 @@ print("\n── 4. Balance is half, both ways ───────────�
 stats = {"attack": 100, "defense": 100, "stamina": 100}
 pure = {t: TS.TypeModifiers({"type": t, "stats": stats}) for t in TYPES}
 bal = pure["balance"]
-check("Balance carries all three multipliers",
-      bal.atk_mult > 1 and bal.def_mult > 1 and bal.sta_mult > 1,
-      (bal.atk_mult, bal.def_mult, bal.sta_mult))
-for stat, attr in (("attack", "atk_mult"), ("defense", "def_mult"),
-                   ("stamina", "sta_mult")):
-    full = getattr(pure[stat], attr) - 1.0
-    half = getattr(bal, attr) - 1.0
-    check(f"Balance's {stat} bonus is exactly half of a pure {stat} blade's "
-          f"({full:.4f} -> {half:.4f})",
-          abs(half - full * TS.BALANCE_SCALE_FACTOR) < 1e-6, (full, half))
+from cogs.battle.type_gimmicks import passive_stat_multiplier
+for stat in ("hp", "attack", "defense", "stamina"):
+    check(f"Balance increases {stat} by 3.3%",
+          passive_stat_multiplier("Balance", stat) == 1.033)
+check("Balance has no extra damage mitigation or recovery multiplier",
+      bal.def_mult == bal.sta_mult == 1.0)
 check("a pure type gets ONLY its own multiplier",
       all(getattr(pure[t], other) == 1.0
           for t, own in (("attack", "atk_mult"), ("defense", "def_mult"),
@@ -189,10 +185,14 @@ check("both halve for a Balance opponent",
 
 ssrc = open(os.path.join(ROOT, "cogs", "battle", "session.py"),
             encoding="utf-8").read()
-check("Stamina's cut is resolved once at session build, not per round",
-      "STAMINA_COST_CUT as _SCC" in ssrc)
-check("...into the field deduct_cost already honours",
-      "sm.drain_reduction[_k] = max(" in ssrc)
+from cogs.battle.type_gimmicks import TypeGimmickEngine
+modern = StaminaManager({"p": {"type": "Stamina", "stats": {"stamina": 100}},
+                        "q": {"type": "Attack", "stats": {"stamina": 100}}})
+check("Stamina discount is unconditional and centralized",
+      abs(modern.cost_for("p", MOVE_SPECIAL) - modern.cost_for("q", MOVE_SPECIAL) * .8) < 1e-9)
+modern.drain_reduction["p"] = .25
+check("Stamina discount composes with ability discounts",
+      abs(modern.cost_for("p", MOVE_SPECIAL) - STAMINA_COST[MOVE_SPECIAL] * .75 * .8) < 1e-9)
 
 # drain_reduction is combined with max(), not summed — a blade carrying the
 # stamina_cost_reduction ability op AND the type edge gets the larger, not
