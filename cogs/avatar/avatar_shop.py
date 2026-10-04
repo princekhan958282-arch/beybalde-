@@ -42,7 +42,11 @@ Duplicate handling:
 from __future__ import annotations
 
 import random
+import asyncio
+import logging
 from typing import Any, Optional
+
+log = logging.getLogger(__name__)
 
 import discord
 from discord.ext import commands
@@ -729,8 +733,24 @@ class AvatarShop(commands.Cog, name="Avatar"):
             compact=True,
         )
 
-        # The shared builder uses a thumbnail. Avoid also adding the same art as
-        # a full-width image: that doubled the card height on phones.
+        # Keep the full textual details and signature-skills controls. The
+        # authored image is a presentation layer, never a source of bonuses.
+        card = None
+        try:
+            from utils.avatar_info_card import render_avatar_info_card
+            buf = await asyncio.to_thread(
+                render_avatar_info_card, avatar, owned=owned, equipped=equipped,
+                level=lvl, skill_levels=skill_lvls, active_skill_slot=active_slot)
+            if buf is not None:
+                card = discord.File(buf, filename="ainfo.jpg")
+                embed.set_thumbnail(url=None)
+                embed.set_image(url="attachment://ainfo.jpg")
+        except Exception:
+            # The established embed still works if Pillow/artwork is missing.
+            log.exception("Avatar info card attachment failed; using existing embed")
+        kwargs = {"file": card} if card is not None else {}
+
+        # Retain the existing skill-details button and embed fallback.
         if avatar.get("skills"):
             await ctx.send(
                 embed=embed,
@@ -739,9 +759,10 @@ class AvatarShop(commands.Cog, name="Avatar"):
                     active_slot=active_slot,
                     skill_levels=skill_lvls,
                 ),
+                **kwargs,
             )
         else:
-            await ctx.send(embed=embed)
+            await ctx.send(embed=embed, **kwargs)
 
     # `;buyavatar` / `;buya` removed on request. Avatars now come from packs,
     # events and quests only — direct purchase was the one path that bypassed
