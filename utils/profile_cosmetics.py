@@ -1,0 +1,63 @@
+"""Profile-card cosmetics: permanent purchases + equipped theme state."""
+from __future__ import annotations
+
+PROFILE_COSMETICS = {
+    "cyber_arena": {
+        "name": "Cyber Arena",
+        "price": 90_000,
+        "description": "Neon blue arena profile frame with a futuristic BEYcord HUD.",
+    },
+}
+DEFAULT_PROFILE_THEME = "default"
+
+
+class ProfileCosmeticError(Exception):
+    """A refused profile cosmetic purchase/equip operation."""
+
+
+def owned_themes(profile: dict) -> list[str]:
+    raw = profile.get("owned_profile_themes") or []
+    owned = [DEFAULT_PROFILE_THEME]
+    for key in raw:
+        key = str(key).lower()
+        if key in PROFILE_COSMETICS and key not in owned:
+            owned.append(key)
+    return owned
+
+
+def equipped_theme(profile: dict) -> str:
+    key = str(profile.get("equipped_profile_theme") or DEFAULT_PROFILE_THEME).lower()
+    return key if key in owned_themes(profile) else DEFAULT_PROFILE_THEME
+
+
+def apply_profile_purchase(profile: dict, theme_key: str) -> dict:
+    key = str(theme_key).lower().strip()
+    item = PROFILE_COSMETICS.get(key)
+    if not item:
+        raise ProfileCosmeticError("That profile design is not in the shop.")
+
+    owned = set(str(x).lower() for x in (profile.get("owned_profile_themes") or []))
+    if key in owned:
+        raise ProfileCosmeticError(f"You already own **{item['name']}**.")
+
+    coins = int(profile.get("coins", 0) or 0)
+    price = int(item["price"])
+    if coins < price:
+        raise ProfileCosmeticError(
+            f"**{item['name']}** costs 🪙 **{price:,}** — you have "
+            f"**{coins:,}**, short by **{price - coins:,}**."
+        )
+
+    profile["coins"] = coins - price
+    profile.setdefault("owned_profile_themes", []).append(key)
+    profile["equipped_profile_theme"] = key
+    return {"theme": key, "name": item["name"], "spent": price, "coins": profile["coins"]}
+
+
+def apply_profile_equip(profile: dict, theme_key: str) -> dict:
+    key = str(theme_key).lower().strip()
+    if key not in owned_themes(profile):
+        raise ProfileCosmeticError("You do not own that profile design.")
+    profile["equipped_profile_theme"] = key
+    name = "Default Profile" if key == DEFAULT_PROFILE_THEME else PROFILE_COSMETICS[key]["name"]
+    return {"theme": key, "name": name}
