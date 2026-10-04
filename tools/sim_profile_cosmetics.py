@@ -9,6 +9,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -71,6 +72,63 @@ class CosmeticTests(unittest.TestCase):
 
 
 class IntegrationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_profile_command_sends_discord_jpeg_and_switch_updates_attachment(self):
+        from PIL import Image
+        from cogs.economy.profile import ProfileCog, ProfileThemePicker
+        from utils import profile_card as pc
+        from utils import image_generator as ig
+        avatar_bytes = io.BytesIO()
+        Image.new("RGB", (512, 512), (250, 10, 20)).save(avatar_bytes, "PNG")
+        art_path = os.path.join(self.tmp.name, "test-blade.png")
+        # A narrow real PNG exercises trim/resize/centering, rather than a
+        # mocked square art function that hides geometry problems.
+        Image.new("RGBA", (30, 180), (0, 240, 40, 255)).save(art_path)
+        await self.db.mutate_user(1, lambda p: apply_profile_purchase(p, "cyber_arena"))
+        blade = {"name":"Test Blade", "type":"Attack", "rarity":"Epic", "level":2,
+                 "stats":{"hp":100,"attack":120,"defense":80,"stamina":90}}
+        owner = SimpleNamespace(id=1, display_name="Test Player", name="tester",
+            display_avatar=SimpleNamespace(replace=lambda **kw: SimpleNamespace(url="https://cdn.discordapp.com/avatars/1/test.png")))
+        @asynccontextmanager
+        async def typing():
+            yield
+        ctx = SimpleNamespace(author=owner, typing=typing, send=AsyncMock())
+        cog = ProfileCog(None)
+        pc.clear_cache()
+        with patch("urllib.request.urlopen", side_effect=lambda *a, **k: io.BytesIO(avatar_bytes.getvalue())), \
+             patch.object(ig, "_art_index", {"test blade":art_path}), \
+             patch.dict(ig._art_cache, {}, clear=True), \
+             patch.dict(ig._missing_art_cache, {}, clear=True), \
+             patch("cogs.battle.boss.boss_copy.equipped_blade", AsyncMock(return_value=(blade, None))), \
+             patch("utils.loadout.effective_blade", AsyncMock(return_value=(blade, {}, None))), \
+             patch("cogs.casino.casino_premium.get_premium", AsyncMock(return_value=None)), \
+             patch("cogs.clans.clan_data.clan_of", return_value=None):
+            await ProfileCog.profile.callback(cog, ctx)
+            ctx.send.assert_awaited_once()
+            sent = ctx.send.call_args.kwargs
+            self.assertEqual(sent["file"].filename, "profile.jpg")
+            img = Image.open(sent["file"].fp)
+            self.assertEqual(img.format, "JPEG")
+            self.assertEqual(img.size, pc.CYBER_SIZE)
+            self.assertGreater(img.getpixel(pc.CYBER_AVATAR_C)[0], 230)
+            self.assertGreater(img.getpixel(pc.CYBER_ART_C)[1], 200)
+            self.assertEqual(sent["view"].children[0].label, "Switch Profile")
+            sent["file"].close()
+            message = SimpleNamespace(edit=AsyncMock())
+            for theme, size in [("default", (pc.W,pc.H)), ("cyber_arena", pc.CYBER_SIZE)]:
+                picker = await ProfileThemePicker(cog, owner, message).build()
+                await picker._selected(self.interaction(values=[theme]))
+                attachment = message.edit.call_args.kwargs["attachments"][0]
+                self.assertEqual(Image.open(attachment.fp).size, size)
+                self.assertEqual(self.store.get_one("1")["coins"], 10_000)
+                attachment.close()
+                picker.stop()
+            # Viewing someone else's card never exposes their switch control.
+            ctx.author = SimpleNamespace(id=2)
+            await ProfileCog.profile.callback(cog, ctx, owner)
+            self.assertIsNone(ctx.send.call_args.kwargs["view"])
+            ctx.send.call_args.kwargs["file"].close()
+        pc.clear_cache()
+
     async def asyncSetUp(self):
         from utils import database as db
         from utils.userstore import UserStore
