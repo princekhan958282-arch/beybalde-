@@ -15,6 +15,8 @@ Commands
 import asyncio
 import difflib
 import logging
+import math
+import time
 
 log = logging.getLogger(__name__)
 
@@ -1116,9 +1118,35 @@ class ProfileCog(commands.Cog, name="Profile"):
                                  "url", None)
 
         try:
+            player = {"name": target.display_name, "id": target.id,
+                      "username": getattr(target, "name", None)}
+            if equipped_theme(profile_doc) == "cyber_arena":
+                # Display metadata only: premium remains in the casino wallet,
+                # guild membership remains in the existing clan registry.
+                try:
+                    from cogs.casino.casino_premium import get_premium
+                    premium = await get_premium(target.id)
+                    if isinstance(premium, dict):
+                        remaining = float(premium.get("expires", 0)) - time.time()
+                        if remaining > 0 and math.isfinite(remaining):
+                            player["premium_days"] = math.ceil(remaining / 86400)
+                except Exception:
+                    log.warning("premium display unavailable for %s", target.id)
+                try:
+                    from cogs.clans.clan_data import clan_of
+                    clan = await asyncio.to_thread(clan_of, target.id)
+                    if isinstance(clan, dict):
+                        player["guild_name"] = clan.get("name")
+                except Exception:
+                    log.warning("guild display unavailable for %s", target.id)
+                title = profile_doc.get("equipped_title") or profile_doc.get("title")
+                if isinstance(title, dict):
+                    title = title.get("name")
+                if isinstance(title, str):
+                    player["title"] = title
             buf = await asyncio.to_thread(
                 render_profile_card,
-                {"name": target.display_name, "id": target.id},
+                player,
                 profile_doc,
                 active_blade,
                 total_beys=total,

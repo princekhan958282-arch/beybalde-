@@ -186,12 +186,19 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         from cogs.economy.profile import ProfileCog
         avatar = SimpleNamespace(replace=lambda **kw: SimpleNamespace(url="https://cdn.discordapp.com/avatars/1/real.png"))
         target = SimpleNamespace(id=1, display_name="Darko", display_avatar=avatar)
-        with patch("cogs.economy.profile.render_profile_card", return_value=io.BytesIO(b"test")) as render:
-            p = {"owned_profile_themes": ["cyber_arena"], "equipped_profile_theme": "cyber_arena"}
+        with patch("cogs.economy.profile.render_profile_card", return_value=io.BytesIO(b"test")) as render, \
+             patch("cogs.casino.casino_premium.get_premium", AsyncMock(return_value={"expires": 200_000})), \
+             patch("cogs.clans.clan_data.clan_of", return_value={"name": "Night Spin"}), \
+             patch("cogs.economy.profile.time.time", return_value=100_000):
+            p = {"owned_profile_themes": ["cyber_arena"], "equipped_profile_theme": "cyber_arena", "equipped_title": "Champion"}
             file = await ProfileCog(None)._profile_card_file(target, p, None)
             self.assertIsNotNone(file)
             self.assertEqual(render.call_args.kwargs["avatar_url"], "https://cdn.discordapp.com/avatars/1/real.png")
             self.assertEqual(render.call_args.kwargs["theme"], "cyber_arena")
+            metadata = render.call_args.args[0]
+            self.assertEqual(metadata["premium_days"], 2)
+            self.assertEqual(metadata["guild_name"], "Night Spin")
+            self.assertEqual(metadata["title"], "Champion")
             file.close()
 
 
@@ -212,9 +219,9 @@ class RendererTests(unittest.TestCase):
                                              total_beys=127, avatar_url="discord-avatar")
                 self.assertIsNotNone(buf)
                 img = Image.open(buf)
-                self.assertEqual(img.size, (pc.W, pc.H))
-                self.assertGreater(img.getpixel(pc.AVATAR_C)[0], 240)
-                self.assertGreater(img.getpixel(pc.ART_C)[1], 110)
+                self.assertEqual(img.size, pc.CYBER_SIZE if theme == "cyber_arena" else (pc.W, pc.H))
+                self.assertGreater(img.getpixel(pc.CYBER_AVATAR_C if theme == "cyber_arena" else pc.AVATAR_C)[0], 240)
+                self.assertGreater(img.getpixel(pc.CYBER_ART_C if theme == "cyber_arena" else pc.ART_C)[1], 110)
                 images.append(img.copy())
             self.assertNotEqual(images[0].tobytes(), images[1].tobytes())
             self.assertEqual((p, blade), before)
@@ -225,6 +232,28 @@ class RendererTests(unittest.TestCase):
         frame = pc._frame("cyber_arena")
         frame.putpixel((0,0), (255,0,0,255))
         self.assertNotEqual(pc._frame("cyber_arena").getpixel((0,0)), (255,0,0,255))
+
+    def test_reference_frame_blanks_optional_fields_and_masks_example_data(self):
+        from PIL import Image
+        from utils import profile_card as pc
+        p = {"xp": 0, "rank_score": 0, "wins": 0, "losses": 0, "coins": 0}
+        blank = pc._frame("cyber_arena")
+        pc._cyber_content(blank, {"name":"New Player","id":1}, p, None, 127, None, None)
+        # The reference's PREMIUM dash, TITLE and GUILD NIGHT SPIN must all
+        # disappear when the player has no values; no invented membership.
+        for box in [(521,764,731,815),(778,764,1045,815),(1088,764,1332,815)]:
+            self.assertEqual(len(set(blank.crop(box).getdata())), 1)
+        full = pc._frame("cyber_arena")
+        pc._cyber_content(full, {"name":"X"*400,"id":1,"premium_days":3,
+            "title":"Arena Champion", "guild_name":"Night Spin"}, p, None, 127, None, None)
+        for box in [(521,764,731,815),(778,764,1045,815),(1088,764,1332,815)]:
+            self.assertGreater(len(set(full.crop(box).getdata())), 1)
+        pc.clear_cache()
+        with patch.object(pc, "CYBER_FRAME_PATH", "/missing/cyber.png"):
+            fallback = pc.render_profile_card({"name":"Player"}, p, theme="cyber_arena")
+            self.assertIsNotNone(fallback)
+            self.assertEqual(Image.open(fallback).size, (pc.W, pc.H))
+        pc.clear_cache()
 
 
 if __name__ == "__main__":

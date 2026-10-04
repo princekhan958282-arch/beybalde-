@@ -240,71 +240,134 @@ _frame_cache: "Image.Image | None" = None
 _cyber_frame_cache: "Image.Image | None" = None
 
 
-def _cyber_frame() -> "Image.Image":
-    """An independent arena HUD, using the shared dynamic content slots.
+CYBER_FRAME_PATH = os.path.join(os.path.dirname(_FRAME_PATH), "cyber_arena_frame.png")
+CYBER_SIZE = (1536, 864)
+CYBER_AVATAR_C, CYBER_AVATAR_R = (350, 386), 235
+CYBER_ART_C = (805, 548)
 
-    Drawn locally so the purchased design has no CDN/asset dependency. The
-    cached frame contains artwork only; avatars, loadout and values are always
-    composed from the current player document on a fresh copy.
-    """
+
+def _cyber_frame() -> "Image.Image | None":
+    """Load the user's authored frame. Live overlays replace its example text."""
     global _cyber_frame_cache
-    if _cyber_frame_cache is not None:
-        return _cyber_frame_cache.copy()
-    img = Image.new("RGBA", (W, H))
-    d = ImageDraw.Draw(img)
-    for y in range(H):
-        t = y / H
-        d.line((0, y, W, y), fill=(int(7 + 9*t), int(14 + 7*t), int(32 + 17*t), 255))
-    cyan, violet = (46, 207, 239), (149, 99, 240)
-    # Perspective arena floor and circuit traces live outside the data panels.
-    for x in range(-W, W*2, 100):
-        d.line((W//2, 212, x, H), fill=(26, 49, 75), width=1)
-    for y in range(225, H, 44):
-        d.line((20, y, W-20, y), fill=(24, 41, 65), width=1)
+    if _cyber_frame_cache is None:
+        try:
+            with Image.open(CYBER_FRAME_PATH) as source:
+                _cyber_frame_cache = source.convert("RGBA").resize(CYBER_SIZE, Image.LANCZOS)
+        except Exception:
+            log.warning("Cyber Arena asset unavailable at %s; using default profile", CYBER_FRAME_PATH)
+            return None
+    return _cyber_frame_cache.copy()
 
-    def panel(box, accent=cyan):
-        x0, y0, x1, y1 = box
-        cut = 16
-        pts = [(x0+cut,y0),(x1-cut,y0),(x1,y0+cut),(x1,y1-cut),
-               (x1-cut,y1),(x0+cut,y1),(x0,y1-cut),(x0,y0+cut)]
-        d.polygon(pts, fill=(10, 20, 37), outline=(43, 64, 92))
-        d.line([(x0,y0+35),(x0,y0+cut),(x0+cut,y0),(x0+100,y0)], fill=accent, width=3)
-        d.line([(x1-60,y1),(x1-cut,y1),(x1,y1-cut),(x1,y1-40)], fill=accent, width=2)
 
-    panel((26, 28, W-27, 214))
-    panel((26, 244, 660, 421))
-    panel((26, 436, 660, 733))
-    panel((26, 756, 660, 894))
-    panel((684, 244, W-27, 894), violet)
-    for text, xy in [("BLADER PROGRESSION",(52,258)),
-                     ("BATTLE TELEMETRY",(52,438)),
-                     ("COLLECTION INDEX",(52,772)),
-                     ("EQUIPPED BEY",(708,258))]:
-        d.text(xy, text, font=_font(18), fill=cyan)
-    for row in GRID_ROWS:
-        for col in GRID_COLS:
-            d.rounded_rectangle((col[0], row[0]+8, col[1], row[1]),
-                                radius=10, fill=(15,28,47), outline=(32,54,78))
-    for box in (BAR_XP, BAR_RANK, BAR_COLL, *LOAD_BARS):
-        d.rounded_rectangle(box, radius=12, fill=(4,12,24), outline=(42,69,98), width=2)
-    for box in (CHIP_TIER, CHIP_LEVEL, *PILLS):
-        d.rounded_rectangle(box, radius=8, fill=(19,31,52), outline=(66,72,106), width=2)
-    for (cx,cy), r, col in [(AVATAR_C,AVATAR_R,cyan),(ART_C,ART_R,violet)]:
-        d.ellipse((cx-r-9,cy-r-9,cx+r+9,cy+r+9), fill=(5,14,28), outline=col, width=3)
-        d.arc((cx-r-17,cy-r-17,cx+r+17,cy+r+17), 205, 310, fill=col, width=4)
-        d.arc((cx-r-17,cy-r-17,cx+r+17,cy+r+17), 25, 125, fill=col, width=2)
-    d.line((52,918,W-53,918), fill=(45,66,94), width=1)
-    d.text((52,932), "BEYcord  /  CYBER ARENA", font=_font(17), fill=cyan)
-    _right(d, "PROFILE COSMETIC", _font(15), W-52, 934, SUBTEXT)
-    _cyber_frame_cache = img
-    return img.copy()
+def _cyber_content(img, player, profile, blade, total_beys, rank_position, avatar_url):
+    """Reference-layout composition, isolated from the default card geometry.
+
+    The uploaded artwork contains example identity and values. Repaint their
+    exact content regions on every render; none is used as player data. Keep
+    its metal avatar ring, panel borders and stat icons intact.
+    """
+    draw = ImageDraw.Draw(img)
+    navy = (3, 7, 17, 255)
+    cyan = (36, 182, 226)
+    for box in [(719, 40, 1450, 218), (737, 233, 1448, 258),
+                (908, 317, 1456, 425), (778, 350, 820, 402),
+                (908, 482, 1455, 611), (740, 685, 826, 724),
+                (950, 685, 1045, 724), (1162, 685, 1260, 724),
+                (1380, 685, 1475, 724), (167, 764, 407, 815),
+                (521, 764, 731, 815), (778, 764, 1045, 815),
+                (1088, 764, 1332, 815)]:
+        draw.rectangle(box, fill=navy)
+    # Cover the demonstration footer, then give it a product label.
+    draw.rectangle((66, 828, 850, 859), fill=navy)
+
+    def text(value, x, y, width, size=24, colour=TEXT):
+        value = _sanitize(str(value))
+        f = _fit_text(draw, value, width, size, floor=12)
+        # Bound even extreme identifiers/names after reaching the font floor.
+        while value and _text_w(draw, value, f) > width:
+            value = value[:-2] + "…" if len(value) > 2 else ""
+        draw.text((x, y), value, font=f, fill=colour)
+
+    name = _sanitize(str(player.get("name") or "Blader"))
+    art = _avatar_image(avatar_url, CYBER_AVATAR_R*2) if avatar_url else None
+    if art is not None:
+        _disc_art(img, CYBER_AVATAR_C, CYBER_AVATAR_R, art)
+    else:
+        _initial_disc(img, draw, CYBER_AVATAR_C, CYBER_AVATAR_R, name, cyan)
+    xp = max(0, _num(profile.get("xp")))
+    score = max(0, _num(profile.get("rank_score")))
+    tier, tier_col, _, _ = _tier_for(score)
+    level, into, span = _level_from_xp(xp)
+    text(name, 724, 41, 705, 68)
+    username = player.get("username")
+    text("@" + str(username) if username else "BLADER PROFILE", 731, 136, 490, 28, cyan)
+    text(f"ID  {player.get('id', '—')}", 1153, 118, 289, 17, SUBTEXT)
+    text(f"LV. {level}", 1290, 161, 152, 36, GOLD)
+    text(f"XP  {into:,} / {span:,}" if level < MAX_LEVEL else "XP  MAX LEVEL",
+         733, 190, 522, 24, cyan)
+    _slot_bar(img, draw, (735, 231, 1450, 260),
+              into / span if span and level < MAX_LEVEL else 1.0, XP_COL)
+
+    text("R", 785, 356, 34, 30, tier_col)
+    text(tier, 915, 322, 520, 32, tier_col)
+    if rank_position:
+        text(f"#{rank_position}", 1340, 329, 104, 20, SUBTEXT)
+    wins, losses = _num(profile.get("wins")), _num(profile.get("losses"))
+    played = wins + losses
+    rate = f"{wins/played*100:.0f}%" if played > 0 else "0%"
+    text(f"W  {wins:,}", 916, 373, 127, 26, WIN_COL)
+    text(f"L  {losses:,}", 1094, 373, 120, 26, LOSS_COL)
+    text(f"WIN RATE  {rate}", 1270, 373, 178, 23)
+    text(f"RANK SCORE  {score:,}", 916, 409, 520, 15, SUBTEXT)
+
+    if blade:
+        bey_name = _sanitize(str(blade.get("name") or "Unknown"))
+        rarity = str(blade.get("rarity") or "Common")
+        art = _blade_art(bey_name, 122)
+        if art is not None:
+            img.alpha_composite(art.convert("RGBA"), (744, 487))
+        else:
+            _initial_disc(img, draw, CYBER_ART_C, 49, bey_name, _rar_col(rarity))
+        text(bey_name, 915, 484, 538, 34)
+        text(f"TYPE  {blade.get('type', '—')}", 916, 536, 300, 22, cyan)
+        text(f"BEY LV  {_num(blade.get('level'), 1) or 1}", 1252, 536, 194, 21, GOLD)
+        text(f"RARITY  {rarity}", 916, 574, 538, 22, _rar_col(rarity))
+        stats = blade.get("stats") if isinstance(blade.get("stats"), dict) else {}
+    else:
+        text("NO BEY EQUIPPED", 915, 490, 535, 32, SUBTEXT)
+        text("Use ;equip <name>", 915, 544, 530, 24, cyan)
+        stats = {}
+    for x, key in [(750,"hp"), (958,"attack"), (1170,"defense"), (1390,"stamina")]:
+        text(_num(stats.get(key)), x, 688, 95, 30, STAT_COL[{"hp":"HP","attack":"ATK","defense":"DEF","stamina":"STA"}[key]])
+    inventory = profile.get("inventory")
+    owned = len({str(n) for n in inventory}) if isinstance(inventory, list) else 0
+    text("BEYCOINS", 174, 762, 228, 18, cyan)
+    text(f"{_num(profile.get('coins')):,}", 174, 788, 228, 23, COIN_COL)
+    days = _num(player.get("premium_days"))
+    if days > 0:
+        text("PREMIUM", 526, 762, 202, 18, cyan)
+        text(f"{days} DAY{'S' if days != 1 else ''} LEFT", 526, 788, 202, 23, GOLD)
+    title = player.get("title")
+    if isinstance(title, str) and title.strip():
+        text("TITLE", 783, 762, 258, 18, cyan)
+        text(title, 783, 788, 258, 23)
+    guild = player.get("guild_name")
+    if isinstance(guild, str) and guild.strip():
+        text("GUILD", 1093, 762, 236, 18, cyan)
+        text(guild, 1093, 788, 235, 23)
+    collection = f"{owned}/{total_beys}" if total_beys else str(owned)
+    text(f"STREAK {_num(profile.get('win_streak'))}   •   BEST {_num(profile.get('best_streak'))}   •   COLLECTION {collection}",
+         77, 723, 565, 17, SUBTEXT)
+    text("BEYcord  /  CYBER ARENA", 70, 833, 660, 16, SUBTEXT)
 
 
 def _frame(theme: str = "default") -> "Image.Image | None":
     """The HUD artwork, loaded once. None when the asset is missing."""
     global _frame_cache
     if str(theme).lower() == "cyber_arena":
-        return _cyber_frame()
+        cyber = _cyber_frame()
+        if cyber is not None:
+            return cyber
     if _frame_cache is None:
         try:
             _frame_cache = Image.open(_FRAME_PATH).convert("RGBA")
@@ -635,20 +698,23 @@ def render_profile_card(
             return None
         draw = ImageDraw.Draw(img)
 
-        name       = _sanitize(player.get("name", "Blader"))
-        rank_score = max(0, _num(profile.get("rank_score")))
-        xp         = max(0, _num(profile.get("xp")))
-        tier_name, tier_col, _floor, _nxt = _tier_for(rank_score)
-        level, _i, _s = _level_from_xp(xp)
-        accent = _accent_for(tier_col)
+        if str(theme).lower() == "cyber_arena" and img.size == CYBER_SIZE:
+            _cyber_content(img, player, profile, blade, total_beys, rank_position, avatar_url)
+        else:
+            name       = _sanitize(player.get("name", "Blader"))
+            rank_score = max(0, _num(profile.get("rank_score")))
+            xp         = max(0, _num(profile.get("xp")))
+            tier_name, tier_col, _floor, _nxt = _tier_for(rank_score)
+            level, _i, _s = _level_from_xp(xp)
+            accent = _accent_for(tier_col)
 
-        _header(img, draw, name, tier_name, tier_col, accent, level,
-                rank_position, avatar_url)
-        _progress(img, draw, xp, rank_score, tier_col)
-        _stat_grid(img, draw, profile)
-        owned = len(set(profile.get("inventory") or []))
-        _collection(img, draw, owned, total_beys or owned)
-        _loadout(img, draw, blade)
+            _header(img, draw, name, tier_name, tier_col, accent, level,
+                    rank_position, avatar_url)
+            _progress(img, draw, xp, rank_score, tier_col)
+            _stat_grid(img, draw, profile)
+            owned = len(set(profile.get("inventory") or []))
+            _collection(img, draw, owned, total_beys or owned)
+            _loadout(img, draw, blade)
 
         buf = io.BytesIO()
         # JPEG, not PNG. `PNG optimize=True` on this 1193x967 canvas took
