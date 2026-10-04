@@ -299,11 +299,22 @@ class AvatarSkillsView(discord.ui.View):
     """Mobile-friendly detail page for an avatar's signature skills."""
 
     def __init__(self, avatar: dict, *, active_slot: int = 0,
-                 skill_levels: dict | None = None, timeout: float = 180):
+                 skill_levels: dict | None = None, timeout: float = 180,
+                 details_embed: discord.Embed | None = None):
         super().__init__(timeout=timeout)
         self.avatar = avatar
         self.active_slot = active_slot
         self.skill_levels = skill_levels or {}
+        self.details_embed = details_embed
+        if details_embed is None:
+            self.remove_item(self.show_details)
+        if not avatar.get("skills"):
+            self.remove_item(self.show_skills)
+
+    @discord.ui.button(label="Details", style=discord.ButtonStyle.secondary)
+    async def show_details(self, interaction: discord.Interaction,
+                           button: discord.ui.Button) -> None:
+        await interaction.response.send_message(embed=self.details_embed, ephemeral=True)
 
     @discord.ui.button(label="Skills", emoji="⚡",
                        style=discord.ButtonStyle.primary)
@@ -748,32 +759,30 @@ class AvatarShop(commands.Cog, name="Avatar"):
         # authored image is a presentation layer, never a source of bonuses.
         card = None
         try:
-            from utils.avatar_info_card import render_avatar_info_card
+            from utils.avatar_info_card import render_avatar_info_card, resolve_avatar_image_url
+            render_avatar = dict(avatar)
+            render_avatar["image"] = await resolve_avatar_image_url(self.bot, avatar.get("image"))
             buf = await asyncio.to_thread(
-                render_avatar_info_card, avatar, owned=owned, equipped=equipped,
+                render_avatar_info_card, render_avatar, owned=owned, equipped=equipped,
                 level=lvl, skill_levels=skill_lvls, active_skill_slot=active_slot)
             if buf is not None:
                 card = discord.File(buf, filename="ainfo.jpg")
-                embed.set_thumbnail(url=None)
-                embed.set_image(url="attachment://ainfo.jpg")
         except Exception:
             # The established embed still works if Pillow/artwork is missing.
             log.exception("Avatar info card attachment failed; using existing embed")
-        kwargs = {"file": card} if card is not None else {}
-
-        # Retain the existing skill-details button and embed fallback.
-        if avatar.get("skills"):
+        if card is not None:
+            # A direct attachment uses Discord's full image viewer instead of
+            # shrinking the landscape card beneath a duplicate text embed.
             await ctx.send(
-                embed=embed,
-                view=AvatarSkillsView(
-                    avatar,
-                    active_slot=active_slot,
-                    skill_levels=skill_lvls,
-                ),
-                **kwargs,
+                file=card,
+                view=AvatarSkillsView(avatar, active_slot=active_slot,
+                                      skill_levels=skill_lvls, details_embed=embed),
             )
+        elif avatar.get("skills"):
+            await ctx.send(embed=embed, view=AvatarSkillsView(
+                avatar, active_slot=active_slot, skill_levels=skill_lvls))
         else:
-            await ctx.send(embed=embed, **kwargs)
+            await ctx.send(embed=embed)
 
     # `;buyavatar` / `;buya` removed on request. Avatars now come from packs,
     # events and quests only — direct purchase was the one path that bypassed
