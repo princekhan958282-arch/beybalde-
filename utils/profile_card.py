@@ -239,7 +239,7 @@ def _short(n: int) -> str:
 _frame_cache: "Image.Image | None" = None
 
 
-def _frame() -> "Image.Image | None":
+def _frame(theme: str = "default") -> "Image.Image | None":
     """The HUD artwork, loaded once. None when the asset is missing."""
     global _frame_cache
     if _frame_cache is None:
@@ -248,7 +248,19 @@ def _frame() -> "Image.Image | None":
         except Exception as exc:                         # noqa: BLE001
             log.warning("profile frame missing at %s: %s", _FRAME_PATH, exc)
             return None
-    return _frame_cache.copy()
+    img = _frame_cache.copy()
+    # Cyber Arena is a cosmetic skin over the authored frame. Keeping the same
+    # measured geometry means every dynamic field remains pixel-safe while the
+    # visual treatment changes. No remote dependency is needed at render time.
+    if str(theme).lower() == "cyber_arena":
+        tint = Image.new("RGBA", img.size, (0, 105, 255, 34))
+        img = Image.alpha_composite(img, tint)
+        d = ImageDraw.Draw(img)
+        d.rounded_rectangle((10, 10, W - 11, H - 11), radius=28,
+                            outline=(58, 190, 255, 230), width=5)
+        d.rounded_rectangle((20, 20, W - 21, H - 21), radius=24,
+                            outline=(120, 225, 255, 120), width=2)
+    return img
 
 
 # Avatars are cached by URL. A Discord avatar URL embeds the image hash, so the
@@ -560,12 +572,13 @@ def render_profile_card(
     total_beys: int | None = None,
     rank_position: int | None = None,
     avatar_url: str | None = None,
+    theme: str = "default",
 ) -> "io.BytesIO | None":
     """Render the profile card. Returns a PNG buffer, or None on any failure."""
     if not CARD_ENABLED:
         return None
     try:
-        img = _frame()
+        img = _frame(theme)
         if img is None:
             return None
         draw = ImageDraw.Draw(img)
