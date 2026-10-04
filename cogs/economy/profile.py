@@ -31,6 +31,7 @@ from utils.database import (
     xp_to_next_level,
     MAX_LEVEL,
     level_reward,
+    mutate_user,
 )
 from utils.embeds import (
     rarity_colour,
@@ -51,6 +52,10 @@ except Exception:                                   # pragma: no cover
     log.exception("profile_card unavailable — ;profile will use the embed fallback")
     render_profile_card = None                      # type: ignore
 from cogs.avatar import avatar_engine, AvatarBonuses, NULL_BONUSES
+from utils.profile_cosmetics import (
+    PROFILE_COSMETICS, DEFAULT_PROFILE_THEME, owned_themes,
+    equipped_theme, apply_profile_equip, ProfileCosmeticError,
+)
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -905,6 +910,100 @@ class SpinModeView(discord.ui.View):
                 pass
 
 
+class ProfileThemePicker(discord.ui.View):
+    """Ephemeral owned-theme picker opened from the profile card."""
+
+    def __init__(self, cog, owner, original_message):
+        super().__init__(timeout=90)
+        self.cog = cog
+        self.owner = owner
+        self.original_message = original_message
+
+    async def build(self):
+        profile = await get_user(self.owner.id)
+        current = equipped_theme(profile)
+        options = []
+        for key in owned_themes(profile):
+            label = ("Default Profile" if key == DEFAULT_PROFILE_THEME
+                     else PROFILE_COSMETICS[key]["name"])
+            options.append(discord.SelectOption(
+                label=label, value=key, default=(key == current),
+                description=("Original BEYcord profile"
+                             if key == DEFAULT_PROFILE_THEME
+                             else PROFILE_COSMETICS[key]["description"])[:100],
+            ))
+        select = discord.ui.Select(
+            placeholder="Choose an owned profile design…",
+            options=options, min_values=1, max_values=1)
+        select.callback = self._selected
+        self.add_item(select)
+        return self
+
+    async def _selected(self, interaction: discord.Interaction):
+        key = interaction.data["values"][0]
+        try:
+            result = await mutate_user(
+                self.owner.id, lambda p: apply_profile_equip(p, key))
+        except ProfileCosmeticError as exc:
+            return await interaction.response.send_message(
+                f"❌ {exc}", ephemeral=True)
+        except Exception:
+            log.exception("profile theme equip failed for %s", self.owner.id)
+            return await interaction.response.send_message(
+                "⚠️ Couldn't switch the profile design.", ephemeral=True)
+
+        await interaction.response.send_message(
+            f"✅ Equipped **{result['name']}**.", ephemeral=True)
+
+        # Refresh the original profile card immediately.
+        try:
+            profile_doc = await get_user(self.owner.id)
+            from cogs.battle.boss import boss_copy as _bcopy
+            active_blade, _copy = await _bcopy.equipped_blade(self.owner.id)
+            if active_blade:
+                from utils.loadout import effective_blade
+                active_blade, _bd, _av = await effective_blade(
+                    self.owner.id, profile_doc, active_blade,
+                    include_parts=(_copy is None))
+            card = await self.cog._profile_card_file(
+                self.owner, profile_doc, active_blade)
+            if card is not None and self.original_message is not None:
+                await self.original_message.edit(
+                    attachments=[card],
+                    view=ProfileCardView(self.cog, self.owner))
+        except Exception:
+            log.exception("profile card refresh failed after theme switch")
+
+
+class ProfileCardView(discord.ui.View):
+    """Owner-only controls attached to the player's own profile."""
+
+    def __init__(self, cog, owner):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.owner = owner
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.owner.id:
+            await interaction.response.send_message(
+                "Only this profile's owner can switch its design.",
+                ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="Switch Profile", emoji="🎨",
+                       style=discord.ButtonStyle.secondary)
+    async def switch_profile(self, interaction: discord.Interaction,
+                             _: discord.ui.Button):
+        picker = ProfileThemePicker(
+            self.cog, self.owner, interaction.message)
+        await picker.build()
+        await interaction.response.send_message(
+            "🎨 **Choose your profile design**\n"
+            "Only designs you permanently own are shown.",
+            view=picker, ephemeral=True)
+
+
 class ProfileCog(commands.Cog, name="Profile"):
     """Handles user profiles and Beyblade information lookups."""
 
@@ -950,7 +1049,8 @@ class ProfileCog(commands.Cog, name="Profile"):
             # dead-end error.
             card = await self._profile_card_file(target, profile_doc, active_blade)
             if card is not None:
-                return await ctx.send(file=card)
+                view = ProfileCardView(self, target) if target.id == ctx.author.id else None
+                return await ctx.send(file=card, view=view)
 
             if active_blade is None:
                 return await ctx.send(
@@ -959,7 +1059,8 @@ class ProfileCog(commands.Cog, name="Profile"):
                 )
             avatar_bonuses = await avatar_engine.get_battle_bonuses(target.id)
             embed = await build_profile_embed(target, profile_doc, active_blade, avatar_bonuses)
-            await ctx.send(embed=embed)
+            view = ProfileCardView(self, target) if target.id == ctx.author.id else None
+            await ctx.send(embed=embed, view=view)
 
     async def _profile_card_file(self, target, profile_doc, active_blade):
         """Render the profile card off the event loop. None on any failure so
@@ -990,6 +1091,7 @@ class ProfileCog(commands.Cog, name="Profile"):
                 active_blade,
                 total_beys=total,
                 avatar_url=avatar_url,
+                theme=equipped_theme(profile_doc),
             )
             if buf is None:
                 return None
