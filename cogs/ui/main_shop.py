@@ -519,7 +519,7 @@ class MainShopView(ui.View):
             sel.callback = self._select_part
             self.add_item(sel)
 
-        # Row 2 — Buy, then pagination.
+        # Row 3 — Buy and pagination; the select occupies all of row 2.
         buy_btn = ui.Button(
             label=("🪙 Buy" if not self.selected
                    else f"🪙 Buy {self.selected}"[:80]),
@@ -535,7 +535,7 @@ class MainShopView(ui.View):
                 label="◀ Prev",
                 style=discord.ButtonStyle.secondary,
                 disabled=self.parts_page == 0,
-                row=2,
+                row=3,
             )
             prev_btn.callback = self._parts_prev
             self.add_item(prev_btn)
@@ -544,7 +544,7 @@ class MainShopView(ui.View):
                 label=f"{self.parts_page + 1}/{len(self.parts_pages)}",
                 style=discord.ButtonStyle.secondary,
                 disabled=True,
-                row=2,
+                row=3,
             )
             self.add_item(page_btn)
 
@@ -552,7 +552,7 @@ class MainShopView(ui.View):
                 label="Next ▶",
                 style=discord.ButtonStyle.secondary,
                 disabled=self.parts_page >= len(self.parts_pages) - 1,
-                row=2,
+                row=3,
             )
             next_btn.callback = self._parts_next
             self.add_item(next_btn)
@@ -579,18 +579,21 @@ class MainShopView(ui.View):
             ephemeral=True)
 
     async def _buy_profile(self, i: discord.Interaction) -> None:
+        if not await self.interaction_check(i):
+            return
+        await i.response.defer(ephemeral=True, thinking=True)
         try:
             result = await mutate_user(
                 self.author_id,
                 lambda prof: apply_profile_purchase(prof, "cyber_arena"))
         except ProfileCosmeticError as exc:
-            return await i.response.send_message(f"❌ {exc}", ephemeral=True)
+            return await i.followup.send(f"❌ {exc}", ephemeral=True)
         except Exception:
             log.exception("[shop] profile cosmetic purchase failed")
-            return await i.response.send_message(
-                "⚠️ Couldn't complete that purchase — nothing was charged.",
+            return await i.followup.send(
+                "⚠️ Couldn't confirm that purchase. Check your owned profiles and balance before retrying.",
                 ephemeral=True)
-        await i.response.send_message(
+        await i.followup.send(
             f"✅ Bought and equipped **{result['name']}** for "
             f"🪙 **{result['spent']:,}**. Remaining: **{result['coins']:,}**.\n"
             "Open `;profile` and use **Switch Profile** anytime.",

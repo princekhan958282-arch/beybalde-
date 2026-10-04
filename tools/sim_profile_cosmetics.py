@@ -1,58 +1,231 @@
-"""Targeted checks for the 90K profile cosmetic feature.
+#!/usr/bin/env python3
+"""Offline transaction, UI and renderer regressions. Run from any directory."""
+import asyncio
+import copy
+import io
+import os
+from pathlib import Path
+import sys
+import tempfile
+from types import SimpleNamespace
+import unittest
+from unittest.mock import AsyncMock, patch
 
-Run: python tools/sim_profile_cosmetics.py
-"""
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from utils.profile_cosmetics import (
-    PROFILE_COSMETICS, DEFAULT_PROFILE_THEME, ProfileCosmeticError,
-    apply_profile_purchase, apply_profile_equip, equipped_theme, owned_themes,
+    ProfileCosmeticError, apply_profile_purchase, apply_profile_equip,
+    equipped_theme, owned_themes,
 )
 
-passed = 0
 
-def check(label, cond):
-    global passed
-    if not cond:
-        raise AssertionError(label)
-    passed += 1
-    print("PASS", label)
+class CosmeticTests(unittest.TestCase):
+    def test_purchase_and_free_switching(self):
+        p = {"coins": 100_000, "inventory": ["Valkyrie"], "stats": {"attack": 123}}
+        other = copy.deepcopy(p)
+        r = apply_profile_purchase(p, "cyber_arena")
+        self.assertEqual((r["spent"], p["coins"]), (90_000, 10_000))
+        self.assertEqual(owned_themes(p), ["default", "cyber_arena"])
+        self.assertEqual(equipped_theme(p), "cyber_arena")
+        for key in ["default", "cyber_arena"] * 5:
+            apply_profile_equip(p, key)
+            self.assertEqual(equipped_theme(p), key)
+            self.assertEqual(p["coins"], 10_000)
+        self.assertEqual(p["inventory"], other["inventory"])
+        self.assertEqual(p["stats"], other["stats"])
+        before = copy.deepcopy(p)
+        with self.assertRaises(ProfileCosmeticError):
+            apply_profile_purchase(p, "cyber_arena")
+        self.assertEqual(p, before)
 
-item = PROFILE_COSMETICS["cyber_arena"]
-check("price is exactly 90,000", item["price"] == 90_000)
+    def test_rejections_do_not_change_document(self):
+        for coins, key in [(89_999, "cyber_arena"), (100_000, "invalid"),
+                           ("broken", "cyber_arena"), ([], "cyber_arena"),
+                           (90_000.5, "cyber_arena")]:
+            p = {"coins": coins, "inventory": ["preserve"]}
+            before = copy.deepcopy(p)
+            with self.assertRaises(ProfileCosmeticError):
+                apply_profile_purchase(p, key)
+            self.assertEqual(p, before)
+        for key in ["cyber_arena", "invalid", None, [], {}]:
+            p = {"coins": 100_000}
+            with self.assertRaises(ProfileCosmeticError):
+                apply_profile_equip(p, key)
+            self.assertEqual(p, {"coins": 100_000})
 
-p = {"coins": 100_000}
-r = apply_profile_purchase(p, "cyber_arena")
-check("purchase charges 90K", r["spent"] == 90_000 and p["coins"] == 10_000)
-check("purchase permanently unlocks", "cyber_arena" in p["owned_profile_themes"])
-check("purchase auto-equips", equipped_theme(p) == "cyber_arena")
-check("default always remains switchable", DEFAULT_PROFILE_THEME in owned_themes(p))
+    def test_legacy_and_corrupt_fields(self):
+        for raw in [None, 1, True, "cyber_arena", {"cyber_arena": True}, [],
+                    [None, {}, 12, "invalid"]]:
+            p = {"coins": 100_000, "owned_profile_themes": raw,
+                 "equipped_profile_theme": {"bad": "value"}}
+            self.assertEqual(owned_themes(p), ["default"])
+            self.assertEqual(equipped_theme(p), "default")
+            apply_profile_purchase(p, "cyber_arena")
+            self.assertEqual(p["coins"], 10_000)
+            self.assertEqual(equipped_theme(p), "cyber_arena")
+        self.assertEqual(equipped_theme({}), "default")
+        p = {"coins": 100_000, "owned_profile_themes": [" CYBER_ARENA ", {}, "cyber_arena"]}
+        self.assertEqual(owned_themes(p), ["default", "cyber_arena"])
+        with self.assertRaises(ProfileCosmeticError):
+            apply_profile_purchase(p, "cyber_arena")
+        self.assertEqual(p["coins"], 100_000)
 
-apply_profile_equip(p, "default")
-check("can switch back to default", equipped_theme(p) == "default")
-apply_profile_equip(p, "cyber_arena")
-check("can re-equip purchased theme", equipped_theme(p) == "cyber_arena")
 
-before = dict(p)
-try:
-    apply_profile_purchase(p, "cyber_arena")
-    raise AssertionError("duplicate purchase was accepted")
-except ProfileCosmeticError:
-    pass
-check("duplicate purchase does not charge", p["coins"] == before["coins"])
+class IntegrationTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        from utils import database as db
+        from utils.userstore import UserStore
+        self.db = db
+        self.tmp = tempfile.TemporaryDirectory()
+        self.store = UserStore(os.path.join(self.tmp.name, "users.db"),
+                               os.path.join(self.tmp.name, "absent.json"))
+        self.patcher = patch.object(db, "USER_STORE", self.store)
+        self.patcher.start()
+        self.store.put_one("1", {"coins": 100_000, "inventory": ["keep"]})
 
-poor = {"coins": 89_999}
-try:
-    apply_profile_purchase(poor, "cyber_arena")
-    raise AssertionError("underfunded purchase was accepted")
-except ProfileCosmeticError:
-    pass
-check("insufficient funds do not charge", poor["coins"] == 89_999)
+    async def asyncTearDown(self):
+        self.patcher.stop()
+        self.tmp.cleanup()
 
-fresh = {"coins": 0}
-try:
-    apply_profile_equip(fresh, "cyber_arena")
-    raise AssertionError("unowned theme equipped")
-except ProfileCosmeticError:
-    pass
-check("unowned theme cannot equip", equipped_theme(fresh) == "default")
+    def interaction(self, user=1, values=None):
+        return SimpleNamespace(user=SimpleNamespace(id=user),
+            data={"values": values} if values is not None else {},
+            response=SimpleNamespace(defer=AsyncMock(), send_message=AsyncMock()),
+            followup=SimpleNamespace(send=AsyncMock()), edit_original_response=AsyncMock(),
+            message=SimpleNamespace(edit=AsyncMock()))
 
-print(f"\n{passed} profile cosmetic checks passed.")
+    async def test_concurrent_purchase_and_persistence(self):
+        results = await asyncio.gather(*[
+            self.db.mutate_user(1, lambda p: apply_profile_purchase(p, "cyber_arena"))
+            for _ in range(20)], return_exceptions=True)
+        self.assertEqual(sum(isinstance(r, dict) for r in results), 1)
+        self.assertEqual(sum(isinstance(r, ProfileCosmeticError) for r in results), 19)
+        p = self.store.get_one("1")
+        self.assertEqual(p["coins"], 10_000)
+        self.assertEqual(p["inventory"], ["keep"])
+        self.assertEqual(p["owned_profile_themes"].count("cyber_arena"), 1)
+        self.assertEqual(equipped_theme(p), "cyber_arena")
+
+    async def test_storage_failure_does_not_persist_charge_or_grant(self):
+        before = self.store.get_one("1")
+        with patch.object(self.store, "put_one", side_effect=OSError("write failed")):
+            with self.assertRaises(OSError):
+                await self.db.mutate_user(1, lambda p: apply_profile_purchase(p, "cyber_arena"))
+        self.assertEqual(self.store.get_one("1"), before)
+
+    async def test_bey_and_part_purchases_preserve_profile_ownership(self):
+        from cogs.economy.shop import apply_bey_purchase, apply_part_purchase, PARTS_CATALOG
+        self.store.put_one("1", {"coins": 1_000_000, "inventory": []})
+        await self.db.mutate_user(1, lambda p: apply_profile_purchase(p, "cyber_arena"))
+        before = self.store.get_one("1")
+        bey = await self.db.mutate_user(1, lambda p: apply_bey_purchase(p, "Epsilon"))
+        part = await self.db.mutate_user(1, lambda p: apply_part_purchase(p, PARTS_CATALOG[0]["name"]))
+        after = self.store.get_one("1")
+        self.assertIn(bey["bey"], after["inventory"])
+        self.assertEqual(after["coins"], before["coins"] - bey["spent"] - part["spent"])
+        self.assertEqual(after["owned_profile_themes"], before["owned_profile_themes"])
+        self.assertEqual(equipped_theme(after), "cyber_arena")
+
+    async def test_shop_sections_and_purchase_callback(self):
+        from cogs.ui import main_shop as shop
+        for section in [shop.SECTION_HOME, shop.SECTION_BEYS, shop.SECTION_PARTS,
+                        shop.SECTION_AVATAR, shop.SECTION_BOOSTER,
+                        shop.SECTION_PREMIUM, shop.SECTION_PROFILE]:
+            view = shop.MainShopView(1, section)
+            self.assertIsNotNone(view.current_embed())
+            # Serialization catches Discord's per-row limits too.
+            self.assertTrue(view.to_components())
+            view.stop()
+        view = shop.MainShopView(1, shop.SECTION_PROFILE)
+        denied = self.interaction(user=2)
+        await view._buy_profile(denied)
+        self.assertEqual(self.store.get_one("1")["coins"], 100_000)
+        denied.response.defer.assert_not_awaited()
+        i = self.interaction()
+        await view._buy_profile(i)
+        i.response.defer.assert_awaited_once()
+        self.assertEqual(self.store.get_one("1")["coins"], 10_000)
+        await view._buy_profile(self.interaction())
+        self.assertEqual(self.store.get_one("1")["coins"], 10_000)
+        view.stop()
+
+    async def test_selector_authorization_and_message_refresh(self):
+        from cogs.economy.profile import ProfileThemePicker, ProfileCardView
+        owner = SimpleNamespace(id=1)
+        message = SimpleNamespace(edit=AsyncMock())
+        cog = SimpleNamespace(_profile_card_file=AsyncMock(return_value="card"))
+        picker = await ProfileThemePicker(cog, owner, message).build()
+        self.assertEqual([o.value for o in picker.children[0].options], ["default"])
+        await picker._selected(self.interaction(values=["cyber_arena"]))
+        self.assertEqual(self.store.get_one("1")["coins"], 100_000)
+        await self.db.mutate_user(1, lambda p: apply_profile_purchase(p, "cyber_arena"))
+        await picker.build()
+        self.assertEqual([o.value for o in picker.children[0].options], ["default", "cyber_arena"])
+        denied = self.interaction(user=2, values=["default"])
+        await picker._selected(denied)
+        self.assertEqual(equipped_theme(self.store.get_one("1")), "cyber_arena")
+        denied.response.defer.assert_not_awaited()
+        for values in [[], ["default", "cyber_arena"], [None]]:
+            await picker._selected(self.interaction(values=values))
+        with patch("cogs.battle.boss.boss_copy.equipped_blade", AsyncMock(return_value=(None, None))):
+            for key in ["default", "cyber_arena"]:
+                await picker._selected(self.interaction(values=[key]))
+                self.assertEqual(equipped_theme(self.store.get_one("1")), key)
+                self.assertEqual(self.store.get_one("1")["coins"], 10_000)
+            self.assertEqual(message.edit.await_count, 2)
+            self.assertEqual(message.edit.call_args.kwargs["attachments"], ["card"])
+            cog._profile_card_file.return_value = None
+            i = self.interaction(values=["default"])
+            await picker._selected(i)
+            self.assertIn("could not refresh", i.followup.send.call_args.args[0])
+        card_view = ProfileCardView(cog, owner)
+        self.assertFalse(await card_view.interaction_check(self.interaction(user=2)))
+        card_view.stop()
+        picker.stop()
+
+    async def test_cog_passes_real_discord_avatar_and_current_theme(self):
+        from cogs.economy.profile import ProfileCog
+        avatar = SimpleNamespace(replace=lambda **kw: SimpleNamespace(url="https://cdn.discordapp.com/avatars/1/real.png"))
+        target = SimpleNamespace(id=1, display_name="Darko", display_avatar=avatar)
+        with patch("cogs.economy.profile.render_profile_card", return_value=io.BytesIO(b"test")) as render:
+            p = {"owned_profile_themes": ["cyber_arena"], "equipped_profile_theme": "cyber_arena"}
+            file = await ProfileCog(None)._profile_card_file(target, p, None)
+            self.assertIsNotNone(file)
+            self.assertEqual(render.call_args.kwargs["avatar_url"], "https://cdn.discordapp.com/avatars/1/real.png")
+            self.assertEqual(render.call_args.kwargs["theme"], "cyber_arena")
+            file.close()
+
+
+class RendererTests(unittest.TestCase):
+    def test_both_themes_preserve_dynamic_layers(self):
+        from PIL import Image
+        from utils import profile_card as pc
+        p = {"xp": 12_345, "rank_score": 250, "wins": 27, "losses": 13,
+             "win_streak": 3, "best_streak": 8, "coins": 10_000, "inventory": ["Valkyrie"]}
+        blade = {"name": "Valkyrie", "type": "Attack", "rarity": "Epic", "level": 42,
+                 "stats": {"attack": 170, "defense": 110, "stamina": 125, "hp": 190}}
+        before = copy.deepcopy((p, blade))
+        with patch.object(pc, "_avatar_image", return_value=Image.new("RGBA", (134,134), "red")), \
+             patch.object(pc, "_blade_art", return_value=Image.new("RGBA", (208,208), "green")):
+            images = []
+            for theme in ["default", "cyber_arena"]:
+                buf = pc.render_profile_card({"name": "Darko"}, p, blade, theme=theme,
+                                             total_beys=127, avatar_url="discord-avatar")
+                self.assertIsNotNone(buf)
+                img = Image.open(buf)
+                self.assertEqual(img.size, (pc.W, pc.H))
+                self.assertGreater(img.getpixel(pc.AVATAR_C)[0], 240)
+                self.assertGreater(img.getpixel(pc.ART_C)[1], 110)
+                images.append(img.copy())
+            self.assertNotEqual(images[0].tobytes(), images[1].tobytes())
+            self.assertEqual((p, blade), before)
+            for raw in [None, 42, {}, "cyber_arena", [None, {}]]:
+                malformed = dict(p, owned_profile_themes=raw, equipped_profile_theme=[])
+                self.assertIsNotNone(pc.render_profile_card({"name":"Legacy"}, malformed,
+                    blade, theme=equipped_theme(malformed)))
+        frame = pc._frame("cyber_arena")
+        frame.putpixel((0,0), (255,0,0,255))
+        self.assertNotEqual(pc._frame("cyber_arena").getpixel((0,0)), (255,0,0,255))
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

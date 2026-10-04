@@ -237,30 +237,81 @@ def _short(n: int) -> str:
 # ── Frame + avatar loading ────────────────────────────────────────────────────
 
 _frame_cache: "Image.Image | None" = None
+_cyber_frame_cache: "Image.Image | None" = None
+
+
+def _cyber_frame() -> "Image.Image":
+    """An independent arena HUD, using the shared dynamic content slots.
+
+    Drawn locally so the purchased design has no CDN/asset dependency. The
+    cached frame contains artwork only; avatars, loadout and values are always
+    composed from the current player document on a fresh copy.
+    """
+    global _cyber_frame_cache
+    if _cyber_frame_cache is not None:
+        return _cyber_frame_cache.copy()
+    img = Image.new("RGBA", (W, H))
+    d = ImageDraw.Draw(img)
+    for y in range(H):
+        t = y / H
+        d.line((0, y, W, y), fill=(int(7 + 9*t), int(14 + 7*t), int(32 + 17*t), 255))
+    cyan, violet = (46, 207, 239), (149, 99, 240)
+    # Perspective arena floor and circuit traces live outside the data panels.
+    for x in range(-W, W*2, 100):
+        d.line((W//2, 212, x, H), fill=(26, 49, 75), width=1)
+    for y in range(225, H, 44):
+        d.line((20, y, W-20, y), fill=(24, 41, 65), width=1)
+
+    def panel(box, accent=cyan):
+        x0, y0, x1, y1 = box
+        cut = 16
+        pts = [(x0+cut,y0),(x1-cut,y0),(x1,y0+cut),(x1,y1-cut),
+               (x1-cut,y1),(x0+cut,y1),(x0,y1-cut),(x0,y0+cut)]
+        d.polygon(pts, fill=(10, 20, 37), outline=(43, 64, 92))
+        d.line([(x0,y0+35),(x0,y0+cut),(x0+cut,y0),(x0+100,y0)], fill=accent, width=3)
+        d.line([(x1-60,y1),(x1-cut,y1),(x1,y1-cut),(x1,y1-40)], fill=accent, width=2)
+
+    panel((26, 28, W-27, 214))
+    panel((26, 244, 660, 421))
+    panel((26, 436, 660, 733))
+    panel((26, 756, 660, 894))
+    panel((684, 244, W-27, 894), violet)
+    for text, xy in [("BLADER PROGRESSION",(52,258)),
+                     ("BATTLE TELEMETRY",(52,438)),
+                     ("COLLECTION INDEX",(52,772)),
+                     ("EQUIPPED BEY",(708,258))]:
+        d.text(xy, text, font=_font(18), fill=cyan)
+    for row in GRID_ROWS:
+        for col in GRID_COLS:
+            d.rounded_rectangle((col[0], row[0]+8, col[1], row[1]),
+                                radius=10, fill=(15,28,47), outline=(32,54,78))
+    for box in (BAR_XP, BAR_RANK, BAR_COLL, *LOAD_BARS):
+        d.rounded_rectangle(box, radius=12, fill=(4,12,24), outline=(42,69,98), width=2)
+    for box in (CHIP_TIER, CHIP_LEVEL, *PILLS):
+        d.rounded_rectangle(box, radius=8, fill=(19,31,52), outline=(66,72,106), width=2)
+    for (cx,cy), r, col in [(AVATAR_C,AVATAR_R,cyan),(ART_C,ART_R,violet)]:
+        d.ellipse((cx-r-9,cy-r-9,cx+r+9,cy+r+9), fill=(5,14,28), outline=col, width=3)
+        d.arc((cx-r-17,cy-r-17,cx+r+17,cy+r+17), 205, 310, fill=col, width=4)
+        d.arc((cx-r-17,cy-r-17,cx+r+17,cy+r+17), 25, 125, fill=col, width=2)
+    d.line((52,918,W-53,918), fill=(45,66,94), width=1)
+    d.text((52,932), "BEYcord  /  CYBER ARENA", font=_font(17), fill=cyan)
+    _right(d, "PROFILE COSMETIC", _font(15), W-52, 934, SUBTEXT)
+    _cyber_frame_cache = img
+    return img.copy()
 
 
 def _frame(theme: str = "default") -> "Image.Image | None":
     """The HUD artwork, loaded once. None when the asset is missing."""
     global _frame_cache
+    if str(theme).lower() == "cyber_arena":
+        return _cyber_frame()
     if _frame_cache is None:
         try:
             _frame_cache = Image.open(_FRAME_PATH).convert("RGBA")
         except Exception as exc:                         # noqa: BLE001
             log.warning("profile frame missing at %s: %s", _FRAME_PATH, exc)
             return None
-    img = _frame_cache.copy()
-    # Cyber Arena is a cosmetic skin over the authored frame. Keeping the same
-    # measured geometry means every dynamic field remains pixel-safe while the
-    # visual treatment changes. No remote dependency is needed at render time.
-    if str(theme).lower() == "cyber_arena":
-        tint = Image.new("RGBA", img.size, (0, 105, 255, 34))
-        img = Image.alpha_composite(img, tint)
-        d = ImageDraw.Draw(img)
-        d.rounded_rectangle((10, 10, W - 11, H - 11), radius=28,
-                            outline=(58, 190, 255, 230), width=5)
-        d.rounded_rectangle((20, 20, W - 21, H - 21), radius=24,
-                            outline=(120, 225, 255, 120), width=2)
-    return img
+    return _frame_cache.copy()
 
 
 # Avatars are cached by URL. A Discord avatar URL embeds the image hash, so the
@@ -274,8 +325,9 @@ _AVATAR_TIMEOUT = 6
 
 def clear_cache() -> None:
     """Drop rebuildable profile-card artwork held in memory."""
-    global _frame_cache
+    global _frame_cache, _cyber_frame_cache
     _frame_cache = None
+    _cyber_frame_cache = None
     _AVATAR_CACHE.clear()
 
 
