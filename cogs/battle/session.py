@@ -275,9 +275,7 @@ class BattleSession:
             hp_gain   = await _level_hp_gain(pid, blade)
             avatar_id = await _AE.get_equipped_avatar_id(int(pid))
             avatar    = _AE.get_avatar(avatar_id or "") if avatar_id else None
-            bonuses   = await _AE.get_battle_bonuses(pid)
             stat_mult = await get_stat_multiplier(pid, blade.get("name"))
-            eff_spec  = await _effective_special(pid, blade)
 
             skill_commit: dict = {}
             try:
@@ -286,6 +284,11 @@ class BattleSession:
                     int(pid), avatar, ranked=_spend_energy) or {}
             except Exception:                                # noqa: BLE001
                 skill_commit = {}
+
+            # Snapshot AFTER committing: the locked slot may have changed or
+            # become 0 when this round exhausts the match's energy budget.
+            bonuses = await _AE.get_battle_bonuses(pid)
+            eff_spec = await _effective_special(pid, blade)
 
             prefetch[key] = {
                 "profile":           profile,
@@ -534,6 +537,7 @@ class BattleSession:
 
         # ── Sub-module initialisation ─────────────────────────────────────────
         self.stamina_manager = StaminaManager(self.blades, effective_stats=self.battle_stats)
+        self.stamina_manager.avatar_bonuses = self.avatar_bonuses
         self.type_mods: dict[str, TypeModifiers] = {
             str(p1.id): TypeModifiers(blade1, stats=self.battle_stats[str(p1.id)]),
             str(p2.id): TypeModifiers(blade2, stats=self.battle_stats[str(p2.id)]),
@@ -1139,10 +1143,11 @@ class BattleSession:
         for key, move in ((k1, m1), (k2, m2)):
             if move == MOVE_CHARGE:
                 name = self.blades[key]["name"]
+                gauge_before = sm.gauge.get(key, 0)
                 sm.add_gauge(key, "charge")
                 round_log.append(
                     f"🔋 **{name}** charges up! "
-                    f"Special Gauge: `{sm.gauge[key]}/{SPECIAL_GAUGE_MAX}` (+{GAUGE_PER_CHARGE})"
+                    f"Special Gauge: `{sm.gauge[key]}/{SPECIAL_GAUGE_MAX}` (+{sm.gauge[key] - gauge_before:g})"
                 )
 
         # ── Deduct stamina costs ──────────────────────────────────────────────

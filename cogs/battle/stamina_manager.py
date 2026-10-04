@@ -362,6 +362,10 @@ class StaminaManager:
         # the same GAUGE_PER_* constants the literal map used to hold, so the
         # 113 blades that have not opted in gain exactly what they always did.
         gain = button_profile.gauge_gain(self._blades.get(key), source)
+        if source == "charge":
+            av = getattr(self, "avatar_bonuses", {}).get(key)
+            if av is not None:
+                gain = av.apply_charge_bonus(gain)
         tactical = getattr(self, "tactical_runtime", None)
         if tactical is not None:
             gain = tactical.gauge_gain(key, gain, source)
