@@ -920,6 +920,7 @@ class ProfileThemePicker(discord.ui.View):
         self.original_message = original_message
 
     async def build(self):
+        self.clear_items()
         profile = await get_user(self.owner.id)
         current = equipped_theme(profile)
         options = []
@@ -939,21 +940,32 @@ class ProfileThemePicker(discord.ui.View):
         self.add_item(select)
         return self
 
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.owner.id:
+            await interaction.response.send_message(
+                "Only this profile's owner can switch its design.", ephemeral=True)
+            return False
+        return True
+
     async def _selected(self, interaction: discord.Interaction):
-        key = interaction.data["values"][0]
+        if not await self.interaction_check(interaction):
+            return
+        values = (interaction.data or {}).get("values")
+        if not isinstance(values, list) or len(values) != 1 or not isinstance(values[0], str):
+            return await interaction.response.send_message(
+                "❌ Choose a valid owned profile design.", ephemeral=True)
+        key = values[0]
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             result = await mutate_user(
                 self.owner.id, lambda p: apply_profile_equip(p, key))
         except ProfileCosmeticError as exc:
-            return await interaction.response.send_message(
+            return await interaction.followup.send(
                 f"❌ {exc}", ephemeral=True)
         except Exception:
             log.exception("profile theme equip failed for %s", self.owner.id)
-            return await interaction.response.send_message(
+            return await interaction.followup.send(
                 "⚠️ Couldn't switch the profile design.", ephemeral=True)
-
-        await interaction.response.send_message(
-            f"✅ Equipped **{result['name']}**.", ephemeral=True)
 
         # Refresh the original profile card immediately.
         try:
@@ -969,10 +981,22 @@ class ProfileThemePicker(discord.ui.View):
                 self.owner, profile_doc, active_blade)
             if card is not None and self.original_message is not None:
                 await self.original_message.edit(
-                    attachments=[card],
+                    content=None, embeds=[], attachments=[card],
                     view=ProfileCardView(self.cog, self.owner))
+            else:
+                await interaction.followup.send(
+                    f"✅ Equipped **{result['name']}**. Run `;profile` to view it; the card could not refresh.",
+                    ephemeral=True)
+                return
         except Exception:
             log.exception("profile card refresh failed after theme switch")
+            await interaction.followup.send(
+                f"✅ Equipped **{result['name']}**. Run `;profile` to view it; the previous message could not refresh.",
+                ephemeral=True)
+            return
+        await interaction.edit_original_response(
+            content=f"✅ Equipped **{result['name']}**.", view=None)
+        self.stop()
 
 
 class ProfileCardView(discord.ui.View):
@@ -995,10 +1019,18 @@ class ProfileCardView(discord.ui.View):
                        style=discord.ButtonStyle.secondary)
     async def switch_profile(self, interaction: discord.Interaction,
                              _: discord.ui.Button):
+        if not await self.interaction_check(interaction):
+            return
+        await interaction.response.defer(ephemeral=True, thinking=True)
         picker = ProfileThemePicker(
             self.cog, self.owner, interaction.message)
-        await picker.build()
-        await interaction.response.send_message(
+        try:
+            await picker.build()
+        except Exception:
+            log.exception("profile theme picker failed")
+            await interaction.followup.send("⚠️ Couldn't load your profile designs. Try again.", ephemeral=True)
+            return
+        await interaction.followup.send(
             "🎨 **Choose your profile design**\n"
             "Only designs you permanently own are shown.",
             view=picker, ephemeral=True)

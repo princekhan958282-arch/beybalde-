@@ -16,17 +16,23 @@ class ProfileCosmeticError(Exception):
 
 
 def owned_themes(profile: dict) -> list[str]:
-    raw = profile.get("owned_profile_themes") or []
+    raw = profile.get("owned_profile_themes")
+    # Only a stored list of known string IDs proves ownership. Scalars and
+    # mappings are corruption, not implicit purchases.
+    if not isinstance(raw, list):
+        raw = []
     owned = [DEFAULT_PROFILE_THEME]
     for key in raw:
-        key = str(key).lower()
+        if not isinstance(key, str):
+            continue
+        key = key.strip().lower()
         if key in PROFILE_COSMETICS and key not in owned:
             owned.append(key)
     return owned
 
 
 def equipped_theme(profile: dict) -> str:
-    key = str(profile.get("equipped_profile_theme") or DEFAULT_PROFILE_THEME).lower()
+    key = str(profile.get("equipped_profile_theme") or DEFAULT_PROFILE_THEME).strip().lower()
     return key if key in owned_themes(profile) else DEFAULT_PROFILE_THEME
 
 
@@ -36,11 +42,17 @@ def apply_profile_purchase(profile: dict, theme_key: str) -> dict:
     if not item:
         raise ProfileCosmeticError("That profile design is not in the shop.")
 
-    owned = set(str(x).lower() for x in (profile.get("owned_profile_themes") or []))
+    owned = owned_themes(profile)
     if key in owned:
         raise ProfileCosmeticError(f"You already own **{item['name']}**.")
 
-    coins = int(profile.get("coins", 0) or 0)
+    raw_coins = profile.get("coins", 0)
+    if isinstance(raw_coins, bool) or not isinstance(raw_coins, (int, str)):
+        raise ProfileCosmeticError("Your balance could not be verified. Please try again later.")
+    try:
+        coins = int(raw_coins)
+    except (ValueError, TypeError):
+        raise ProfileCosmeticError("Your balance could not be verified. Please try again later.") from None
     price = int(item["price"])
     if coins < price:
         raise ProfileCosmeticError(
@@ -49,7 +61,7 @@ def apply_profile_purchase(profile: dict, theme_key: str) -> dict:
         )
 
     profile["coins"] = coins - price
-    profile.setdefault("owned_profile_themes", []).append(key)
+    profile["owned_profile_themes"] = owned + [key]
     profile["equipped_profile_theme"] = key
     return {"theme": key, "name": item["name"], "spent": price, "coins": profile["coins"]}
 
