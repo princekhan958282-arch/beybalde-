@@ -483,7 +483,8 @@ class AvatarShop(commands.Cog, name="Avatar"):
         embed.add_field(
             name="🛒 Browse & Buy",
             value=(
-                "`;avatarinfo <id>` / `;ainfo <id>` — Inspect an avatar"
+                "`;ainfo` — Your equipped avatar\n"
+                "`;avatarinfo <id>` / `;ainfo <name or id>` — Inspect an avatar"
             ),
             inline=False,
         )
@@ -686,9 +687,20 @@ class AvatarShop(commands.Cog, name="Avatar"):
         await ctx.send(embed=embed)
 
     @commands.command(name="avatarinfo", aliases=["ainfo"])
-    async def avatar_info(self, ctx: commands.Context, *, query: str) -> None:
-        """View detailed stats for an avatar (by name or ID)."""
-        avatar = self._resolve_avatar_query(query)
+    async def avatar_info(self, ctx: commands.Context, *, query: Optional[str] = None) -> None:
+        """View your equipped avatar, or look up an avatar by name or ID."""
+        equipped_id = await self._get_equipped_id(ctx.author.id)
+        if not query or not query.strip():
+            avatar = avatar_engine.get_avatar(equipped_id) if isinstance(equipped_id, str) else None
+            if not avatar:
+                await ctx.send(
+                    "You don't have an available avatar equipped. "
+                    "Use `;myavatars` and `;equipavatar <id>` to equip one, "
+                    "or `;ainfo <name or id>` to inspect an avatar."
+                )
+                return
+        else:
+            avatar = self._resolve_avatar_query(query)
         if not avatar:
             matches = self._ambiguous_matches(query)
             if len(matches) > 1:
@@ -699,7 +711,6 @@ class AvatarShop(commands.Cog, name="Avatar"):
             return
 
         owned_ids   = self._get_owned_avatar_ids(ctx.author.id)
-        equipped_id = await self._get_equipped_id(ctx.author.id)
 
         owned    = avatar["id"] in owned_ids
         equipped = avatar["id"] == equipped_id

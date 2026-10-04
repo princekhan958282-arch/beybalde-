@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PIL import Image, ImageDraw
 from utils import avatar_info_card as C
 from cogs.avatar.avatar_shop import AvatarShop, AvatarSkillsView
+from discord.ext.commands.view import StringView
 
 CARDS = json.loads((Path(__file__).resolve().parents[1] / 'cogs/avatar/avatar_data.json').read_text())['avatars']
 YUKI = CARDS[0]
@@ -77,6 +78,42 @@ class CardTests(unittest.TestCase):
             self.assertIsNone(C._art('https://discord.com/channels/not-an-image'))
 
 class CommandTests(unittest.IsolatedAsyncioTestCase):
+    async def test_discord_parser_accepts_empty_argument(self):
+        ctx = SimpleNamespace(message=SimpleNamespace(attachments=[]), view=StringView(''))
+        await AvatarShop.avatar_info._parse_arguments(ctx)
+        self.assertEqual(ctx.kwargs, {'query': None})
+
+    async def test_no_query_displays_current_equipped_avatar(self):
+        fake = SimpleNamespace(_resolve_avatar_query=lambda q:self.fail('Should resolve equipped ID directly'),
+                               _get_owned_avatar_ids=lambda user:[YUKI['id']],
+                               _get_equipped_id=AsyncMock(return_value=YUKI['id']))
+        ctx = SimpleNamespace(author=SimpleNamespace(id=123), send=AsyncMock())
+        with patch('utils.database.get_user', AsyncMock(return_value={})), patch.object(C, 'render_avatar_info_card', return_value=None):
+            await AvatarShop.avatar_info.callback(fake, ctx)
+        kwargs = ctx.send.call_args.kwargs
+        self.assertIn('Yuki', kwargs['embed'].title)
+        self.assertIsInstance(kwargs['view'], AvatarSkillsView)
+        fake._get_equipped_id.assert_awaited_once_with(123)
+        self.assertFalse(AvatarShop.avatar_info.clean_params['query'].required)
+
+    async def test_no_equipped_or_invalid_id_gives_guidance(self):
+        for equipped in [None, '', 'removed-avatar-id', []]:
+            fake = SimpleNamespace(_get_equipped_id=AsyncMock(return_value=equipped))
+            ctx = SimpleNamespace(author=SimpleNamespace(id=123), send=AsyncMock())
+            await AvatarShop.avatar_info.callback(fake, ctx)
+            text = ctx.send.call_args.args[0]
+            self.assertIn(';equipavatar', text)
+            self.assertIn(';ainfo <name or id>', text)
+
+    async def test_named_lookup_preserved_with_no_equipped_avatar(self):
+        fake = SimpleNamespace(_resolve_avatar_query=lambda q:YUKI,
+                               _get_owned_avatar_ids=lambda user:[],
+                               _get_equipped_id=AsyncMock(return_value=None))
+        ctx = SimpleNamespace(author=SimpleNamespace(id=123), send=AsyncMock())
+        with patch.object(C, 'render_avatar_info_card', return_value=None):
+            await AvatarShop.avatar_info.callback(fake, ctx, query='Yuki')
+        self.assertIn('Yuki', ctx.send.call_args.kwargs['embed'].title)
+
     async def test_attachment_and_existing_skill_controls(self):
         fake = SimpleNamespace(_resolve_avatar_query=lambda q:YUKI,
                                _get_owned_avatar_ids=lambda user:[YUKI['id']],
