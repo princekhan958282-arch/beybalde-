@@ -43,6 +43,9 @@ from cogs.economy.shop import (PARTS_CATALOG, PART_TYPE_EMOJI, PART_TYPE_LABEL,
                                PurchaseError, BEY_SHOP_CATALOG,
                                apply_bey_purchase)
 from utils.database import mutate_user
+from utils.profile_cosmetics import (
+    PROFILE_COSMETICS, apply_profile_purchase, ProfileCosmeticError,
+)
 
 # Casino premium (casino/casino_premium.py)
 from cogs.casino.casino_premium import PACKS as PREMIUM_PACKS, PACK_DURATION_DAYS
@@ -59,6 +62,7 @@ COLOR_PREMIUM = discord.Color.gold()
 COLOR_BOOSTER = 0xFFD700
 COLOR_AVATAR  = discord.Color.purple()
 COLOR_HOME    = 0x5865F2  # blurple
+COLOR_PROFILE = 0x00B7FF
 
 # ── Section keys ──────────────────────────────────────────────────────────────
 SECTION_HOME    = "home"
@@ -67,6 +71,7 @@ SECTION_PARTS   = "parts"
 SECTION_PREMIUM = "premium"
 SECTION_BOOSTER = "booster"
 SECTION_AVATAR  = "avatar"
+SECTION_PROFILE = "profiles"
 
 VALID_ARGS = {
     "beys":    SECTION_BEYS,
@@ -81,6 +86,9 @@ VALID_ARGS = {
     "avatar":  SECTION_AVATAR,
     "avatars": SECTION_AVATAR,
     "ap":      SECTION_AVATAR,
+    "profile": SECTION_PROFILE,
+    "profiles": SECTION_PROFILE,
+    "profilecard": SECTION_PROFILE,
 }
 
 ITEMS_PER_PAGE = 5
@@ -141,6 +149,16 @@ def _home_embed() -> discord.Embed:
             "Cosmetic avatar packs with guaranteed rarity pulls.\n"
             "**4** tiers: Common · Rare · Epic · Legendary | Paid with **Beycoins**\n"
             "`;buypack <tier>` to purchase"
+        ),
+        inline=False,
+    )
+    item = PROFILE_COSMETICS["cyber_arena"]
+    e.add_field(
+        name="🎨  Profile Designs",
+        value=(
+            "Permanent cosmetic designs for your player profile.\n"
+            f"**{item['name']}** — **{item['price']:,} Beycoins**\n"
+            "Switch owned designs anytime from the **Switch Profile** button on `;profile`."
         ),
         inline=False,
     )
@@ -291,6 +309,31 @@ def _avatar_embed() -> discord.Embed:
     return e
 
 
+def _profiles_embed() -> discord.Embed:
+    item = PROFILE_COSMETICS["cyber_arena"]
+    e = discord.Embed(
+        title="🎨 Profile Design Shop",
+        description=(
+            "Permanent cosmetic profile designs. No battle/stat advantage.\n"
+            "**Currency:** Beycoins 💰\n"
+            "After buying, use the **Switch Profile** button on `;profile`.\n"
+            "──────────────────────────────────────"
+        ),
+        color=COLOR_PROFILE,
+    )
+    e.add_field(
+        name=f"⚡ {item['name']} — {item['price']:,} Beycoins",
+        value=(
+            f"{item['description']}\n"
+            "• Permanent unlock\n"
+            "• Equips immediately after purchase\n"
+            "• Default Profile always remains available"
+        ),
+        inline=False,
+    )
+    return e
+
+
 def _beys_embed() -> discord.Embed:
     e = discord.Embed(
         title="👹 Boss Fighter Shop",
@@ -425,6 +468,24 @@ class MainShopView(ui.View):
         avatar_btn.row = 1
         self.add_item(avatar_btn)
 
+        profile_btn = ui.Button(
+            label="🎨 Profiles",
+            style=(discord.ButtonStyle.blurple if self.section == SECTION_PROFILE
+                   else discord.ButtonStyle.secondary),
+            row=1,
+        )
+        profile_btn.callback = self._go_profiles
+        self.add_item(profile_btn)
+
+        if self.section == SECTION_PROFILE:
+            item = PROFILE_COSMETICS["cyber_arena"]
+            buy_profile = ui.Button(
+                label=f"🪙 Buy {item['name']} — {item['price']:,}"[:80],
+                style=discord.ButtonStyle.success, row=2)
+            buy_profile.callback = self._buy_profile
+            self.add_item(buy_profile)
+            return
+
         if self.section == SECTION_BEYS:
             buy_bey = ui.Button(label="🪙 Buy Epsilon — 45,000",
                                 style=discord.ButtonStyle.success, row=1)
@@ -517,6 +578,24 @@ class MainShopView(ui.View):
             f"Remaining: **{result['coins']:,}**.",
             ephemeral=True)
 
+    async def _buy_profile(self, i: discord.Interaction) -> None:
+        try:
+            result = await mutate_user(
+                self.author_id,
+                lambda prof: apply_profile_purchase(prof, "cyber_arena"))
+        except ProfileCosmeticError as exc:
+            return await i.response.send_message(f"❌ {exc}", ephemeral=True)
+        except Exception:
+            log.exception("[shop] profile cosmetic purchase failed")
+            return await i.response.send_message(
+                "⚠️ Couldn't complete that purchase — nothing was charged.",
+                ephemeral=True)
+        await i.response.send_message(
+            f"✅ Bought and equipped **{result['name']}** for "
+            f"🪙 **{result['spent']:,}**. Remaining: **{result['coins']:,}**.\n"
+            "Open `;profile` and use **Switch Profile** anytime.",
+            ephemeral=True)
+
     async def _select_part(self, i: discord.Interaction) -> None:
         self.selected = (i.data.get("values") or [None])[0]
         self._build_buttons()
@@ -568,6 +647,8 @@ class MainShopView(ui.View):
             return _booster_embed()
         if self.section == SECTION_AVATAR:
             return _avatar_embed()
+        if self.section == SECTION_PROFILE:
+            return _profiles_embed()
         return _home_embed()
 
     # ── Auth check ────────────────────────────────────────────────────────────
@@ -615,6 +696,12 @@ class MainShopView(ui.View):
         self._build_buttons()
         await i.response.edit_message(embed=self.current_embed(), view=self)
 
+    async def _go_profiles(self, i: discord.Interaction) -> None:
+        self.section = SECTION_PROFILE
+        self.selected = None
+        self._build_buttons()
+        await i.response.edit_message(embed=self.current_embed(), view=self)
+
     # ── Parts pagination ──────────────────────────────────────────────────────
 
     async def _parts_prev(self, i: discord.Interaction) -> None:
@@ -655,12 +742,14 @@ class MainShopCog(commands.Cog, name="MainShop"):
             "  ⚙️  Parts       — performance parts for your Bey\n"
             "  👑  Premium     — casino premium passes\n"
             "  🎁  Booster     — exclusive Beyblade booster packs\n"
-            "  🖼️  Avatar Packs — cosmetic avatar packs\n\n"
+            "  🖼️  Avatar Packs — cosmetic avatar packs\n"
+            "  🎨  Profiles     — permanent profile-card designs\n\n"
             "Optional: jump to a section directly:\n"
             "  ;shop parts\n"
             "  ;shop premium\n"
             "  ;shop booster\n"
-            "  ;shop avatar"
+            "  ;shop avatar\n"
+            "  ;shop profiles"
         ),
         brief="Open the main shop 🛒",
     )
