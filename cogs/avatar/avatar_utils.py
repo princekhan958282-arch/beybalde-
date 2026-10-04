@@ -302,7 +302,7 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
 
     displayed_bonuses = avatar.get("bonuses", {})
     bonus_heading = "Bonuses"
-    if compact and avatar.get("skills"):
+    if compact and avatar.get("skills") and not avatar.get("stats_always_on"):
         # Signature-card data keeps a union of skill effects at the top level
         # for validation and migration. Those values are conditional, not
         # permanent, and belong on the Skills page only.

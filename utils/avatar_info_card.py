@@ -1,6 +1,10 @@
 """Pillow ;ainfo card for the supplied metallic frame; no game-state writes."""
 from __future__ import annotations
 import io
+import asyncio
+import time
+from urllib.parse import urlparse, parse_qs
+import discord
 import logging
 import os
 import re
@@ -19,12 +23,59 @@ SIZE = (1536, 864)
 ART_BOX = (83, 94, 507, 683)
 _FRAME = None
 _ART = {}
+_RESOLVED_URLS = {}
 
 
 def clear_cache():
     global _FRAME
     _FRAME = None
     _ART.clear()
+    _RESOLVED_URLS.clear()
+
+
+async def resolve_avatar_image_url(bot, source):
+    """Recover unsigned/expired Discord attachments using readable message history.
+
+    Attachment IDs and their containing message share a snowflake creation time;
+    a bounded history window locates the original attachment without guessing a
+    message ID or modifying the catalog. Valid signed URLs and local art pass through.
+    """
+    if not isinstance(source, str):
+        return source
+    parsed = urlparse(source)
+    if parsed.hostname not in {'cdn.discordapp.com', 'media.discordapp.net'}:
+        return source
+    parts = parsed.path.split('/')
+    if len(parts) < 5 or parts[1] != 'attachments':
+        return source
+    query = parse_qs(parsed.query)
+    try:
+        if query.get('hm') and int(query.get('ex', ['0'])[0], 16) > time.time()+60:
+            return source
+    except ValueError:
+        pass
+    hit = _RESOLVED_URLS.get(source)
+    if hit and hit[0] > time.monotonic():
+        return hit[1]
+    try:
+        channel_id, attachment_id = int(parts[2]), int(parts[3])
+        async def find():
+            channel = bot.get_channel(channel_id) or await bot.fetch_channel(channel_id)
+            async for message in channel.history(limit=20, around=discord.Object(id=attachment_id)):
+                for attachment in message.attachments:
+                    if attachment.id == attachment_id:
+                        return attachment.url
+            return source
+        resolved = await asyncio.wait_for(find(), timeout=5)
+        if len(_RESOLVED_URLS) >= 64:
+            _RESOLVED_URLS.clear()
+        # Also throttle inaccessible/deleted sources rather than repeating reads.
+        _RESOLVED_URLS[source] = (time.monotonic()+300, resolved)
+        return resolved
+    except Exception:
+        log.debug('Could not recover Discord avatar attachment', exc_info=True)
+        _RESOLVED_URLS[source] = (time.monotonic()+60, source)
+        return source
 
 
 def _art(source):
@@ -63,7 +114,7 @@ def permanent_bonuses(avatar, owned=False, equipped=False, level=1):
     """Match compact avatar info: signature effects are conditional, not passive."""
     raw = avatar.get('bonuses')
     out = dict(raw) if isinstance(raw, dict) else {}
-    if avatar.get('skills'):
+    if avatar.get('skills') and not avatar.get('stats_always_on'):
         out = {k:v for k,v in out.items() if k in AS.CARD_LEVEL_BONUS_KEYS}
     if owned or equipped:
         gain = AL.card_stat_bonus(avatar.get('type'), level)
@@ -128,7 +179,11 @@ def render_avatar_info_card(avatar, *, owned=False, equipped=False, level=1,
         for x, key in [(680,'attack'),(912,'defence'),(1140,'stamina'),(1370,'hp')]:
             flat, pct = _number(bonuses.get(key+'_flat')), _number(bonuses.get(key+'_percent'))
             parts = ([f'{flat:+g}'] if flat else []) + ([f'{pct*100:+g}%'] if pct else [])
-            text(' / '.join(parts) or '—',(x,325,102),28,cyan)
+            if len(parts) == 2:
+                text(parts[0],(x,316,105),25,cyan)
+                text(parts[1],(x,341,105),20,cyan)
+            else:
+                text(parts[0] if parts else '—',(x,325,105),28,cyan)
         skills = avatar.get('skills')
         skills = [s for s in skills if isinstance(s,dict)][:3] if isinstance(skills,list) else []
         # Main stat bonuses are already visible in the four tiles. Only show

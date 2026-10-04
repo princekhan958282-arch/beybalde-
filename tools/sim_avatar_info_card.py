@@ -42,6 +42,19 @@ class CardTests(unittest.TestCase):
         passive = {**YUKI, 'skills': []}  # Compatibility with cards without skills
         self.assertEqual(C.permanent_bonuses(passive), passive['bonuses'])
 
+    def test_school_blader_always_on_stats_match_engine(self):
+        from cogs.avatar import avatar_skills as AS
+        from cogs.avatar.avatar_utils import build_avatar_embed
+        shu = next(c for c in CARDS if c['id'] == 'avatar_s108')
+        self.assertEqual(C.permanent_bonuses(shu), AS.bonuses_for(shu, 0))
+        bonuses = C.permanent_bonuses(shu)
+        self.assertEqual(bonuses['attack_flat'], 45)
+        self.assertEqual(bonuses['attack_percent'], .2)
+        self.assertEqual(bonuses['defence_flat'], 40)
+        self.assertEqual(bonuses['stamina_flat'], 43)
+        embed = build_avatar_embed(shu, compact=True)
+        self.assertTrue(any('ATK' in f.value and '+45' in f.value for f in embed.fields))
+
     def test_drawn_values_keep_plus_sign_and_skill_costs(self):
         drawn = []
         original = ImageDraw.ImageDraw.text
@@ -84,7 +97,7 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ctx.kwargs, {'query': None})
 
     async def test_no_query_displays_current_equipped_avatar(self):
-        fake = SimpleNamespace(_resolve_avatar_query=lambda q:self.fail('Should resolve equipped ID directly'),
+        fake = SimpleNamespace(bot=None, _resolve_avatar_query=lambda q:self.fail('Should resolve equipped ID directly'),
                                _get_owned_avatar_ids=lambda user:[YUKI['id']],
                                _get_equipped_id=AsyncMock(return_value=YUKI['id']))
         ctx = SimpleNamespace(author=SimpleNamespace(id=123), send=AsyncMock())
@@ -98,7 +111,7 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_no_equipped_or_invalid_id_gives_guidance(self):
         for equipped in [None, '', 'removed-avatar-id', []]:
-            fake = SimpleNamespace(_get_equipped_id=AsyncMock(return_value=equipped))
+            fake = SimpleNamespace(bot=None, _get_equipped_id=AsyncMock(return_value=equipped))
             ctx = SimpleNamespace(author=SimpleNamespace(id=123), send=AsyncMock())
             await AvatarShop.avatar_info.callback(fake, ctx)
             text = ctx.send.call_args.args[0]
@@ -106,7 +119,7 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(';ainfo <name or id>', text)
 
     async def test_named_lookup_preserved_with_no_equipped_avatar(self):
-        fake = SimpleNamespace(_resolve_avatar_query=lambda q:YUKI,
+        fake = SimpleNamespace(bot=None, _resolve_avatar_query=lambda q:YUKI,
                                _get_owned_avatar_ids=lambda user:[],
                                _get_equipped_id=AsyncMock(return_value=None))
         ctx = SimpleNamespace(author=SimpleNamespace(id=123), send=AsyncMock())
@@ -115,7 +128,7 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('Yuki', ctx.send.call_args.kwargs['embed'].title)
 
     async def test_attachment_and_existing_skill_controls(self):
-        fake = SimpleNamespace(_resolve_avatar_query=lambda q:YUKI,
+        fake = SimpleNamespace(bot=None, _resolve_avatar_query=lambda q:YUKI,
                                _get_owned_avatar_ids=lambda user:[YUKI['id']],
                                _get_equipped_id=AsyncMock(return_value=YUKI['id']))
         ctx = SimpleNamespace(author=SimpleNamespace(id=123), send=AsyncMock())
@@ -124,13 +137,14 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
             await AvatarShop.avatar_info.callback(fake, ctx, query='Yuki')
         kwargs = ctx.send.call_args.kwargs
         self.assertEqual(kwargs['file'].filename, 'ainfo.jpg')
-        self.assertEqual(kwargs['embed'].image.url, 'attachment://ainfo.jpg')
+        self.assertNotIn('embed', kwargs)
+        self.assertTrue(any(child.label == 'Details' for child in kwargs['view'].children))
         self.assertIsInstance(kwargs['view'], AvatarSkillsView)
         self.assertTrue(any(child.label == 'Skills' for child in kwargs['view'].children))
         self.assertIn('ainfo', AvatarShop.avatar_info.aliases)
 
     async def test_render_failure_keeps_existing_embed_and_button(self):
-        fake = SimpleNamespace(_resolve_avatar_query=lambda q:YUKI,
+        fake = SimpleNamespace(bot=None, _resolve_avatar_query=lambda q:YUKI,
                                _get_owned_avatar_ids=lambda user:[],
                                _get_equipped_id=AsyncMock(return_value=None))
         ctx = SimpleNamespace(author=SimpleNamespace(id=123), send=AsyncMock())
@@ -140,6 +154,41 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('file', kwargs)
         self.assertEqual(kwargs['embed'].thumbnail.url, YUKI['image'])
         self.assertIsInstance(kwargs['view'], AvatarSkillsView)
+
+class ArtworkRecoveryTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        C.clear_cache()
+
+    async def test_unsigned_url_recovers_matching_attachment_and_caches(self):
+        source = 'https://cdn.discordapp.com/attachments/123/456/avatar.png'
+        fresh = source+'?ex=ffffffff&is=abc&hm=signed'
+        async def history(**kwargs):
+            self.assertEqual(kwargs['around'].id, 456)
+            self.assertEqual(kwargs['limit'], 20)
+            yield SimpleNamespace(attachments=[SimpleNamespace(id=999,url='other'), SimpleNamespace(id=456,url=fresh)])
+        channel = SimpleNamespace(history=history)
+        bot = SimpleNamespace(get_channel=lambda cid:channel)
+        self.assertEqual(await C.resolve_avatar_image_url(bot, source), fresh)
+        self.assertEqual(await C.resolve_avatar_image_url(None, source), fresh)
+
+    async def test_valid_signed_url_is_unchanged(self):
+        source = 'https://media.discordapp.net/attachments/123/456/avatar.png?ex=ffffffff&hm=signed'
+        self.assertEqual(await C.resolve_avatar_image_url(None, source), source)
+
+    async def test_expired_url_missing_channel_and_non_discord_fallback(self):
+        source = 'https://cdn.discordapp.com/attachments/123/456/avatar.png?ex=1&hm=expired'
+        bot = SimpleNamespace(get_channel=lambda cid:None, fetch_channel=AsyncMock(side_effect=PermissionError()))
+        self.assertEqual(await C.resolve_avatar_image_url(bot, source), source)
+        for other in ['assets/avatars/example.png', 'https://example.org/avatar.png', None]:
+            self.assertEqual(await C.resolve_avatar_image_url(None, other), other)
+
+    async def test_details_button_preserves_original_info_ephemerally(self):
+        from cogs.avatar.avatar_utils import build_avatar_embed
+        embed = build_avatar_embed(YUKI)
+        view = AvatarSkillsView(YUKI, details_embed=embed)
+        interaction = SimpleNamespace(response=SimpleNamespace(send_message=AsyncMock()))
+        await view.show_details.callback(interaction)
+        interaction.response.send_message.assert_awaited_once_with(embed=embed, ephemeral=True)
 
 if __name__ == '__main__':
     unittest.main()
