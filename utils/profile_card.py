@@ -325,7 +325,9 @@ def _cyber_content(img, player, profile, blade, total_beys, rank_position, avata
         rarity = str(blade.get("rarity") or "Common")
         art = _blade_art(bey_name, 122)
         if art is not None:
-            img.alpha_composite(art.convert("RGBA"), (744, 487))
+            img.alpha_composite(art.convert("RGBA"),
+                                (CYBER_ART_C[0] - art.width // 2,
+                                 CYBER_ART_C[1] - art.height // 2))
         else:
             _initial_disc(img, draw, CYBER_ART_C, 49, bey_name, _rar_col(rarity))
         text(bey_name, 915, 484, 538, 34)

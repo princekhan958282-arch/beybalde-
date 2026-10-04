@@ -1112,7 +1112,7 @@ class ProfileCog(commands.Cog, name="Profile"):
         # safe: the whole render is off the event loop.
         try:
             avatar_url = target.display_avatar.replace(
-                format="png", size=256).url
+                format="png", size=(512 if equipped_theme(profile_doc) == "cyber_arena" else 256)).url
         except Exception:                                # noqa: BLE001
             avatar_url = getattr(getattr(target, "display_avatar", None),
                                  "url", None)
