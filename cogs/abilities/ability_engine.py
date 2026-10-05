@@ -316,7 +316,7 @@ class AbilityEngine:
                     or {}).get(key)
             cache_key = f"@avatar:{card.get('id', '?')}#{slot}"
             if cache_key not in self._compiled:
-                live = skills if slot in (None, 0) else [
+                live = skills if slot is None else [
                     skills[slot - 1]] if 1 <= slot <= len(skills) else []
                 rules: list[dict] = []
                 for _i, sk in enumerate(live):
@@ -1936,6 +1936,8 @@ class AbilityEngine:
             if move == MOVE_ATTACK and (forced or avatar_crit) and not natural:
                 dmg_dealt *= 2.0
                 self.last_hit_was_crit = True
+                if avatar_crit and dmg_dealt > 0:
+                    logs.append("💥 **Avatar** — critical strike! Damage ×2!")
                 if forced:
                     self.guaranteed_crit_turns[mover_key] = max(0, forced - 1)
             else:
@@ -1951,6 +1953,10 @@ class AbilityEngine:
                 move, dmg_dealt, is_first_hit)
             logs.extend(defensive_logs)
             evaded = dmg_dealt == 0 and any("EVADED" in l for l in defensive_logs)
+
+        if self.last_hit_was_crit and dmg_dealt > 0 and is_first_hit:
+            from cogs.battle import avatar_combat
+            logs.extend(avatar_combat.on_crit(self.session, mover_key))
 
         # Defender reactive triggers (blocked only by evasion, not mover silence)
         if not evaded and dmg_dealt > 0:
