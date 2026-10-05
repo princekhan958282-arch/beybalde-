@@ -44,6 +44,7 @@ from __future__ import annotations
 import random
 import asyncio
 import logging
+import time
 from typing import Any, Optional
 
 log = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ RARITY_ORDER: list[str] = [
     "Legendary",
     # See the note in avatar_utils.RARITY_ORDER — the two lists must agree.
     "Blader",
+    "Original Generation",
     "Mythic",
     "Ultimate",
     "Exclusive",
@@ -107,6 +109,7 @@ PACK_POOL: dict[str, list[str]] = {
     # the pack's own pool, so listing `Blader` here and nowhere else is the
     # whole of the containment: no other pack can reach one.
     "season1":   ["Blader"],
+    "original": ["Original Generation"],
 }
 
 # Exact guaranteed rarity for slot 1
@@ -117,6 +120,7 @@ PACK_GUARANTEE: dict[str, Optional[str]] = {
     "legendary": "Legendary",
     "mlbb":      "MLBB",
     "season1":   "Blader",
+    "original": "Original Generation",
 }
 
 PACK_PRICE: dict[str, int] = {
@@ -126,6 +130,7 @@ PACK_PRICE: dict[str, int] = {
     "legendary": 500_000,
     "mlbb":      15_000_000,
     "season1":   250_000,
+    "original": 100_000,
 }
 
 PACK_DISPLAY: dict[str, str] = {
@@ -135,6 +140,7 @@ PACK_DISPLAY: dict[str, str] = {
     "legendary": "Legendary Pack",
     "mlbb":      "MLBB Pack",
     "season1":   "Beyblade Burst Season 1 Pack",
+    "original": "Original Generation",
 }
 
 # ── Duplicate refund rates (% of pack price returned per rarity) ──────────────
@@ -160,8 +166,20 @@ DUPE_REFUND_RATE: dict[str, float] = {
     "MLBB":      0.20,   # 20%
     # 20% of 250,000 = 50,000. Eight cards on a closed banner means duplicates
     # arrive quickly, and the refund is what stops a late pack feeling wasted.
-    "Blader":    0.20,   # 20%
+    "Blader":    0.20,
+    "Original Generation": 0.0,
 }
+
+ORIGINAL_PACK_COOLDOWN = 48 * 60 * 60
+ORIGINAL_PACK_FIRST_PRICE = 50_000
+
+
+def original_pack_price(profile: dict) -> int:
+    return PACK_PRICE["original"] if profile.get("original_generation_pack_bought_at") else ORIGINAL_PACK_FIRST_PRICE
+
+
+def original_pack_ready_at(profile: dict) -> float:
+    return float(profile.get("original_generation_pack_bought_at", 0) or 0) + ORIGINAL_PACK_COOLDOWN
 
 # ── Pack emoji ────────────────────────────────────────────────────────────────
 
@@ -172,6 +190,7 @@ PACK_EMOJI: dict[str, str] = {
     "legendary": "🟡",
     "mlbb":      "🌟",
     "season1":   "🏫",
+    "original": "🐉",
 }
 
 
@@ -223,6 +242,7 @@ PACK_RARITY_WEIGHT: dict[str, dict[str, int]] = {
     "season1": {
         "Blader": 1000,
     },
+    "original": {"Original Generation": 1000},
 }
 
 # How many avatars a pack hands over. This was a hardcoded `if pack != "common"`
@@ -236,6 +256,7 @@ PACK_PULLS: dict[str, int] = {
     "legendary": 2,
     "mlbb":      2,
     "season1":   1,
+    "original": 1,
 }
 
 # What a pack needs before it can be bought at all, checked BEFORE any coins
@@ -328,19 +349,19 @@ class AvatarSkillsView(discord.ui.View):
         emoji = RARITY_EMOJI.get(rarity, "⚪")
         embed = discord.Embed(
             title=f"{emoji} {av['name']} — Skills",
-            description="Choose **one** signature skill per battle.",
+            description=("Activate skills during battle. Start at 0 energy; gain 20 per round. One skill per round." if av.get("active_battle_skills") else "Choose **one** signature skill per battle."),
             color=RARITY_COLORS.get(rarity, 0xAAAAAA),
         )
 
         skills = av.get("skills") or []
         for slot, skill in enumerate(skills, 1):
-            selected = "✅ Selected" if slot == self.active_slot else "▫️ Available"
+            selected = "▫️ Active battle skill" if av.get("active_battle_skills") else ("✅ Selected" if slot == self.active_slot else "▫️ Available")
             level = max(1, int(self.skill_levels.get(
                 slugify(skill.get("name", "")), 1
             )))
             embed.add_field(
                 name=(f"{selected}  •  {slot}. {skill.get('name', 'Skill')} "
-                      f"• {AS.skill_cost(slot)}⚡ • Lv{level}"),
+                      f"• {skill.get('energy_cost', AS.skill_cost(slot))}⚡ • Lv{level}"),
                 value=skill.get("description") or "No description.",
                 inline=False,
             )
@@ -348,7 +369,7 @@ class AvatarSkillsView(discord.ui.View):
         image = av.get("image", "")
         if image.startswith(("http://", "https://")) and is_renderable_image(image):
             embed.set_thumbnail(url=image)
-        embed.set_footer(text="Change selection with ;askill <1-3>")
+        embed.set_footer(text=("Use the Avatar Skill battle button. Ultimate: once per battle." if av.get("active_battle_skills") else "Change selection with ;askill <1-3>"))
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -453,10 +474,11 @@ class AvatarShop(commands.Cog, name="Avatar"):
         if already_owned:
             rate = DUPE_REFUND_RATE.get(avatar["rarity"], 0.10)
             refund = int(pack_price * rate)
-            await self._add_coins(player_id, refund)
+            if refund:
+                await self._add_coins(player_id, refund)
             return (
                 f"{emoji} **{avatar['name']}** *({avatar['rarity']})* — "
-                f"**Duplicate!** +{refund:,} coins refunded",
+                + (f"**Duplicate!** +{refund:,} coins refunded" if refund else "**Duplicate!** No refund."),
                 refund,
             )
         else:
@@ -528,14 +550,14 @@ class AvatarShop(commands.Cog, name="Avatar"):
             description=(
                 "Slot 1 is the **guaranteed** pull. Slot 2, where a pack has "
                 "one, is random from the pool.\n"
-                "Duplicate avatars are automatically refunded in coins.\n\n"
+                "Duplicate refunds depend on the pack. Original Generation has no refund.\n\n"
                 "Use `;buypack <pack>` to open one."
             ),
             color=0x3498DB,
         )
         # Read once for the lock states below rather than per pack.
         from utils.database import get_user as _get_user
-        _profile = _get_user(ctx.author.id)
+        _profile = await _get_user(ctx.author.id)
 
         # Derived from the tables the pack opener actually reads, not a
         # hand-written list. The hardcoded version had drifted twice over: the
@@ -546,6 +568,8 @@ class AvatarShop(commands.Cog, name="Avatar"):
         for pack_key in PACK_PRICE:
             emoji = PACK_EMOJI.get(pack_key, "🎴")
             price = PACK_PRICE[pack_key]
+            if pack_key == "original":
+                price = original_pack_price(_profile)
             guar = PACK_GUARANTEE.get(pack_key)
             # Only rarities a pull can REACH. `_build_rarity_map` drops
             # Exclusive outright, so listing it advertised a tier — and a 50%
@@ -555,7 +579,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
                 pool = list(PACK_POOL.get(pack_key, []))
 
             if guar and len(set(pool)) == 1 and pool[0] == guar:
-                guarantee = f"both pulls **{guar}**"     # a closed banner
+                guarantee = (f"both pulls **{guar}**" if PACK_PULLS.get(pack_key, 2) > 1 else f"1× guaranteed **{guar}**")     # a closed banner
             elif guar:
                 guarantee = f"1× guaranteed **{guar}** (exact)"
             else:
@@ -586,7 +610,8 @@ class AvatarShop(commands.Cog, name="Avatar"):
                     f"**Guarantee:** {guarantee}\n"
                     f"**Pool:** {', '.join(pool)}\n"
                     f"**Dupe refund:** {refund} per duplicate\n"
-                    f"{last_line}"
+                    + ("**Price:** 50,000 first purchase; 100,000 thereafter\n**Purchase cooldown:** 48 hours\n" if pack_key == "original" else "")
+                    + f"{last_line}"
                 ),
                 inline=False,
             )
@@ -607,9 +632,11 @@ class AvatarShop(commands.Cog, name="Avatar"):
         await ctx.send(embed=embed)
 
     @commands.command(name="buypack", aliases=["bpack", "openpack"])
+    @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     async def buy_pack(self, ctx: commands.Context, pack: str) -> None:
         """Open an avatar pack. Usage: ;buypack <common|rare|epic|legendary>"""
         pack = pack.lower()
+        pack = {"original_generation": "original", "og": "original"}.get(pack, pack)
 
         if pack not in PACK_PRICE:
             valid = ", ".join(PACK_PRICE.keys())
@@ -620,6 +647,17 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
         player_id = ctx.author.id
         price     = PACK_PRICE[pack]
+
+        if pack == "original":
+            from utils.database import get_user
+            profile = await get_user(player_id)
+            price = original_pack_price(profile)
+            ready_at = original_pack_ready_at(profile)
+            if time.time() < ready_at:
+                await ctx.send(
+                    f"⏳ Original Generation has a **48-hour purchase cooldown**. "
+                    f"You can buy again <t:{int(ready_at)}:R>.")
+                return
 
         # The gate comes BEFORE the balance check and long before any coins
         # move. A locked pack that took the money and then refused would be
@@ -684,6 +722,12 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
         remaining = await self._get_player_coins(player_id)
 
+        if pack == "original":
+            from utils.database import mutate_user
+            bought_at = time.time()
+            await mutate_user(player_id, lambda profile: profile.__setitem__(
+                "original_generation_pack_bought_at", bought_at))
+
         embed = discord.Embed(
             title=f"{PACK_EMOJI[pack]} {PACK_DISPLAY[pack]} Opened!",
             description="\n".join(lines),
@@ -693,6 +737,8 @@ class AvatarShop(commands.Cog, name="Avatar"):
         footer_parts = [f"Remaining balance: {remaining:,} coins"]
         if total_refund:
             footer_parts.append(f"Total dupe refund: +{total_refund:,} coins")
+        if pack == "original":
+            footer_parts.append("No duplicate refunds • Next purchase in 48 hours")
         embed.set_footer(text=" • ".join(footer_parts))
 
         await ctx.send(embed=embed)

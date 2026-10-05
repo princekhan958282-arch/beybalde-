@@ -187,6 +187,13 @@ def energy_line(profile: dict) -> str:
 def build_skill_embed(profile: dict, card: dict) -> discord.Embed:
     """The `;askill` panel: energy, the three prices, and which one is live."""
     skills = card.get("skills") or []
+    if card.get("active_battle_skills"):
+        e = discord.Embed(title=f"{card['name']} — active battle skills", colour=0x2ECC71,
+            description="All three skills are available during battle. Start at 0 Avatar Energy; gain 20 each completed round, up to 100.")
+        for sk in skills:
+            e.add_field(name=f"{sk['name']} — {sk['energy_cost']}⚡", value=sk['description'], inline=False)
+        e.set_footer(text="Use Avatar Skill before your normal move. One skill per round. Ultimate once per battle.")
+        return e
     pool = ASK.energy(profile)
     chosen = max(1, min(ASK.chosen_slot(profile, card["id"]), len(skills)))
 
@@ -373,6 +380,8 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
                 "❌ No avatar found. Equip one with `;equipavatar <id>`, or "
                 "name it: `;askill 2 Argus`.")
 
+        if card.get("active_battle_skills"):
+            return await ctx.send(embed=build_skill_embed({}, card))
         skills = card.get("skills") or []
         if not skills:
             return await ctx.send(

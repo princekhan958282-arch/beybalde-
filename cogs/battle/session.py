@@ -120,6 +120,20 @@ class _InChannelControlPanel(discord.ui.View):
     def __init__(self, session: "BattleSession") -> None:
         super().__init__(timeout=BATTLE_TIMEOUT)
         self.session = session
+        if not getattr(session, "original_generation", None) or not session.original_generation.states:
+            self.remove_item(self.btn_avatar)
+
+    @discord.ui.button(label="Avatar Skill", emoji="✨", style=discord.ButtonStyle.primary, row=1)
+    async def btn_avatar(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        from .original_generation_ui import SkillPicker
+        key = str(interaction.user.id)
+        og = getattr(self.session, "original_generation", None)
+        if not self.session.is_player(interaction.user) or not og or key not in og.states:
+            await interaction.response.send_message("No active Original Generation avatar equipped.", ephemeral=True)
+            return
+        await interaction.response.send_message(
+            content=f"Avatar Energy: **{og.states[key].energy}/100**. Choose a skill before your move.",
+            view=SkillPicker(self.session, key), ephemeral=True)
 
     def _special_block(self, user_id: str) -> Optional[str]:
         """Why this player's Special is unavailable, or None if it is ready.
@@ -551,6 +565,11 @@ class BattleSession:
         self.attack_manager  = AttackManager(self)
         self.defense_manager = DefenseManager(self)
 
+        from .original_generation import OriginalGeneration
+        self.original_generation = OriginalGeneration(self)
+        self.stamina_manager.original_generation = self.original_generation
+        self.stability_manager.original_generation = self.original_generation
+
         # ── Battle-start setup (initial_shield, initial_defense_buff, etc.) ──
         # Must run AFTER AbilityEngine is constructed so grant_shield / _add_buf
         # have a valid engine to write into.
@@ -753,6 +772,10 @@ class BattleSession:
 
     def skill_label(self, key: str) -> str:
         """'Bulwark · 75⚡' for the battle UI, or '' when no skill is in play."""
+        og = getattr(self, "original_generation", None)
+        if og and key in og.states:
+            st = og.states[key]
+            return f"Avatar Energy {st.energy}/100" + (" · skill selected" if st.pending else "")
         commit = (getattr(self, "skill_commit", None) or {}).get(key) or {}
         name = commit.get("name")
         if not name:
@@ -984,6 +1007,12 @@ class BattleSession:
             if reason:
                 await interaction.response.send_message(reason, ephemeral=True)
                 return
+        og = getattr(self, "original_generation", None)
+        if og:
+            reason = og.blocked_move(key, move)
+            if reason:
+                await interaction.response.send_message(reason, ephemeral=True)
+                return
         self.moves[key] = move
         # The REAL price for THIS blade, from the same call that charges it.
         # The label used to carry a hardcoded number and every one of them was
@@ -1122,6 +1151,7 @@ class BattleSession:
         for key in (k1, k2):
             self.ability.damage_filter._step1_tick(key, round_log)
 
+        self.original_generation.begin_round(round_log)
         self.type_gimmicks.start_round()
         # New authored controls can change this round's roll using the normal
         # condition/cooldown/once machinery, before gimmicks and stats resolve.
@@ -1214,6 +1244,8 @@ class BattleSession:
                     pass
         tactical.round_end(k1, k2, m1, m2, matchup_p1, round_log)
         tactical.round_end(k2, k1, m2, m1, matchup_p2, round_log)
+
+        self.original_generation.end_round(round_log)
 
         # ── Intermediate ring-out check (ability-driven stability drops) ──────
         # apply_pair_results may trigger on_win / on_special abilities that drain

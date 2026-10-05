@@ -2949,6 +2949,564 @@
         "hp_flat": 125,
         "hp_percent": 0
       }
+    },
+    {
+      "id": "avatar_og_tyson",
+      "name": "Tyson",
+      "rarity": "Original Generation",
+      "type": "attack",
+      "price": 0,
+      "description": "Dragoon partner — original-generation anime-inspired active battle skills.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301569559892009/TysonGrangerS3-1.webp?backend=b2&ex=6ac3aa48&is=6ac258c8&hm=b31526f3170c741a5a2d830b2875565edd4bb8468f99ebe1bdb7ab4882a56e91&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "active_battle_skills": true,
+      "character": "tyson",
+      "anime_bey": "Dragoon",
+      "bonuses": {
+        "attack_flat": 25,
+        "attack_percent": 0,
+        "defence_flat": 5,
+        "defence_percent": 0,
+        "stamina_flat": 15,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 15,
+        "hp_percent": 0
+      },
+      "skills": [
+        {
+          "name": "Champion’s Spirit",
+          "description": "For 2 rounds, recover 25% of HP damage received, capped at 8% maximum HP per round. Surviving hits only.",
+          "energy_cost": 40,
+          "cooldown_rounds": 3,
+          "once_per_battle": false
+        },
+        {
+          "name": "Galaxy Storm",
+          "description": "Your next Attack gains 10% damage per consecutive Attack round, including this round; maximum 30%.",
+          "energy_cost": 60,
+          "cooldown_rounds": 4,
+          "once_per_battle": false
+        },
+        {
+          "name": "Galaxy Turbo Twister",
+          "description": "Use with Special: a tornado lasts 2 rounds. Each round end deals 32% ATK damage through normal DEF and reductions, with an independent 44% chance to crit for double damage. Enemy moves cost +0.7 battle stamina while active. Once per battle.",
+          "energy_cost": 100,
+          "cooldown_rounds": 0,
+          "once_per_battle": true
+        }
+      ]
+    },
+    {
+      "id": "avatar_og_kai",
+      "name": "Kai",
+      "rarity": "Original Generation",
+      "type": "attack",
+      "price": 0,
+      "description": "Dranzer partner — original-generation anime-inspired active battle skills.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301583761936475/Kai_Hiwatari.webp?backend=b2&ex=6ac3aa4c&is=6ac258cc&hm=822f1843a822e3b3546ba9fb09edacc8d25fe86bd00ff8634d77f68ecabfc754&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "active_battle_skills": true,
+      "character": "kai",
+      "anime_bey": "Dranzer",
+      "bonuses": {
+        "attack_flat": 25,
+        "attack_percent": 0,
+        "defence_flat": 15,
+        "defence_percent": 0,
+        "stamina_flat": 10,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 10,
+        "hp_percent": 0
+      },
+      "skills": [
+        {
+          "name": "Phoenix Focus",
+          "description": "If the enemy repeats their previous move this round, your hit ignores 25% DEF.",
+          "energy_cost": 40,
+          "cooldown_rounds": 3,
+          "once_per_battle": false
+        },
+        {
+          "name": "Flame Saber",
+          "description": "Your next successful hit applies Scorch for 2 rounds: enemy loses 8 HP at round end after using Attack or Special.",
+          "energy_cost": 60,
+          "cooldown_rounds": 4,
+          "once_per_battle": false
+        },
+        {
+          "name": "Blazing Gigs Tempest",
+          "description": "Your next hit removes one temporary positive stat buff before damage calculation. Removing a buff grants 25% extra damage. Once per battle.",
+          "energy_cost": 100,
+          "cooldown_rounds": 0,
+          "once_per_battle": true
+        }
+      ]
+    },
+    {
+      "id": "avatar_og_ray",
+      "name": "Ray",
+      "rarity": "Original Generation",
+      "type": "balance",
+      "price": 0,
+      "description": "Driger partner — original-generation anime-inspired active battle skills.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301590518833262/Ray_Kon_GRevolution_Render.webp?backend=b2&ex=6ac3aa4d&is=6ac258cd&hm=ada02ec01e2c3a91c1ab61f61ea3ae87e839f624df6e8c591dd03a6723dffc4b&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "active_battle_skills": true,
+      "character": "ray",
+      "anime_bey": "Driger",
+      "bonuses": {
+        "attack_flat": 20,
+        "attack_percent": 0,
+        "defence_flat": 15,
+        "defence_percent": 0,
+        "stamina_flat": 15,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 10,
+        "hp_percent": 0
+      },
+      "skills": [
+        {
+          "name": "Tiger Claw",
+          "description": "Split your next Attack’s normal damage into 3 strikes. If all connect, recover 0.4 battle stamina. Ordinary abilities trigger once per action.",
+          "energy_cost": 40,
+          "cooldown_rounds": 3,
+          "once_per_battle": false
+        },
+        {
+          "name": "Vulcan Claw",
+          "description": "If your move differs from the previous round, gain 15% ATK and DEF this round and recover 3 stability.",
+          "energy_cost": 60,
+          "cooldown_rounds": 4,
+          "once_per_battle": false
+        },
+        {
+          "name": "Vulcan Power Claw",
+          "description": "Your next Attack or Special bypasses 50% of temporary shields. Against Defense, deal 5 extra stability damage. Once per battle.",
+          "energy_cost": 100,
+          "cooldown_rounds": 0,
+          "once_per_battle": true
+        }
+      ]
+    },
+    {
+      "id": "avatar_og_max",
+      "name": "Max",
+      "rarity": "Original Generation",
+      "type": "defense",
+      "price": 0,
+      "description": "Draciel partner — original-generation anime-inspired active battle skills.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301601466220604/MaxSeason1.webp?backend=b2&ex=6ac3aa50&is=6ac258d0&hm=52f53551ccc795cd1924b8d2fcb3017d66005c37365f1b9c5aad8fb32b986c0b&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "active_battle_skills": true,
+      "character": "max",
+      "anime_bey": "Draciel",
+      "bonuses": {
+        "attack_flat": 5,
+        "attack_percent": 0,
+        "defence_flat": 25,
+        "defence_percent": 0,
+        "stamina_flat": 10,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 20,
+        "hp_percent": 0
+      },
+      "skills": [
+        {
+          "name": "Draciel Shield",
+          "description": "Gain a shield equal to 10% maximum HP, lasting 2 rounds.",
+          "energy_cost": 40,
+          "cooldown_rounds": 3,
+          "once_per_battle": false
+        },
+        {
+          "name": "Fortress Defense",
+          "description": "For 2 rounds, store 30% of damage prevented by your Defense-button guard. Afterwards restore it as HP, capped at 12% maximum HP.",
+          "energy_cost": 60,
+          "cooldown_rounds": 4,
+          "once_per_battle": false
+        },
+        {
+          "name": "Unbreakable Fortress",
+          "description": "For 2 rounds, prevent one stability finish at 1 stability, then consume protection and restore 8 stability. HP and stamina finishes still apply. Once per battle.",
+          "energy_cost": 100,
+          "cooldown_rounds": 0,
+          "once_per_battle": true
+        }
+      ]
+    },
+    {
+      "id": "avatar_og_mariah",
+      "name": "Mariah",
+      "rarity": "Original Generation",
+      "type": "stamina",
+      "price": 0,
+      "description": "Galux partner — original-generation anime-inspired active battle skills.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301609133277264/Mariah2.webp?backend=b2&ex=6ac3aa52&is=6ac258d2&hm=485a82369607d2c9717fdddfa8fc0adbe9c51c71820b9311684c97f74e9b593a&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "active_battle_skills": true,
+      "character": "mariah",
+      "anime_bey": "Galux",
+      "bonuses": {
+        "attack_flat": 15,
+        "attack_percent": 0,
+        "defence_flat": 15,
+        "defence_percent": 0,
+        "stamina_flat": 20,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 10,
+        "hp_percent": 0
+      },
+      "skills": [
+        {
+          "name": "Feline Footwork",
+          "description": "Reduce the first incoming Attack or Special hit this round by 35%.",
+          "energy_cost": 40,
+          "cooldown_rounds": 3,
+          "once_per_battle": false
+        },
+        {
+          "name": "Cat Scratch",
+          "description": "Your next successful hit reduces the enemy’s HP healing by 40% for 2 rounds.",
+          "energy_cost": 60,
+          "cooldown_rounds": 4,
+          "once_per_battle": false
+        },
+        {
+          "name": "Mountain Cat Attack",
+          "description": "Prepare an ambush for up to 2 rounds: your next Attack against Stamina or Charge gains 40% damage and consumes it. Once per battle.",
+          "energy_cost": 100,
+          "cooldown_rounds": 0,
+          "once_per_battle": true
+        }
+      ]
+    },
+    {
+      "id": "avatar_og_daichi",
+      "name": "Daichi",
+      "rarity": "Original Generation",
+      "type": "attack",
+      "price": 0,
+      "description": "Strata Dragoon partner — original-generation anime-inspired active battle skills.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301620365758615/Daichi.webp?backend=b2&ex=6ac3aa54&is=6ac258d4&hm=dd6e6d19d8fd895460d4ce8fa4bbcf3a866d364563a4cd81b6d283eb6ec604bb&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "active_battle_skills": true,
+      "character": "daichi",
+      "anime_bey": "Strata Dragoon",
+      "bonuses": {
+        "attack_flat": 25,
+        "attack_percent": 0,
+        "defence_flat": 5,
+        "defence_percent": 0,
+        "stamina_flat": 10,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 20,
+        "hp_percent": 0
+      },
+      "skills": [
+        {
+          "name": "Wild Footing",
+          "description": "Remove negative stability-recovery effects and restore 6 stability.",
+          "energy_cost": 40,
+          "cooldown_rounds": 3,
+          "once_per_battle": false
+        },
+        {
+          "name": "Great Cutter",
+          "description": "Your next Attack deals 4 extra stability damage but costs 0.3 extra battle stamina.",
+          "energy_cost": 60,
+          "cooldown_rounds": 4,
+          "once_per_battle": false
+        },
+        {
+          "name": "Ultimate Great Cutter",
+          "description": "Your next hit gains 1% HP damage per point of stability the enemy is missing, capped at 35%. Once per battle.",
+          "energy_cost": 100,
+          "cooldown_rounds": 0,
+          "once_per_battle": true
+        }
+      ]
+    },
+    {
+      "id": "avatar_og_lee",
+      "name": "Lee",
+      "rarity": "Original Generation",
+      "type": "balance",
+      "price": 0,
+      "description": "Galeon partner — original-generation anime-inspired active battle skills.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301631274877009/Lee_GRevolution_Render.webp?backend=b2&ex=6ac3aa57&is=6ac258d7&hm=d72d51c5ced4157856812e28a3ae0602939619e781cc85052e2f7b54df61a735&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "active_battle_skills": true,
+      "character": "lee",
+      "anime_bey": "Galeon",
+      "bonuses": {
+        "attack_flat": 20,
+        "attack_percent": 0,
+        "defence_flat": 20,
+        "defence_percent": 0,
+        "stamina_flat": 10,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 10,
+        "hp_percent": 0
+      },
+      "skills": [
+        {
+          "name": "Tiger Claw",
+          "description": "Mark the opponent for 2 rounds. Their first successful damaging hit triggers retaliation worth 15% of your ATK, through normal mitigation.",
+          "energy_cost": 40,
+          "cooldown_rounds": 3,
+          "once_per_battle": false
+        },
+        {
+          "name": "Dark Lightning",
+          "description": "If you use Defense this round, retaliate for 30% of HP damage actually received, capped at 40 damage.",
+          "energy_cost": 60,
+          "cooldown_rounds": 4,
+          "once_per_battle": false
+        },
+        {
+          "name": "Spiral Lightning",
+          "description": "Seal the enemy’s last-used avatar skill for 2 rounds. Other skills and normal buttons stay available. Once per battle.",
+          "energy_cost": 100,
+          "cooldown_rounds": 0,
+          "once_per_battle": true
+        }
+      ]
+    },
+    {
+      "id": "avatar_og_gary",
+      "name": "Gary",
+      "rarity": "Original Generation",
+      "type": "attack",
+      "price": 0,
+      "description": "Galzzly partner — original-generation anime-inspired active battle skills.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301639843971272/Gary2.webp?backend=b2&ex=6ac3aa59&is=6ac258d9&hm=62cd492d9db6a212172b2d45be2630842f3cdabe611bab42b3d35969d018ad50&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "active_battle_skills": true,
+      "character": "gary",
+      "anime_bey": "Galzzly",
+      "bonuses": {
+        "attack_flat": 20,
+        "attack_percent": 0,
+        "defence_flat": 10,
+        "defence_percent": 0,
+        "stamina_flat": 5,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 25,
+        "hp_percent": 0
+      },
+      "skills": [
+        {
+          "name": "Bear’s Endurance",
+          "description": "For 2 rounds, convert 50% of incoming stability damage into HP damage at 3 HP per converted stability point.",
+          "energy_cost": 40,
+          "cooldown_rounds": 3,
+          "once_per_battle": false
+        },
+        {
+          "name": "Bear Axe Attack",
+          "description": "Your next Attack gains 35% damage, but Defense is unavailable next round.",
+          "energy_cost": 60,
+          "cooldown_rounds": 4,
+          "once_per_battle": false
+        },
+        {
+          "name": "Galzzly Rampage",
+          "description": "Gain 3 Rage stacks. Each Attack consumes one for 15% extra damage. Stamina or Charge clears remaining stacks. Once per battle.",
+          "energy_cost": 100,
+          "cooldown_rounds": 0,
+          "once_per_battle": true
+        }
+      ]
+    },
+    {
+      "id": "avatar_og_kevin",
+      "name": "Kevin",
+      "rarity": "Original Generation",
+      "type": "defense",
+      "price": 0,
+      "description": "Galman partner — original-generation anime-inspired active battle skills.",
+      "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301644038279258/Kevin2.webp?backend=b2&ex=6ac3aa5a&is=6ac258da&hm=539cd22aa6f43d444593b82ffcc63b6ed87dcd8e45837e10f87798ae6d9e1a3b&",
+      "limited": false,
+      "available_until": null,
+      "draw_chance": null,
+      "stats_always_on": true,
+      "active_battle_skills": true,
+      "character": "kevin",
+      "anime_bey": "Galman",
+      "bonuses": {
+        "attack_flat": 10,
+        "attack_percent": 0,
+        "defence_flat": 20,
+        "defence_percent": 0,
+        "stamina_flat": 20,
+        "stamina_percent": 0,
+        "stability_flat": 0,
+        "stability_percent": 0,
+        "charge_flat": 0,
+        "charge_percent": 0,
+        "special_move_flat": 0,
+        "special_move_percent": 0,
+        "crit_percent": 0,
+        "dodge_chance": 0,
+        "counter_chance": 0,
+        "multi_hit_power_double": false,
+        "multi_hit_extra_hits": false,
+        "resistance_damage_percent": 0,
+        "resistance_status_chance": 0,
+        "hp_flat": 10,
+        "hp_percent": 0
+      },
+      "skills": [
+        {
+          "name": "Monkey Feint",
+          "description": "If the enemy uses Defense this round, reduce their Defense-button guard strength by 30%.",
+          "energy_cost": 40,
+          "cooldown_rounds": 3,
+          "once_per_battle": false
+        },
+        {
+          "name": "Crazy Monkey Attack",
+          "description": "Your next successful hit prevents enemy Avatar Energy gain that round.",
+          "energy_cost": 60,
+          "cooldown_rounds": 4,
+          "once_per_battle": false
+        },
+        {
+          "name": "Galman’s Trickery",
+          "description": "For 2 rounds, an enemy repeating their previous move pays 0.4 extra battle stamina. Changing moves avoids the penalty. Once per battle.",
+          "energy_cost": 100,
+          "cooldown_rounds": 0,
+          "once_per_battle": true
+        }
+      ]
     }
   ]
 }

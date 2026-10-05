@@ -29,6 +29,9 @@ import random
 
 def _av(session, key: str):
     """Avatar bonuses for a player, or None."""
+    og = getattr(session, "original_generation", None)
+    if og and og.debuffs.get((key, "skill_seal"), 0) >= getattr(session, "round", 1):
+        return None
     try:
         av = session.avatar_bonuses.get(key)
     except AttributeError:

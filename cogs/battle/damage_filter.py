@@ -126,6 +126,9 @@ class DamageFilter:
         if is_first_hit and getattr(self.session, 'damage_status_round', None) != getattr(self.session, 'round', -1):
             self._step1_tick(mover_key, logs)
 
+        og = getattr(self.session, "original_generation", None)
+        if og:
+            dmg_dealt = og.before_damage(mover_key, other_key, move, dmg_dealt, logs, is_first_hit)
         mover_silenced = self._sm.is_silenced(mover_key)
         tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
         if tactical is not None and not mover_silenced:
@@ -159,6 +162,26 @@ class DamageFilter:
     def defensive(self, mover_key, other_key, mover_blade, other_blade,
                   move, dmg_dealt, is_first_hit=True):
         logs = []
+        og = getattr(self.session, "original_generation", None)
+        if og and move == "attack" and og.effect(mover_key, "tiger_claw") and not og.split_running and dmg_dealt > 0:
+            og.states[mover_key].effects.pop("tiger_claw", None)
+            quotient, remainder = divmod(int(dmg_dealt), 3)
+            parts = [quotient + (i < remainder) for i in range(3)]
+            og.split_running = True
+            resolved = []
+            try:
+                for i, part in enumerate(parts):
+                    hit, lines = self.defensive(mover_key, other_key, mover_blade, other_blade,
+                                               move, part, i == 0)
+                    resolved.append(hit)
+                    logs.extend(lines)
+            finally:
+                og.split_running = False
+            if all(hit > 0 for hit in resolved):
+                og.split_success[mover_key] = True
+            return sum(resolved), logs
+        if og:
+            dmg_dealt = og.mitigate(mover_key, other_key, move, dmg_dealt, logs)
         # ── Step 3: Invulnerability check ─────────────────────────────────────
         dmg_dealt = self._step3_invuln(
             mover_key, other_key, mover_blade, other_blade,
@@ -178,10 +201,14 @@ class DamageFilter:
         # ── Step 4: Shield absorption ─────────────────────────────────────────
         # Shield absorbs on EVERY hit (correct behaviour); a breaking shield
         # emits its log naturally when remaining drops to 0.
+        bypass = 0
+        if og and not self.is_true_damage(mover_key, move):
+            dmg_dealt, bypass = og.shield(mover_key, other_key, dmg_dealt, logs)
         dmg_dealt = self._step4_shield(
             mover_key, other_key, other_blade,
             move, dmg_dealt, is_first_hit, logs,
         )
+        dmg_dealt += bypass
         tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
         if tactical is not None and not self.is_true_damage(mover_key, move):
             dmg_dealt = tactical.mitigate(other_key, mover_key, move, dmg_dealt, logs)

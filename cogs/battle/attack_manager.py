@@ -161,10 +161,25 @@ class AttackManager:
         ostats, _avc_logs = AVC.apply_defence_break(self.session, mkey, ostats)
         logs.extend(_avc_logs)
 
+        og = getattr(self.session, "original_generation", None)
+        if og:
+            ostats = og.preprocess(mkey, okey, ostats)
+
         # ── Raw damage from damage_rules ──────────────────────────────────────
         dmg_dealt, dmg_taken, matchup, is_crit = calc_damage(
             mmove, mstats, ostats, mblade, omove
         )
+
+        if og and mmove == MOVE_ATTACK and omove == MOVE_DEFENSE:
+            from .combat_rules import base_damage
+            from .button_profile import move_power
+            raw = base_damage(mstats.get("level", 1), move_power(mblade, mmove),
+                              mstats.get("attack", 0), ostats.get("defense", 1))
+            saved = max(0, raw - dmg_dealt)
+            if og.effect(mkey, "feint"):
+                dmg_dealt += saved * .30
+                saved *= .70
+            og.guard_saved[okey] = og.guard_saved.get(okey, 0) + saved
 
         # Explicit avatar/ability crits remain overrides; natural type crits
         # are rolled centrally, once per valid action, before either pairing.
@@ -429,6 +444,10 @@ class AttackManager:
                 f"**{counter_p2} dmg** reflected back at {b2['name']}!"
             )
 
+        og = getattr(self.session, "original_generation", None)
+        if og:
+            og.committed(k1, k2, m1, self.committed_damage[k1], logs)
+            og.committed(k2, k1, m2, self.committed_damage[k2], logs)
         return logs
 
     # =========================================================================
@@ -635,6 +654,9 @@ class AttackManager:
         _min_hit_dmg = int(_sm_block.get("min_hit_damage", 0) or 0)
         _spc = getattr(self.session, "special_stats", {}).get(mkey)
         from .purification import effective_stats
+        og = getattr(self.session, "original_generation", None)
+        if og:
+            og.preprocess(mkey, okey, effective_stats(self.session, okey))
         _live_stats = effective_stats(self.session, mkey)
         hits, per_hit, flavour, ignores_def = resolve_special(mblade, _spc, _live_stats)
         # Abilities can grant extra hits (e.g. a max-stack payoff). Consumed

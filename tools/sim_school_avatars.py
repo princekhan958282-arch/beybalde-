@@ -186,7 +186,7 @@ async def suite() -> None:
           "still narrows to the slot it paid for",
           not any(a.get("stats_always_on")
                   for a in avatar_engine.get_all_avatars()
-                  if a.get("rarity") != "Blader"))
+                  if a.get("rarity") != "Blader" and not a.get("active_battle_skills")))
     freya = avatar_engine.get_avatar("avatar_mlbb001")
     check("Freya is the control: her block still zeroes outside her slot",
           AS.bonuses_for(freya, 1)["counter_chance"] == 0
@@ -594,13 +594,13 @@ async def suite() -> None:
     # ── 12. nothing else moved ───────────────────────────────────────────────
     print("\n── 12. the other 37 cards are untouched ────────────────────────")
     others = [a for a in avatar_engine.get_all_avatars()
-              if a.get("rarity") != "Blader"]
+              if a.get("rarity") != "Blader" and not a.get("active_battle_skills")]
     check("there are still 37 of them", len(others) == 37, len(others))
     raw = json.load(open(os.path.join(ROOT, "cogs", "avatar",
                                       "avatar_data.json"), encoding="utf-8"))
     check("no existing card gained a rules block",
           not any(sk.get("rules") for a in raw["avatars"]
-                  if a.get("rarity") != "Blader"
+                  if a.get("rarity") != "Blader" and not a.get("active_battle_skills")
                   for sk in (a.get("skills") or [])))
     check("the existing packs' prices and pools are unchanged",
           SHOP.PACK_PRICE["legendary"] == 500_000

@@ -207,6 +207,9 @@ class Fighter:
     gimmick_once: set = field(default_factory=set)
     ability_blade: Optional[dict] = None
     combat_round: int = 0
+    avatar_card: dict = field(default_factory=dict)
+    avatar_combat_state: dict = field(default_factory=dict)
+    avatar_stat_multipliers: dict = field(default_factory=dict)
     incoming_reduction: float = 0
     incoming_flat_reduction: float = 0
     outgoing_amp: float = 0
@@ -244,12 +247,18 @@ class Fighter:
 
     def stat_factor(self, stat):
         passive = 1 if self.stats_pretyped else passive_stat_multiplier(self.bey_type, stat)
-        return passive * (self.morph_stat_factor if self.morph_rounds > 0 else 1)
+        return passive * (self.morph_stat_factor if self.morph_rounds > 0 else 1) * self.avatar_stat_multipliers.get(stat, 1)
 
     def alive(self) -> bool:
         return self.hp > 0
 
     def can(self, move: str) -> bool:
+        states=self.avatar_combat_state.get('states',{})
+        st=states.get('b')
+        if st and move == MOVE_DEFENSE:
+            blocked=st.effects.get('no_defense',{})
+            if blocked.get('from',0) <= self.combat_round+1 <= blocked.get('until',0):
+                return False
         if move == MOVE_SPECIAL and self.gauge < SPECIAL_GAUGE_MAX:
             return False
         return self.sp >= self.cost_for(move)
@@ -294,6 +303,9 @@ class Fighter:
                        gimmick_once=set(self.gimmick_once),
                        ability_blade=copy.deepcopy(self.ability_blade),
                        combat_round=self.combat_round,
+                       avatar_card=copy.deepcopy(self.avatar_card),
+                       avatar_combat_state=copy.deepcopy(self.avatar_combat_state),
+                       avatar_stat_multipliers=dict(self.avatar_stat_multipliers),
                        incoming_reduction=self.incoming_reduction,
                        incoming_flat_reduction=self.incoming_flat_reduction,
                        outgoing_amp=self.outgoing_amp,
@@ -402,12 +414,22 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     fire_controls = prepare(engine, a, b, {'a': move_a, 'b': move_b}, ability_logs, simulate=simulate)
     ability_logs.extend(engine.begin_round({"a": move_a, "b": move_b}, started=True))
     log["gimmicks"] = ability_logs
+    from .original_generation_adapter import project
+    avatar_bridge = project(a,b,engine,{'a':move_a,'b':move_b})
+    if avatar_bridge:
+        if simulate: avatar_bridge.og.rng=lambda: .99
+        avatar_bridge.begin()
+        ability_logs.extend(avatar_bridge.logs)
+        avatar_bridge.logs.clear()
     for key, fighter, move in (("a", a, move_a), ("b", b, move_b)):
         fighter.morph_rounds = engine.states[key].adaptive_morph_rounds
         fighter.morph_stat_factor = engine.stat_multiplier(key)
         fighter.sync_morph_hp()
         from ..combat_rules import spend_resource
-        fighter.sp = spend_resource(fighter.sp, fighter.cost_for(move))
+        base_cost = fighter.cost_for(move)
+        if avatar_bridge:
+            base_cost = avatar_bridge.cost(key,move,base_cost)
+        fighter.sp = spend_resource(fighter.sp, base_cost)
 
     def offence(src, dst, move, other_move, tag):
         if move not in (MOVE_ATTACK, MOVE_SPECIAL):
@@ -419,9 +441,15 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         # discriminator is `special_atk_pct`, which boss_battle sets on actual
         # bosses and Story deliberately leaves unset; the comment at that
         # assignment says so in as many words.
+        if avatar_bridge:
+            other = 'b' if tag == 'a' else 'a'
+            avatar_bridge.og.preprocess(tag,other,{'defense':dst.eff_defense})
         dmg = _raw_damage(src, special,
                           vs_boss=getattr(dst, "special_atk_pct", None) is not None, dst=dst)
 
+        if avatar_bridge and not special:
+            pierce=avatar_bridge.og.pierce(tag)
+            if pierce: dmg /= max(.01,1-pierce)
         if special and src.special_true_damage:
             pass
         elif other_move == MOVE_DEFENSE:
@@ -430,7 +458,15 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
                 soak = 0
             if special:
                 soak *= (1 - SPECIAL_PIERCE)
-            dmg *= max(0.15, 1 - soak)
+            guarded = dmg * max(0.15, 1 - soak)
+            if avatar_bridge:
+                other = 'b' if tag == 'a' else 'a'
+                saved = max(0,dmg-guarded)
+                if avatar_bridge.og.effect(tag,'feint'):
+                    guarded += saved*.30
+                    saved *= .70
+                avatar_bridge.og.guard_saved[other] = saved
+            dmg = guarded
             log[f"note_{tag}"] = "blocked"
         elif other_move == MOVE_STAMINA:
             dmg *= ATTACK_VS_STAMINA_MULT
@@ -458,6 +494,9 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             fire_controls(tag, 'on_' + move + '_' + result, matchup=matchup)
             fire_controls(tag, 'on_any_' + result, matchup=matchup)
             fire_controls(tag, 'on_special' if special else 'on_attack_hit', matchup=matchup)
+        if avatar_bridge:
+            dmg = avatar_bridge.offensive(tag,other,move,dmg)
+            dmg = avatar_bridge.defensive(tag,other,move,dmg)
         dmg = engine.critical(tag, move, dmg, [])
         if fire_controls and dmg > 0:
             fire_controls(other, 'on_take_damage', move, matchup)
@@ -475,15 +514,41 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     if engine.nullifies('b', 'a', move_b, true_damage=move_b == MOVE_SPECIAL and b.special_true_damage):
         dmg_a = 0
 
+    def barrier(src_key, dst, damage):
+        split = bool(avatar_bridge and src_key in avatar_bridge.split_keys)
+        parts = [damage]
+        if split:
+            whole = hp_damage(damage)
+            quotient,remainder=divmod(whole,3)
+            parts=[quotient+(i < remainder) for i in range(3)]
+        resolved=[]
+        shattered=False
+        for part in parts:
+            if dst.state is not None and hasattr(dst.state, 'absorb') and part > 0:
+                part,broke=dst.state.absorb(part)
+                shattered |= bool(broke)
+            resolved.append(part)
+        if split and all(part > 0 for part in resolved):
+            actor=a if src_key=='a' else b
+            actor.sp=min(actor.sp_max,actor.sp+.4)
+            ability_logs.append('🐯 **Tiger Claw** — 3 strikes connect; +0.4 stamina!')
+        return sum(resolved),shattered
+
     # Crystal layers eat a slice of one incoming hit, then shatter.
     if b.state is not None and hasattr(b.state, "absorb") and dmg_b > 0 and not (move_a == MOVE_SPECIAL and a.special_true_damage):
-        dmg_b, shattered = b.state.absorb(dmg_b)
+        dmg_b, shattered = barrier("a",b,dmg_b)
         if shattered:
             log["note_b"] = "shard shattered"
     if a.state is not None and hasattr(a.state, "absorb") and dmg_a > 0 and not (move_b == MOVE_SPECIAL and b.special_true_damage):
-        dmg_a, shattered = a.state.absorb(dmg_a)
+        dmg_a, shattered = barrier("b",a,dmg_a)
         if shattered:
             log["note_a"] = "shard shattered"
+
+    if avatar_bridge:
+        if 'a' in avatar_bridge.split_keys and not (b.state and hasattr(b.state,'absorb')):
+            dmg_b,_=barrier('a',b,dmg_b)
+        if 'b' in avatar_bridge.split_keys and not (a.state and hasattr(a.state,'absorb')):
+            dmg_a,_=barrier('b',a,dmg_a)
 
     # Defensive effects precede the shared type reduction/counter stage.
     dmg_b = engine.mitigate('a', 'b', move_a, dmg_b,
@@ -522,6 +587,9 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         src.stability = recover_resource(src.stability, src.max_stability, stability)
         if recovery is not None:
             src.sp = recover_resource(src.sp, src.sp_max, recovery)
+        if avatar_bridge:
+            from ..purification import heal_amount
+            heal=heal_amount(avatar_bridge.og.s,key,heal)
         return min(max(0, src.max_hp - src.hp), hp_damage(heal))
 
     # Final HP rounding and capped actual damage, before terminal counter.
@@ -603,6 +671,10 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
                 f.heal_streak = max(0, f.heal_streak - HEAL_STREAK_RECOVERY)
 
     # Twin Crowns flips after the exchange; Ascension checks the new HP.
+    if avatar_bridge:
+        avatar_bridge.end({'a':move_a,'b':move_b},actual_a,actual_b)
+        ability_logs.extend(avatar_bridge.logs)
+
     for f in (a, b):
         if not f.state:
             continue
