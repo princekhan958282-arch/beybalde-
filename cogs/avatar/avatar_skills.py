@@ -254,6 +254,8 @@ def active_slot(profile: dict, avatar: Optional[dict]) -> int:
     Always clamped to what the card really has: a pick of 3 on a card with two
     skills resolves to the card's last slot rather than to nothing.
     """
+    if (avatar or {}).get("active_battle_skills"):
+        return 0
     if not has_skills(avatar):
         return 0
     locked = profile.get(K_LOCKED)
@@ -404,6 +406,10 @@ def begin_battle(profile: dict, avatar: Optional[dict],
     """
     accrue(profile, now)
     before = energy(profile)
+
+    if (avatar or {}).get("active_battle_skills"):
+        profile.pop(K_LOCKED, None)
+        return _no_skill_commit(before)
 
     if not has_skills(avatar):
         profile.pop(K_LOCKED, None)

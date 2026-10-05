@@ -209,7 +209,7 @@ def render_avatar_info_card(avatar, *, owned=False, equipped=False, level=1,
                 except (TypeError,ValueError,OverflowError):
                     sk_level = 1
                 text(str(sk_level) if owned or equipped else '—',(1292,y,68),26,cyan)
-                text(str(AS.skill_cost(i+1)),(1400,y,67),26,cyan)
+                text(str(skills[i].get("energy_cost", AS.skill_cost(i+1))),(1400,y,67),26,cyan)
             elif i==0 and not skills:
                 text('No signature skills',(653,y,565),23,dim)
         buf=io.BytesIO()

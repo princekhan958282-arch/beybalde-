@@ -532,6 +532,10 @@ async def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
                     special_mult=special_mult,
                     bey_type=(blade or {}).get("type", ""),
                     level=_bey_level)
+    from cogs.avatar.avatar_engine import avatar_engine
+    card=avatar_engine.get_avatar(profile.get("equipped_avatar") or "") or {}
+    if card.get("active_battle_skills"):
+        f.avatar_card=card
     return f, (blade or {})
 
 
@@ -997,6 +1001,38 @@ class BossView(discord.ui.View):
             btn.callback = self._make_cb(move)
             self.add_item(btn)
 
+        if f.foe.avatar_card.get("active_battle_skills"):
+            btn=discord.ui.Button(label="Avatar Skill",emoji="✨",style=discord.ButtonStyle.primary,row=1,disabled=f.finished)
+            btn.callback=self._avatar_skill
+            self.add_item(btn)
+
+    async def _avatar_skill(self, interaction):
+        f=self.fight
+        if interaction.user.id != f.active.id or self.busy or f.finished:
+            return await interaction.response.send_message("Only the active player can select a skill now.",ephemeral=True)
+        from .original_generation_adapter import project
+        from ..type_gimmicks import TypeGimmickEngine
+        from ..original_generation import COSTS
+        owner=f.active.id
+        fighter=f.foe
+        round_no=fighter.combat_round+1
+        bridge=project(f.boss,fighter,TypeGimmickEngine({'a':f.boss.bey_type,'b':fighter.bey_type}),{'a':None,'b':None})
+        og=bridge.og
+        picker=discord.ui.View(timeout=60)
+        for slot,skill in enumerate(fighter.avatar_card['skills'],1):
+            button=discord.ui.Button(label=f"{skill['name']} · {COSTS[slot-1]}⚡"[:80],row=slot-1)
+            button.disabled=og.reason('b',slot) is not None
+            async def choose(i,slot=slot,skill=skill):
+                if i.user.id != owner or f.active.id != owner or f.foe is not fighter or fighter.combat_round+1 != round_no or self.busy or f.finished:
+                    return await i.response.send_message("This skill panel is no longer current.",ephemeral=True)
+                error=og.select('b',slot)
+                if error:
+                    return await i.response.send_message(error,ephemeral=True)
+                await i.response.edit_message(content=f"Selected **{skill['name']}**. Now choose your move.\n{skill['description']}",view=None)
+            button.callback=choose
+            picker.add_item(button)
+        await interaction.response.send_message(content=f"Avatar Energy: **{og.states['b'].energy}/100**",view=picker,ephemeral=True)
+
     def _make_cb(self, move: str):
         async def cb(interaction: discord.Interaction):
             f = self.fight
@@ -1148,6 +1184,9 @@ class BossView(discord.ui.View):
         )
         if f.line:
             e.description = f"*“{f.line}”*"
+        og_state=f.foe.avatar_combat_state.get("states",{}).get("b")
+        if og_state:
+            e.description=(e.description or "")+f"\n✨ {f.foe.avatar_card['name']} · Avatar Energy **{og_state.energy}/100**"
 
         e.add_field(
             name=f"{cfg['emoji']} Boss",

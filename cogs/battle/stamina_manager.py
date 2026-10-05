@@ -247,7 +247,8 @@ class StaminaManager:
                                  button_profile.stamina_cost(
                                      self._blades.get(key), move,
                                      STAMINA_COST.get(move, 0.0)))
-        if cost <= 0:
+        og = getattr(self, "original_generation", None)
+        if cost <= 0 and not (og and og.states):
             return 0.0, ""
         note = ""
         # Surcharge first, discount second — so a blade carrying both pays
@@ -275,7 +276,11 @@ class StaminaManager:
                 note += f" *(ability cost {cost:g} → {adjusted:g})*"
             cost = adjusted
         from .combat_rules import type_stamina_cost
-        return type_stamina_cost(self._blades.get(key, {}).get("type"), cost), note
+        cost = type_stamina_cost(self._blades.get(key, {}).get("type"), cost)
+        og = getattr(self, "original_generation", None)
+        if og:
+            cost = og.cost(key, move, cost)
+        return cost, note
 
     def cost_for(self, key: str, move: str) -> float:
         """What `move` will ACTUALLY cost `key` right now, all in.

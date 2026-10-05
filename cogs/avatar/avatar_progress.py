@@ -191,6 +191,10 @@ def quote_card(profile: dict, avatar_id: str, levels: int = 1) -> dict:
 def quote_skill(profile: dict, avatar_id: str, slug: str,
                 levels: int = 1) -> dict:
     """What a skill upgrade would cost, including why it is blocked."""
+    if avatar_id.startswith("avatar_og_"):
+        return {"from": 1, "to": 1, "levels": 0, "cost": 0, "cap": 1,
+                "blocked": "Original Generation skills have fixed effects; upgrade the avatar card for stat growth.",
+                "coins": int(profile.get("coins", 0) or 0)}
     now = skill_level(profile, avatar_id, slug)
     cap = AL.max_skill_level_for(card_level(profile, avatar_id))
     want = max(1, min(cap, now + max(1, int(levels or 1))))

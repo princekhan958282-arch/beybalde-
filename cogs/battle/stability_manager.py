@@ -367,9 +367,9 @@ class StabilityManager:
         extra = getattr(self, "effect_runtime", None)
         if extra is not None and delta < 0:
             delta = -math.ceil(extra.cost(key, move, "stability", -delta))
-        return self._apply(key, delta)
+        return self._apply(key, delta, action=True)
 
-    def _apply(self, key: str, delta: int) -> list[str]:
+    def _apply(self, key: str, delta: int, *, action=False) -> list[str]:
         """Clamp-apply ``delta`` to ``stability[key]`` and return a log line.
 
         If the Bey has ``burst_resistance_pct`` in any ability, negative
@@ -392,6 +392,10 @@ class StabilityManager:
         tactical = getattr(self, "tactical_runtime", None)
         if tactical is not None and delta < 0:
             delta = tactical.prevent_ring_out(key, old, delta)
+        og = getattr(self, "original_generation", None)
+        og_logs = []
+        if og:
+            delta = og.stability_delta(key, old, delta, og_logs, incoming=not action)
         cap = self.max.get(key, STABILITY_DEFAULT)
         new = max(0, min(cap, old + delta))
         self.stability[key] = new
@@ -405,7 +409,7 @@ class StabilityManager:
         if delta != original_delta:
             log += f" (reduced to {delta} by burst resistance)"
         log += f" → `{new}`"
-        return [log]
+        return [log] + og_logs
 
     def _get_abilities_for_blade(self, blade: dict) -> list[dict]:
         """Return ability list from a blade dict (helper for burst resist)."""

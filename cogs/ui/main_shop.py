@@ -54,7 +54,7 @@ from cogs.casino.casino_premium import PACKS as PREMIUM_PACKS, PACK_DURATION_DAY
 from cogs.economy.shop import BOOSTER_PACK_PRICE, BOOSTER_PACK_ROLLS
 
 # Avatar packs (avatar/avatar_shop.py)
-from cogs.avatar.avatar_shop import PACK_PRICE, PACK_DISPLAY, PACK_EMOJI, PACK_GUARANTEE
+from cogs.avatar.avatar_shop import PACK_PRICE, PACK_DISPLAY, PACK_EMOJI, PACK_GUARANTEE, PACK_PULLS, PACK_POOL
 
 # ── Color palette ─────────────────────────────────────────────────────────────
 COLOR_PARTS   = discord.Color.teal()
@@ -269,7 +269,7 @@ def _avatar_embed() -> discord.Embed:
     e = discord.Embed(
         title="🖼️ Avatar Packs",
         description=(
-            "Cosmetic avatar packs with guaranteed rarity slots.\n"
+            "Avatar packs with battle stat bonuses and skills.\n"
             "**Currency:** Beycoins 💰\n"
             "**Buy:** `;buypack <tier>`\n"
             "**Avatar packs:** `;avatarpacks`\n"
@@ -287,24 +287,19 @@ def _avatar_embed() -> discord.Embed:
             else "Slot 1: **Random from pool**"
         )
 
-        pools = {
-            "common":    "Common, Rare, Epic",
-            "rare":      "Common, Rare, Epic",
-            "epic":      "Common, Rare, Epic, Legendary, Mythic",
-            "legendary": "Common, Rare, Epic, Legendary, Mythic, Ultimate",
-        }
-
         e.add_field(
-            name=f"{emoji} **{display}** — {price:,} Beycoins",
+            name=(f"{emoji} **{display}** — 50,000 first / 100,000 thereafter" if key == "original"
+                  else f"{emoji} **{display}** — {price:,} Beycoins"),
             value=(
                 f"{slot1_txt}\n"
-                f"Slot 2: Random from pool\n"
-                f"Pool: *{pools.get(key, '?')}*"
+                + ("Slot 2: Random from pool\n" if PACK_PULLS.get(key, 2) > 1 else "")
+                + f"Pool: *{', '.join(PACK_POOL[key])}*"
+                + ("\nNo duplicate refunds • 48-hour purchase cooldown" if key == "original" else "")
             ),
             inline=False,
         )
     e.set_footer(
-        text="Duplicates refunded at 10–40% of pack price • Exclusive avatars: event/quest only"
+        text="Duplicate refunds vary by pack • Original Generation: no refunds • Exclusive avatars: event/quest only"
     )
     return e
 

@@ -305,6 +305,9 @@ class AbilityEngine:
         Cached per (avatar id, slot) exactly as blade rules cache per form.
         Swallows everything: a malformed card must not stop a battle.
         """
+        og = getattr(self.session, "original_generation", None)
+        if og and og.debuffs.get((key, "skill_seal"), 0) >= getattr(self.session, "round", 1):
+            return []
         try:
             card = (getattr(self.session, "avatar_cards", None) or {}).get(key)
             if not card:

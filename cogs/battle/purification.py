@@ -34,6 +34,9 @@ def stat_bonus(session, key, stat):
 
 
 def effective_stats(session, key):
+    adapter = getattr(session, "effective_stats_for", None)
+    if adapter:
+        return adapter(key)
     base = session.blades[key].get("stats", {})
     mult = getattr(session, "stat_mult", {}).get(key, 1.0)
     parts = getattr(session, "part_deltas", {}).get(key, {})
@@ -50,6 +53,10 @@ def effective_stats(session, key):
             result[stat] = max(0, float(value))
         else:
             result[stat] = max(0, int(value))
+    og = getattr(session, "original_generation", None)
+    if og:
+        for stat in ("attack", "defense", "stamina"):
+            result[stat] *= og.stat_multiplier(key, stat)
     result["level"] = getattr(session, "bey_levels", {}).get(key, 1)
     return result
 
@@ -109,7 +116,11 @@ def reduce_debuff(session, key, amount):
 
 
 def heal_amount(session, key, amount):
-    return math.floor(amount * 0.75) if enemy_domain(session, key) else amount
+    amount = math.floor(amount * 0.75) if enemy_domain(session, key) else amount
+    og = getattr(session, "original_generation", None)
+    if og and og.debuffs.get((key, "wound"), 0) >= session.round:
+        amount = math.floor(amount * .60)
+    return amount
 
 
 def action_cost(session, key, amount):

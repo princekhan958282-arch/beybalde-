@@ -27,6 +27,7 @@ RARITY_COLORS: dict[str, int] = {
     # The School League bladers — Season 1's cast. Their own tier for the same
     # reason MLBB is: a closed banner no other pack can reach.
     "Blader":    0xE67E22,
+    "Original Generation": 0x2ECC71,
 }
 
 RARITY_EMOJI: dict[str, str] = {
@@ -39,6 +40,7 @@ RARITY_EMOJI: dict[str, str] = {
     "Exclusive": "💎",
     "MLBB":      "🌟",
     "Blader":    "🏫",
+    "Original Generation": "🐉",
 }
 
 RARITY_ORDER: list[str] = [
@@ -47,7 +49,7 @@ RARITY_ORDER: list[str] = [
     # banner, and the eight cards are pitched around Legendary. Ranking them
     # above Ultimate because they happen to be newer would missort every
     # collection.
-    "Common", "Rare", "Epic", "Legendary", "Blader", "Mythic", "Ultimate",
+    "Common", "Rare", "Epic", "Legendary", "Blader", "Original Generation", "Mythic", "Ultimate",
     "Exclusive", "MLBB",
 ]
 
@@ -331,7 +333,7 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
     if skills and not compact:
         try:
             from . import avatar_skills as AS
-            costs = [AS.skill_cost(i) for i in range(1, len(skills) + 1)]
+            costs = [sk.get("energy_cost", AS.skill_cost(i)) for i, sk in enumerate(skills, 1)]
         except Exception:                                # noqa: BLE001
             costs = [0] * len(skills)
         lines = []
@@ -348,7 +350,11 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
                 except Exception:                        # noqa: BLE001
                     pass
             lines.append(f"{head}\n{sk.get('description', '')}")
-        embed.add_field(
+        if avatar.get("active_battle_skills"):
+            embed.add_field(name="⚡ Active battle skills", value="\n\n".join(lines)
+                + "\n\nStart at 0 energy; gain 20 per completed round. Use **Avatar Skill** before your move. One skill per round; ultimate once per battle.", inline=False)
+        else:
+            embed.add_field(
             name="⚡ Skills — one per battle",
             value="\n\n".join(lines)
                   + "\n\n*Pick with `;askill <1-3>`. Casual is free. Ranked "
