@@ -14,6 +14,7 @@ from typing import Optional
 
 from . import info_card_legacy as legacy
 from . import info_card_v2 as v2
+from . import info_card_shop as shop_card
 
 CARD_ENABLED = True
 
@@ -37,9 +38,13 @@ def using_v2() -> bool:
     return selected_version() not in {"legacy", "old", "v1", "1"}
 
 
-async def render_info_card(blade: dict, parts: Optional[dict] = None):
+async def render_info_card(blade: dict, parts: Optional[dict] = None, info_theme: str = "default"):
     if not CARD_ENABLED:
         return None
+    if str(info_theme).lower() == "beycbot_2ability":
+        custom = shop_card.render(blade)
+        if custom is not None:
+            return custom
     if using_v2():
         return await v2.render_info_card(blade, parts=parts)
     return await legacy.render_info_card(blade, parts=parts)
