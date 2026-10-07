@@ -194,11 +194,11 @@ async def _with_viewer_level(user_id, blade: dict) -> dict:
         if not entry:
             return blade                      # never raised → no level to show
         level = _BL.level_from_xp(int(entry.get("xp", 0)))
-        if level <= 1:
-            return blade
         out = dict(blade)
-        out["stats"] = _BL.stats_at(blade, level, entry.get("ivs"))
+        if level > 1:
+            out["stats"] = _BL.stats_at(blade, level, entry.get("ivs"))
         out["level"] = level
+        out["xp"] = max(0, int(entry.get("xp", 0)))
         return out
     except Exception:                                # noqa: BLE001
         return blade
@@ -1410,6 +1410,15 @@ class ProfileCog(commands.Cog, name="Profile"):
             # PNG info card first — falls back to the classic embed if Chromium
             # is missing, the CDN art is dead, or the render times out.
             _viewer_profile = await get_user(ctx.author.id)
+            # The equipped path carries stats/level but not player XP.
+            if not _viewer_profile.get("active_copy") or blade.get("name") != _viewer_profile.get("active_beyblade"):
+                records = _viewer_profile.get("bey_progress")
+                progress = records.get(blade.get("name")) if isinstance(records, dict) else None
+                if isinstance(progress, dict):
+                    try:
+                        blade = dict(blade, xp=max(0, int(progress.get("xp", 0))))
+                    except (ValueError, TypeError):
+                        pass
             buf = await info_card.render_info_card(
                 blade,
                 parts=await _viewer_parts(ctx.author.id),

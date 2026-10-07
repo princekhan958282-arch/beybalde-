@@ -8,6 +8,7 @@ every render, so changing it does not require a code revert.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from typing import Optional
@@ -42,7 +43,7 @@ async def render_info_card(blade: dict, parts: Optional[dict] = None, info_theme
     if not CARD_ENABLED:
         return None
     if str(info_theme).lower() == "beycbot_2ability":
-        custom = shop_card.render(blade)
+        custom = await asyncio.to_thread(shop_card.render, blade)
         if custom is not None:
             return custom
     if using_v2():
