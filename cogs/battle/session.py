@@ -1164,6 +1164,7 @@ class BattleSession:
         round_log.extend(gimmick_logs)
         for key in (k1, k2):
             self._sync_morph_hp(key)
+        self.ability.draciel.begin({k1: m1, k2: m2}, round_log)
         s1, s2 = effective_stats(self, k1), effective_stats(self, k2)
         tactical.round_start(k1, k2, m1, m2, s1, s2, round_log)
         tactical.round_start(k2, k1, m2, m1, s2, s1, round_log)
@@ -1246,6 +1247,7 @@ class BattleSession:
         tactical.round_end(k2, k1, m2, m1, matchup_p2, round_log)
 
         self.original_generation.end_round(round_log)
+        self.ability.draciel.end({k1: m1, k2: m2}, round_log)
 
         # ── Intermediate ring-out check (ability-driven stability drops) ──────
         # apply_pair_results may trigger on_win / on_special abilities that drain

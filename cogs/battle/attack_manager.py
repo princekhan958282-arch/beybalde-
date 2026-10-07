@@ -374,6 +374,7 @@ class AttackManager:
                 counter_p1 = 0
             hp[k2] = remaining
             self.committed_damage[k1] = actual
+            self.session.ability.draciel.committed(k1, k2, m1, actual)
             if extra is not None:
                 extra.committed(k1, k2, m1, actual, logs)
             if tactical is not None:
@@ -394,6 +395,7 @@ class AttackManager:
                 counter_p2 = 0
             hp[k1] = remaining
             self.committed_damage[k2] = actual
+            self.session.ability.draciel.committed(k2, k1, m2, actual)
             if extra is not None:
                 extra.committed(k2, k1, m2, actual, logs)
             if tactical is not None:

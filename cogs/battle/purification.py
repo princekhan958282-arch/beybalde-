@@ -58,6 +58,10 @@ def effective_stats(session, key):
         for stat in ("attack", "defense", "stamina"):
             result[stat] *= og.stat_multiplier(key, stat)
     result["level"] = getattr(session, "bey_levels", {}).get(key, 1)
+    draciel = getattr(getattr(session, 'ability', None), 'draciel', None)
+    if draciel:
+        for stat in ('attack', 'defense'):
+            result[stat] *= draciel.stat_multiplier(key, stat)
     return result
 
 

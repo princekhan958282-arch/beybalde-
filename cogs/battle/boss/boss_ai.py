@@ -216,6 +216,7 @@ class Fighter:
     special_outgoing_amp: float = 0
     outgoing_flat: float = 0
     reflected_flat: float = 0
+    draciel_state: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.hp_pretyped and not self.stats_pretyped:
@@ -235,19 +236,28 @@ class Fighter:
         self.hp = min(self.hp, self.max_hp)
 
     def cost_for(self, move):
+        from ..draciel import cost_surcharge
         if self.move_costs is not None:
-            return self.move_costs[move]
-        cost = STAMINA_COST[move]
-        from ..combat_rules import type_stamina_cost
-        return type_stamina_cost(self.bey_type, cost)
+            base = self.move_costs[move]
+        else:
+            from ..combat_rules import type_stamina_cost
+            base = type_stamina_cost(self.bey_type, STAMINA_COST[move])
+        return base + cost_surcharge(self.draciel_state, self.draciel_round, move)
+
+    @property
+    def draciel_round(self):
+        return self.draciel_state.get('clock', self.combat_round + 1)
 
     @property
     def eff_stamina(self):
         return self.stamina_stat * self.stat_factor("stamina")
 
     def stat_factor(self, stat):
+        from ..draciel import stat_multiplier
         passive = 1 if self.stats_pretyped else passive_stat_multiplier(self.bey_type, stat)
-        return passive * (self.morph_stat_factor if self.morph_rounds > 0 else 1) * self.avatar_stat_multipliers.get(stat, 1)
+        return (passive * (self.morph_stat_factor if self.morph_rounds > 0 else 1)
+                * self.avatar_stat_multipliers.get(stat, 1)
+                * stat_multiplier(self.ability_blade, self.draciel_state, self.draciel_round, stat))
 
     def alive(self) -> bool:
         return self.hp > 0
@@ -260,6 +270,8 @@ class Fighter:
             if blocked.get('from',0) <= self.combat_round+1 <= blocked.get('until',0):
                 return False
         if move == MOVE_SPECIAL and self.gauge < SPECIAL_GAUGE_MAX:
+            return False
+        if move == MOVE_SPECIAL and self.draciel_state.get('special_ready', 0) > self.draciel_round:
             return False
         return self.sp >= self.cost_for(move)
 
@@ -311,7 +323,8 @@ class Fighter:
                        outgoing_amp=self.outgoing_amp,
                        special_outgoing_amp=self.special_outgoing_amp,
                        outgoing_flat=self.outgoing_flat,
-                       reflected_flat=self.reflected_flat)
+                       reflected_flat=self.reflected_flat,
+                       draciel_state=copy.deepcopy(self.draciel_state))
 
     # ── Stance-adjusted stats (plain fighters are unaffected) ────────────────
     @property
@@ -421,6 +434,10 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         avatar_bridge.begin()
         ability_logs.extend(avatar_bridge.logs)
         avatar_bridge.logs.clear()
+    from .draciel_adapter import project as project_draciel
+    draciel_bridge = project_draciel(a, b, engine, {'a':move_a, 'b':move_b}, avatar_bridge)
+    if draciel_bridge:
+        draciel_bridge.runtime.begin({'a':move_a, 'b':move_b}, ability_logs)
     for key, fighter, move in (("a", a, move_a), ("b", b, move_b)):
         fighter.morph_rounds = engine.states[key].adaptive_morph_rounds
         fighter.morph_stat_factor = engine.stat_multiplier(key)
@@ -435,6 +452,8 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         if move not in (MOVE_ATTACK, MOVE_SPECIAL):
             return 0.0
         special = move == MOVE_SPECIAL
+        if special and (src.ability_blade or {}).get('draciel_kit'):
+            return 0.0  # these Specials open a defensive field at round start
         # NOT `dst.is_boss` — Story opponents set that too, and cutting their
         # incoming Specials by 80% turned the Story finale into a guaranteed
         # loss (measured: 0% win rate, every stage unwinnable). The real
@@ -498,6 +517,8 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             dmg = avatar_bridge.offensive(tag,other,move,dmg)
             dmg = avatar_bridge.defensive(tag,other,move,dmg)
         dmg = engine.critical(tag, move, dmg, [])
+        if draciel_bridge:
+            dmg = draciel_bridge.runtime.outgoing(tag, move, dmg)
         if fire_controls and dmg > 0:
             fire_controls(other, 'on_take_damage', move, matchup)
             if other_move == MOVE_DEFENSE:
@@ -557,6 +578,11 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     dmg_a = engine.mitigate('b', 'a', move_b, dmg_a,
                            true_damage=move_b == MOVE_SPECIAL and b.special_true_damage,
                            bypass_reduction=move_b == MOVE_SPECIAL and b.special_ignores_defense)
+    if draciel_bridge:
+        dmg_b = draciel_bridge.runtime.mitigate('a', 'b', move_a, dmg_b, ability_logs,
+            true_damage=move_a == MOVE_SPECIAL and a.special_true_damage)
+        dmg_a = draciel_bridge.runtime.mitigate('b', 'a', move_b, dmg_a, ability_logs,
+            true_damage=move_b == MOVE_SPECIAL and b.special_true_damage)
 
     # Riposte: a successful block punishes the attacker.
     if move_a == MOVE_DEFENSE and move_b in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("b", "a", move_b):
@@ -674,6 +700,8 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     if avatar_bridge:
         avatar_bridge.end({'a':move_a,'b':move_b},actual_a,actual_b)
         ability_logs.extend(avatar_bridge.logs)
+    if draciel_bridge:
+        draciel_bridge.end({'a':move_a,'b':move_b},actual_a,actual_b,ability_logs)
 
     for f in (a, b):
         if not f.state:

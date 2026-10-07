@@ -198,6 +198,11 @@ class BladeKit:
     # ── Parsing ──────────────────────────────────────────────────────────────
     def _parse(self) -> None:
         for ability in (self.blade.get("abilities") or []):
+            # The shared Draciel runtime executes these kits in boss_ai.resolve.
+            from ..draciel import version
+            if ability.get('runtime') == 'draciel' and version(self.blade):
+                self.applied.append(ability.get('name', self.name))
+                continue
             trig = (ability.get("trigger") or "").lower()
             chain = ability.get("chain") or []
             touched = False

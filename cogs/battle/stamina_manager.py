@@ -248,7 +248,7 @@ class StaminaManager:
                                      self._blades.get(key), move,
                                      STAMINA_COST.get(move, 0.0)))
         og = getattr(self, "original_generation", None)
-        if cost <= 0 and not (og and og.states):
+        if cost <= 0 and not (og and og.states) and not getattr(self, 'draciel_runtime', None):
             return 0.0, ""
         note = ""
         # Surcharge first, discount second — so a blade carrying both pays
@@ -280,6 +280,9 @@ class StaminaManager:
         og = getattr(self, "original_generation", None)
         if og:
             cost = og.cost(key, move, cost)
+        draciel = getattr(self, 'draciel_runtime', None)
+        if draciel:
+            cost = draciel.cost(key, move, cost)
         return cost, note
 
     def cost_for(self, key: str, move: str) -> float:

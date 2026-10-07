@@ -129,6 +129,9 @@ class DamageFilter:
         og = getattr(self.session, "original_generation", None)
         if og:
             dmg_dealt = og.before_damage(mover_key, other_key, move, dmg_dealt, logs, is_first_hit)
+        draciel = getattr(getattr(self.session, 'ability', None), 'draciel', None)
+        if draciel:
+            dmg_dealt = draciel.outgoing(mover_key, move, dmg_dealt)
         mover_silenced = self._sm.is_silenced(mover_key)
         tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
         if tactical is not None and not mover_silenced:

@@ -130,6 +130,8 @@ class AbilityEngine:
         self.damage_filter = DamageFilter(session)
         self.extended = ExtendedEffects(self)
         self.tactical = TacticalEffects(self)
+        from cogs.battle.draciel import DracielRuntime
+        self.draciel = DracielRuntime(session)
 
         # ── Generic rule state (the ONLY ability memory that exists) ─────────
         self.counters:   dict[tuple[str, str], int] = {}   # (key, name) -> value
@@ -1990,6 +1992,11 @@ class AbilityEngine:
             purification.mark(self.session, mover_key, ("special",), logs)
         dmg_dealt = purification.amplify(self.session, mover_key, dmg_dealt, logs,
                                          first=is_first_hit, last=is_last_hit)
+
+        # Draciel barriers absorb after normal mitigation, before HP commits.
+        dmg_dealt = self.draciel.mitigate(
+            mover_key, other_key, move, dmg_dealt, logs,
+            true_damage=self.damage_filter.is_true_damage(mover_key, move))
 
         # Lifesteal (generic, set by ops)
         ls = self.lifesteal_pct.get(mover_key, 0.0)
