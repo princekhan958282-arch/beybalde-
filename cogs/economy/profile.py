@@ -46,6 +46,7 @@ from utils.mobile_ui import bar as ui_bar, trunc as ui_trunc
 from utils.hp_system import blade_hp_stat, max_hp_for_blade, hp_display_pct
 from utils.bey_levels import STAT_BAR_MAX as _BAR_MAX
 from utils import info_card
+from utils.info_card_cosmetics import equipped_info_theme
 from utils import availability as _avail
 
 try:
@@ -1408,8 +1409,11 @@ class ProfileCog(commands.Cog, name="Profile"):
         async with ctx.typing():
             # PNG info card first — falls back to the classic embed if Chromium
             # is missing, the CDN art is dead, or the render times out.
+            _viewer_profile = await get_user(ctx.author.id)
             buf = await info_card.render_info_card(
-                blade, parts=await _viewer_parts(ctx.author.id)
+                blade,
+                parts=await _viewer_parts(ctx.author.id),
+                info_theme=equipped_info_theme(_viewer_profile),
             )
             if buf is not None:
                 # The extension comes from the buffer, not from here. Playwright
