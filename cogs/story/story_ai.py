@@ -172,7 +172,20 @@ def project(session, key: str, okey: str) -> ai.Fighter:
     morph_factor = gimmicks.stat_multiplier(key) if gimmicks else 1
     formula_damage = (resolve_special(blade, effective_stats=stats)[1]
                       if (blade.get("special_move") or {}).get("damage_formula") else None)
+    from copy import deepcopy
+    from cogs.battle.draciel import cost_surcharge
+    draciel = getattr(getattr(session, 'ability', None), 'draciel', None)
+    draciel_state = deepcopy(draciel.states.get(key, {})) if draciel else {}
+    if draciel_state:
+        draciel_state['clock'] = session.round
+    # Effective stats/costs already contain the live Draciel modifiers. Remove
+    # those once before the projected Fighter reapplies its cloned runtime.
+    draciel_attack = draciel.stat_multiplier(key, 'attack') if draciel else 1
+    draciel_defense = draciel.stat_multiplier(key, 'defense') if draciel else 1
     return ai.Fighter(
+        ability_blade=deepcopy(blade),
+        draciel_state=draciel_state,
+        combat_round=session.round - 1,
         special_damage=formula_damage,
         bey_type=blade.get("type", ""), level=stats.get("level", 1),
         stats_pretyped=True,
@@ -181,12 +194,12 @@ def project(session, key: str, okey: str) -> ai.Fighter:
         morph_hp_factor=morph_factor,
         base_max_hp=float(session.max_hp_per_player.get(key, 1)) / morph_factor,
         gimmick_controls=gimmicks.export_controls(key) if gimmicks else [],
-        move_costs={move: sm.cost_for(key, move) for move in ai.ALL_MOVES},
+        move_costs={move: sm.cost_for(key, move) - cost_surcharge(draciel_state, session.round, move) for move in ai.ALL_MOVES},
         name=str(name),
         hp=float(session.hp.get(key, 0)),
         max_hp=float(session.max_hp_per_player.get(key, 1) or 1),
-        attack=float(stats.get("attack", 0)) / morph_factor,
-        defense=float(stats.get("defense", 0)) / morph_factor,
+        attack=float(stats.get("attack", 0)) / morph_factor / draciel_attack,
+        defense=float(stats.get("defense", 0)) / morph_factor / draciel_defense,
         stamina_stat=float(stats.get("stamina", 0)) / morph_factor,
         sp=float(sm.stamina.get(key, 0.0)),
         sp_max=sp_max,

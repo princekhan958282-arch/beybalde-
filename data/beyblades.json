@@ -12351,5 +12351,255 @@
         ]
       }
     ]
+  },
+  "Draciel F": {
+    "id": "BB126",
+    "name": "Draciel F",
+    "rarity": "Common",
+    "type": "Defense",
+    "spin_direction": "Right",
+    "burst_height": "Low",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556917346332057670/1791268398307.png?backend=b2&ex=6ac73945&is=6ac5e7c5&hm=5f7744cc41719c880bd7c0c829f78954cfa567fb73262a11d50072a9fcdf8688&",
+    "description": "Max Tate's water guardian. Draciel F specializes in fortress endurance.",
+    "stats": {
+      "attack": 55,
+      "defense": 95,
+      "stamina": 80,
+      "special": 70,
+      "hp": 100
+    },
+    "draciel_kit": "F",
+    "ability": {
+      "name": "Draciel’s Fortress Foundation",
+      "trigger": "on_defense_win",
+      "description": "On Defense Win against Attack, restore HP equal to 8% of current DEF (max 35) and recover 3 Stability. Cooldown: 2 rounds.",
+      "rules": [],
+      "runtime": "draciel"
+    },
+    "abilities": [
+      {
+        "name": "Draciel’s Fortress Foundation",
+        "trigger": "on_defense_win",
+        "description": "On Defense Win against Attack, restore HP equal to 8% of current DEF (max 35) and recover 3 Stability. Cooldown: 2 rounds.",
+        "rules": [],
+        "runtime": "draciel"
+      }
+    ],
+    "special_move": {
+      "name": "Draciel Fortress Defense",
+      "description": "A shield worth 60% of current DEF (max 180 HP) absorbs damage after normal mitigation for 2 rounds or until broken. While it remains, incoming Stability damage is reduced by 40%. Cooldown: 4 rounds.",
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "non_damage": true,
+      "flavour_texts": [
+        "🐢 Draciel Fortress Defense!"
+      ]
+    },
+    "special_requires": {
+      "cooldown_name": "draciel_special",
+      "label": "Draciel Fortress Defense",
+      "emoji": "🐢"
+    }
+  },
+  "Draciel V": {
+    "id": "BB127",
+    "name": "Draciel V",
+    "rarity": "Epic",
+    "type": "Defense",
+    "spin_direction": "Right",
+    "burst_height": "Low",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556917360219398154/1791268303750.png?backend=b2&ex=6ac73948&is=6ac5e7c8&hm=2a9af3706b3046b74fc19fc08a3e04f3d6596289c87d2e7af06a3f808c0afddc&",
+    "description": "Max Tate's water guardian. Draciel V specializes in deflection and retaliation.",
+    "stats": {
+      "attack": 65,
+      "defense": 120,
+      "stamina": 95,
+      "special": 90,
+      "hp": 115
+    },
+    "draciel_kit": "V",
+    "ability": {
+      "name": "Draciel’s Viper Rebound",
+      "trigger": "on_defense_win",
+      "description": "On Defense Win against Attack, deal bonus counter damage equal to 15% of current DEF (max 50) and reduce enemy ATK by 10% for the next round. Cooldown: 2 rounds.",
+      "rules": [],
+      "runtime": "draciel"
+    },
+    "abilities": [
+      {
+        "name": "Draciel’s Viper Rebound",
+        "trigger": "on_defense_win",
+        "description": "On Defense Win against Attack, deal bonus counter damage equal to 15% of current DEF (max 50) and reduce enemy ATK by 10% for the next round. Cooldown: 2 rounds.",
+        "rules": [],
+        "runtime": "draciel"
+      }
+    ],
+    "special_move": {
+      "name": "Draciel Viper Wall",
+      "description": "For 2 rounds, reduce incoming Attack damage by 25% and Special damage by 15%. Counter for 25% of actual HP damage received from Attack or Special, max 45 per round. Cooldown: 4 rounds.",
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "non_damage": true,
+      "flavour_texts": [
+        "🐢 Draciel Viper Wall!"
+      ]
+    },
+    "special_requires": {
+      "cooldown_name": "draciel_special",
+      "label": "Draciel Viper Wall",
+      "emoji": "🐢"
+    }
+  },
+  "Draciel V2": {
+    "id": "BB128",
+    "name": "Draciel V2",
+    "rarity": "Legendary",
+    "type": "Defense",
+    "spin_direction": "Right",
+    "burst_height": "Low",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556914546432675892/1791208337817.png?backend=b2&ex=6ac736a9&is=6ac5e529&hm=2d607beb28a78dfacd625bb0f7be9b22bd7294fd42e849983cba7bf691092b3c&",
+    "description": "Max Tate's water guardian. Draciel V2 specializes in reinforced armor and stored impact.",
+    "stats": {
+      "attack": 75,
+      "defense": 135,
+      "stamina": 105,
+      "special": 110,
+      "hp": 125
+    },
+    "draciel_kit": "V2",
+    "ability": {
+      "name": "Draciel’s Reinforced Shell",
+      "trigger": "on_take_damage",
+      "description": "After an enemy Attack or Special damages Draciel, gain +6% DEF for the rest of the battle, max 4 stacks (+24%). Multi-hit moves grant one stack per use.",
+      "rules": [],
+      "runtime": "draciel"
+    },
+    "abilities": [
+      {
+        "name": "Draciel’s Reinforced Shell",
+        "trigger": "on_take_damage",
+        "description": "After an enemy Attack or Special damages Draciel, gain +6% DEF for the rest of the battle, max 4 stacks (+24%). Multi-hit moves grant one stack per use.",
+        "rules": [],
+        "runtime": "draciel"
+      }
+    ],
+    "special_move": {
+      "name": "Draciel Heavy Viper Wall",
+      "description": "Reduce incoming Attack and Special damage by 35% for 2 rounds. Store 40% of damage prevented by this wall (max 100). On expiry, counter for 40% of current DEF plus stored damage. Cooldown: 4 rounds.",
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "non_damage": true,
+      "flavour_texts": [
+        "🐢 Draciel Heavy Viper Wall!"
+      ]
+    },
+    "special_requires": {
+      "cooldown_name": "draciel_special",
+      "label": "Draciel Heavy Viper Wall",
+      "emoji": "🐢"
+    }
+  },
+  "Draciel G": {
+    "id": "BB129",
+    "name": "Draciel G",
+    "rarity": "Mythic",
+    "type": "Defense",
+    "spin_direction": "Right",
+    "burst_height": "Low",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556914560030613614/1791208346353.png?backend=b2&ex=6ac736ad&is=6ac5e52d&hm=fb15bb3a817a224872da490fa14be30c350ff2987817ee5bb239c23a19cb1e0a&",
+    "description": "Max Tate's water guardian. Draciel G specializes in gravity control.",
+    "stats": {
+      "attack": 85,
+      "defense": 150,
+      "stamina": 115,
+      "special": 125,
+      "hp": 140
+    },
+    "draciel_kit": "G",
+    "ability": {
+      "name": "Draciel’s Gravity Anchor",
+      "trigger": "on_defense_win",
+      "description": "On Defense Win against Attack, the enemy next move costs 0.4 extra battle stamina and deals 10% less damage. Does not stack. Cooldown: 2 rounds.",
+      "rules": [],
+      "runtime": "draciel"
+    },
+    "abilities": [
+      {
+        "name": "Draciel’s Gravity Anchor",
+        "trigger": "on_defense_win",
+        "description": "On Defense Win against Attack, the enemy next move costs 0.4 extra battle stamina and deals 10% less damage. Does not stack. Cooldown: 2 rounds.",
+        "rules": [],
+        "runtime": "draciel"
+      }
+    ],
+    "special_move": {
+      "name": "Draciel Gravity Control",
+      "description": "Create a gravity field for 2 rounds. Enemy Attack and Special moves cost 0.6 extra battle stamina; Draciel gains +20% DEF. On expiry, deal a gravity slam worth 65% of current DEF. Cooldown: 4 rounds.",
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "non_damage": true,
+      "flavour_texts": [
+        "🐢 Draciel Gravity Control!"
+      ]
+    },
+    "special_requires": {
+      "cooldown_name": "draciel_special",
+      "label": "Draciel Gravity Control",
+      "emoji": "🐢"
+    }
+  },
+  "Draciel MS": {
+    "id": "BB130",
+    "name": "Draciel MS",
+    "rarity": "Ultimate",
+    "type": "Defense",
+    "spin_direction": "Right",
+    "burst_height": "Low",
+    "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556917503932895283/1791268219254.png?backend=b2&ex=6ac7396b&is=6ac5e7eb&hm=344a7658bb8cf0c6a2e45b99fc6280355b33525e0b66d6827c2120bf54c43944&",
+    "description": "Max Tate's water guardian. Draciel MS specializes in reactive water defense.",
+    "stats": {
+      "attack": 90,
+      "defense": 165,
+      "stamina": 120,
+      "special": 140,
+      "hp": 155
+    },
+    "draciel_kit": "MS",
+    "ability": {
+      "name": "Draciel’s Reverse Defense",
+      "trigger": "on_take_damage",
+      "description": "After taking Special damage, gain Reverse Guard for the next round. Reduce the next damaging Attack or Special move by 20%, then expire. Cooldown: 3 rounds.",
+      "rules": [],
+      "runtime": "draciel"
+    },
+    "abilities": [
+      {
+        "name": "Draciel’s Reverse Defense",
+        "trigger": "on_take_damage",
+        "description": "After taking Special damage, gain Reverse Guard for the next round. Reduce the next damaging Attack or Special move by 20%, then expire. Cooldown: 3 rounds.",
+        "rules": [],
+        "runtime": "draciel"
+      }
+    ],
+    "special_move": {
+      "name": "Draciel Aqua Shield",
+      "description": "For 2 rounds, reduce incoming Special damage by 40% and Attack damage by 20%. On activation, remove one active DEF debuff and recover 6 Stability. Cooldown: 4 rounds.",
+      "hits": 1,
+      "damage_per_hit": 0,
+      "total_damage": 0,
+      "non_damage": true,
+      "flavour_texts": [
+        "🐢 Draciel Aqua Shield!"
+      ]
+    },
+    "special_requires": {
+      "cooldown_name": "draciel_special",
+      "label": "Draciel Aqua Shield",
+      "emoji": "🐢"
+    }
   }
 }

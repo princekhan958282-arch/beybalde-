@@ -378,6 +378,9 @@ class StabilityManager:
         """
         # Check burst resistance on negative deltas only
         original_delta = delta
+        draciel = getattr(self, 'draciel_runtime', None)
+        if draciel:
+            delta = draciel.stability_delta(key, delta, action=action)
         if delta < 0:
             blade = self._blades.get(key, {})
             for ab in self._get_abilities_for_blade(blade):
