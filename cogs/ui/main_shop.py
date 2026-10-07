@@ -46,6 +46,9 @@ from utils.database import mutate_user
 from utils.profile_cosmetics import (
     PROFILE_COSMETICS, apply_profile_purchase, ProfileCosmeticError,
 )
+from utils.info_card_cosmetics import (
+    INFO_CARD_COSMETICS, apply_info_card_purchase, InfoCardCosmeticError,
+)
 
 # Casino premium (casino/casino_premium.py)
 from cogs.casino.casino_premium import PACKS as PREMIUM_PACKS, PACK_DURATION_DAYS
@@ -158,7 +161,8 @@ def _home_embed() -> discord.Embed:
         value=(
             "Permanent cosmetic designs for your player profile.\n"
             f"**{item['name']}** — **{item['price']:,} Beycoins**\n"
-            "Switch owned designs anytime from the **Switch Profile** button on `;profile`."
+            f"**BEYCBOT ;info Card** — **{INFO_CARD_COSMETICS['beycbot_2ability']['price']:,} Beycoins**\n"
+            "Profile and ;info cosmetics live together in this section."
         ),
         inline=False,
     )
@@ -326,6 +330,18 @@ def _profiles_embed() -> discord.Embed:
         ),
         inline=False,
     )
+    info_item = INFO_CARD_COSMETICS["beycbot_2ability"]
+    e.add_field(
+        name=f"🌀 {info_item['name']} — {info_item['price']:,} Beycoins",
+        value=(
+            f"{info_item['description']}\n"
+            "• Permanent unlock\n"
+            "• Equips immediately after purchase\n"
+            "• Used only when the displayed Bey has exactly **2 abilities**\n"
+            "• 1-ability and 3-ability Beys safely keep the normal ;info card"
+        ),
+        inline=False,
+    )
     return e
 
 
@@ -479,6 +495,12 @@ class MainShopView(ui.View):
                 style=discord.ButtonStyle.success, row=2)
             buy_profile.callback = self._buy_profile
             self.add_item(buy_profile)
+            info_item = INFO_CARD_COSMETICS["beycbot_2ability"]
+            buy_info = ui.Button(
+                label=f"🪙 Buy {info_item['name']} — {info_item['price']:,}"[:80],
+                style=discord.ButtonStyle.success, row=3)
+            buy_info.callback = self._buy_info_card
+            self.add_item(buy_info)
             return
 
         if self.section == SECTION_BEYS:
@@ -592,6 +614,27 @@ class MainShopView(ui.View):
             f"✅ Bought and equipped **{result['name']}** for "
             f"🪙 **{result['spent']:,}**. Remaining: **{result['coins']:,}**.\n"
             "Open `;profile` and use **Switch Profile** anytime.",
+            ephemeral=True)
+
+    async def _buy_info_card(self, i: discord.Interaction) -> None:
+        if not await self.interaction_check(i):
+            return
+        await i.response.defer(ephemeral=True, thinking=True)
+        try:
+            result = await mutate_user(
+                self.author_id,
+                lambda prof: apply_info_card_purchase(prof, "beycbot_2ability"))
+        except InfoCardCosmeticError as exc:
+            return await i.followup.send(f"❌ {exc}", ephemeral=True)
+        except Exception:
+            log.exception("[shop] info card cosmetic purchase failed")
+            return await i.followup.send(
+                "⚠️ Couldn't confirm that purchase. Nothing was intentionally charged.",
+                ephemeral=True)
+        await i.followup.send(
+            f"✅ Bought and equipped **{result['name']}** for "
+            f"🪙 **{result['spent']:,}**. Remaining: **{result['coins']:,}**.\n"
+            "It activates automatically on `;info` for Beys with exactly **2 abilities**.",
             ephemeral=True)
 
     async def _select_part(self, i: discord.Interaction) -> None:
