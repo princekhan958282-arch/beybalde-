@@ -1,0 +1,61 @@
+{
+  "id": "avatar_mlbb001",
+  "name": "Freya",
+  "rarity": "MLBB",
+  "type": "attack",
+  "price": 0,
+  "description": "Valkyrie of the shield-wall. Freya answers every blow with a heavier one, and what she cannot answer, she simply absorbs.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1536106101353881710/de9e26e6ba3bb5675119f6335af688eb_1.jpg?ex=6a7a31ca&is=6a78e04a&hm=a73654cfa07217a567e786e96c05302d0a820e3b56f96848febe9cc1a99311d5&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "skills": [
+    {
+      "name": "Valkyrie Descent",
+      "description": "Attack increased by a further 22%.",
+      "bonuses": {
+        "attack_percent": 0.22
+      }
+    },
+    {
+      "name": "Aegis of Asgard",
+      "description": "15% of incoming damage is absorbed, and a blocked hit answers back — 25% counter chance.",
+      "bonuses": {
+        "resistance_damage_percent": 0.15,
+        "counter_chance": 0.25
+      }
+    },
+    {
+      "name": "Spirit Blade",
+      "description": "Attack increased by 96.",
+      "bonuses": {
+        "attack_flat": 96
+      }
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 96,
+    "attack_percent": 0.22,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0.25,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.15,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.15
+  },
+  "generation": null,
+  "_registry_order": 32
+}

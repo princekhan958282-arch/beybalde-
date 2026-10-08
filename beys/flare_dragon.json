@@ -1,0 +1,105 @@
+{
+  "id": "BB036",
+  "name": "Flare Dragon",
+  "rarity": "Epic",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513733187006759042/file_000000007000720b9c22b3e431bcb78c.png?ex=6a28cd63&is=6a277be3&hm=4c6f16c0a9692070e2a53dac12412e9e5ab3c13d023f80ae18b14ebcfd81dc6c&",
+  "description": "A blazing dragon wrapped in solar flames. Flare Dragon channels the heat of the sun into every collision, burning through stamina and igniting the stadium with each revolution.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 105,
+    "defense": 50,
+    "stamina": 78,
+    "special": 115,
+    "hp": 97
+  },
+  "ability": {
+    "name": "Solar Flare",
+    "trigger": "on_attack_win",
+    "description": "On Attack win, applies Flare Burn to the enemy (20 dmg/turn for 2 turns). Burn stacks up to 3 times. Every 3rd burn application, Flare Dragon erupts — dealing 35 bonus true damage and healing 20 HP.",
+    "burn_damage": 20,
+    "burn_duration": 2,
+    "max_burn_stacks": 3,
+    "streak_threshold": 3,
+    "streak_true_damage": 35,
+    "streak_heal": 20,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "burn",
+        "value": 20,
+        "duration": 2,
+        "once": false,
+        "_note": "Solar Flare: 20 dmg/turn burn on attack win"
+      },
+      {
+        "condition": "stack_threshold",
+        "threshold": 3,
+        "effect": "true_damage",
+        "value": 35,
+        "once": false,
+        "_note": "Solar Flare eruption: 35 true damage every 3rd burn"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Flare Burst",
+    "description": "Flare Dragon ignites in a solar explosion — two devastating strikes that scorch everything in the arena!",
+    "hits": 2,
+    "damage_per_hit": 57,
+    "total_damage": 114,
+    "flavour_texts": [
+      "🔥 **Flare Burst** — the dragon ignites!",
+      "☀️ **FLARE BURST** — SOLAR DRAGON OBLITERATION!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Solar Flare",
+      "trigger": "on_attack_win",
+      "description": "On Attack win, applies Flare Burn to the enemy (20 dmg/turn for 2 turns). Burn stacks up to 3 times. Every 3rd burn application, Flare Dragon erupts — dealing 35 bonus true damage and healing 20 HP.",
+      "burn_damage": 20,
+      "burn_duration": 2,
+      "max_burn_stacks": 3,
+      "streak_threshold": 3,
+      "streak_true_damage": 35,
+      "streak_heal": 20,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "burn",
+          "value": 20,
+          "duration": 2,
+          "once": false,
+          "_note": "Solar Flare: 20 dmg/turn burn on attack win"
+        },
+        {
+          "condition": "stack_threshold",
+          "threshold": 3,
+          "effect": "true_damage",
+          "value": 35,
+          "once": false,
+          "_note": "Solar Flare eruption: 35 true damage every 3rd burn"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 97,
+    "attack": 105,
+    "defense": 50,
+    "stamina": 78
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 34,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

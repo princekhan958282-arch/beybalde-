@@ -77,7 +77,8 @@ KEEP_DAILY = 14
 # ── Sections: what a restore may put back without disturbing the rest ────────
 SECTIONS: dict[str, tuple[str, ...]] = {
     "beys": ("inventory", "bey_progress", "active_beyblade", "boss_copies",
-             "active_copy", "equipped_parts", "parts", "mastery"),
+             "active_copy", "equipped_parts", "parts", "mastery",
+             "bey_instances", "active_bey_instance", "component_equipment_version"),
     "avatars": ("equipped_avatar",),        # plus the avatars side file
     "community": ("community_xp", "com_level", "com_day", "com_last_msg",
                   "com_recent_hashes"),

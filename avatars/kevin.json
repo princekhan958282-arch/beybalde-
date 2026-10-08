@@ -1,0 +1,64 @@
+{
+  "id": "avatar_og_kevin",
+  "name": "Kevin",
+  "rarity": "Original Generation",
+  "type": "defense",
+  "price": 0,
+  "description": "Galman partner — original-generation anime-inspired active battle skills.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301644038279258/Kevin2.webp?backend=b2&ex=6ac3aa5a&is=6ac258da&hm=539cd22aa6f43d444593b82ffcc63b6ed87dcd8e45837e10f87798ae6d9e1a3b&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "stats_always_on": true,
+  "active_battle_skills": true,
+  "character": "kevin",
+  "anime_bey": "Galman",
+  "bonuses": {
+    "attack_flat": 10,
+    "attack_percent": 0,
+    "defence_flat": 20,
+    "defence_percent": 0,
+    "stamina_flat": 20,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 10,
+    "hp_percent": 0
+  },
+  "skills": [
+    {
+      "name": "Monkey Feint",
+      "description": "If the enemy uses Defense this round, reduce their Defense-button guard strength by 30%.",
+      "energy_cost": 40,
+      "cooldown_rounds": 3,
+      "once_per_battle": false
+    },
+    {
+      "name": "Crazy Monkey Attack",
+      "description": "Your next successful hit prevents enemy Avatar Energy gain that round.",
+      "energy_cost": 60,
+      "cooldown_rounds": 4,
+      "once_per_battle": false
+    },
+    {
+      "name": "Galman’s Trickery",
+      "description": "For 2 rounds, an enemy repeating their previous move pays 0.4 extra battle stamina. Changing moves avoids the penalty. Once per battle.",
+      "energy_cost": 100,
+      "cooldown_rounds": 0,
+      "once_per_battle": true
+    }
+  ],
+  "generation": null,
+  "_registry_order": 53
+}

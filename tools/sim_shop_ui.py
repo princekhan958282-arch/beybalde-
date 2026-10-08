@@ -21,6 +21,14 @@ What is pinned here:
 
 Run:  python3 tools/sim_shop_ui.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import os
 import sys
 
@@ -258,8 +266,7 @@ check("the description warns it needs a level 100 bey",
 import json as _json                                                   # noqa: E402
 from utils import bey_levels as _BL                                    # noqa: E402
 
-_db = _json.load(open(os.path.join(ROOT, "data", "beyblades.json"),
-                      encoding="utf-8"))
+_db = _json.load(authored_open('bey', encoding="utf-8"))
 _iv = {s: 0 for s in _BL.STATS}
 zero_at_1 = sum(1 for b in _db.values()
                 if _BL.stats_at(b, 1, _iv)["stamina"] <= 120)
@@ -375,7 +382,7 @@ import discord                                                         # noqa: E
 import json                                                            # noqa: E402
 
 SHIPPED = sorted({v.get("rarity") for v in json.load(
-    open(os.path.join(ROOT, "data", "beyblades.json"), encoding="utf-8")).values()})
+    authored_open('bey', encoding="utf-8")).values()})
 check(f"the roster uses {len(SHIPPED)} rarities: {SHIPPED}", len(SHIPPED) >= 7)
 # These two maps stopped at Legendary, and both .get() with a fallback — so
 # Mythic, Ultimate and Exclusive silently rendered as Common white circles and

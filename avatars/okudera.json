@@ -1,0 +1,57 @@
+{
+  "id": "avatar_r006",
+  "name": "Okudera",
+  "rarity": "Rare",
+  "type": "stamina",
+  "price": 0,
+  "description": "Graceful and composed. Steady charge recovery and light defensive presence.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012696999526420/a25d7118f6406353821695f9cbd725cc.jpg?ex=6a4348f6&is=6a41f776&hm=eb01ec9318ee833179e8fc746fcf54f2ed986c67d44a9fa9d0619bf7ab25ef97&",
+  "bonuses": {
+    "attack_flat": 4,
+    "attack_percent": 0.04,
+    "defence_flat": 5,
+    "defence_percent": 0,
+    "stamina_flat": 6,
+    "stamina_percent": 0.05,
+    "stability_flat": 5,
+    "stability_percent": 0,
+    "charge_flat": 8,
+    "charge_percent": 0.06,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0.05,
+    "dodge_chance": 0.08,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0.05,
+    "hp_flat": 0,
+    "hp_percent": 0.03
+  },
+  "skills": [
+    {
+      "name": "Team Rhythm",
+      "description": "Stamina increased by 14%.",
+      "bonuses": {
+        "stamina_percent": 0.14
+      }
+    },
+    {
+      "name": "Sharp Read",
+      "description": "Crit chance increased by 10%.",
+      "bonuses": {
+        "crit_percent": 0.1
+      }
+    },
+    {
+      "name": "Fast Transition",
+      "description": "Charge increased by 16%.",
+      "bonuses": {
+        "charge_percent": 0.16
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 19
+}

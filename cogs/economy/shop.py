@@ -75,89 +75,177 @@ BEY_QUICKSELL_BLOCKED: set[str] = {"Exclusive"}
 # (Ragnarok Core) pays for it with two penalties and a price seventeen times
 # the next most expensive part. Nothing should sit between 40 and 100 — that
 # gap is what keeps the ordinary catalog readable.
-PARTS_CATALOG: list[dict] = [
-    # ── DRIVERS (17) ──────────────────────────────────────────────────────────
-    # Pure / low-bonus drivers
-    {"name": "Destroy Driver",      "type": "driver", "price":  800, "stat": "attack",  "bonus":  10, "desc": "Aggressive tip — pushes your bey into the opponent."},
-    {"name": "Xtend+ Driver",       "type": "driver", "price":  800, "stat": "stamina", "bonus":  10, "desc": "Wide flat tip — maximises spin time."},
-    {"name": "High Xtend Tip",      "type": "driver", "price":  700, "stat": "attack",  "bonus":   8, "desc": "Balanced tip with slight attack lean."},
-    {"name": "Atomic Driver",       "type": "driver", "price":  850, "stat": "defense", "bonus":  12, "desc": "Ball tip — locks position for great defense."},
-    {"name": "Revolve Driver",      "type": "driver", "price":  750, "stat": "stamina", "bonus":   8, "desc": "Low-friction tip for extended stamina."},
-    {"name": "Xtreme Driver",       "type": "driver", "price":  900, "stat": "attack",  "bonus":  12, "desc": "Rubber tip — violent attack movement."},
-    # Mid-bonus with tradeoffs
-    {"name": "Bearing Driver",      "type": "driver", "price": 1000, "stat": "stamina", "bonus":  18, "desc": "Bearing-core tip — near-zero friction spin.", "penalty_stat": "attack",  "penalty": 10},
-    {"name": "Drift Driver",        "type": "driver", "price": 1050, "stat": "stamina", "bonus":  20, "desc": "Drifts outward — extreme stamina, poor aggression.", "penalty_stat": "attack",  "penalty": 12},
-    {"name": "Volcanic Driver",     "type": "driver", "price": 1100, "stat": "attack",  "bonus":  20, "desc": "Eruption rubber tip — surges at the opponent.", "penalty_stat": "defense", "penalty": 12},
-    {"name": "Jolt Driver",         "type": "driver", "price": 1000, "stat": "attack",  "bonus":  18, "desc": "Spring-loaded tip — unpredictable burst speed.", "penalty_stat": "stamina", "penalty": 10},
-    {"name": "Giga Driver",         "type": "driver", "price": 1150, "stat": "defense", "bonus":  20, "desc": "Wide flat base — anchors perfectly, but slows attack.", "penalty_stat": "attack",  "penalty": 14},
-    {"name": "Wedge Driver",        "type": "driver", "price": 1200, "stat": "defense", "bonus":  22, "desc": "Reinforced wedge tip — fortress-like defense.", "penalty_stat": "stamina", "penalty": 14},
-    # High-bonus heavy tradeoffs
-    {"name": "Valkyrie Rush Driver","type": "driver", "price": 1800, "stat": "attack",  "bonus":  30, "desc": "Pure aggression — you rush or you lose.", "penalty_stat": "stamina", "penalty": 25},
-    {"name": "Zero-G Driver",       "type": "driver", "price": 1700, "stat": "stamina", "bonus":  28, "desc": "Ultra-low contact tip — floats in battle.", "penalty_stat": "defense", "penalty": 22},
-    {"name": "Hyper Driver",        "type": "driver", "price": 2000, "stat": "attack",  "bonus":  35, "desc": "Maximum aggression, minimum survival.", "penalty_stat": "defense", "penalty": 30},
-    {"name": "Iron Shield Driver",  "type": "driver", "price": 1900, "stat": "defense", "bonus":  30, "desc": "Heavy iron tip — immovable but sluggish.", "penalty_stat": "attack",  "penalty": 25},
-    {"name": "Omega Driver",        "type": "driver", "price": 2200, "stat": "stamina", "bonus":  35, "desc": "Bearing + rubber hybrid — incredible stamina sacrifice.", "penalty_stat": "attack",  "penalty": 30},
+from utils.character_registry import load_parts
 
-    # ── DISKS (17) ────────────────────────────────────────────────────────────
-    # Pure / low-bonus disks
-    {"name": "Over Disk",           "type": "disk",   "price":  650, "stat": "stamina", "bonus":   8, "desc": "Light disk — preserves spin energy."},
-    {"name": "Nexus Disk",          "type": "disk",   "price":  750, "stat": "attack",  "bonus":  10, "desc": "Pointed edges — chips away at opponents."},
-    {"name": "Dynamite Disk",       "type": "disk",   "price":  900, "stat": "defense", "bonus":  12, "desc": "Heavy disk — absorbs hits efficiently."},
-    {"name": "Spread Disk",         "type": "disk",   "price":  700, "stat": "stamina", "bonus":   9, "desc": "Wide disk — centrifugal stamina boost."},
-    {"name": "Quad Disk",           "type": "disk",   "price":  800, "stat": "attack",  "bonus":  11, "desc": "Four-prong disk — rotational attack power."},
-    {"name": "Glaive Disk",         "type": "disk",   "price":  850, "stat": "defense", "bonus":  10, "desc": "Angled disk — deflects incoming force."},
-    # Mid-bonus with tradeoffs
-    {"name": "Yell Disk",           "type": "disk",   "price": 1000, "stat": "attack",  "bonus":  18, "desc": "Asymmetric disk — generates burst momentum.", "penalty_stat": "stamina", "penalty": 10},
-    {"name": "Trans Disk",          "type": "disk",   "price": 1050, "stat": "stamina", "bonus":  20, "desc": "Transforming disk — shifts weight during spin.", "penalty_stat": "defense", "penalty": 12},
-    {"name": "Heavy Disk",          "type": "disk",   "price": 1100, "stat": "defense", "bonus":  20, "desc": "Dense metal disk — outstanding defense weight.", "penalty_stat": "attack",  "penalty": 14},
-    {"name": "Vortex Disk",         "type": "disk",   "price": 1150, "stat": "attack",  "bonus":  20, "desc": "Spiral channels — pulls opponent into attacks.", "penalty_stat": "defense", "penalty": 12},
-    {"name": "Low Rider Disk",      "type": "disk",   "price": 1000, "stat": "stamina", "bonus":  18, "desc": "Low-profile center — friction-free stamina.", "penalty_stat": "attack",  "penalty": 10},
-    {"name": "Forge Disk",          "type": "disk",   "price": 1200, "stat": "defense", "bonus":  22, "desc": "Forged-steel weight — absorbs burst force.", "penalty_stat": "stamina", "penalty": 14},
-    # High-bonus heavy tradeoffs
-    {"name": "Destroyer Disk",      "type": "disk",   "price": 1800, "stat": "attack",  "bonus":  30, "desc": "Blade-edged disk — relentless offense.", "penalty_stat": "defense", "penalty": 25},
-    {"name": "Titan Disk",          "type": "disk",   "price": 1900, "stat": "defense", "bonus":  30, "desc": "Legendary weight — near-impenetrable block.", "penalty_stat": "stamina", "penalty": 22},
-    {"name": "Phantom Disk",        "type": "disk",   "price": 2000, "stat": "stamina", "bonus":  30, "desc": "Hollow-core disk — ghostly spin endurance.", "penalty_stat": "attack",  "penalty": 25},
-    {"name": "Apex Disk",           "type": "disk",   "price": 2300, "stat": "attack",  "bonus":  38, "desc": "Razor apex disk — catastrophic burst damage.", "penalty_stat": "stamina", "penalty": 32},
-    {"name": "Eternity Disk",       "type": "disk",   "price": 2500, "stat": "stamina", "bonus":  40, "desc": "Infinite rotation design — defies spin decay.", "penalty_stat": "defense", "penalty": 30},
-
-    # ── RINGS (16) ────────────────────────────────────────────────────────────
-    # Pure / low-bonus rings
-    {"name": "Flugel Wing",         "type": "ring",   "price":  600, "stat": "defense", "bonus":   8, "desc": "Wing blade — deflects attacks gracefully."},
-    {"name": "Keel Ring",           "type": "ring",   "price":  700, "stat": "defense", "bonus":  10, "desc": "Low-profile ring — resists upper attacks."},
-    {"name": "Slash Ring",          "type": "ring",   "price":  650, "stat": "attack",  "bonus":   9, "desc": "Angled blades — scrapes opponents on contact."},
-    {"name": "Spin Ring",           "type": "ring",   "price":  700, "stat": "stamina", "bonus":   9, "desc": "Smooth ring — reduces air resistance."},
-    {"name": "Impact Ring",         "type": "ring",   "price":  750, "stat": "attack",  "bonus":  10, "desc": "Spoked ring — delivers concentrated hits."},
-    # Mid-bonus with tradeoffs
-    {"name": "Prominence Ring",     "type": "ring",   "price": 1100, "stat": "attack",  "bonus":  18, "desc": "Prominent blades — massive contact power.", "penalty_stat": "defense", "penalty": 10},
-    {"name": "Belial Nexus Ring",   "type": "ring",   "price": 1500, "stat": "defense", "bonus":  20, "desc": "Layered armor ring — legendary defense.", "penalty_stat": "attack",  "penalty": 12},
-    {"name": "Tempest Ring",        "type": "ring",   "price": 1200, "stat": "attack",  "bonus":  20, "desc": "Storm blade ring — punishes defense types.", "penalty_stat": "stamina", "penalty": 14},
-    {"name": "Fortress Ring",       "type": "ring",   "price": 1300, "stat": "defense", "bonus":  22, "desc": "Castle-wall ring — extreme impact absorption.", "penalty_stat": "attack",  "penalty": 14},
-    {"name": "Spiral Ring",         "type": "ring",   "price": 1100, "stat": "stamina", "bonus":  18, "desc": "Helical ring — converts spin to endurance.", "penalty_stat": "attack",  "penalty": 10},
-    {"name": "Pulse Ring",          "type": "ring",   "price": 1250, "stat": "stamina", "bonus":  20, "desc": "Resonance ring — stabilises spin frequency.", "penalty_stat": "defense", "penalty": 12},
-    # High-bonus heavy tradeoffs
-    {"name": "Dragon God Ring",     "type": "ring",   "price": 2000, "stat": "attack",  "bonus":  32, "desc": "Fang-edged ring — divine destruction.", "penalty_stat": "defense", "penalty": 26},
-    {"name": "Valkyrie Claw Ring",  "type": "ring",   "price": 2100, "stat": "attack",  "bonus":  30, "desc": "Claw tips — rips through defenses.", "penalty_stat": "stamina", "penalty": 22},
-    {"name": "Aegis Shield Ring",   "type": "ring",   "price": 2200, "stat": "defense", "bonus":  35, "desc": "Mythic shield ring — blocks almost anything.", "penalty_stat": "attack",  "penalty": 28},
-    {"name": "Phantom Veil Ring",   "type": "ring",   "price": 2400, "stat": "stamina", "bonus":  35, "desc": "Ghostly ring — infinite endurance at a cost.", "penalty_stat": "defense", "penalty": 25},
-    {"name": "Omega Blaze Ring",    "type": "ring",   "price": 2600, "stat": "attack",  "bonus":  40, "desc": "Blazing omega tips — unstoppable raw power.", "penalty_stat": "stamina", "penalty": 32},
-
-    # ── ENDGAME (1) ───────────────────────────────────────────────────────────
-    # Three times the attack of anything else in the catalog, and four times
-    # the penalty. The description says "level 100" out loud because the maths
-    # is brutal and invisible otherwise: at BASE stats 81 of the 91 blades have
-    # 120 stamina or less, so this drives their stamina stat to zero and the
-    # battle floors it there — a bey with no stamina runs out of moves and
-    # loses on attrition regardless of how hard it hits. At level 100 the
-    # median blade holds 276 stamina, so it keeps 156 and the trade is a real
-    # one. It is a trap on a fresh bey and a monster on a finished one, and a
-    # player should be able to learn that from the shop rather than from
-    # losing.
-    {"name": "Ragnarok Core", "type": "disk", "price": 45_000, "stat": "attack",
-     "bonus": 120, "penalties": {"defense": 50, "stamina": 120},
-     "desc": ("☄️ **Endgame.** Everything routed into the swing and nothing "
-              "left over. Needs a **level 100** bey — below that its stamina "
-              "cost zeroes the bar and the fight ends on attrition.")},
-]
+# Legacy Rings remain frame accessories; Disk/Driver definitions live in JSON.
+PARTS_CATALOG: list[dict] = sorted(load_parts() + [
+    {
+        "name": "Flugel Wing",
+        "type": "ring",
+        "price": 600,
+        "stat": "defense",
+        "bonus": 8,
+        "desc": "Wing blade — deflects attacks gracefully.",
+        "_registry_order": 34
+    },
+    {
+        "name": "Keel Ring",
+        "type": "ring",
+        "price": 700,
+        "stat": "defense",
+        "bonus": 10,
+        "desc": "Low-profile ring — resists upper attacks.",
+        "_registry_order": 35
+    },
+    {
+        "name": "Slash Ring",
+        "type": "ring",
+        "price": 650,
+        "stat": "attack",
+        "bonus": 9,
+        "desc": "Angled blades — scrapes opponents on contact.",
+        "_registry_order": 36
+    },
+    {
+        "name": "Spin Ring",
+        "type": "ring",
+        "price": 700,
+        "stat": "stamina",
+        "bonus": 9,
+        "desc": "Smooth ring — reduces air resistance.",
+        "_registry_order": 37
+    },
+    {
+        "name": "Impact Ring",
+        "type": "ring",
+        "price": 750,
+        "stat": "attack",
+        "bonus": 10,
+        "desc": "Spoked ring — delivers concentrated hits.",
+        "_registry_order": 38
+    },
+    {
+        "name": "Prominence Ring",
+        "type": "ring",
+        "price": 1100,
+        "stat": "attack",
+        "bonus": 18,
+        "desc": "Prominent blades — massive contact power.",
+        "penalty_stat": "defense",
+        "penalty": 10,
+        "_registry_order": 39
+    },
+    {
+        "name": "Belial Nexus Ring",
+        "type": "ring",
+        "price": 1500,
+        "stat": "defense",
+        "bonus": 20,
+        "desc": "Layered armor ring — legendary defense.",
+        "penalty_stat": "attack",
+        "penalty": 12,
+        "_registry_order": 40
+    },
+    {
+        "name": "Tempest Ring",
+        "type": "ring",
+        "price": 1200,
+        "stat": "attack",
+        "bonus": 20,
+        "desc": "Storm blade ring — punishes defense types.",
+        "penalty_stat": "stamina",
+        "penalty": 14,
+        "_registry_order": 41
+    },
+    {
+        "name": "Fortress Ring",
+        "type": "ring",
+        "price": 1300,
+        "stat": "defense",
+        "bonus": 22,
+        "desc": "Castle-wall ring — extreme impact absorption.",
+        "penalty_stat": "attack",
+        "penalty": 14,
+        "_registry_order": 42
+    },
+    {
+        "name": "Spiral Ring",
+        "type": "ring",
+        "price": 1100,
+        "stat": "stamina",
+        "bonus": 18,
+        "desc": "Helical ring — converts spin to endurance.",
+        "penalty_stat": "attack",
+        "penalty": 10,
+        "_registry_order": 43
+    },
+    {
+        "name": "Pulse Ring",
+        "type": "ring",
+        "price": 1250,
+        "stat": "stamina",
+        "bonus": 20,
+        "desc": "Resonance ring — stabilises spin frequency.",
+        "penalty_stat": "defense",
+        "penalty": 12,
+        "_registry_order": 44
+    },
+    {
+        "name": "Dragon God Ring",
+        "type": "ring",
+        "price": 2000,
+        "stat": "attack",
+        "bonus": 32,
+        "desc": "Fang-edged ring — divine destruction.",
+        "penalty_stat": "defense",
+        "penalty": 26,
+        "_registry_order": 45
+    },
+    {
+        "name": "Valkyrie Claw Ring",
+        "type": "ring",
+        "price": 2100,
+        "stat": "attack",
+        "bonus": 30,
+        "desc": "Claw tips — rips through defenses.",
+        "penalty_stat": "stamina",
+        "penalty": 22,
+        "_registry_order": 46
+    },
+    {
+        "name": "Aegis Shield Ring",
+        "type": "ring",
+        "price": 2200,
+        "stat": "defense",
+        "bonus": 35,
+        "desc": "Mythic shield ring — blocks almost anything.",
+        "penalty_stat": "attack",
+        "penalty": 28,
+        "_registry_order": 47
+    },
+    {
+        "name": "Phantom Veil Ring",
+        "type": "ring",
+        "price": 2400,
+        "stat": "stamina",
+        "bonus": 35,
+        "desc": "Ghostly ring — infinite endurance at a cost.",
+        "penalty_stat": "defense",
+        "penalty": 25,
+        "_registry_order": 48
+    },
+    {
+        "name": "Omega Blaze Ring",
+        "type": "ring",
+        "price": 2600,
+        "stat": "attack",
+        "bonus": 40,
+        "desc": "Blazing omega tips — unstoppable raw power.",
+        "penalty_stat": "stamina",
+        "penalty": 32,
+        "_registry_order": 49
+    }
+], key=lambda part: part["_registry_order"])
 
 PART_TYPE_EMOJI = {"ring": "💍", "disk": "🪨", "driver": "⚙️"}
 PART_TYPE_LABEL = {"ring": "Ring", "disk": "Disk", "driver": "Driver"}
@@ -283,6 +371,11 @@ def get_part_stat_deltas(equipped_part_names: list[str]) -> dict[str, int]:
     for name in equipped_part_names:
         part = catalog.get(name.lower())
         if not part:
+            continue
+        if "stats" in part:
+            for stat, value in part["stats"].items():
+                if value:
+                    deltas[stat] = deltas.get(stat, 0) + value
             continue
         deltas[part["stat"]] = deltas.get(part["stat"], 0) + part["bonus"]
         for stat, amount in part_penalties(part).items():
@@ -835,6 +928,15 @@ class ShopCog(commands.Cog, name="Shop"):
     )
     async def equippart(self, ctx: commands.Context, *, part_name: str) -> None:
         profile = await get_user(ctx.author.id)
+        from utils.character_registry import REGISTRY
+        from utils.bey_components import equip, EquipmentError
+        modular_part = REGISTRY.part(part_name)
+        if modular_part and REGISTRY.find_bey(profile.get("active_beyblade", "")):
+            try:
+                result = await mutate_user(ctx.author.id, lambda p: equip(p, part_name))
+            except EquipmentError as exc:
+                return await ctx.send(f"❌ {exc}")
+            return await ctx.send(f"✅ **{result['part']}** equipped on your active Bey copy. Previous {modular_part['category']} replaced.")
         owned   = profile.get("parts", [])
         catalog = _parts_by_name()
 
@@ -918,6 +1020,14 @@ class ShopCog(commands.Cog, name="Shop"):
     )
     async def unequippart(self, ctx: commands.Context, *, part_name: str) -> None:
         profile  = await get_user(ctx.author.id)
+        from utils.character_registry import REGISTRY
+        from utils.bey_components import equip, EquipmentError
+        if REGISTRY.part(part_name) and REGISTRY.find_bey(profile.get("active_beyblade", "")):
+            try:
+                result = await mutate_user(ctx.author.id, lambda p: equip(p, part_name, remove=True))
+            except EquipmentError as exc:
+                return await ctx.send(f"❌ {exc}")
+            return await ctx.send(f"✅ **{result['part']}** unequipped from this copy and remains in your inventory.")
         equipped: list[str] = profile.get("equipped_parts", [])
 
         match = next((p for p in equipped if p.lower() == part_name.lower()), None)
@@ -939,10 +1049,6 @@ class ShopCog(commands.Cog, name="Shop"):
             f"✅ **{match}** unequipped from {label} slot.\n"
             f"Still in your inventory — `;equippart {match}` to re-equip."
         )
-
-
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  Booster Pack System  (added by Friend 3)
 # ══════════════════════════════════════════════════════════════════════════════

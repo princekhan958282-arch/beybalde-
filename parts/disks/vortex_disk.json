@@ -1,0 +1,20 @@
+{
+  "name": "Vortex Disk",
+  "type": "disk",
+  "price": 1150,
+  "stat": "attack",
+  "bonus": 20,
+  "desc": "Spiral channels — pulls opponent into attacks.",
+  "penalty_stat": "defense",
+  "penalty": 12,
+  "id": "vortex_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 20,
+    "defense": -12,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 26
+}

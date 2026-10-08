@@ -1,0 +1,57 @@
+{
+  "id": "avatar_u003",
+  "name": "Mikasa",
+  "rarity": "Ultimate",
+  "type": "attack",
+  "price": 0,
+  "description": "The Ackerman. Unmatched in combat — devastating special moves and relentless multi-hit assault.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012727105978440/peakpx_1.jpg?ex=6a4348fd&is=6a41f77d&hm=19872a6ca17c58dd5c8b429496d6383a75417e3f05d56ad209beb05295f4ab70&",
+  "bonuses": {
+    "attack_flat": 0,
+    "attack_percent": 0.19,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0.6,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": true,
+    "multi_hit_extra_hits": true,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.12
+  },
+  "skills": [
+    {
+      "name": "Ackerman Instinct",
+      "description": "Attack increased by 35%.",
+      "bonuses": {
+        "attack_percent": 0.35
+      }
+    },
+    {
+      "name": "ODM Evasion",
+      "description": "Dodge chance increased by 30%.",
+      "bonuses": {
+        "dodge_chance": 0.3
+      }
+    },
+    {
+      "name": "Final Cut",
+      "description": "Special Move damage increased by 50%.",
+      "bonuses": {
+        "special_move_percent": 0.5
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 15
+}

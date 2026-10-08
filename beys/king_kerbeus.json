@@ -1,0 +1,99 @@
+{
+  "id": "BB082",
+  "name": "King Kerbeus",
+  "rarity": "Rare",
+  "type": "Defense",
+  "spin_direction": "right",
+  "burst_height": "Low",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537063778384875570/Beyblade_Kerbeus.webp?ex=6a7dadb2&is=6a7c5c32&hm=e9ba3ac3ce651e5cac041a6c6107e36de829442db7612b54278c911f1e87216f&",
+  "description": "The three-headed guardian. Kerbeus does not dodge and does not chase — it plants itself in the centre and makes every attacker pay for the ground they take.",
+  "stats": {
+    "attack": 58,
+    "defense": 96,
+    "stamina": 76,
+    "special": 72,
+    "hp": 104
+  },
+  "ability": {
+    "name": "Chain Blade",
+    "trigger": "on_defend",
+    "description": "Kerbeus braces behind a 12 HP guard every time it is attacked, and the chains snap back for 10 damage at whoever swung.",
+    "rules": [
+      {
+        "when": "on_defend",
+        "do": [
+          {
+            "op": "shield",
+            "value": 12
+          }
+        ],
+        "_name": "Chain Blade"
+      },
+      {
+        "when": "on_take_damage",
+        "do": [
+          {
+            "op": "reflect_flat",
+            "value": 10
+          }
+        ],
+        "_name": "Chain Blade"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Chain Launch",
+    "description": "The chains go taut and Kerbeus hauls the opponent in — two grinding impacts that leave them badly off balance.",
+    "hits": 2,
+    "damage_per_hit": 39,
+    "total_damage": 78,
+    "flavour_texts": [
+      "⛓️ **Chain Launch** — Kerbeus drags them into the wall!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Chain Blade",
+      "trigger": "on_defend",
+      "description": "Kerbeus braces behind a 12 HP guard every time it is attacked, and the chains snap back for 10 damage at whoever swung.",
+      "rules": [
+        {
+          "when": "on_defend",
+          "do": [
+            {
+              "op": "shield",
+              "value": 12
+            }
+          ],
+          "_name": "Chain Blade"
+        },
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reflect_flat",
+              "value": 10
+            }
+          ],
+          "_name": "Chain Blade"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 104,
+    "attack": 58,
+    "defense": 96,
+    "stamina": 76
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 81,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

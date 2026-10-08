@@ -1,0 +1,139 @@
+{
+  "id": "BB078",
+  "name": "Breaker Excalibur",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1525452978142580920/Breaker_Excalibur.png?ex=6a65e54b&is=6a6493cb&hm=63d11a063cc44ce8405b5f588e5dfb89c3439f62fe0924ac8091c2143ccd9510&",
+  "description": "A twin-mode sword wielder. Every clash sharpens its edge — and when the Penta Sword awakens, all five blades strike as one.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 112,
+    "defense": 70,
+    "stamina": 80,
+    "special": 130,
+    "hp": 106
+  },
+  "ability": {
+    "name": "Sword Sharpening",
+    "trigger": "on_attack_hit",
+    "description": "Each Attack that lands sharpens the blades: +10 ATK, stacking up to 4 times for +40 maximum.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "stacking_buff",
+            "stat": "attack",
+            "per_stack": 10,
+            "max": 4,
+            "name": "breaker_stacks"
+          }
+        ],
+        "_name": "Sword Sharpening"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Penta Saber",
+    "hits": 5,
+    "total_damage": 130,
+    "flavour_texts": [
+      "The first blade carves the arc!",
+      "Second and third strike cross!",
+      "The fourth blade breaks the guard!",
+      "ALL FIVE SWORDS CONVERGE — PENTA SABER!"
+    ],
+    "damage_per_hit": 26
+  },
+  "abilities": [
+    {
+      "name": "Sword Sharpening",
+      "trigger": "on_attack_hit",
+      "description": "Each Attack that lands sharpens the blades: +10 ATK, stacking up to 4 times for +40 maximum.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 10,
+              "max": 4,
+              "name": "breaker_stacks"
+            }
+          ],
+          "_name": "Sword Sharpening"
+        }
+      ]
+    },
+    {
+      "name": "Penta Sword Mode",
+      "trigger": "on_special",
+      "description": "Using Penta Saber awakens Penta Sword Mode: +40 ATK, -20 DEF, -20 STA. While in this mode, Penta Saber deals 170 instead of 130.",
+      "rules": [
+        {
+          "when": "on_special",
+          "if": [
+            {
+              "cond": "mode_is",
+              "value": "Penta Sword"
+            }
+          ],
+          "do": [
+            {
+              "op": "special_boost",
+              "value": 40
+            }
+          ],
+          "_name": "Penta Sword Mode"
+        },
+        {
+          "when": "on_special",
+          "once": "battle",
+          "do": [
+            {
+              "op": "set_mode",
+              "name": "Penta Sword"
+            },
+            {
+              "op": "buff",
+              "stat": "attack",
+              "amount": 40,
+              "turns": 99
+            },
+            {
+              "op": "buff",
+              "stat": "defense",
+              "amount": -20,
+              "turns": 99
+            },
+            {
+              "op": "buff",
+              "stat": "stamina",
+              "amount": -20,
+              "turns": 99
+            }
+          ],
+          "_name": "Penta Sword Mode"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 106,
+    "attack": 112,
+    "defense": 70,
+    "stamina": 80
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 77,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

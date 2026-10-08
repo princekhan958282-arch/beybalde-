@@ -1,0 +1,93 @@
+{
+  "id": "BB021",
+  "name": "Eternal Blaze Garuda",
+  "rarity": "Ultimate",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1512410959749189632/1780557349450.png?ex=6a24a6b8&is=6a235538&hm=fcd0a27572178786d8cd6365c56e5ad4ccc60c5d92fbbd55ae896b4ba1de83e7&",
+  "description": "A divine bird of eternal flame, Eternal Blaze Garuda soars above the stadium on wings of living fire. Its unbreakable stamina and iron-wing defense outlast every challenger, burning brighter the closer it comes to the edge.",
+  "burst_height": "Mid",
+  "type": "Stamina",
+  "stats": {
+    "attack": 90,
+    "defense": 110,
+    "stamina": 150,
+    "special": 120,
+    "hp": 139
+  },
+  "special_move": {
+    "name": "Blazing Eternal Storm",
+    "description": "Garuda spreads its divine wings to their full span, unleashing a tempest of sacred fire — each strike drains 1 Stamina from the enemy and heals Garuda for 30 HP, then engulfs the stadium in immortal flame!",
+    "hits": 4,
+    "damage_per_hit": 35,
+    "total_damage": 140,
+    "flavour_texts": [
+      "🔥 **Blazing Eternal Storm** — Garuda ignites the sky!",
+      "🌪️ **Strike 2** — Sacred winds drain the enemy's spirit!",
+      "💥 **Strike 3** — The divine flames roar louder than thunder!",
+      "✨ **Strike 4** — BLAZING ETERNAL STORM — WINGS OF THE IMMORTAL FLAME!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Eternal Flame",
+      "trigger": "passive",
+      "description": "Garuda's wings radiate heat at all times, reducing every incoming hit by 20, and it recovers +2 Stamina per turn. The first time HP drops below 40%, the flames surge once: heals 40 HP instantly and grants +30 DEF for the rest of the battle.",
+      "damage_reduction": 20,
+      "stamina_per_turn": 2,
+      "hp_threshold": 0.4,
+      "surge_heal": 40,
+      "surge_defense_boost": 30,
+      "chain": [
+        {
+          "condition": "hp_below",
+          "threshold": 0.4,
+          "effect": "heal_pct",
+          "value": 0.0571,
+          "once": true,
+          "_note": "Eternal Flame surge: heal 40 HP when below 40% HP"
+        },
+        {
+          "condition": "hp_below",
+          "threshold": 0.4,
+          "effect": "defense_boost",
+          "value": 30,
+          "duration": 999,
+          "once": true,
+          "_note": "Eternal Flame surge: +30 Defense permanently after threshold crossed"
+        }
+      ]
+    },
+    {
+      "name": "Iron Wing Veil",
+      "trigger": "on_defense_win",
+      "description": "When Garuda wins a defense, its iron wings reflect the force — dealing 15 TRUE damage to the attacker and restoring +1 Stamina. Every 4th successful defense releases a radiant burst that heals 25 HP, then the count resets.",
+      "recoil_damage": 15,
+      "stamina_gain": 1,
+      "streak_threshold": 4,
+      "streak_heal": 25
+    },
+    {
+      "name": "Blazing Wing Strike",
+      "trigger": "on_hit",
+      "description": "Each hit of Blazing Eternal Storm burns 1 Stamina from the enemy and heals Garuda for 30 HP — 4 hits, so 4 Stamina burned and 120 HP healed.",
+      "garuda_stamina_drain_per_hit": 1,
+      "garuda_heal_per_hit": 30
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 139,
+    "attack": 90,
+    "defense": 110,
+    "stamina": 150
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 19,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "id": "BB003",
+  "name": "Rage Longinus",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1510862314893738075/BBSK-Rage_Longinus_Destroy27_3A_Beyblade.webp?ex=6a1e5bae&is=6a1d0a2e&hm=d8c0c84fbb95e6f869da3a0e3e04b30f34d9d319bcdb640189ce02d2195041ad&",
+  "description": "Fury incarnate, elevated to Epic tier. Rage Longinus is a berserker that feeds on punishment — the more damage it absorbs, the more unstoppable it becomes. Push it to its limit and face the full wrath of the Rage Engine.",
+  "burst_height": "Low",
+  "type": "Attack",
+  "stats": {
+    "attack": 108,
+    "defense": 45,
+    "stamina": 72,
+    "special": 120,
+    "hp": 92
+  },
+  "ability": {
+    "name": "Rage Engine",
+    "trigger": "on_take_damage",
+    "description": "Every time Rage Longinus takes damage it gains +10 ATK, stacking up to 6 times for a maximum of +60 ATK. At 5 stacks it enters BERSERKER STATE: +20 bonus damage on every attack and -20 incoming damage, for the rest of the battle. At 6 stacks (max rage) Inferno Crush gains a 5th hit — +30 damage, taking the Special from 4×30 (120) to 5×30 (150).",
+    "stack_per_hit": 10,
+    "max_stack": 60,
+    "berserker_threshold": 5,
+    "berserker_bonus_damage": 20,
+    "berserker_damage_reduction": 20,
+    "max_stack_threshold": 6,
+    "max_stack_extra_hit": true,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "activate_mode",
+        "value": 10,
+        "duration": 999,
+        "once": false,
+        "_note": "Rage Engine: +10 ATK per damage taken, stacking to max 6 times"
+      },
+      {
+        "condition": "stack_threshold",
+        "threshold": 5,
+        "effect": "dmg_amp",
+        "value": 0.185,
+        "duration": 999,
+        "once": true,
+        "_note": "BERSERKER STATE: +20 bonus damage on all attacks at 5 stacks"
+      },
+      {
+        "condition": "stack_threshold",
+        "threshold": 5,
+        "effect": "damage_reduction",
+        "value": 20,
+        "duration": 999,
+        "once": true,
+        "_note": "BERSERKER STATE: -20 incoming damage at 5 stacks"
+      }
+    ],
+    "max_stacks": 6
+  },
+  "special_move": {
+    "name": "Inferno Crush",
+    "description": "A rage-fueled, stadium-splitting barrage — four overhead slams at 30 damage each for 120 total. At 6 Rage stacks a 5th slam is added: +30 damage, 150 total.",
+    "hits": 4,
+    "damage_per_hit": 30,
+    "total_damage": 120,
+    "flavour_texts": [
+      "🔥 **Crush 1** — The rage ignites beyond control!",
+      "🔥 **Crush 2** — The stadium floor cracks under the pressure!",
+      "💥 **Crush 3** — BERSERKER MODE ENGAGED — FULL POWER!",
+      "🔥 **Crush 4** — INFERNO CRUSH — STADIUM OBLITERATION!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Rage Engine",
+      "trigger": "on_take_damage",
+      "description": "Every time Rage Longinus takes damage it gains +10 ATK, stacking up to 6 times for a maximum of +60 ATK. At 5 stacks it enters BERSERKER STATE: +20 bonus damage on every attack and -20 incoming damage, for the rest of the battle. At 6 stacks (max rage) Inferno Crush gains a 5th hit — +30 damage, taking the Special from 4×30 (120) to 5×30 (150).",
+      "stack_per_hit": 10,
+      "max_stack": 60,
+      "berserker_threshold": 5,
+      "berserker_bonus_damage": 20,
+      "berserker_damage_reduction": 20,
+      "max_stack_threshold": 6,
+      "max_stack_extra_hit": true,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "activate_mode",
+          "value": 10,
+          "duration": 999,
+          "once": false,
+          "_note": "Rage Engine: +10 ATK per damage taken, stacking to max 6 times"
+        },
+        {
+          "condition": "stack_threshold",
+          "threshold": 5,
+          "effect": "dmg_amp",
+          "value": 0.185,
+          "duration": 999,
+          "once": true,
+          "_note": "BERSERKER STATE: +20 bonus damage on all attacks at 5 stacks"
+        },
+        {
+          "condition": "stack_threshold",
+          "threshold": 5,
+          "effect": "damage_reduction",
+          "value": 20,
+          "duration": 999,
+          "once": true,
+          "_note": "BERSERKER STATE: -20 incoming damage at 5 stacks"
+        }
+      ],
+      "max_stacks": 6
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 92,
+    "attack": 108,
+    "defense": 45,
+    "stamina": 72
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 2,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

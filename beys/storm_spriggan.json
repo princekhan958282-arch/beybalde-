@@ -1,0 +1,155 @@
+{
+  "id": "BB083",
+  "name": "Storm Spriggan",
+  "rarity": "Rare",
+  "type": "Balance",
+  "spin_direction": "right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537063801269129236/Beyblade_Spriggan.webp?ex=6a7dadb7&is=6a7c5c37&hm=c8e29a46b9ad89e23ef2829d6cd0496c725e17e51b7f3b4f2d6e78427ba03d15&",
+  "description": "The blade that answers. Storm Spriggan gives ground on purpose, then turns whatever it was hit with straight back — a style that costs it as much as the opponent.",
+  "stats": {
+    "attack": 74,
+    "defense": 78,
+    "stamina": 78,
+    "special": 82,
+    "hp": 104
+  },
+  "ability": {
+    "name": "Spriggan Layer",
+    "trigger": "on_any_win",
+    "description": "A layer built for either direction. Any exchange Spriggan wins mends 8 HP — it stays in the fight long enough to find its counter.",
+    "rules": [
+      {
+        "when": "on_any_win",
+        "do": [
+          {
+            "op": "heal",
+            "value": 8
+          }
+        ],
+        "_name": "Spriggan Layer"
+      },
+      {
+        "when": "on_special",
+        "do": [
+          {
+            "op": "set_mode",
+            "name": "counter_break"
+          },
+          {
+            "op": "log",
+            "text": "🌀 **Counter Break** — Spriggan opens its guard and waits."
+          }
+        ],
+        "_name": "Counter Break"
+      },
+      {
+        "when": "on_take_damage",
+        "if": [
+          {
+            "cond": "mode_is",
+            "value": "counter_break"
+          }
+        ],
+        "do": [
+          {
+            "op": "reflect_pct",
+            "value": 100
+          },
+          {
+            "op": "set_mode",
+            "name": "spent"
+          },
+          {
+            "op": "log",
+            "text": "🪞 **Counter Break** — every point of it goes back the way it came!"
+          }
+        ],
+        "_name": "Counter Break"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Counter Break",
+    "description": "Spriggan absorbs the exchange and returns it whole. The next hit it takes is reflected 100% back at the attacker — and Spriggan still takes it. Armed only by the Special.",
+    "hits": 1,
+    "damage_per_hit": 130,
+    "total_damage": 130,
+    "flavour_texts": [
+      "⚖️ **Counter Break** — Spriggan turns the battle around!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Spriggan Layer",
+      "trigger": "on_any_win",
+      "description": "A layer built for either direction. Any exchange Spriggan wins mends 8 HP — it stays in the fight long enough to find its counter.",
+      "rules": [
+        {
+          "when": "on_any_win",
+          "do": [
+            {
+              "op": "heal",
+              "value": 8
+            }
+          ],
+          "_name": "Spriggan Layer"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "set_mode",
+              "name": "counter_break"
+            },
+            {
+              "op": "log",
+              "text": "🌀 **Counter Break** — Spriggan opens its guard and waits."
+            }
+          ],
+          "_name": "Counter Break"
+        },
+        {
+          "when": "on_take_damage",
+          "if": [
+            {
+              "cond": "mode_is",
+              "value": "counter_break"
+            }
+          ],
+          "do": [
+            {
+              "op": "reflect_pct",
+              "value": 100
+            },
+            {
+              "op": "set_mode",
+              "name": "spent"
+            },
+            {
+              "op": "log",
+              "text": "🪞 **Counter Break** — every point of it goes back the way it came!"
+            }
+          ],
+          "_name": "Counter Break"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 104,
+    "attack": 74,
+    "defense": 78,
+    "stamina": 78
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 82,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

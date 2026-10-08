@@ -1,0 +1,105 @@
+{
+  "id": "BB025",
+  "name": "Void Dragon Zephyros",
+  "rarity": "Mythic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1512973706761338961/file_00000000434c71f8b79e8bc5e7a24186.png?ex=6a260a11&is=6a24b891&hm=d83e79af9bee42efb70fca46831ded9f48a8a88beeba4c8ebd619d3c7862a7a3&",
+  "description": "A crystalline beast born from the void between dimensions. Void Dragon Zephyros is armored in shards of obsidian and amethyst crystal, its ZD core radiating cursed energy that corrupts the spin of anything it touches.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 115,
+    "defense": 108,
+    "stamina": 112,
+    "special": 135,
+    "hp": 119
+  },
+  "ability": {
+    "name": "Crystal Curse",
+    "trigger": "on_attack_win",
+    "description": "Each time Zephyros wins an Attack phase, it implants a crystal shard in the opponent — stacking a Curse that deals 15 damage per turn for 2 turns. Curse stacks up to 3 times (max 45 damage per turn). Every 3rd Curse application, the void erupts — dealing 40 bonus true damage instantly.",
+    "curse_damage_per_turn": 15,
+    "curse_duration": 2,
+    "max_curse_stacks": 3,
+    "streak_threshold": 3,
+    "streak_true_damage": 40,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "burn",
+        "value": 15,
+        "duration": 2,
+        "once": false,
+        "_note": "Crystal Curse: 15 dmg/turn Curse for 2 turns on attack win (stacks to 3)"
+      },
+      {
+        "condition": "stack_threshold",
+        "threshold": 3,
+        "effect": "true_damage",
+        "value": 40,
+        "once": false,
+        "_note": "Crystal Curse: 40 true damage burst on every 3rd curse stack"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Void Crystal Devastation",
+    "description": "Zephyros tears open a rift in the stadium — unleashing a cascade of razor-sharp amethyst crystals that shred the opponent from every angle, then implodes the void for a finishing true damage burst!",
+    "hits": 4,
+    "damage_per_hit": 33.75,
+    "total_damage": 132,
+    "true_damage_final_hit": true,
+    "flavour_texts": [
+      "💜 **Void Crystal Devastation** — The ZD core cracks open the void!",
+      "🔮 **Shard 2** — Amethyst blades tear across the stadium!",
+      "💥 **Shard 3** — The crystal lattice collapses inward!",
+      "🌑 **Shard 4** — VOID CRYSTAL DEVASTATION — DIMENSIONAL OBLITERATION!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Crystal Curse",
+      "trigger": "on_attack_win",
+      "description": "Each time Zephyros wins an Attack phase, it implants a crystal shard in the opponent — stacking a Curse that deals 15 damage per turn for 2 turns. Curse stacks up to 3 times (max 45 damage per turn). Every 3rd Curse application, the void erupts — dealing 40 bonus true damage instantly.",
+      "curse_damage_per_turn": 15,
+      "curse_duration": 2,
+      "max_curse_stacks": 3,
+      "streak_threshold": 3,
+      "streak_true_damage": 40,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "burn",
+          "value": 15,
+          "duration": 2,
+          "once": false,
+          "_note": "Crystal Curse: 15 dmg/turn Curse for 2 turns on attack win (stacks to 3)"
+        },
+        {
+          "condition": "stack_threshold",
+          "threshold": 3,
+          "effect": "true_damage",
+          "value": 40,
+          "once": false,
+          "_note": "Crystal Curse: 40 true damage burst on every 3rd curse stack"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 119,
+    "attack": 115,
+    "defense": 108,
+    "stamina": 112
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 22,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "id": "BB035",
+  "name": "Lord Spriggan",
+  "rarity": "Mythic",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513192354679361778/file_00000000fd987208b7943196f7036817.png?ex=6a28cff3&is=6a277e73&hm=61b1684aea42971e7d0ac61ca38429fbe3526804cd660ab093892f3f3579d0a5&",
+  "description": "The sovereign lord of the Spriggan lineage. Lord Spriggan commands the battlefield with divine authority — its dual-spin mastery and golden crown layer make it an unbreakable force that adapts to any threat.",
+  "burst_height": "Low",
+  "type": "Balance",
+  "stats": {
+    "attack": 112,
+    "defense": 108,
+    "stamina": 105,
+    "special": 140,
+    "hp": 118
+  },
+  "ability": {
+    "name": "Lord's Decree",
+    "trigger": "on_special",
+    "description": "Lord Spriggan issues a royal decree — adapting perfectly to the enemy type. vs Attack: 55 HP shield + reflect 20 true dmg. vs Defense/Stamina: +40 ATK for 3 turns + silence for 1 turn. All modes grant permanent +15 ATK after activation and the next attack pierces defense.",
+    "shield_vs_attack": 55,
+    "reflect_vs_attack": 20,
+    "atk_buff_vs_other": 40,
+    "atk_buff_turns": 3,
+    "silence_turns": 1,
+    "permanent_atk_boost": 15,
+    "pierce_next_attack": true,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "activate_mode",
+        "value": 15,
+        "duration": 999,
+        "once": true,
+        "_note": "Lord's Decree: +15 ATK permanently after first Special"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Lord's Judgement",
+    "description": "Lord Spriggan delivers a royal four-hit verdict — each strike infused with sovereign authority!",
+    "hits": 4,
+    "damage_per_hit": 35,
+    "total_damage": 140,
+    "flavour_texts": [
+      "👑 **Lord's Judgement** — the sovereign rises!",
+      "⚔️ **Strike 2** — the crown's edge cuts deep!",
+      "💥 **Strike 3** — dual-spin mastery unleashed!",
+      "🌀 **Strike 4** — LORD'S JUDGEMENT — BY ROYAL DECREE, ANNIHILATION!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Lord's Decree",
+      "trigger": "on_special",
+      "description": "Lord Spriggan issues a royal decree — adapting perfectly to the enemy type. vs Attack: 55 HP shield + reflect 20 true dmg. vs Defense/Stamina: +40 ATK for 3 turns + silence for 1 turn. All modes grant permanent +15 ATK after activation and the next attack pierces defense.",
+      "shield_vs_attack": 55,
+      "reflect_vs_attack": 20,
+      "atk_buff_vs_other": 40,
+      "atk_buff_turns": 3,
+      "silence_turns": 1,
+      "permanent_atk_boost": 15,
+      "pierce_next_attack": true,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "activate_mode",
+          "value": 15,
+          "duration": 999,
+          "once": true,
+          "_note": "Lord's Decree: +15 ATK permanently after first Special"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Dual",
+  "main_frame": {
+    "hp": 118,
+    "attack": 112,
+    "defense": 108,
+    "stamina": 105
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 33,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

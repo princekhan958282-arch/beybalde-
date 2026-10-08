@@ -36,8 +36,8 @@ def _safe_asset_stem(name: str) -> str:
 
 def _load_asset_state():
     roster_path, assets_dir = _asset_paths()
-    with open(roster_path, encoding="utf-8") as fh:
-        roster = json.load(fh)
+    from utils.database import load_beyblades
+    roster = load_beyblades()
     os.makedirs(assets_dir, exist_ok=True)
     local = set()
     for filename in os.listdir(assets_dir):

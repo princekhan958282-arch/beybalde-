@@ -1,0 +1,67 @@
+{
+  "id": "BB028",
+  "name": "Dread Hades",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513081345654390814/BBC_DH11TZ27_Beyblade.webp?ex=6a266e50&is=6a251cd0&hm=66dad154c790d5358339808636d02b36ffaa2036c3ad3603364383b76005dfdc&",
+  "description": "Ruler of the underworld abyss. Dread Hades drains the life force of its enemies with each rotation, feeding on fear and despair to grow ever more powerful.",
+  "burst_height": "Mid",
+  "type": "Stamina",
+  "stats": {
+    "attack": 75,
+    "defense": 85,
+    "stamina": 130,
+    "special": 110,
+    "hp": 128
+  },
+  "ability": {
+    "name": "Soul Reaper",
+    "trigger": "on_special",
+    "description": "Dread Hades tears open the underworld gate — drain 45 HP from the enemy (true damage, ignores defense), steal 4 of their stamina, and apply Cursed Ground: enemy takes 20 damage at the start of each of their next 3 turns.",
+    "hades_drain_true_dmg": 45,
+    "hades_stamina_steal": 4,
+    "hades_curse_dmg": 20,
+    "hades_curse_turns": 3,
+    "true_damage_turns": 1,
+    "ignore_defense_turns": 1
+  },
+  "special_move": {
+    "name": "Underworld Guillotine",
+    "description": "The gates of Hades swing open — a crushing two-hit blow that shreds the soul itself, bypassing all defenses!",
+    "hits": 2,
+    "damage_per_hit": 55,
+    "total_damage": 110,
+    "flavour_texts": [
+      "💀 **Underworld Guillotine** — the scythe of Hades cleaves through fate itself!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Soul Reaper",
+      "trigger": "on_special",
+      "description": "Dread Hades tears open the underworld gate — drain 45 HP from the enemy (true damage, ignores defense), steal 4 of their stamina, and apply Cursed Ground: enemy takes 20 damage at the start of each of their next 3 turns.",
+      "hades_drain_true_dmg": 45,
+      "hades_stamina_steal": 4,
+      "hades_curse_dmg": 20,
+      "hades_curse_turns": 3,
+      "true_damage_turns": 1,
+      "ignore_defense_turns": 1
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 128,
+    "attack": 75,
+    "defense": 85,
+    "stamina": 130
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 26,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

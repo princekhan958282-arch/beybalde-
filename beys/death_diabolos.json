@@ -1,0 +1,76 @@
+{
+  "id": "BB032",
+  "name": "Death Diabolos",
+  "rarity": "Mythic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513084793472942080/BBSK-Death_Diabolos_4Turn_Merge27_1D.webp?ex=6a267186&is=6a252006&hm=97cdf5a5357c9f6c5bd117ddd10b7103386172b2908ff7c3f0f89d3f47ffe828&",
+  "description": "A fearsome balance-type devil that devours both attack and defense. Death Diabolos shifts states mid-battle — adapting its curved horns to crush any opponent who dares challenge it.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 120,
+    "defense": 100,
+    "stamina": 105,
+    "special": 150,
+    "hp": 115
+  },
+  "ability": {
+    "name": "Devil's Convergence",
+    "trigger": "on_special",
+    "description": "Death Diabolos reads the enemy's type. vs Attack: grants a 70 HP shield and +20 DEF for 2 turns. vs Defense: gains +30 ATK for 2 turns and next attack ignores defense. vs Stamina/Balance: drains 35 HP (true damage) and heals the same amount. All cases also deal +20 bonus explosive damage.",
+    "bonus_explosive_damage": 20,
+    "diabolos_shield_vs_attack": 70,
+    "diabolos_def_buff_vs_attack": 20,
+    "diabolos_def_buff_turns": 2,
+    "diabolos_atk_buff_vs_defense": 30,
+    "diabolos_atk_buff_turns": 2,
+    "diabolos_ignore_def_vs_defense": true,
+    "diabolos_drain_vs_other": 35,
+    "diabolos_dmg_amp_pct": 10
+  },
+  "special_move": {
+    "name": "Diabolic End",
+    "description": "Death Diabolos launches four rapid horn strikes — each hit has a chance to land a critical blow, tearing through the opponent with devil precision!",
+    "hits": 4,
+    "damage_per_hit": 30,
+    "total_damage": 120,
+    "flavour_texts": [
+      "🔱 **Horn Strike 1** — Diabolos lunges!",
+      "🔱 **Horn Strike 2** — Left horn slashes!",
+      "🔱 **Horn Strike 3** — Right horn drives in!",
+      "💀 **DIABOLIC END** — DEVIL CROSS BREAK!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Devil's Convergence",
+      "trigger": "on_special",
+      "description": "Death Diabolos reads the enemy's type. vs Attack: grants a 70 HP shield and +20 DEF for 2 turns. vs Defense: gains +30 ATK for 2 turns and next attack ignores defense. vs Stamina/Balance: drains 35 HP (true damage) and heals the same amount. All cases also deal +20 bonus explosive damage.",
+      "bonus_explosive_damage": 20,
+      "diabolos_shield_vs_attack": 70,
+      "diabolos_def_buff_vs_attack": 20,
+      "diabolos_def_buff_turns": 2,
+      "diabolos_atk_buff_vs_defense": 30,
+      "diabolos_atk_buff_turns": 2,
+      "diabolos_ignore_def_vs_defense": true,
+      "diabolos_drain_vs_other": 35,
+      "diabolos_dmg_amp_pct": 10
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 115,
+    "attack": 120,
+    "defense": 100,
+    "stamina": 105
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 30,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

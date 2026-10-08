@@ -1,0 +1,57 @@
+{
+  "id": "avatar_m004",
+  "name": "Tifa",
+  "rarity": "Mythic",
+  "type": "attack",
+  "price": 0,
+  "description": "AVALANCHE's iron fist. Demolishes defences with raw attack power, extra hits, and relentless crits.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012704519786586/HD-wallpaper-tifa-lockhart-final-fantasy-final-fantasy-vii-long-hair-brunette-video-games-video-game-characters-axsens-video-game-girls-fantasy-girl-belly-lingerie-illustration-digital-art-fan-art-portrait.jpg?ex=6a4348f7&is=6a41f777&hm=460907c78fb42e721064984f6010e4e609e2e044566f7b7b4bc0df75b3f790d6&",
+  "bonuses": {
+    "attack_flat": 15,
+    "attack_percent": 0.18,
+    "defence_flat": 5,
+    "defence_percent": 0,
+    "stamina_flat": 10,
+    "stamina_percent": 0,
+    "stability_flat": 8,
+    "stability_percent": 0,
+    "charge_flat": 12,
+    "charge_percent": 0.12,
+    "special_move_flat": 15,
+    "special_move_percent": 0.15,
+    "crit_percent": 0.18,
+    "dodge_chance": 0.1,
+    "counter_chance": 0.1,
+    "multi_hit_power_double": true,
+    "multi_hit_extra_hits": true,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 30,
+    "hp_percent": 0.1
+  },
+  "skills": [
+    {
+      "name": "Beat Rush",
+      "description": "Attack increased by 30%.",
+      "bonuses": {
+        "attack_percent": 0.3
+      }
+    },
+    {
+      "name": "Martial Focus",
+      "description": "Crit chance increased by 28%.",
+      "bonuses": {
+        "crit_percent": 0.28
+      }
+    },
+    {
+      "name": "Final Heaven",
+      "description": "Special Move damage increased by 38%.",
+      "bonuses": {
+        "special_move_percent": 0.38
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 20
+}

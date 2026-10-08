@@ -1,0 +1,61 @@
+{
+  "id": "BB052",
+  "name": "Big Bang Genesis",
+  "rarity": "Mythic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1515586124528095474/image_1ba40573.png?ex=6a2f8b12&is=6a2e3992&hm=51d0b6b102f16ef7d6093149554ed1646183cbafe654ee44628da263ee4a51e0&",
+  "description": "Equipped with the Infinite Lock System, Big Bang Genesis is extremely difficult to burst when the Big Bang Armor is properly attached. Its free-spinning defensive parts absorb and redirect incoming attacks.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 80,
+    "defense": 140,
+    "stamina": 120,
+    "special": 110,
+    "hp": 128
+  },
+  "ability": {
+    "name": "Infinite Lock",
+    "trigger": "passive",
+    "description": "The Infinite Lock System makes Big Bang Genesis extremely difficult to burst while the Big Bang Armor is attached. Free-spinning defensive parts absorb and redirect attacks.",
+    "burst_resistance_pct": 0.35,
+    "passive_dmg_reduction": 15
+  },
+  "special_move": {
+    "name": "Superior Bigbang (Superior Eclipse)",
+    "description": "Big Bang Genesis stays near the center of the stadium, absorbing the opponent's impact before releasing a massive counterattack explosion.",
+    "hits": 1,
+    "damage_per_hit": 100,
+    "total_damage": 100,
+    "absorb_pct": 0.3,
+    "counter_dmg_amp_pct": 0.25,
+    "flavour_texts": [
+      "💥 **Superior Bigbang** — Big Bang Genesis absorbs the impact and unleashes a counter explosion!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Infinite Lock",
+      "trigger": "passive",
+      "description": "The Infinite Lock System makes Big Bang Genesis extremely difficult to burst while the Big Bang Armor is attached. Free-spinning defensive parts absorb and redirect attacks.",
+      "burst_resistance_pct": 0.35,
+      "passive_dmg_reduction": 15
+    }
+  ],
+  "spin_direction": "Dual",
+  "main_frame": {
+    "hp": 128,
+    "attack": 80,
+    "defense": 140,
+    "stamina": 120
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 50,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

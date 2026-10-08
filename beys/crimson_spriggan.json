@@ -1,0 +1,139 @@
+{
+  "id": "BB024",
+  "name": "Crimson Spriggan",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511199186937446481/91ITHeB2AL._AC_SL1500_.jpg?ex=6a25842a&is=6a2432aa&hm=2c2f5394333932b4e98def2143e58e8fbba13af6fc6d8194524c4a0af5b727a2&",
+  "description": "A titan clad in black iron and molten gold, born from the Spriggan bloodline. Crimson Spriggan rises from the brink of destruction — shedding its outer armor to reveal an indestructible core that burns hotter the more it suffers.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 75,
+    "defense": 151,
+    "stamina": 104,
+    "special": 115,
+    "hp": 123
+  },
+  "ability": {
+    "name": "Iron Rebirth",
+    "trigger": "passive",
+    "description": "When HP drops below 35%, Crimson Spriggan sheds its outer armor layer — instantly nullifying all incoming damage for 2 turns, healing 35 HP, and permanently increasing Defense by 30. Additionally, its Special Move gains +50 bonus damage for the rest of the battle.",
+    "hp_threshold": 0.35,
+    "invulnerable_turns": 2,
+    "activation_heal": 35,
+    "defense_boost": 30,
+    "special_boost": 50,
+    "chain": [
+      {
+        "condition": "hp_below",
+        "threshold": 0.35,
+        "effect": "invulnerable",
+        "duration": 2,
+        "once": true,
+        "_note": "Iron Rebirth: nullify all damage for 2 turns on activation"
+      },
+      {
+        "condition": "hp_below",
+        "threshold": 0.35,
+        "effect": "heal_pct",
+        "value": 0.05,
+        "once": true,
+        "_note": "Iron Rebirth: heal 35 HP on activation (35/700 ≈ 0.05)"
+      },
+      {
+        "condition": "hp_below",
+        "threshold": 0.35,
+        "effect": "defense_boost",
+        "value": 30,
+        "duration": 999,
+        "once": true,
+        "_note": "Iron Rebirth: +30 Defense permanently after armor shed"
+      },
+      {
+        "condition": "hp_below",
+        "threshold": 0.35,
+        "effect": "special_boost",
+        "value": 50,
+        "duration": 999,
+        "once": true,
+        "_note": "Iron Rebirth: +50 Special Move damage permanently after armor shed"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Golden Star Judgement",
+    "description": "Revive Phoenix channels all its molten fury into its golden star core — launching three crushing armor-shattering blows that grow stronger the more damage it has endured!",
+    "hits": 3,
+    "damage_per_hit": 38.33,
+    "total_damage": 114,
+    "flavour_texts": [
+      "🔥 **Golden Star Judgement** — The iron armor ignites!",
+      "💥 **Hit 2** — The golden core blazes to life!",
+      "🌟 **Hit 3** — GOLDEN STAR JUDGEMENT — REBORN FROM THE ASHES!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Iron Rebirth",
+      "trigger": "passive",
+      "description": "When HP drops below 35%, Crimson Spriggan sheds its outer armor layer — instantly nullifying all incoming damage for 2 turns, healing 35 HP, and permanently increasing Defense by 30. Additionally, its Special Move gains +50 bonus damage for the rest of the battle.",
+      "hp_threshold": 0.35,
+      "invulnerable_turns": 2,
+      "activation_heal": 35,
+      "defense_boost": 30,
+      "special_boost": 50,
+      "chain": [
+        {
+          "condition": "hp_below",
+          "threshold": 0.35,
+          "effect": "invulnerable",
+          "duration": 2,
+          "once": true,
+          "_note": "Iron Rebirth: nullify all damage for 2 turns on activation"
+        },
+        {
+          "condition": "hp_below",
+          "threshold": 0.35,
+          "effect": "heal_pct",
+          "value": 0.05,
+          "once": true,
+          "_note": "Iron Rebirth: heal 35 HP on activation (35/700 ≈ 0.05)"
+        },
+        {
+          "condition": "hp_below",
+          "threshold": 0.35,
+          "effect": "defense_boost",
+          "value": 30,
+          "duration": 999,
+          "once": true,
+          "_note": "Iron Rebirth: +30 Defense permanently after armor shed"
+        },
+        {
+          "condition": "hp_below",
+          "threshold": 0.35,
+          "effect": "special_boost",
+          "value": 50,
+          "duration": 999,
+          "once": true,
+          "_note": "Iron Rebirth: +50 Special Move damage permanently after armor shed"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Dual",
+  "main_frame": {
+    "hp": 123,
+    "attack": 75,
+    "defense": 151,
+    "stamina": 104
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 23,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

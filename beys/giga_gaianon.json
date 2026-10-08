@@ -1,0 +1,59 @@
+{
+  "id": "BB058",
+  "name": "Giga Gaianon",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060709199544432/G2_qf_hasbro_no_outline.webp?ex=6a333f50&is=6a31edd0&hm=55cf9f361996bd088a9652dc1de0e8fa36a9e7f186bd461282d792d21180f6eb&",
+  "description": "Giga Gaianon G2 boasts strong burst resistance for its generation, using heavy outer blades to absorb attacks and maintain stability. A well-rounded Balance type that holds its own against different opponent types.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 75,
+    "defense": 89,
+    "stamina": 74,
+    "special": 70,
+    "hp": 106
+  },
+  "ability": {
+    "name": "Earth Fortress",
+    "trigger": "passive",
+    "description": "Strong burst resistance for its generation. Good defense and balance against different types of opponents. Uses its heavy outer blades to absorb attacks and stay stable.",
+    "burst_resistance_pct": 0.2,
+    "passive_dmg_reduction": 8
+  },
+  "special_move": {
+    "name": "Gaia Impact",
+    "description": "Giga Gaianon G2 slams the opponent with heavy earth-powered strikes.",
+    "hits": 1,
+    "damage_per_hit": 90,
+    "total_damage": 90,
+    "flavour_texts": [
+      "🌎 **Gaia Impact** — Giga Gaianon G2 crashes down with earth-powered force!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Earth Fortress",
+      "trigger": "passive",
+      "description": "Strong burst resistance for its generation. Good defense and balance against different types of opponents. Uses its heavy outer blades to absorb attacks and stay stable.",
+      "burst_resistance_pct": 0.2,
+      "passive_dmg_reduction": 8
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 106,
+    "attack": 75,
+    "defense": 89,
+    "stamina": 74
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 56,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,227 @@
+{
+  "id": "BB001",
+  "name": "Bloody Longinus",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1510857021598077078/Screenshot_20200924-134301.jpg?ex=6a1e56c0&is=6a1d0540&hm=e2e3930f56395be4413c3bf0ad244a0cb7cc44b5794588171e01f364bf88dcb9&",
+  "description": "A feared destroyer draped in dark lightning. Its jagged blades tear open wounds and drink what pours out. Paper-thin armour, endless thirst — the apex predator of Attack types.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 112,
+    "defense": 31,
+    "stamina": 92,
+    "special": 120,
+    "hp": 92
+  },
+  "ability": {
+    "name": "Bloody Squall",
+    "trigger": "on_attack_win",
+    "description": "Each Attack win drains 20 HP from the enemy and heals Bloody Longinus the same amount, building a Bloody Squall stack (+10 ATK permanently, max 5). Every stack also loads Dragon Scream with +12 bonus damage — firing the Special spends them all. At 5 stacks BLOOD FRENZY erupts: guaranteed crits and defense pierce for 2 turns, but the open guard never closes — Longinus bleeds 15 recoil on every Attack win for the rest of the battle.",
+    "rules": [
+      {
+        "when": "on_attack_win",
+        "do": [
+          {
+            "op": "steal_hp",
+            "value": 20
+          },
+          {
+            "op": "stacking_buff",
+            "stat": "attack",
+            "per_stack": 10,
+            "max": 5,
+            "name": "squall"
+          },
+          {
+            "op": "add_counter",
+            "name": "squall_load",
+            "amount": 1,
+            "max": 5
+          }
+        ],
+        "_name": "Bloody Squall"
+      },
+      {
+        "when": "on_attack_win",
+        "if": [
+          {
+            "cond": "counter_at_least",
+            "name": "squall",
+            "value": 5
+          }
+        ],
+        "once": "battle",
+        "do": [
+          {
+            "op": "set_mode",
+            "name": "frenzy"
+          },
+          {
+            "op": "guaranteed_crit",
+            "turns": 2
+          },
+          {
+            "op": "ignore_defense",
+            "turns": 2
+          },
+          {
+            "op": "log",
+            "text": "🩸 **BLOOD FRENZY** — Longinus tears its own guard wide open!"
+          }
+        ],
+        "_name": "Bloody Squall"
+      },
+      {
+        "when": "on_attack_win",
+        "if": [
+          {
+            "cond": "mode_is",
+            "value": "frenzy"
+          }
+        ],
+        "do": [
+          {
+            "op": "recoil",
+            "value": 15
+          }
+        ],
+        "_name": "Bloody Squall"
+      },
+      {
+        "when": "on_special",
+        "do": [
+          {
+            "op": "consume_counter",
+            "name": "squall_load",
+            "damage_per_stack": 12
+          },
+          {
+            "op": "heal",
+            "value": 48
+          }
+        ],
+        "_name": "Dragon Scream"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Dragon Scream",
+    "description": "Longinus rears back and looses a single howling lance — every debt owed comes due in one breath.",
+    "hits": 1,
+    "damage_per_hit": 128,
+    "total_damage": 128,
+    "flavour_texts": [
+      "🩸 **Dragon Scream** — one lance, one debt collected!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Bloody Squall",
+      "trigger": "on_attack_win",
+      "description": "Each Attack win drains 20 HP from the enemy and heals Bloody Longinus the same amount, building a Bloody Squall stack (+10 ATK permanently, max 5). Every stack also loads Dragon Scream with +12 bonus damage — firing the Special spends them all. At 5 stacks BLOOD FRENZY erupts: guaranteed crits and defense pierce for 2 turns, but the open guard never closes — Longinus bleeds 15 recoil on every Attack win for the rest of the battle.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "steal_hp",
+              "value": 20
+            },
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 10,
+              "max": 5,
+              "name": "squall"
+            },
+            {
+              "op": "add_counter",
+              "name": "squall_load",
+              "amount": 1,
+              "max": 5
+            }
+          ],
+          "_name": "Bloody Squall"
+        },
+        {
+          "when": "on_attack_win",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "squall",
+              "value": 5
+            }
+          ],
+          "once": "battle",
+          "do": [
+            {
+              "op": "set_mode",
+              "name": "frenzy"
+            },
+            {
+              "op": "guaranteed_crit",
+              "turns": 2
+            },
+            {
+              "op": "ignore_defense",
+              "turns": 2
+            },
+            {
+              "op": "log",
+              "text": "🩸 **BLOOD FRENZY** — Longinus tears its own guard wide open!"
+            }
+          ],
+          "_name": "Bloody Squall"
+        },
+        {
+          "when": "on_attack_win",
+          "if": [
+            {
+              "cond": "mode_is",
+              "value": "frenzy"
+            }
+          ],
+          "do": [
+            {
+              "op": "recoil",
+              "value": 15
+            }
+          ],
+          "_name": "Bloody Squall"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "consume_counter",
+              "name": "squall_load",
+              "damage_per_stack": 12
+            },
+            {
+              "op": "heal",
+              "value": 48
+            }
+          ],
+          "_name": "Dragon Scream"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 92,
+    "attack": 112,
+    "defense": 31,
+    "stamina": 92
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 0,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

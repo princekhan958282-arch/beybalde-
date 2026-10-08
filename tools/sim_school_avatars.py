@@ -33,6 +33,14 @@ Run:  python3 tools/sim_school_avatars.py
 
 from __future__ import annotations
 
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
+
 import asyncio
 import collections
 import copy
@@ -596,8 +604,7 @@ async def suite() -> None:
     others = [a for a in avatar_engine.get_all_avatars()
               if a.get("rarity") != "Blader" and not a.get("active_battle_skills")]
     check("there are still 37 of them", len(others) == 37, len(others))
-    raw = json.load(open(os.path.join(ROOT, "cogs", "avatar",
-                                      "avatar_data.json"), encoding="utf-8"))
+    raw = json.load(authored_open('avatar', encoding="utf-8"))
     check("no existing card gained a rules block",
           not any(sk.get("rules") for a in raw["avatars"]
                   if a.get("rarity") != "Blader" and not a.get("active_battle_skills")

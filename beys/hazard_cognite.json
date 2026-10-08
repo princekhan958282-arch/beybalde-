@@ -1,0 +1,63 @@
+{
+  "id": "BB073",
+  "name": "Hazard Cognite",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516462367725195284/1781621600070.png?ex=6a3363e2&is=6a321262&hm=342600fdf8cb4062aee3c95cf23e9566f7ee5c9beb8e7806507c588d86db1e33&",
+  "description": "Hazard Cognite features a gimmick that changes its behavior during battle, sometimes surviving powerful attacks through unpredictable movement. A true balance-type Bey combining attack, defense, and stamina traits.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 77,
+    "defense": 81,
+    "stamina": 98,
+    "special": 74,
+    "hp": 107
+  },
+  "ability": {
+    "name": "Random Defense",
+    "trigger": "passive",
+    "description": "Features a gimmick that changes behavior during battle. Can sometimes survive powerful attacks through unpredictable movement. Designed as a balance-type Bey with attack, defense, and stamina traits.",
+    "evasion_chance": 0.15,
+    "passive_dmg_reduction": 6,
+    "chaos_bonus_chance": 0.1
+  },
+  "special_move": {
+    "name": "Chaos Dimension",
+    "description": "Hazard Cognite creates unpredictable movement patterns that confuse and overwhelm opponents.",
+    "hits": 1,
+    "damage_per_hit": 95,
+    "total_damage": 95,
+    "evasion_buff_turns": 1,
+    "evasion_buff_pct": 0.2,
+    "flavour_texts": [
+      "🌀 **Chaos Dimension** — Hazard Cognite spins into total unpredictability!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Random Defense",
+      "trigger": "passive",
+      "description": "Features a gimmick that changes behavior during battle. Can sometimes survive powerful attacks through unpredictable movement. Designed as a balance-type Bey with attack, defense, and stamina traits.",
+      "evasion_chance": 0.15,
+      "passive_dmg_reduction": 6,
+      "chaos_bonus_chance": 0.1
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 107,
+    "attack": 77,
+    "defense": 81,
+    "stamina": 98
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 71,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

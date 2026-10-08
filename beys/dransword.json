@@ -1,0 +1,59 @@
+{
+  "id": "BB049",
+  "name": "DranSword",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1515573939047497788/Beyblade_Dran_Sword_3-60F.jpg?ex=6a2f7fb9&is=6a2e2e39&hm=c474fc742ce7e9ab98703e465c64dd6e86e1ac7bcdd8f2ded567501dedbbaaf1&",
+  "description": "A high-speed Beyblade X top built for aggressive maneuvers, using its X-Celerator Rail-engaging bit to rocket forward at incredible speed for devastating collisions.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 100,
+    "defense": 40,
+    "stamina": 50,
+    "special": 95,
+    "hp": 85
+  },
+  "ability": {
+    "name": "Xtreme Dash (X-Dash)",
+    "trigger": "passive",
+    "description": "The Bit's gear engages with the X-Celerator Rail of a compatible stadium, causing DranSword to rocket forward at incredible speed for high-impact collisions.",
+    "passive_atk_bonus": 10,
+    "first_strike_dmg_amp_pct": 0.2
+  },
+  "special_move": {
+    "name": "Xtreme Dash",
+    "description": "DranSword rockets forward with explosive momentum, slamming into the opponent with its full metal weight at maximum speed.",
+    "hits": 1,
+    "damage_per_hit": 125,
+    "total_damage": 125,
+    "flavour_texts": [
+      "💨 **Xtreme Dash** — DranSword rockets forward at full speed!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Xtreme Dash (X-Dash)",
+      "trigger": "passive",
+      "description": "The Bit's gear engages with the X-Celerator Rail of a compatible stadium, causing DranSword to rocket forward at incredible speed for high-impact collisions.",
+      "passive_atk_bonus": 10,
+      "first_strike_dmg_amp_pct": 0.2
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 85,
+    "attack": 100,
+    "defense": 40,
+    "stamina": 50
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 47,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

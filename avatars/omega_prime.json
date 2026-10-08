@@ -1,0 +1,59 @@
+{
+  "id": "avatar_x001",
+  "name": "Omega Prime",
+  "rarity": "Exclusive",
+  "type": "balance",
+  "price": 0,
+  "description": "Exists beyond all known power. Never found in packs. Never duplicated.",
+  "image": "assets/avatars/omega_prime.png",
+  "bonuses": {
+    "attack_flat": 25,
+    "attack_percent": 0.25,
+    "defence_flat": 25,
+    "defence_percent": 0.25,
+    "stamina_flat": 20,
+    "stamina_percent": 0.2,
+    "stability_flat": 20,
+    "stability_percent": 0.2,
+    "charge_flat": 25,
+    "charge_percent": 0.25,
+    "special_move_flat": 40,
+    "special_move_percent": 0.4,
+    "crit_percent": 0.25,
+    "dodge_chance": 0.25,
+    "counter_chance": 0.25,
+    "multi_hit_power_double": true,
+    "multi_hit_extra_hits": true,
+    "resistance_damage_percent": 0.3,
+    "resistance_status_chance": 0.75,
+    "hp_flat": 0,
+    "hp_percent": 0.15
+  },
+  "skills": [
+    {
+      "name": "Prime Dominion",
+      "description": "Attack and Defence increased by 35%.",
+      "bonuses": {
+        "attack_percent": 0.35,
+        "defence_percent": 0.35
+      }
+    },
+    {
+      "name": "Perfect Core",
+      "description": "Stamina and Stability increased by 30%.",
+      "bonuses": {
+        "stamina_percent": 0.3,
+        "stability_percent": 0.3
+      }
+    },
+    {
+      "name": "Omega Release",
+      "description": "Special Move damage increased by 55%.",
+      "bonuses": {
+        "special_move_percent": 0.55
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 7
+}

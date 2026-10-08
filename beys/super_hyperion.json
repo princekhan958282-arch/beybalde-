@@ -1,0 +1,59 @@
+{
+  "id": "BB047",
+  "name": "Super Hyperion",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1514960692573110403/file_0000000043007207bfe44039703ced20.png?ex=6a2f3ed7&is=6a2ded57&hm=dfe712fffca621cb3714c742f98a321ba7cd3196722052783d25cbd15034d1ef&",
+  "description": "As part of the Superking Layer System, its Super Ring features angled contact points designed to improve its offensive capabilities and Smash Attack. Its design is optimized for aggressive competitive gameplay.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 110,
+    "defense": 70,
+    "stamina": 50,
+    "special": 100,
+    "hp": 101
+  },
+  "ability": {
+    "name": "Angled Smash Ring",
+    "trigger": "passive",
+    "description": "The Super Ring's angled contact points improve Smash Attack output, granting a passive boost to attack power during aggressive exchanges.",
+    "passive_atk_bonus": 12,
+    "smash_dmg_amp_pct": 0.15
+  },
+  "special_move": {
+    "name": "Super Strike",
+    "description": "Super Hyperion channels the Superking system's angled contact points into a single devastating smash, crushing through the opponent's defenses.",
+    "hits": 1,
+    "damage_per_hit": 130,
+    "total_damage": 130,
+    "flavour_texts": [
+      "⚔️ **Super Strike** — Super Hyperion unleashes the Superking smash!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Angled Smash Ring",
+      "trigger": "passive",
+      "description": "The Super Ring's angled contact points improve Smash Attack output, granting a passive boost to attack power during aggressive exchanges.",
+      "passive_atk_bonus": 12,
+      "smash_dmg_amp_pct": 0.15
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 101,
+    "attack": 110,
+    "defense": 70,
+    "stamina": 50
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 45,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

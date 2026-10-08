@@ -1,0 +1,57 @@
+{
+  "id": "avatar_m002",
+  "name": "Abyssal Warden",
+  "rarity": "Mythic",
+  "type": "defense",
+  "price": 0,
+  "description": "A guardian of the deep who shrugs off all damage and punishes every attack.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520755233809236019/file_000000009888720689159ba434ffeb59.png?ex=6a42592e&is=6a4107ae&hm=8a15c2d2af288e6e5358929be5c9ca15255bb89f293157c4fbe494e0933bd8e8&",
+  "bonuses": {
+    "attack_flat": 5,
+    "attack_percent": 0.05,
+    "defence_flat": 20,
+    "defence_percent": 0.2,
+    "stamina_flat": 15,
+    "stamina_percent": 0.15,
+    "stability_flat": 15,
+    "stability_percent": 0.15,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0.18,
+    "counter_chance": 0.18,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.25,
+    "resistance_status_chance": 0.6,
+    "hp_flat": 0,
+    "hp_percent": 0.11
+  },
+  "skills": [
+    {
+      "name": "Abyssal Bulwark",
+      "description": "Defence increased by 35%.",
+      "bonuses": {
+        "defence_percent": 0.35
+      }
+    },
+    {
+      "name": "Unmoving Depths",
+      "description": "Stability increased by 30%.",
+      "bonuses": {
+        "stability_percent": 0.3
+      }
+    },
+    {
+      "name": "Void Carapace",
+      "description": "Incoming damage reduced by 22%.",
+      "bonuses": {
+        "resistance_damage_percent": 0.22
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 6
+}

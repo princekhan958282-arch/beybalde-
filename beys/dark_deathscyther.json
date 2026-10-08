@@ -1,0 +1,59 @@
+{
+  "id": "BB064",
+  "name": "Dark Deathscyther",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1518581006054068311/1782125135841.png?ex=6a3a7045&is=6a391ec5&hm=90470face1c6999b4440de07db142d15e6e6b4dde16705f2f7051ca8a86b2fb4&",
+  "description": "The Triple disc provides balanced weight while the Blow driver moves quickly and aggressively around the stadium. Designed for fast attacks and knockout finishes.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 100,
+    "defense": 78,
+    "stamina": 74,
+    "special": 85,
+    "hp": 109
+  },
+  "ability": {
+    "name": "Reaper Rush",
+    "trigger": "passive",
+    "description": "The Triple disc provides balanced weight. The Blow driver is very aggressive and moves quickly around the stadium. Designed for fast attacks and knockout finishes.",
+    "passive_atk_bonus": 12,
+    "knockout_chance_bonus": 0.12
+  },
+  "special_move": {
+    "name": "Death Reaper Slash",
+    "description": "Dark Deathscyther delivers multiple scythe attacks in quick succession.",
+    "hits": 3,
+    "damage_per_hit": 38,
+    "total_damage": 114,
+    "flavour_texts": [
+      "☠️ **Death Reaper Slash** — rapid scythe strikes tear through the opponent!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Reaper Rush",
+      "trigger": "passive",
+      "description": "The Triple disc provides balanced weight. The Blow driver is very aggressive and moves quickly around the stadium. Designed for fast attacks and knockout finishes.",
+      "passive_atk_bonus": 12,
+      "knockout_chance_bonus": 0.12
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 109,
+    "attack": 100,
+    "defense": 78,
+    "stamina": 74
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 62,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

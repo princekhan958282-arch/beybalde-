@@ -1,0 +1,57 @@
+{
+  "id": "avatar_u005",
+  "name": "Shinobu",
+  "rarity": "Ultimate",
+  "type": "defense",
+  "price": 0,
+  "description": "The Insect Hashira. Poisons with a smile — devastating resistance debuffs and status application with lethal counter precision.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521013619389628516/HD-wallpaper-kochou-shinobu-kimetsu-no-yaiba-anime-anime-girls-women-fantasy-girl-hair-ornament-purple-hair-looking-at-viewer-smiling-black-clothing-kimono-uniform-belt-katana-fantasy-art-butterfly.jpg?ex=6a4349d1&is=6a41f851&hm=6201741ee8b9106c04b3d7b1fba2c7cb0c04cf380d8d39d641e79210639d6e9c&",
+  "bonuses": {
+    "attack_flat": 10,
+    "attack_percent": 0.12,
+    "defence_flat": 8,
+    "defence_percent": 0.08,
+    "stamina_flat": 12,
+    "stamina_percent": 0.12,
+    "stability_flat": 10,
+    "stability_percent": 0.1,
+    "charge_flat": 10,
+    "charge_percent": 0.1,
+    "special_move_flat": 15,
+    "special_move_percent": 0.15,
+    "crit_percent": 0.18,
+    "dodge_chance": 0.2,
+    "counter_chance": 0.22,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.3,
+    "resistance_status_chance": 0.6,
+    "hp_flat": 0,
+    "hp_percent": 0.13
+  },
+  "skills": [
+    {
+      "name": "Butterfly Step",
+      "description": "Dodge chance increased by 28%.",
+      "bonuses": {
+        "dodge_chance": 0.28
+      }
+    },
+    {
+      "name": "Wisteria Guard",
+      "description": "Status resistance increased by 70%.",
+      "bonuses": {
+        "resistance_status_chance": 0.7
+      }
+    },
+    {
+      "name": "Needle Counter",
+      "description": "Counter chance increased by 28%.",
+      "bonuses": {
+        "counter_chance": 0.28
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 26
+}

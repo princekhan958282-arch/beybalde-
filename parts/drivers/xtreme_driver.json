@@ -1,0 +1,18 @@
+{
+  "name": "Xtreme Driver",
+  "type": "driver",
+  "price": 900,
+  "stat": "attack",
+  "bonus": 12,
+  "desc": "Rubber tip — violent attack movement.",
+  "id": "xtreme_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 12,
+    "defense": 0,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 5
+}

@@ -1,6 +1,14 @@
 """Headless sim: verify Aero Pegasus (and the generic legacy fixes) in a battle
 loop, without needing discord. Run: python3 tools/sim_aero.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import json, sys, os, types
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -40,7 +48,7 @@ from cogs.battle.status_manager import StatusManager
 from cogs.battle.stamina_manager import StaminaManager
 from cogs.abilities.ability_engine import AbilityEngine
 
-DB = json.load(open(os.path.join(_ROOT, "data", "beyblades.json"), encoding="utf-8"))
+DB = json.load(authored_open('bey', encoding="utf-8"))
 
 
 class FakeSession:

@@ -1,0 +1,61 @@
+{
+  "id": "BB069",
+  "name": "Dark Wolf",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060982152269927/DarkWolfAnime.webp?ex=6a333f91&is=6a31ee11&hm=dbc0d2a35d4c5f67501c104f72b30207446612955f79cbdf13fd3b629270fa55&",
+  "description": "The FS (Flat Sharp) tip gives Dark Wolf two modes — a sharp center for stamina and stability, and a flat outer edge for attack movement when tilted — letting it switch between attack and stamina during battle.",
+  "burst_height": "High",
+  "type": "Balance",
+  "stats": {
+    "attack": 75,
+    "defense": 86,
+    "stamina": 78,
+    "special": 76,
+    "hp": 106
+  },
+  "ability": {
+    "name": "Balance Shift",
+    "trigger": "passive",
+    "description": "The FS tip has two modes: a sharp center for stamina and stability, and a flat outer edge for attack movement when tilted. This lets Dark Wolf switch between attack and stamina during battle.",
+    "mode_atk_bonus": 8,
+    "mode_stamina_bonus": 8,
+    "stamina_drain_reduction_pct": 0.1
+  },
+  "special_move": {
+    "name": "Darkness Howling Blazer",
+    "description": "Doji's signature finishing move — Dark Wolf unleashes a powerful wolf-shaped energy attack.",
+    "hits": 1,
+    "damage_per_hit": 110,
+    "total_damage": 110,
+    "flavour_texts": [
+      "🌑 **Darkness Howling Blazer** — Dark Wolf howls and unleashes wolf-shaped energy!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Balance Shift",
+      "trigger": "passive",
+      "description": "The FS tip has two modes: a sharp center for stamina and stability, and a flat outer edge for attack movement when tilted. This lets Dark Wolf switch between attack and stamina during battle.",
+      "mode_atk_bonus": 8,
+      "mode_stamina_bonus": 8,
+      "stamina_drain_reduction_pct": 0.1
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 106,
+    "attack": 75,
+    "defense": 86,
+    "stamina": 78
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 67,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

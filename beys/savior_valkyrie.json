@@ -1,0 +1,70 @@
+{
+  "id": "BB002",
+  "name": "Savior Valkyrie",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1510861219429486673/Beyblade_Burst_Dynamite_Battle_-_Savior_Valkyrie_Shot-7_28Low_Mode29.webp?ex=6a1e5aa9&is=6a1d0929&hm=4044c782956a2e46e6efad91206615dba6836fb527965c66731d5fede7676cb3&",
+  "description": "The ultimate evolution of the Valkyrie lineage. Blazing speed and overwhelming Attack power make it the champion of champions.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 113,
+    "defense": 47,
+    "stamina": 83,
+    "special": 110,
+    "hp": 80
+  },
+  "ability": {
+    "name": "Valkyrie Ascension",
+    "trigger": "on_special",
+    "description": "Savior Valkyrie's twin blades ignite with divine fury. The second strike now crits on 25% chance for +40 true damage. ATK scales with missing HP: +1 ATK per 5 HP missing (max +20, lasts 3 turns). After the Special, the next Attack ignores defense (Valkyrie Surge, 1 turn).",
+    "double_hit_ratio": 0.5,
+    "valkyrie_crit_chance": 0.25,
+    "valkyrie_crit_true_dmg": 40,
+    "valkyrie_missing_hp_atk_ratio": 5,
+    "valkyrie_missing_hp_atk_max": 20,
+    "valkyrie_missing_hp_atk_turns": 3,
+    "valkyrie_pierce_turns": 1
+  },
+  "special_move": {
+    "name": "Saber Slash",
+    "description": "Twin celestial blades strike in divine sequence — the second hit supercharges on a 25% crit, and every wound Valkyrie carries fuels its ATK for the next 3 turns!",
+    "hits": 2,
+    "damage_per_hit": 55,
+    "total_damage": 110,
+    "flavour_texts": [
+      "⚡ **Slash 1** — Valkyrie ignites!",
+      "⚡ **Slash 2** — SABER SLASH — LIMIT BREAK!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Valkyrie Ascension",
+      "trigger": "on_special",
+      "description": "Savior Valkyrie's twin blades ignite with divine fury. The second strike now crits on 25% chance for +40 true damage. ATK scales with missing HP: +1 ATK per 5 HP missing (max +20, lasts 3 turns). After the Special, the next Attack ignores defense (Valkyrie Surge, 1 turn).",
+      "double_hit_ratio": 0.5,
+      "valkyrie_crit_chance": 0.25,
+      "valkyrie_crit_true_dmg": 40,
+      "valkyrie_missing_hp_atk_ratio": 5,
+      "valkyrie_missing_hp_atk_max": 20,
+      "valkyrie_missing_hp_atk_turns": 3,
+      "valkyrie_pierce_turns": 1
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 80,
+    "attack": 113,
+    "defense": 47,
+    "stamina": 83
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 1,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

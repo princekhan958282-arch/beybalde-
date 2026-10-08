@@ -1,0 +1,59 @@
+{
+  "id": "BB059",
+  "name": "Fang Fenrir",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060721790849044/81mP1M4npgL._SY355_.webp?ex=6a333f53&is=6a31edd3&hm=a7baa89e29c80eb087e7f0e4bc6103831daeb9a25455849f88a990f228fdfd19&",
+  "description": "Fang Fenrir uses sharp upper-attack blades designed to lift opponents and knock them off balance. Its aggressive shape focuses on fast, hard-hitting attacks.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 87,
+    "defense": 56,
+    "stamina": 68,
+    "special": 70,
+    "hp": 90
+  },
+  "ability": {
+    "name": "Wolf Fang Assault",
+    "trigger": "passive",
+    "description": "Fang Fenrir uses sharp upper-attack blades designed to lift opponents and knock them off balance. Its aggressive shape focuses on fast, hard-hitting attacks.",
+    "passive_atk_bonus": 8,
+    "upper_attack_lift_chance": 0.15
+  },
+  "special_move": {
+    "name": "Fenrir Fang",
+    "description": "Fang Fenrir charges forward and strikes with its wolf fangs.",
+    "hits": 1,
+    "damage_per_hit": 95,
+    "total_damage": 95,
+    "flavour_texts": [
+      "🐺 **Fenrir Fang** — Fang Fenrir charges in with its wolf fangs!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Wolf Fang Assault",
+      "trigger": "passive",
+      "description": "Fang Fenrir uses sharp upper-attack blades designed to lift opponents and knock them off balance. Its aggressive shape focuses on fast, hard-hitting attacks.",
+      "passive_atk_bonus": 8,
+      "upper_attack_lift_chance": 0.15
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 90,
+    "attack": 87,
+    "defense": 56,
+    "stamina": 68
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 57,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

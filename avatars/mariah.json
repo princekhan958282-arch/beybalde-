@@ -1,0 +1,64 @@
+{
+  "id": "avatar_og_mariah",
+  "name": "Mariah",
+  "rarity": "Original Generation",
+  "type": "stamina",
+  "price": 0,
+  "description": "Galux partner — original-generation anime-inspired active battle skills.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301609133277264/Mariah2.webp?backend=b2&ex=6ac3aa52&is=6ac258d2&hm=485a82369607d2c9717fdddfa8fc0adbe9c51c71820b9311684c97f74e9b593a&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "stats_always_on": true,
+  "active_battle_skills": true,
+  "character": "mariah",
+  "anime_bey": "Galux",
+  "bonuses": {
+    "attack_flat": 15,
+    "attack_percent": 0,
+    "defence_flat": 15,
+    "defence_percent": 0,
+    "stamina_flat": 20,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 10,
+    "hp_percent": 0
+  },
+  "skills": [
+    {
+      "name": "Feline Footwork",
+      "description": "Reduce the first incoming Attack or Special hit this round by 35%.",
+      "energy_cost": 40,
+      "cooldown_rounds": 3,
+      "once_per_battle": false
+    },
+    {
+      "name": "Cat Scratch",
+      "description": "Your next successful hit reduces the enemy’s HP healing by 40% for 2 rounds.",
+      "energy_cost": 60,
+      "cooldown_rounds": 4,
+      "once_per_battle": false
+    },
+    {
+      "name": "Mountain Cat Attack",
+      "description": "Prepare an ambush for up to 2 rounds: your next Attack against Stamina or Charge gains 40% damage and consumes it. Once per battle.",
+      "energy_cost": 100,
+      "cooldown_rounds": 0,
+      "once_per_battle": true
+    }
+  ],
+  "generation": null,
+  "_registry_order": 49
+}

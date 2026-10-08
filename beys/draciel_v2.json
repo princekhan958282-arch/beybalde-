@@ -1,0 +1,66 @@
+{
+  "id": "BB128",
+  "name": "Draciel V2",
+  "rarity": "Legendary",
+  "type": "Defense",
+  "spin_direction": "Right",
+  "burst_height": "Low",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556914546432675892/1791208337817.png?backend=b2&ex=6ac736a9&is=6ac5e529&hm=2d607beb28a78dfacd625bb0f7be9b22bd7294fd42e849983cba7bf691092b3c&",
+  "description": "Max Tate's water guardian. Draciel V2 specializes in reinforced armor and stored impact.",
+  "stats": {
+    "attack": 75,
+    "defense": 135,
+    "stamina": 105,
+    "special": 110,
+    "hp": 125
+  },
+  "draciel_kit": "V2",
+  "ability": {
+    "name": "Draciel’s Reinforced Shell",
+    "trigger": "on_take_damage",
+    "description": "After an enemy Attack or Special damages Draciel, gain +6% DEF for the rest of the battle, max 4 stacks (+24%). Multi-hit moves grant one stack per use.",
+    "rules": [],
+    "runtime": "draciel"
+  },
+  "abilities": [
+    {
+      "name": "Draciel’s Reinforced Shell",
+      "trigger": "on_take_damage",
+      "description": "After an enemy Attack or Special damages Draciel, gain +6% DEF for the rest of the battle, max 4 stacks (+24%). Multi-hit moves grant one stack per use.",
+      "rules": [],
+      "runtime": "draciel"
+    }
+  ],
+  "special_move": {
+    "name": "Draciel Heavy Viper Wall",
+    "description": "Reduce incoming Attack and Special damage by 35% for 2 rounds. Store 40% of damage prevented by this wall (max 100). On expiry, counter for 40% of current DEF plus stored damage. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 0,
+    "total_damage": 0,
+    "non_damage": true,
+    "flavour_texts": [
+      "🐢 Draciel Heavy Viper Wall!"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "draciel_special",
+    "label": "Draciel Heavy Viper Wall",
+    "emoji": "🐢"
+  },
+  "main_frame": {
+    "hp": 125,
+    "attack": 75,
+    "defense": 135,
+    "stamina": 105
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 128,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "id": "BB074",
+  "name": "Acid Anubion",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516463572991873074/1781623451982.png?ex=6a336502&is=6a321382&hm=f217740139fc6cb63c79546f7f6cde46878232a51abc89a1ff973edadbdcdf4f&",
+  "description": "The Orbit driver helps Acid Anubion stay stable while absorbing hits. Built for defense and survival rather than raw attack power.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 63,
+    "defense": 93,
+    "stamina": 76,
+    "special": 68,
+    "hp": 100
+  },
+  "ability": {
+    "name": "Orbit Guard",
+    "trigger": "passive",
+    "description": "The Orbit driver helps the Bey stay stable while absorbing hits. Built for defense and survival rather than raw attack power.",
+    "passive_dmg_reduction": 12,
+    "knockout_resistance_pct": 0.18
+  },
+  "special_move": {
+    "name": "Judgment Shield",
+    "description": "Acid Anubion blocks powerful attacks and maintains its balance.",
+    "hits": 1,
+    "damage_per_hit": 55,
+    "total_damage": 55,
+    "block_pct": 0.35,
+    "block_turns": 2,
+    "flavour_texts": [
+      "⚖️ **Judgment Shield** — Acid Anubion raises its guard and holds firm!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Orbit Guard",
+      "trigger": "passive",
+      "description": "The Orbit driver helps the Bey stay stable while absorbing hits. Built for defense and survival rather than raw attack power.",
+      "passive_dmg_reduction": 12,
+      "knockout_resistance_pct": 0.18
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 100,
+    "attack": 63,
+    "defense": 93,
+    "stamina": 76
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 72,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

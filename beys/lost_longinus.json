@@ -1,0 +1,73 @@
+{
+  "id": "BB057",
+  "name": "Lost Longinus",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060698667651182/Beyblade_Longinus.webp?ex=6a333f4d&is=6a31edcd&hm=b5430bc084fe679c9a0b054adc0a5a484e904ebe8f0596f581428235d88d0d6a&",
+  "description": "The first Burst Beyblade to feature metal in the Layer, Lost Longinus Nine Spiral uses heavy weight and aggressive dragon-shaped blades for powerful smash attacks. One of the first left-spin Burst Beys ever released.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 128,
+    "defense": 88,
+    "stamina": 96,
+    "special": 110,
+    "hp": 118
+  },
+  "ability": {
+    "name": "Dragon Metal Power",
+    "trigger": "passive",
+    "description": "The first Burst Beyblade to feature metal in the Layer. Heavy weight and aggressive dragon-shaped blades create powerful smash attacks. One of the first left-spin Burst Beys ever released.",
+    "passive_atk_bonus": 14,
+    "smash_dmg_amp_pct": 0.18,
+    "left_spin_counter_bonus": 10
+  },
+  "special_move": {
+    "name": "Lost Spiral",
+    "description": "Lost Longinus accelerates rapidly and crashes head-on into the opponent for knockouts or bursts.",
+    "hits": 1,
+    "damage_per_hit": 140,
+    "total_damage": 140,
+    "knockout_chance": 0.2,
+    "burst_chance": 0.15,
+    "flavour_texts": [
+      "🌪️ **Lost Spiral** — Lost Longinus accelerates and CRASHES in for the burst!"
+    ]
+  },
+  "special_move_2": {
+    "name": "Dragon Crash",
+    "description": "Uses the two dragon heads to deliver heavy consecutive smash attacks.",
+    "hits": 2,
+    "damage_per_hit": 65,
+    "total_damage": 130,
+    "flavour_texts": [
+      "🐉 **Dragon Crash** — the twin dragon heads deliver a crushing smash!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dragon Metal Power",
+      "trigger": "passive",
+      "description": "The first Burst Beyblade to feature metal in the Layer. Heavy weight and aggressive dragon-shaped blades create powerful smash attacks. One of the first left-spin Burst Beys ever released.",
+      "passive_atk_bonus": 14,
+      "smash_dmg_amp_pct": 0.18,
+      "left_spin_counter_bonus": 10
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 118,
+    "attack": 128,
+    "defense": 88,
+    "stamina": 96
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 55,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

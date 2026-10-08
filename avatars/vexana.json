@@ -1,0 +1,64 @@
+{
+  "id": "avatar_mlbb002",
+  "name": "Vexana",
+  "rarity": "MLBB",
+  "type": "attack",
+  "price": 0,
+  "description": "The Necrokeep queen. Vexana turns a duel into a séance — every Special she calls lands with the weight of everything she has already buried.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1536106112372310036/977bd21a2bfcf5e26a44f3f3439074a3.jpg?ex=6a7a31cc&is=6a78e04c&hm=be6ee8fb2a7d07cd945c080dc30386851cd14c3cc0b814edaa3bf52198cab0d1&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "skills": [
+    {
+      "name": "Soul Steal",
+      "description": "Every 3rd hit lands an extra 18% of total Attack.",
+      "bonuses": {
+        "nth_hit_interval": 3,
+        "nth_hit_attack_percent": 0.18
+      }
+    },
+    {
+      "name": "Cursed Oath",
+      "description": "Special Move damage increased by 64%.",
+      "bonuses": {
+        "special_move_percent": 0.64
+      }
+    },
+    {
+      "name": "Deathly Grasp",
+      "description": "Attack increased by 61 and Defence by 61.",
+      "bonuses": {
+        "attack_flat": 61,
+        "defence_flat": 61
+      }
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 61,
+    "attack_percent": 0,
+    "defence_flat": 61,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0.64,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.15,
+    "nth_hit_interval": 3,
+    "nth_hit_attack_percent": 0.18
+  },
+  "generation": null,
+  "_registry_order": 33
+}

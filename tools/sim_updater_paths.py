@@ -18,6 +18,14 @@ a different way:
 
 Run:  python3 tools/sim_updater_paths.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import os
 import sys
 
@@ -90,6 +98,15 @@ print("\n── 4. every exempted file must be read-only at runtime ────
 # rather than trusted, because the cost of being wrong is lost player data.
 WRITE_MARKERS = ("_atomic_write_json", "json.dump", "put_one", ".write(")
 for rel in U.DATA_CONTENT:
+    if rel == "data/beyblades.json":
+        check("the retired monolith is absent from the checkout",
+              not os.path.exists(os.path.join(ROOT, rel)))
+        from utils.character_registry import REGISTRY
+        check("all four flat definition folders ship through the updater",
+              all(not U._is_protected(p) and p.endswith(U.ALLOWED_SUFFIXES)
+                  for p in ("beys/dranzer.json", "avatars/valt_aoi.json",
+                            "parts/disks/nexus_disk.json", "parts/drivers/atomic_driver.json")))
+        continue
     const = None
     dbsrc = open(os.path.join(ROOT, "utils", "database.py"), encoding="utf-8").read()
     for line in dbsrc.splitlines():
@@ -114,10 +131,10 @@ for rel in U.DATA_CONTENT:
     check(f"{rel} is never written at runtime", not writes, writes)
 
 print("\n── 5. the file the bug was about ────────────────────────────────")
-path = os.path.join(ROOT, "data", "beyblades.json")
-check("data/beyblades.json exists", os.path.exists(path))
+path = os.path.join(ROOT, "beys", "shadow_dragon_king.json")
+check("individual Bey JSON exists", os.path.exists(path))
 import json                                            # noqa: E402
-blades = json.load(open(path, encoding="utf-8"))
+blades = json.load(authored_open('bey', encoding="utf-8"))
 check("it holds the full roster", len(blades) >= 78, len(blades))
 sdk = blades.get("Shadow Dragon King")
 check("Shadow Dragon King is present", sdk is not None)
@@ -127,7 +144,7 @@ check("...carrying the new 25% special bonus",
       dw and dw[0]["special_damage_bonus_pct"] == 0.25,
       dw[0]["special_damage_bonus_pct"] if dw else None)
 check("this file would now ship in an update",
-      not U._is_protected("data/beyblades.json"))
+      not U._is_protected("beys/shadow_dragon_king.json"))
 
 print("\n── the version string ───────────────────────────────────────────")
 # `;version` is how you tell whether an upload actually landed — the panel can

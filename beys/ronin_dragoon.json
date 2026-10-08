@@ -1,0 +1,96 @@
+{
+  "id": "BB018",
+  "name": "Ronin Dragoon",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511667777424064593/s-l400_1.jpg?ex=6a2149d3&is=6a1ff853&hm=ff80e0c4486c9bf378d52f37b43c7e6fdbe235ca4f66f56e9fca005807636fe5&",
+  "description": "The ultimate left-spinning tyrant of the Zero-G era. Ronin Dragoon uses its reverse-rotation chrome wheel and vicious dragon heads to strike opponents from unexpected angles, delivering devastating upper-smash attacks.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 98,
+    "defense": 50,
+    "stamina": 68,
+    "special": 105,
+    "hp": 97
+  },
+  "ability": {
+    "name": "Reverse Dragon",
+    "trigger": "on_attack_win",
+    "description": "Every Attack win drains 30 TRUE HP (bypasses shields), heals Ronin Dragoon for that same 30 HP, and restores +0.5 Stamina. Each Attack win also builds one Dragon Reverse stack, up to 3, and every stack grants a permanent +12 ATK (+36 ATK at 3 stacks). On the 3rd stack DRAGON BURST fires for 35 TRUE damage and the stack counter resets to 0 — the +ATK is kept, so it charges up again.",
+    "hp_drain": 30,
+    "hp_drain_true": true,
+    "stamina_gain": 0.5,
+    "dragoon_reverse_stack_atk": 12,
+    "dragoon_reverse_max_stacks": 3,
+    "dragoon_reverse_burst_dmg": 35,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "crit",
+        "value": 30,
+        "once": false
+      },
+      {
+        "condition": "always",
+        "effect": "heal_pct",
+        "value": 0.0214,
+        "once": false
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Shogun Upper Smash",
+    "description": "Rides the slope of the Zero-G stadium to drop down on the opponent with a four-hit dragon barrage at 26 damage each, 104 total.",
+    "hits": 4,
+    "damage_per_hit": 26.25,
+    "total_damage": 104,
+    "flavour_texts": [
+      "🐉 **Shogun Upper Smash** — The left-spinning dragon roars!",
+      "💥 Cruel chrome blades lift the opponent clean off the stadium floor!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Reverse Dragon",
+      "trigger": "on_attack_win",
+      "description": "Every Attack win drains 30 TRUE HP (bypasses shields), heals Ronin Dragoon for that same 30 HP, and restores +0.5 Stamina. Each Attack win also builds one Dragon Reverse stack, up to 3, and every stack grants a permanent +12 ATK (+36 ATK at 3 stacks). On the 3rd stack DRAGON BURST fires for 35 TRUE damage and the stack counter resets to 0 — the +ATK is kept, so it charges up again.",
+      "hp_drain": 30,
+      "hp_drain_true": true,
+      "stamina_gain": 0.5,
+      "dragoon_reverse_stack_atk": 12,
+      "dragoon_reverse_max_stacks": 3,
+      "dragoon_reverse_burst_dmg": 35,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "crit",
+          "value": 30,
+          "once": false
+        },
+        {
+          "condition": "always",
+          "effect": "heal_pct",
+          "value": 0.0214,
+          "once": false
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 97,
+    "attack": 98,
+    "defense": 50,
+    "stamina": 68
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 17,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "id": "BB009",
+  "name": "Dead Phoenix",
+  "rarity": "Mythic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511197809594863786/BBC_Dead_Phoenix_0_Atomic_Beyblade.webp?ex=6a1f9422&is=6a1e42a2&hm=eaa50b5c2c56343b478062d1c8527753df1a5594d491ea27366d5618b34eb27a&",
+  "description": "An immortal fortress arising from the ashes. Dead Phoenix utilizes its heavy outer armor to block catastrophic blows, rendering it nearly unburstable.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 121,
+    "defense": 189,
+    "stamina": 154,
+    "special": 178,
+    "hp": 176
+  },
+  "ability": {
+    "name": "Dead Armor",
+    "trigger": "passive",
+    "description": "When HP falls below 43%, Dead Phoenix sheds its armor — nullifying all incoming damage for 3 turns, healing 25% of max HP, and permanently boosting Dead Stinger's damage by +120. Once per battle.",
+    "rules": [
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "hp_below_pct",
+            "value": 0.4286
+          }
+        ],
+        "once": "battle",
+        "do": [
+          {
+            "op": "invulnerable",
+            "turns": 3
+          },
+          {
+            "op": "heal_pct",
+            "value": 25
+          },
+          {
+            "op": "special_boost",
+            "value": 120
+          }
+        ]
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Dead Stinger",
+    "description": "Dead Phoenix slams its detached armor ring into the opponent, trapping them in a crushing pincer strike!",
+    "hits": 3,
+    "damage_per_hit": 55,
+    "total_damage": 165,
+    "flavour_texts": [
+      "🛡️ **Defense 1** — The Dead Armor flies off!",
+      "💥 **Hit 2** — Dead Phoenix surges forward!",
+      "🔥 **Hit 3** — DEAD STINGER — THE ARMOR CRUSHES THE OPPONENT!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dead Armor",
+      "trigger": "passive",
+      "description": "When HP falls below 43%, Dead Phoenix sheds its armor — nullifying all incoming damage for 3 turns, healing 25% of max HP, and permanently boosting Dead Stinger's damage by +120. Once per battle.",
+      "rules": [
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.4286
+            }
+          ],
+          "once": "battle",
+          "do": [
+            {
+              "op": "invulnerable",
+              "turns": 3
+            },
+            {
+              "op": "heal_pct",
+              "value": 25
+            },
+            {
+              "op": "special_boost",
+              "value": 120
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Left",
+  "hidden_drop_one_in": 1000,
+  "main_frame": {
+    "hp": 176,
+    "attack": 121,
+    "defense": 189,
+    "stamina": 154
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 8,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

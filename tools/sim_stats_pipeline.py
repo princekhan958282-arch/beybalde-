@@ -25,6 +25,14 @@ these bugs passed a single-path test.
 
 Run:  python3 tools/sim_stats_pipeline.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import json
 import os
 import sys
@@ -52,7 +60,7 @@ from cogs.battle.battle import _apply_parts                         # noqa: E402
 from utils import bey_levels as BL                                  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(os.path.join(ROOT, "data", "beyblades.json"), encoding="utf-8") as fh:
+with authored_open('bey', encoding="utf-8") as fh:
     _doc = json.load(fh)
 BLADES = _doc["beyblades"] if isinstance(_doc, dict) and "beyblades" in _doc else _doc
 if isinstance(BLADES, dict):

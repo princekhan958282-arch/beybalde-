@@ -1,0 +1,79 @@
+{
+  "id": "BB096",
+  "name": "Nightmare Longinus",
+  "rarity": "Mythic",
+  "type": "Attack",
+  "spin_direction": "Left",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565711683649718/4be5f5ca1faa269234175db728fc2030.jpg?ex=6a83247a&is=6a81d2fa&hm=a4f8efbc746b451ff345a79cdfb1d9f460f03f1089e100da168bfa2c5448173c&",
+  "description": "Left-spin and unrepentant. Longinus in its cruelest dress hunts the opposing spin head-on and takes the recoil as the price of the meeting.",
+  "stats": {
+    "attack": 142,
+    "defense": 88,
+    "stamina": 96,
+    "special": 138,
+    "hp": 108
+  },
+  "special_move": {
+    "name": "Dragon Crash",
+    "description": "The dragon comes down the centre of the stadium with nothing held back — one climb, one fall, and whatever is under it.",
+    "hits": 2,
+    "damage_per_hit": [
+      96,
+      62
+    ],
+    "total_damage": 158,
+    "flavour_texts": [
+      "🐲 **Dragon Crash** — the nightmare lands!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Nightmare Impact",
+      "trigger": "on_attack_hit",
+      "description": "Opposite-spin contact is where Longinus lives: +18% damage into a right-spin opponent, and 7 stability off them on every strike.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "if": [
+            {
+              "cond": "opposite_spin",
+              "value": true
+            }
+          ],
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 18
+            }
+          ]
+        },
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "value": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 108,
+    "attack": 142,
+    "defense": 88,
+    "stamina": 96
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 95,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

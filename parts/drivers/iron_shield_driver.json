@@ -1,0 +1,20 @@
+{
+  "name": "Iron Shield Driver",
+  "type": "driver",
+  "price": 1900,
+  "stat": "defense",
+  "bonus": 30,
+  "desc": "Heavy iron tip — immovable but sluggish.",
+  "penalty_stat": "attack",
+  "penalty": 25,
+  "id": "iron_shield_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": -25,
+    "defense": 30,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 15
+}

@@ -1,0 +1,104 @@
+{
+  "id": "BB055",
+  "name": "Crystal Zeutron",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1515588944451076256/1781414903159.png?ex=6a2f8db2&is=6a2e3c32&hm=23b8a9b192fa9235aa377b5515f850ddf1876227af66a968e5c4734c195f5a30&",
+  "description": "Crystal Zeutron maintains excellent stability, resists being knocked over, and is designed to outspin opponents in long battles.",
+  "burst_height": "Mid",
+  "type": "Stamina",
+  "stats": {
+    "attack": 70,
+    "defense": 80,
+    "stamina": 125,
+    "special": 95,
+    "hp": 126
+  },
+  "ability": {
+    "name": "Crystal Balance",
+    "trigger": "passive",
+    "description": "Crystal Zeutron maintains excellent stability, resists being knocked over, and is designed to outspin opponents in long battles.",
+    "knockout_resistance_pct": 0.2,
+    "stamina_drain_reduction_pct": 0.1,
+    "rules": [
+      {
+        "when": "on_take_damage",
+        "do": [
+          {
+            "op": "reduce_damage_pct",
+            "value": 10
+          }
+        ],
+        "_name": "Crystal Balance"
+      },
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "stamina_regen",
+            "value": 3
+          }
+        ],
+        "_name": "Crystal Balance"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Zeus Guardian",
+    "description": "Crystal Zeutron absorbs incoming attacks and stays centered in the stadium.",
+    "hits": 1,
+    "damage_per_hit": 70,
+    "total_damage": 70,
+    "absorb_pct": 0.25,
+    "flavour_texts": [
+      "🌟 **Zeus Guardian** — Crystal Zeutron absorbs the impact and holds its ground!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Crystal Balance",
+      "trigger": "passive",
+      "description": "Crystal Zeutron maintains excellent stability, resists being knocked over, and is designed to outspin opponents in long battles.",
+      "knockout_resistance_pct": 0.2,
+      "stamina_drain_reduction_pct": 0.1,
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reduce_damage_pct",
+              "value": 10
+            }
+          ],
+          "_name": "Crystal Balance"
+        },
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "stamina_regen",
+              "value": 3
+            }
+          ],
+          "_name": "Crystal Balance"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 126,
+    "attack": 70,
+    "defense": 80,
+    "stamina": 125
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 53,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

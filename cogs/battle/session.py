@@ -280,13 +280,21 @@ class BattleSession:
         from cogs.avatar import avatar_engine as _AE
 
         prefetch: dict[str, dict] = {}
+        blade1, blade2 = copy.deepcopy(blade1), copy.deepcopy(blade2)
         for pid, blade in ((p1.id, blade1), (p2.id, blade2)):
             key = str(pid)
             if _is_npc(pid):
                 continue
 
             profile   = await get_user(pid)
-            hp_gain   = await _level_hp_gain(pid, blade)
+            # Resolve HP, Special and equipment from the same profile snapshot.
+            from utils.loadout import effective_blade, part_bonuses
+            effective, breakdown, _ = await effective_blade(pid, profile=profile, blade=blade, include_avatar=False,
+                                                           include_parts=not bool(profile.get("active_copy")))
+            hp_bd = breakdown.get("hp") or {}
+            hp_gain = max(0, int(hp_bd.get("total", 0) - hp_bd.get("base", 0)))
+            if effective.get("component_snapshot"):
+                blade["component_snapshot"] = effective["component_snapshot"]
             avatar_id = await _AE.get_equipped_avatar_id(int(pid))
             avatar    = _AE.get_avatar(avatar_id or "") if avatar_id else None
             stat_mult = await get_stat_multiplier(pid, blade.get("name"))
@@ -302,7 +310,9 @@ class BattleSession:
             # Snapshot AFTER committing: the locked slot may have changed or
             # become 0 when this round exhausts the match's energy budget.
             bonuses = await _AE.get_battle_bonuses(pid)
-            eff_spec = await _effective_special(pid, blade)
+            eff_spec = int(effective.get("stats", {}).get("special", 0))
+            if bonuses:
+                eff_spec = int(bonuses.apply_special_move_bonus(eff_spec))
 
             prefetch[key] = {
                 "profile":           profile,
@@ -313,6 +323,7 @@ class BattleSession:
                 "stat_mult":         stat_mult,
                 "effective_special": eff_spec,
                 "skill_commit":      skill_commit,
+                "part_deltas":       part_bonuses(profile, blade) if not profile.get("active_copy") else {},
             }
 
         return cls(
@@ -448,16 +459,10 @@ class BattleSession:
         # ── Parts stat deltas (loaded once at battle start) ───────────────────
         # Each player's equipped parts contribute flat stat bonuses/penalties that
         # apply to every round alongside ability buffs and the level multiplier.
-        try:
-            from cogs.economy.shop import get_part_stat_deltas
-            _p1_prof = self._profile_for(p1.id)
-            _p2_prof = self._profile_for(p2.id)
-            self.part_deltas: dict[str, dict[str, int]] = {
-                str(p1.id): get_part_stat_deltas(_p1_prof.get("equipped_parts", [])),
-                str(p2.id): get_part_stat_deltas(_p2_prof.get("equipped_parts", [])),
-            }
-        except Exception:
-            self.part_deltas = {str(p1.id): {}, str(p2.id): {}}
+        self.part_deltas: dict[str, dict[str, int]] = {
+            str(p1.id): copy.deepcopy(self._prefetch.get(str(p1.id), {}).get("part_deltas", {})),
+            str(p2.id): copy.deepcopy(self._prefetch.get(str(p2.id), {}).get("part_deltas", {})),
+        }
 
         # ── Battle-start effective stats (base + parts + avatar + level mult) ─
         # StaminaManager needs MODIFIED stats (not raw base) so starting

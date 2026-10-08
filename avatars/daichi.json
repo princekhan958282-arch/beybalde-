@@ -1,0 +1,64 @@
+{
+  "id": "avatar_og_daichi",
+  "name": "Daichi",
+  "rarity": "Original Generation",
+  "type": "attack",
+  "price": 0,
+  "description": "Strata Dragoon partner — original-generation anime-inspired active battle skills.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301620365758615/Daichi.webp?backend=b2&ex=6ac3aa54&is=6ac258d4&hm=dd6e6d19d8fd895460d4ce8fa4bbcf3a866d364563a4cd81b6d283eb6ec604bb&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "stats_always_on": true,
+  "active_battle_skills": true,
+  "character": "daichi",
+  "anime_bey": "Strata Dragoon",
+  "bonuses": {
+    "attack_flat": 25,
+    "attack_percent": 0,
+    "defence_flat": 5,
+    "defence_percent": 0,
+    "stamina_flat": 10,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 20,
+    "hp_percent": 0
+  },
+  "skills": [
+    {
+      "name": "Wild Footing",
+      "description": "Remove negative stability-recovery effects and restore 6 stability.",
+      "energy_cost": 40,
+      "cooldown_rounds": 3,
+      "once_per_battle": false
+    },
+    {
+      "name": "Great Cutter",
+      "description": "Your next Attack deals 4 extra stability damage but costs 0.3 extra battle stamina.",
+      "energy_cost": 60,
+      "cooldown_rounds": 4,
+      "once_per_battle": false
+    },
+    {
+      "name": "Ultimate Great Cutter",
+      "description": "Your next hit gains 1% HP damage per point of stability the enemy is missing, capped at 35%. Once per battle.",
+      "energy_cost": 100,
+      "cooldown_rounds": 0,
+      "once_per_battle": true
+    }
+  ],
+  "generation": null,
+  "_registry_order": 50
+}

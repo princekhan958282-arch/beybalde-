@@ -1,0 +1,69 @@
+{
+  "id": "BB046",
+  "name": "Variant Lucifer",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1514960670364532858/file_000000001fb871fa9c929c3ac7fb5783.png?ex=6a2f3ed2&is=6a2ded52&hm=f010551ea23b74348bdef3546d12f77c757df23cdcaf6c0b4f9d106c6b1b2dc9&",
+  "description": "The 2D Double Chassis features six rubber barrier blades that deploy via centrifugal force during high-speed rotation, nullifying incoming attacks and turning Variant Lucifer into an impenetrable wall.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 75,
+    "defense": 160,
+    "stamina": 90,
+    "special": 100,
+    "hp": 128
+  },
+  "ability": {
+    "name": "Barrier Blades",
+    "trigger": "passive",
+    "description": "The 2D Double Chassis features six rubber barrier blades that deploy via centrifugal force during high-speed rotation to nullify incoming attacks.",
+    "passive_dmg_reduction": 20,
+    "nullify_chance": 0.2
+  },
+  "special_move": {
+    "name": "Vexing Wall",
+    "description": "Variant Lucifer's barrier blades spin into a defensive vortex, deflecting incoming damage and disorienting the opponent.",
+    "hits": 1,
+    "damage_per_hit": 60,
+    "total_damage": 60,
+    "block_pct": 0.4,
+    "block_turns": 1,
+    "flavour_texts": [
+      "🛡️ **Vexing Wall** — the barrier blades deploy in a spinning vortex!"
+    ]
+  },
+  "special_move_2": {
+    "name": "Barricade Wall",
+    "description": "Lucifer locks into an unbreakable formation, drastically reducing incoming damage for a short time.",
+    "reflect_turns": 2,
+    "reflect_pct": 0.25,
+    "damage_reduction": 30,
+    "damage_reduction_turns": 2
+  },
+  "abilities": [
+    {
+      "name": "Barrier Blades",
+      "trigger": "passive",
+      "description": "The 2D Double Chassis features six rubber barrier blades that deploy via centrifugal force during high-speed rotation to nullify incoming attacks.",
+      "passive_dmg_reduction": 20,
+      "nullify_chance": 0.2
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 128,
+    "attack": 75,
+    "defense": 160,
+    "stamina": 90
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 44,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

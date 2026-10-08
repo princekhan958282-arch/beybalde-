@@ -1,0 +1,20 @@
+{
+  "name": "Drift Driver",
+  "type": "driver",
+  "price": 1050,
+  "stat": "stamina",
+  "bonus": 20,
+  "desc": "Drifts outward — extreme stamina, poor aggression.",
+  "penalty_stat": "attack",
+  "penalty": 12,
+  "id": "drift_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": -12,
+    "defense": 0,
+    "stamina": 20
+  },
+  "compatibility": {},
+  "_registry_order": 7
+}

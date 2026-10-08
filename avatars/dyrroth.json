@@ -1,0 +1,70 @@
+{
+  "id": "avatar_x003",
+  "name": "Dyrroth",
+  "rarity": "MLBB",
+  "type": "attack",
+  "price": 0,
+  "description": "The abyssal prince. Dyrroth shreds guard on the opening exchange and finishes with a monstrous ultimate.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521123402302099516/03e29ff92eebbd332b6f9e31cb7f002d.jpg?ex=6a65f710&is=6a64a590&hm=aeff0237e11132e2dd1a35b058990fcae01a3ee2da755307d490f4f04fe6d284&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": 0.001,
+  "skills": [
+    {
+      "name": "Rhythm of Ruin",
+      "description": "Every 3rd hit deals bonus damage worth 20% of total Attack.",
+      "bonuses": {
+        "nth_hit_interval": 3,
+        "nth_hit_attack_percent": 0.2
+      }
+    },
+    {
+      "name": "Guard Breaker",
+      "description": "Ignores 40-76% of enemy Defence for the first 3 rounds.",
+      "bonuses": {
+        "defence_break_min": 0.4,
+        "defence_break_max": 0.76,
+        "defence_break_rounds": 3
+      }
+    },
+    {
+      "name": "Abyssal Verdict",
+      "description": "Special Move damage +111%, and the Bey's full Attack stat is added on top.",
+      "bonuses": {
+        "special_move_percent": 1.11,
+        "ult_adds_attack_stat": true
+      }
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 0,
+    "attack_percent": 0,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 1.11,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.15,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "nth_hit_interval": 3,
+    "nth_hit_attack_percent": 0.2,
+    "defence_break_min": 0.4,
+    "defence_break_max": 0.76,
+    "defence_break_rounds": 3,
+    "ult_adds_attack_stat": true
+  },
+  "generation": null,
+  "_registry_order": 28
+}

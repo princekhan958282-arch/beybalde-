@@ -1,0 +1,57 @@
+{
+  "id": "avatar_l001",
+  "name": "Storm Reaper",
+  "rarity": "Legendary",
+  "type": "attack",
+  "price": 0,
+  "description": "A fearsome destroyer who doubles multi-hit fury and supercharges specials.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520721050864975973/1782638491634.png?ex=6a423958&is=6a40e7d8&hm=a713005dd59d30cf9f0b5c40dbfd7d02647abd151e0552c51d953609ebc9b2ce&",
+  "bonuses": {
+    "attack_flat": 8,
+    "attack_percent": 0.08,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 10,
+    "charge_percent": 0.1,
+    "special_move_flat": 15,
+    "special_move_percent": 0.15,
+    "crit_percent": 0.05,
+    "dodge_chance": 0.05,
+    "counter_chance": 0.05,
+    "multi_hit_power_double": true,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.08
+  },
+  "skills": [
+    {
+      "name": "Tempest Edge",
+      "description": "Attack increased by 22%.",
+      "bonuses": {
+        "attack_percent": 0.22
+      }
+    },
+    {
+      "name": "Storm Harvest",
+      "description": "Special Move damage increased by 28%.",
+      "bonuses": {
+        "special_move_percent": 0.28
+      }
+    },
+    {
+      "name": "Reaper's Momentum",
+      "description": "Charge increased by 25%.",
+      "bonuses": {
+        "charge_percent": 0.25
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 4
+}

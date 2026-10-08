@@ -1,0 +1,20 @@
+{
+  "name": "Destroyer Disk",
+  "type": "disk",
+  "price": 1800,
+  "stat": "attack",
+  "bonus": 30,
+  "desc": "Blade-edged disk — relentless offense.",
+  "penalty_stat": "defense",
+  "penalty": 25,
+  "id": "destroyer_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 30,
+    "defense": -25,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 29
+}

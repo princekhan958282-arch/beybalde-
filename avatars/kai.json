@@ -1,0 +1,64 @@
+{
+  "id": "avatar_og_kai",
+  "name": "Kai",
+  "rarity": "Original Generation",
+  "type": "attack",
+  "price": 0,
+  "description": "Dranzer partner — original-generation anime-inspired active battle skills.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301583761936475/Kai_Hiwatari.webp?backend=b2&ex=6ac3aa4c&is=6ac258cc&hm=822f1843a822e3b3546ba9fb09edacc8d25fe86bd00ff8634d77f68ecabfc754&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "stats_always_on": true,
+  "active_battle_skills": true,
+  "character": "kai",
+  "anime_bey": "Dranzer",
+  "bonuses": {
+    "attack_flat": 25,
+    "attack_percent": 0,
+    "defence_flat": 15,
+    "defence_percent": 0,
+    "stamina_flat": 10,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 10,
+    "hp_percent": 0
+  },
+  "skills": [
+    {
+      "name": "Phoenix Focus",
+      "description": "If the enemy repeats their previous move this round, your hit ignores 25% DEF.",
+      "energy_cost": 40,
+      "cooldown_rounds": 3,
+      "once_per_battle": false
+    },
+    {
+      "name": "Flame Saber",
+      "description": "Your next successful hit applies Scorch for 2 rounds: enemy loses 8 HP at round end after using Attack or Special.",
+      "energy_cost": 60,
+      "cooldown_rounds": 4,
+      "once_per_battle": false
+    },
+    {
+      "name": "Blazing Gigs Tempest",
+      "description": "Your next hit removes one temporary positive stat buff before damage calculation. Removing a buff grants 25% extra damage. Once per battle.",
+      "energy_cost": 100,
+      "cooldown_rounds": 0,
+      "once_per_battle": true
+    }
+  ],
+  "generation": null,
+  "_registry_order": 46
+}

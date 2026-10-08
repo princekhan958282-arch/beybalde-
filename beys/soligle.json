@@ -1,0 +1,94 @@
+{
+  "id": "BB033",
+  "name": "Soligle",
+  "rarity": "Exclusive",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513084836401905804/IMG-20260607-WA0000.jpg?ex=6a267190&is=6a252010&hm=b7ff51e1bc89214400ff576af45eb49fe0f7508ddcc67b89425b35dc6c409d9e&",
+  "description": "A solar-forged blade of blinding radiance. Soligle locks the battlefield under the full force of the sun — draining the enemy's stamina dry while its divine light cuts through every defense. None can hide in the shadow of its flare.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 125,
+    "defense": 90,
+    "stamina": 115,
+    "special": 170,
+    "hp": 128
+  },
+  "abilities": [
+    {
+      "name": "Solar Lockdown",
+      "trigger": "on_special",
+      "description": "Soligle ignites the solar lock — drains 4 Stamina from the enemy (true drain), ignores enemy defense for 2 turns, and grants +30 ATK for 2 turns from the solar surge. On each Solar Flare Crush hit, an additional 1.5 Stamina is burned from the enemy.",
+      "solar_stamina_drain": 4,
+      "solar_ignore_defense_turns": 2,
+      "solar_atk_buff": 30,
+      "solar_atk_turns": 2
+    },
+    {
+      "name": "Blazing Wing Strike",
+      "trigger": "on_hit",
+      "description": "Each hit of Solar Flare Crush drains 1.5 Stamina from the enemy — 3 hits, so 4.5 Stamina in total.",
+      "garuda_stamina_drain_per_hit": 1.5,
+      "garuda_heal_per_hit": 0
+    },
+    {
+      "name": "Solar Siphon",
+      "trigger": "passive",
+      "description": "Solar Siphon: every point of Stamina Soligle drains from the enemy also restores 8 HP — the sun feeds on stolen energy. Solar Overheat: while the enemy has less than 1.5 Stamina (too exhausted to Attack), Soligle's damage is boosted by 20%.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "heal_per_drain",
+              "value": 8
+            }
+          ]
+        },
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "enemy_stamina_below",
+              "value": 1.5
+            }
+          ],
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 20
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Solar Flare Crush",
+    "description": "Soligle supercharges with solar energy and unleashes 3 crushing blows — each strike burning through the enemy's stamina and cutting past all defenses with the raw force of the sun!",
+    "hits": 3,
+    "damage_per_hit": 45,
+    "total_damage": 135,
+    "flavour_texts": [
+      "☀️ **Solar Flare Crush** — the sun ignites!",
+      "🔥 **Strike 2** — Solar energy burns through every shield!",
+      "💥 **SOLAR FLARE CRUSH** — the battlefield melts under divine radiance!"
+    ]
+  },
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 128,
+    "attack": 125,
+    "defense": 90,
+    "stamina": 115
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 31,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

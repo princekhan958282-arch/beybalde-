@@ -1,0 +1,59 @@
+{
+  "id": "BB054",
+  "name": "Archer Hercules",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1515587376490090546/1781414545510.png?ex=6a2f8c3c&is=6a2e3abc&hm=2ead01c9fa73397c45570c9fd6cc5ade1a691908b09571252f95a00bbce436e5&",
+  "description": "Hercules H4 is built for extremely long spin times. Its extending bow-shaped wings help maintain stamina and stability during battle. As the Bey slows down, the wings retract slightly, improving defense.",
+  "burst_height": "Mid",
+  "type": "Stamina",
+  "stats": {
+    "attack": 50,
+    "defense": 74,
+    "stamina": 136,
+    "special": 75,
+    "hp": 123
+  },
+  "ability": {
+    "name": "Endless Spin",
+    "trigger": "passive",
+    "description": "Hercules H4's extending bow-shaped wings help maintain stamina and stability during battle. As the Bey slows down, the wings retract slightly, improving defense.",
+    "stamina_drain_reduction_pct": 0.15,
+    "low_spin_def_bonus": 10
+  },
+  "special_move": {
+    "name": "Archer Strike",
+    "description": "Archer Hercules fires a powerful precision attack using its bow-themed wings.",
+    "hits": 1,
+    "damage_per_hit": 85,
+    "total_damage": 85,
+    "flavour_texts": [
+      "🏹 **Archer Strike** — Archer Hercules fires a precision shot from its bow-wings!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Endless Spin",
+      "trigger": "passive",
+      "description": "Hercules H4's extending bow-shaped wings help maintain stamina and stability during battle. As the Bey slows down, the wings retract slightly, improving defense.",
+      "stamina_drain_reduction_pct": 0.15,
+      "low_spin_def_bonus": 10
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 123,
+    "attack": 50,
+    "defense": 74,
+    "stamina": 136
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 52,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "id": "BB017",
+  "name": "Z Achilles",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511663746722828429/Z_Achilles.webp?ex=6a214612&is=6a1ff492&hm=5c1591f79886e037999a380739d6cbe9d4c963147d3ec2a68de5ebc733004740&",
+  "description": "The classic armored warrior of the stadium. Z Achilles uses its dual wing-swords to balance offensive driving power with an unyielding center of gravity, adapting seamlessly to any opponent it faces.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 102,
+    "defense": 104,
+    "stamina": 91,
+    "special": 100,
+    "hp": 111
+  },
+  "ability": {
+    "name": "Aether Stance",
+    "trigger": "on_special",
+    "description": "Z Achilles begins the match with +50 bonus Defense. After executing its Special Move, permanently drops the defense bonus and switches into an aggressive stance, gaining +50 Attack for the rest of the battle. Also heals 25 HP on stance switch.",
+    "initial_defense_buff": 50,
+    "post_special_attack_buff": 50,
+    "stance_switch_heal": 25,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "activate_mode",
+        "value": 50,
+        "duration": 999,
+        "once": true,
+        "_note": "post_special_attack_buff: +50 ATK permanently after Special fires"
+      },
+      {
+        "condition": "always",
+        "effect": "heal_pct",
+        "value": 0.0357,
+        "once": true,
+        "_note": "stance_switch_heal: 25 HP on stance switch"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Z-Breaker",
+    "description": "Utilizes its dual metal blade extensions to unleash a symmetrical twin-strike that cuts across the entire arena track.",
+    "hits": 2,
+    "damage_per_hit": 50,
+    "total_damage": 100,
+    "flavour_texts": [
+      "⚔️ **Z-Breaker** — The twin swords flash under the stadium lights!",
+      "💥 A perfectly balanced double strike pushes the foe back!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Aether Stance",
+      "trigger": "on_special",
+      "description": "Z Achilles begins the match with +50 bonus Defense. After executing its Special Move, permanently drops the defense bonus and switches into an aggressive stance, gaining +50 Attack for the rest of the battle. Also heals 25 HP on stance switch.",
+      "initial_defense_buff": 50,
+      "post_special_attack_buff": 50,
+      "stance_switch_heal": 25,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "activate_mode",
+          "value": 50,
+          "duration": 999,
+          "once": true,
+          "_note": "post_special_attack_buff: +50 ATK permanently after Special fires"
+        },
+        {
+          "condition": "always",
+          "effect": "heal_pct",
+          "value": 0.0357,
+          "once": true,
+          "_note": "stance_switch_heal: 25 HP on stance switch"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 111,
+    "attack": 102,
+    "defense": 104,
+    "stamina": 91
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 16,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

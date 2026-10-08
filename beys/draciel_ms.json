@@ -1,0 +1,66 @@
+{
+  "id": "BB130",
+  "name": "Draciel MS",
+  "rarity": "Ultimate",
+  "type": "Defense",
+  "spin_direction": "Right",
+  "burst_height": "Low",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556917503932895283/1791268219254.png?backend=b2&ex=6ac7396b&is=6ac5e7eb&hm=344a7658bb8cf0c6a2e45b99fc6280355b33525e0b66d6827c2120bf54c43944&",
+  "description": "Max Tate's water guardian. Draciel MS specializes in reactive water defense.",
+  "stats": {
+    "attack": 90,
+    "defense": 165,
+    "stamina": 120,
+    "special": 140,
+    "hp": 155
+  },
+  "draciel_kit": "MS",
+  "ability": {
+    "name": "Draciel’s Reverse Defense",
+    "trigger": "on_take_damage",
+    "description": "After taking Special damage, gain Reverse Guard for the next round. Reduce the next damaging Attack or Special move by 20%, then expire. Cooldown: 3 rounds.",
+    "rules": [],
+    "runtime": "draciel"
+  },
+  "abilities": [
+    {
+      "name": "Draciel’s Reverse Defense",
+      "trigger": "on_take_damage",
+      "description": "After taking Special damage, gain Reverse Guard for the next round. Reduce the next damaging Attack or Special move by 20%, then expire. Cooldown: 3 rounds.",
+      "rules": [],
+      "runtime": "draciel"
+    }
+  ],
+  "special_move": {
+    "name": "Draciel Aqua Shield",
+    "description": "For 2 rounds, reduce incoming Special damage by 40% and Attack damage by 20%. On activation, remove one active DEF debuff and recover 6 Stability. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 0,
+    "total_damage": 0,
+    "non_damage": true,
+    "flavour_texts": [
+      "🐢 Draciel Aqua Shield!"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "draciel_special",
+    "label": "Draciel Aqua Shield",
+    "emoji": "🐢"
+  },
+  "main_frame": {
+    "hp": 155,
+    "attack": 90,
+    "defense": 165,
+    "stamina": 120
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 130,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

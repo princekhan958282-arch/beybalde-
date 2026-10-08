@@ -1,0 +1,117 @@
+{
+  "id": "BB044",
+  "name": "Boom Khalzar",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1514958012983545956/file_00000000285871fa8f03e09c49f99c1e.png?ex=6a2d4218&is=6a2bf098&hm=56bb1bf4318c82c67116abb3f16e12e76c72b35f35c70db12c7c59b5a02282eb&",
+  "description": "Piloted by Kurt Baratier, Boom Khalzar is a mechanical predator built to overwhelm. When battle damage triggers its SwitchStrike mechanism, heavy claws extend outward — expanding its attack range and crushing power to devastating effect.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 135,
+    "defense": 75,
+    "stamina": 80,
+    "special": 120,
+    "hp": 99
+  },
+  "ability": {
+    "name": "SwitchStrike: Extending Claws",
+    "trigger": "passive",
+    "description": "Once HP drops to 50% or below, the sub-layer releases its locks and centrifugal force pushes the heavy claws outward. One-time transformation: +25 ATK, +15% Crit Rate, +15 DEF. Khalzar becomes more dangerous the more damage it takes.",
+    "threshold_hp_pct": 0.5,
+    "once": true,
+    "claw_atk_bonus": 25,
+    "claw_crit_rate": 0.15,
+    "chain": [
+      {
+        "condition": "hp_below_pct",
+        "threshold": 0.5,
+        "effect": "atk_buff",
+        "value": 25,
+        "duration": 999,
+        "once": true,
+        "_note": "SwitchStrike: +25 ATK when HP drops to 50%"
+      },
+      {
+        "condition": "hp_below_pct",
+        "threshold": 0.5,
+        "effect": "def_buff",
+        "value": 15,
+        "duration": 999,
+        "once": true,
+        "_note": "SwitchStrike: +15 DEF when HP drops to 50%"
+      }
+    ],
+    "claw_def_bonus": 15
+  },
+  "special_move": {
+    "name": "Thunder Attack",
+    "description": "Kurt Baratier drives Boom Khalzar forward in a relentless barrage — four consecutive crushing strikes designed to overwhelm the opponent before they can react. Leaves the enemy stunned and weakened.",
+    "hits": 4,
+    "damage_per_hit": [
+      25,
+      30,
+      35,
+      30
+    ],
+    "total_damage": 120,
+    "escalating": true,
+    "post_effect": "atk_debuff",
+    "post_effect_value": 20,
+    "post_effect_turns": 1,
+    "flavour_texts": [
+      "⚡ **Thunder Attack** — Kurt drives Khalzar forward — FIRST STRIKE!",
+      "⚡ **Strike 2** — consecutive hits building momentum!",
+      "💥 **Strike 3** — the claws are CRUSHING!",
+      "🌩️ **THUNDER ATTACK** — FINAL BLOW — OVERWHELMING FORCE — ENEMY STUNNED!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "SwitchStrike: Extending Claws",
+      "trigger": "passive",
+      "description": "Once HP drops to 50% or below, the sub-layer releases its locks and centrifugal force pushes the heavy claws outward. One-time transformation: +25 ATK, +15% Crit Rate, +15 DEF. Khalzar becomes more dangerous the more damage it takes.",
+      "threshold_hp_pct": 0.5,
+      "once": true,
+      "claw_atk_bonus": 25,
+      "claw_crit_rate": 0.15,
+      "chain": [
+        {
+          "condition": "hp_below_pct",
+          "threshold": 0.5,
+          "effect": "atk_buff",
+          "value": 25,
+          "duration": 999,
+          "once": true,
+          "_note": "SwitchStrike: +25 ATK when HP drops to 50%"
+        },
+        {
+          "condition": "hp_below_pct",
+          "threshold": 0.5,
+          "effect": "def_buff",
+          "value": 15,
+          "duration": 999,
+          "once": true,
+          "_note": "SwitchStrike: +15 DEF when HP drops to 50%"
+        }
+      ],
+      "claw_def_bonus": 15
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 99,
+    "attack": 135,
+    "defense": 75,
+    "stamina": 80
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 42,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

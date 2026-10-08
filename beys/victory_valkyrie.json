@@ -1,0 +1,105 @@
+{
+  "id": "BB084",
+  "name": "Victory Valkyrie",
+  "rarity": "Rare",
+  "type": "Attack",
+  "spin_direction": "right",
+  "burst_height": "High",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537063819661283448/Beyblade_Valkyrie.webp?ex=6a7dadbb&is=6a7c5c3b&hm=8b7cae23341f9cac532f42182fe4140bc2a030bb5f6585b2ecf2b32952c88700&",
+  "description": "All forward momentum and no brakes. Valkyrie trades its guard for speed and wins by never letting the opponent set their feet.",
+  "stats": {
+    "attack": 92,
+    "defense": 48,
+    "stamina": 70,
+    "special": 76,
+    "hp": 96
+  },
+  "ability": {
+    "name": "Energy Layer",
+    "trigger": "on_attack_win",
+    "description": "Every Attack Valkyrie wins winds the layer tighter: +6 Attack per stack, up to 4. Firing the Special sharpens the whole flurry — +20% crit chance on every hit of Rush Launch.",
+    "rules": [
+      {
+        "when": "on_attack_win",
+        "do": [
+          {
+            "op": "stacking_buff",
+            "stat": "attack",
+            "per_stack": 6,
+            "max": 4,
+            "name": "energy"
+          }
+        ],
+        "_name": "Energy Layer"
+      },
+      {
+        "when": "on_special",
+        "do": [
+          {
+            "op": "crit_chance",
+            "value": 20
+          }
+        ],
+        "_name": "Energy Layer"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Rush Launch",
+    "description": "Sixteen impacts in one pass — ten damage apiece, every one of them able to crit.",
+    "hits": 16,
+    "damage_per_hit": 10,
+    "total_damage": 160,
+    "flavour_texts": [
+      "⚔️ **Rush Launch** — sixteen hits, no pause!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Energy Layer",
+      "trigger": "on_attack_win",
+      "description": "Every Attack Valkyrie wins winds the layer tighter: +6 Attack per stack, up to 4. Firing the Special sharpens the whole flurry — +20% crit chance on every hit of Rush Launch.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 6,
+              "max": 4,
+              "name": "energy"
+            }
+          ],
+          "_name": "Energy Layer"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "crit_chance",
+              "value": 20
+            }
+          ],
+          "_name": "Energy Layer"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 96,
+    "attack": 92,
+    "defense": 48,
+    "stamina": 70
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 83,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

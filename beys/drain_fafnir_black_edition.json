@@ -1,0 +1,83 @@
+{
+  "id": "BB099",
+  "name": "Drain Fafnir (Black Edition)",
+  "rarity": "Mythic",
+  "type": "Stamina",
+  "spin_direction": "Left",
+  "burst_height": "Mid",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565725105561610/b70537c94b4a53b0bfc56c3a70d06b71.jpg?ex=6a83247e&is=6a81d2fe&hm=b55e357de44fe4256c73f119ce6894c136bd9538d7f77137a3c87eed681d44c4&",
+  "description": "The same left-spin layer in funeral black. Nothing about the shape changed — what changed is how much it keeps. Where Drain Fafnir takes a share of what hits it, the Black Edition takes the hit itself, the spin behind it, and the stamina that was going to pay for the next one.",
+  "abilities": [
+    {
+      "name": "Void Drain",
+      "trigger": "on_take_damage",
+      "description": "Drain Spin, doubled and then some. Steals **1.2 stamina** from the attacker, heals **26** from the theft, and cuts **22%** off the hit that fed it. Every third hit taken bursts for 70 true damage — Fafnir has been full for a while by then.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 1.2
+            },
+            {
+              "op": "heal_per_drain",
+              "value": 26
+            },
+            {
+              "op": "reduce_damage_pct",
+              "value": 22
+            },
+            {
+              "op": "add_counter",
+              "name": "void",
+              "amount": 1,
+              "max": 3
+            },
+            {
+              "op": "counter_burst",
+              "name": "void",
+              "at": 3,
+              "damage": 70,
+              "reset": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "attack": 74,
+    "defense": 92,
+    "stamina": 128,
+    "special": 108,
+    "hp": 124
+  },
+  "special_move": {
+    "name": "Nothing Break",
+    "description": "Fafnir absorbs the charge and gives none of it back, draining the stadium dry in two long pulls.",
+    "hits": 2,
+    "damage_per_hit": 52,
+    "total_damage": 104,
+    "flavour_texts": [
+      "🖤 **Nothing Break** — the black layer gives nothing back!"
+    ]
+  },
+  "main_frame": {
+    "hp": 124,
+    "attack": 74,
+    "defense": 92,
+    "stamina": 128
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 98,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

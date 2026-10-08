@@ -1,0 +1,65 @@
+{
+  "id": "BB029",
+  "name": "Shadow Ragnarok",
+  "rarity": "Mythic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513084782735790220/Glide_Ragnaruk.5.T.1S_28B-178_0329.webp?ex=6a267183&is=6a252003&hm=c73367585747c3e34fc6650d88ed328060ec13dcf8b2ab963951747f891cd315&",
+  "description": "A stamina-type demon that feeds on punishment. Every blow it absorbs charges shadow energy into its spinning layers — unleashed all at once in a devastating dark burst.",
+  "burst_height": "High",
+  "type": "Stamina",
+  "stats": {
+    "attack": 60,
+    "defense": 78,
+    "stamina": 115,
+    "special": 105,
+    "hp": 130
+  },
+  "ability": {
+    "name": "Shadow Accumulation",
+    "trigger": "on_special",
+    "description": "Each time Shadow Ragnarok takes damage before its Special, it stores Shadow Stacks (max 5). On Special, each stack adds +20 bonus damage and heals 10 HP. After detonation all stacks are consumed. Additionally, the Special grants +25 ATK for 2 turns.",
+    "ragnarok_stack_bonus_dmg": 20,
+    "ragnarok_stack_heal": 10,
+    "ragnarok_max_stacks": 5,
+    "ragnarok_post_atk_buff": 25,
+    "ragnarok_post_atk_turns": 2
+  },
+  "special_move": {
+    "name": "Ragnarok Shadowfall",
+    "description": "Shadow Ragnarok detonates all stored darkness in a crushing 3-hit eclipse strike — power scales with every wound it has endured!",
+    "hits": 3,
+    "damage_per_hit": 41.67,
+    "total_damage": 123,
+    "flavour_texts": [
+      "🌑 **Ragnarok Shadowfall** — the darkness erupts into a three-hit annihilation!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Shadow Accumulation",
+      "trigger": "on_special",
+      "description": "Each time Shadow Ragnarok takes damage before its Special, it stores Shadow Stacks (max 5). On Special, each stack adds +20 bonus damage and heals 10 HP. After detonation all stacks are consumed. Additionally, the Special grants +25 ATK for 2 turns.",
+      "ragnarok_stack_bonus_dmg": 20,
+      "ragnarok_stack_heal": 10,
+      "ragnarok_max_stacks": 5,
+      "ragnarok_post_atk_buff": 25,
+      "ragnarok_post_atk_turns": 2
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 130,
+    "attack": 60,
+    "defense": 78,
+    "stamina": 115
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 27,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

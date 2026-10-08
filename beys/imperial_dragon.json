@@ -1,0 +1,79 @@
+{
+  "id": "BB005",
+  "name": "Imperial Dragon",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1510863496219459714/BBGT_Imperial_Dragon_Ignition27_Beyblade.webp?ex=6a1e5cc7&is=6a1d0b47&hm=68d5226164d20766df68ffada5c892b7f41031dd7e73dd37b6ff6bc1d15bdf2d&",
+  "description": "The Dragon Emperor strikes with regal authority. Its Stamina-based endurance outlasts every challenger while its Dragon Breath burns through Defense.",
+  "burst_height": "Mid",
+  "type": "Stamina",
+  "stats": {
+    "attack": 99,
+    "defense": 104,
+    "stamina": 119,
+    "special": 110,
+    "hp": 119
+  },
+  "ability": {
+    "name": "Dragon Emperor",
+    "trigger": "on_stamina_win",
+    "description": "Each Stamina win heals 30 HP and restores +1 Stamina. Every 3 consecutive wins: grants +20 permanent Special boost, a 40 HP shield, and +15 DEF for 2 turns. When HP drops below 40% for the first time, Dragon's Last Stand triggers: +30 ATK and true damage for 3 turns.",
+    "heal": 30,
+    "stamina_gain": 1,
+    "streak_threshold": 3,
+    "streak_special_boost": 20,
+    "streak_shield": 40,
+    "streak_def_buff": 15,
+    "streak_def_turns": 2,
+    "dragon_last_stand_atk": 30,
+    "dragon_last_stand_turns": 3,
+    "dragon_last_stand_threshold": 0.4
+  },
+  "special_move": {
+    "name": "Dragon Breath",
+    "description": "A sustained torrent of draconic spin energy that scorches the opponent!",
+    "hits": 5,
+    "damage_per_hit": 22,
+    "total_damage": 110,
+    "flavour_texts": [
+      "🐉 **Breath 1** — The Dragon exhales!",
+      "🐉 **Breath 2** — Flames wash over the stadium!",
+      "🐉 **Breath 3** — Spinning faster, faster!",
+      "🐉 **Breath 4** — The heat is unbearable!",
+      "🐉 **Breath 5** — DRAGON BREATH FINAL ROAR!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dragon Emperor",
+      "trigger": "on_stamina_win",
+      "description": "Each Stamina win heals 30 HP and restores +1 Stamina. Every 3 consecutive wins: grants +20 permanent Special boost, a 40 HP shield, and +15 DEF for 2 turns. When HP drops below 40% for the first time, Dragon's Last Stand triggers: +30 ATK and true damage for 3 turns.",
+      "heal": 30,
+      "stamina_gain": 1,
+      "streak_threshold": 3,
+      "streak_special_boost": 20,
+      "streak_shield": 40,
+      "streak_def_buff": 15,
+      "streak_def_turns": 2,
+      "dragon_last_stand_atk": 30,
+      "dragon_last_stand_turns": 3,
+      "dragon_last_stand_threshold": 0.4
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 119,
+    "attack": 99,
+    "defense": 104,
+    "stamina": 119
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 4,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

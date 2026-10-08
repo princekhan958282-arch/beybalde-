@@ -1,0 +1,193 @@
+{
+  "id": "BB087",
+  "name": "Master Diabolos",
+  "rarity": "Legendary",
+  "type": "Attack",
+  "spin_direction": "Dual",
+  "burst_height": "Mid",
+  "dual_spin": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513099327730487459/BBGT_Master_Diabolos_Generate_Beyblade.webp?ex=6a7d820f&is=6a7c308f&hm=050817ba75eecbca108e0a48d37a02f23488d76c77c7b62f455c975a995714f7",
+  "description": "A layer built to be flipped. Mounted one way Diabolos spins right and hunts; turned over it spins left and endures. Two blades in one shell, and the blader picks which one turns up.",
+  "stats": {
+    "attack": 136,
+    "defense": 100,
+    "stamina": 103,
+    "special": 120,
+    "hp": 110
+  },
+  "spin_modes": {
+    "Right": {
+      "label": "Right Mode — Assault",
+      "spin_direction": "Right",
+      "type": "Attack",
+      "stats": {
+        "attack": 136,
+        "defense": 100,
+        "stamina": 103,
+        "special": 120,
+        "hp": 110
+      },
+      "special_move": {
+        "name": "Master Smash",
+        "description": "Diabolos comes down from above — one descending blow meant to end the round where it lands.",
+        "hits": 2,
+        "damage_per_hit": [
+          95,
+          60
+        ],
+        "total_damage": 155,
+        "flavour_texts": [
+          "🔥 **Master Smash** — Diabolos drops the hammer!"
+        ]
+      }
+    },
+    "Left": {
+      "label": "Left Mode — Generate",
+      "spin_direction": "Left",
+      "type": "Defense",
+      "stats": {
+        "attack": 118,
+        "defense": 115,
+        "stamina": 106,
+        "special": 112,
+        "hp": 110
+      },
+      "special_move": {
+        "name": "Master Upper",
+        "description": "Diabolos digs in and drives upward, lifting the opponent clean off their axis.",
+        "hits": 3,
+        "damage_per_hit": 48,
+        "total_damage": 144,
+        "flavour_texts": [
+          "🌪️ **Master Upper** — Diabolos throws them skyward!"
+        ]
+      }
+    }
+  },
+  "ability": {
+    "name": "Flippable Master Layer",
+    "trigger": "on_any_win",
+    "description": "The layer reads the exchange. Every win banks a Master stack worth +8 Attack and +8 Defence, to 4 stacks — Diabolos is rewarded for whatever it happens to be good at that round.",
+    "rules": [
+      {
+        "when": "on_any_win",
+        "do": [
+          {
+            "op": "stacking_buff",
+            "stat": "attack",
+            "per_stack": 8,
+            "max": 4,
+            "name": "master"
+          },
+          {
+            "op": "stacking_buff",
+            "stat": "defense",
+            "per_stack": 8,
+            "max": 4,
+            "name": "master_def"
+          }
+        ],
+        "_name": "Flippable Master Layer"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Flippable Master Layer",
+      "trigger": "on_any_win",
+      "description": "The layer reads the exchange. Every win banks a Master stack worth +8 Attack and +8 Defence, to 4 stacks — Diabolos is rewarded for whatever it happens to be good at that round.",
+      "rules": [
+        {
+          "when": "on_any_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 8,
+              "max": 4,
+              "name": "master"
+            },
+            {
+              "op": "stacking_buff",
+              "stat": "defense",
+              "per_stack": 8,
+              "max": 4,
+              "name": "master_def"
+            }
+          ],
+          "_name": "Flippable Master Layer"
+        }
+      ]
+    },
+    {
+      "name": "Dual-Spin Capability",
+      "trigger": "on_hit",
+      "description": "Spinning against the grain tears at the opponent. When Diabolos and its opponent turn in OPPOSITE directions, every hit drains 1.5 stamina and lands 12 extra damage; spinning the same way instead, Diabolos holds its own spin and recovers 1 stamina a round.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "if": [
+            {
+              "cond": "opposite_spin"
+            }
+          ],
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 1.5
+            },
+            {
+              "op": "bonus_damage",
+              "value": 12
+            }
+          ],
+          "_name": "Dual-Spin Capability"
+        },
+        {
+          "when": "on_attack_win",
+          "if": [
+            {
+              "cond": "same_spin"
+            }
+          ],
+          "do": [
+            {
+              "op": "gain_stamina",
+              "value": 1
+            }
+          ],
+          "_name": "Dual-Spin Capability"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Master Smash",
+    "description": "Diabolos comes down from above — one descending blow meant to end the round where it lands.",
+    "hits": 2,
+    "damage_per_hit": [
+      95,
+      60
+    ],
+    "total_damage": 155,
+    "flavour_texts": [
+      "🔥 **Master Smash** — Diabolos drops the hammer!"
+    ]
+  },
+  "main_frame": {
+    "hp": 110,
+    "attack": 136,
+    "defense": 100,
+    "stamina": 103
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 86,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

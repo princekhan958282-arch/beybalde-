@@ -1172,7 +1172,23 @@ class ProfileCog(commands.Cog, name="Profile"):
 
     @commands.command(name="equip")
     async def equip(self, ctx: commands.Context, *, name: str) -> None:
-        """;equip <name> — Switch your active Beyblade."""
+        """;equip <name> or ;equip #<inventory slot> — Switch your active Bey copy."""
+        # A slot selector distinguishes two copies without changing legacy
+        # name-based equip or inventory records.
+        if name.startswith("#") and name[1:].isdigit():
+            from utils.bey_components import reconcile, select_instance, EquipmentError
+            from utils.database import mutate_user
+            def choose(profile):
+                reconcile(profile)
+                slot = int(name[1:]) - 1
+                if not 0 <= slot < len(profile["bey_instances"]):
+                    raise EquipmentError("That inventory slot does not exist.")
+                return select_instance(profile, profile["bey_instances"][slot]["instance_id"])
+            try:
+                entry = await mutate_user(ctx.author.id, choose)
+            except EquipmentError as exc:
+                return await ctx.send(f"❌ {exc}")
+            return await ctx.send(f"✅ Equipped **{entry['name']}** from inventory slot **{name}**.")
         blade = fuzzy_find_beyblade(name)
         if blade is None:
             await ctx.send(f"❌ **{name}** doesn't exist in the database.")

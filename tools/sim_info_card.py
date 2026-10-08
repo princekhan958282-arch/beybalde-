@@ -21,6 +21,14 @@ not an exception, it is a broken-image icon in a channel.
 
 Run:  python3 tools/sim_info_card.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import io
 import json
 import os
@@ -43,8 +51,7 @@ def check(label, cond, detail=""):
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB = json.load(open(os.path.join(ROOT, "data", "beyblades.json"),
-                    encoding="utf-8"))
+DB = json.load(authored_open('bey', encoding="utf-8"))
 
 from PIL import Image                                            # noqa: E402
 from utils import info_card_pillow as P                          # noqa: E402

@@ -1,0 +1,57 @@
+{
+  "id": "avatar_m003",
+  "name": "Sukuna",
+  "rarity": "Mythic",
+  "type": "attack",
+  "price": 0,
+  "description": "The King of Curses. Unleashes cursed energy that shatters defence and guarantees lethal crits.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520391567771439234/d8929536feb879675921ecfa39f00c95.jpg",
+  "bonuses": {
+    "attack_flat": 18,
+    "attack_percent": 0.18,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 5,
+    "stability_percent": 0,
+    "charge_flat": 12,
+    "charge_percent": 0.12,
+    "special_move_flat": 25,
+    "special_move_percent": 0.22,
+    "crit_percent": 0.22,
+    "dodge_chance": 0,
+    "counter_chance": 0.15,
+    "multi_hit_power_double": true,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0.3,
+    "hp_flat": 0,
+    "hp_percent": 0.1
+  },
+  "skills": [
+    {
+      "name": "Cleave",
+      "description": "Attack increased by 28%.",
+      "bonuses": {
+        "attack_percent": 0.28
+      }
+    },
+    {
+      "name": "Malevolent Precision",
+      "description": "Crit chance increased by 30%.",
+      "bonuses": {
+        "crit_percent": 0.3
+      }
+    },
+    {
+      "name": "King's Verdict",
+      "description": "Special Move damage increased by 40%.",
+      "bonuses": {
+        "special_move_percent": 0.4
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 8
+}

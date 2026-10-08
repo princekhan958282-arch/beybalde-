@@ -1,0 +1,98 @@
+{
+  "id": "BB019",
+  "name": "Excalibur Ascendant",
+  "rarity": "Exclusive",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1512421279435591853/file_000000004ec872089b9379c017efb9c5.png?ex=6a240794&is=6a22b614&hm=3be3d2664ce5694dc353c0a72e2774e48dc3fd5d8acb102da5967aa4eb8aaf8a&",
+  "description": "A legendary knight-dragon fusion forged beyond all known limits. Excalibur Ascendant channels the ancient power of dragonkind through a sacred blade core, its crystalline resonance shattering barriers with every revolution.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 160,
+    "defense": 90,
+    "stamina": 110,
+    "special": 150,
+    "hp": 113
+  },
+  "special_move": {
+    "name": "Excalibur Triple Strike",
+    "description": "The sacred dragon blade ignites as Draciel launches three world-splitting slashes — each infused with pure draconic resonance!",
+    "hits": 3,
+    "damage_per_hit": 50,
+    "total_damage": 150,
+    "flavour_texts": [
+      "⚔️ **Strike 1** — The Excalibur core ignites!",
+      "🐉 **Strike 2** — Dragon resonance tears the stadium apart!",
+      "✨ **Strike 3** — EXCALIBUR TRIPLE STRIKE — SACRED BLADE FINISH!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dragon Core Resonance",
+      "trigger": "passive",
+      "description": "Excalibur Ascendant's dragon core pulses with harmonic energy, granting +20 Attack whenever it wins any phase. Stacks up to 3 times (max +60 Attack). Every 3rd consecutive win the resonance erupts, dealing 25 bonus true damage.",
+      "stack_per_win": 20,
+      "max_stacks": 3,
+      "streak_threshold": 3,
+      "streak_true_damage": 25
+    },
+    {
+      "name": "Internal Overdrive",
+      "trigger": "on_special",
+      "description": "After Excalibur Triple Strike, Excalibur Ascendant enters OVERDRIVE for 4 turns: +30 Attack, enemy Defense ignored entirely, attacks that CANNOT be dodged, guaranteed critical hits, and 20 HP recovered per turn. Nothing interrupts it.",
+      "rules": [
+        {
+          "when": "on_special",
+          "_name": "Internal Overdrive",
+          "once": "battle",
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "amount": 30,
+              "turns": 4
+            },
+            {
+              "op": "ignore_defense",
+              "turns": 4
+            },
+            {
+              "op": "undodgeable",
+              "turns": 4
+            },
+            {
+              "op": "guaranteed_crit",
+              "turns": 4
+            },
+            {
+              "op": "crit_damage",
+              "value": 2
+            },
+            {
+              "op": "hp_regen",
+              "value": 20,
+              "turns": 4
+            }
+          ],
+          "_note": "'100% crit damage' is read as guaranteed crits at a doubled multiplier: guaranteed_crit makes every hit a crit for the window, crit_damage 2.0 makes each one worth double rather than the usual 1.5x."
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 113,
+    "attack": 160,
+    "defense": 90,
+    "stamina": 110
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 76,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

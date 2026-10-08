@@ -1,0 +1,164 @@
+{
+  "id": "BB086",
+  "name": "Storm Spriggan X",
+  "rarity": "Epic",
+  "type": "Balance",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537064123685281792/StormSpriggan_2-70M.webp?ex=6a7dae04&is=6a7c5c84&hm=a56961f6fed02a4aa575fd056f1189f9a40f5d8b8da2d2bad9efa47589de1d6d&",
+  "description": "The counter, perfected. Spriggan X does not merely return what it is hit with — it returns more of it, and walks away behind a guard built out of the exchange.",
+  "stats": {
+    "attack": 90,
+    "defense": 94,
+    "stamina": 90,
+    "special": 102,
+    "hp": 118
+  },
+  "ability": {
+    "name": "Spriggan Layer X",
+    "trigger": "on_any_win",
+    "description": "Any exchange won mends 16 HP. Counter Break X returns 150% of the next hit taken instead of 100%, and the exchange leaves Spriggan X behind a 40 HP guard — it still takes the hit, but it is ready for the one after.",
+    "rules": [
+      {
+        "when": "on_any_win",
+        "do": [
+          {
+            "op": "heal",
+            "value": 16
+          }
+        ],
+        "_name": "Spriggan Layer X"
+      },
+      {
+        "when": "on_special",
+        "do": [
+          {
+            "op": "set_mode",
+            "name": "counter_break"
+          },
+          {
+            "op": "log",
+            "text": "🌀 **Counter Break X** — Spriggan X opens its guard and dares them."
+          }
+        ],
+        "_name": "Counter Break X"
+      },
+      {
+        "when": "on_take_damage",
+        "if": [
+          {
+            "cond": "mode_is",
+            "value": "counter_break"
+          }
+        ],
+        "do": [
+          {
+            "op": "reflect_pct",
+            "value": 150
+          },
+          {
+            "op": "shield",
+            "value": 40
+          },
+          {
+            "op": "set_mode",
+            "name": "spent"
+          },
+          {
+            "op": "log",
+            "text": "🪞 **Counter Break X** — returned with interest!"
+          }
+        ],
+        "_name": "Counter Break X"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Counter Break X",
+    "description": "Spriggan X takes the exchange and gives back half again. The next hit it takes is reflected at 150% and leaves it shielded — and it still takes the hit. Armed only by the Special.",
+    "hits": 1,
+    "damage_per_hit": 165,
+    "total_damage": 165,
+    "flavour_texts": [
+      "⚖️ **Counter Break X** — the whole battle, turned around!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Spriggan Layer X",
+      "trigger": "on_any_win",
+      "description": "Any exchange won mends 16 HP. Counter Break X returns 150% of the next hit taken instead of 100%, and the exchange leaves Spriggan X behind a 40 HP guard — it still takes the hit, but it is ready for the one after.",
+      "rules": [
+        {
+          "when": "on_any_win",
+          "do": [
+            {
+              "op": "heal",
+              "value": 16
+            }
+          ],
+          "_name": "Spriggan Layer X"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "set_mode",
+              "name": "counter_break"
+            },
+            {
+              "op": "log",
+              "text": "🌀 **Counter Break X** — Spriggan X opens its guard and dares them."
+            }
+          ],
+          "_name": "Counter Break X"
+        },
+        {
+          "when": "on_take_damage",
+          "if": [
+            {
+              "cond": "mode_is",
+              "value": "counter_break"
+            }
+          ],
+          "do": [
+            {
+              "op": "reflect_pct",
+              "value": 150
+            },
+            {
+              "op": "shield",
+              "value": 40
+            },
+            {
+              "op": "set_mode",
+              "name": "spent"
+            },
+            {
+              "op": "log",
+              "text": "🪞 **Counter Break X** — returned with interest!"
+            }
+          ],
+          "_name": "Counter Break X"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 118,
+    "attack": 90,
+    "defense": 94,
+    "stamina": 90
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 85,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

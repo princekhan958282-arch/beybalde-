@@ -1,0 +1,93 @@
+{
+  "id": "BB041",
+  "name": "Azeroth Veyrath",
+  "rarity": "Ultimate",
+  "booster_exclusive": false,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1514902794476191864/IMG-20260606-WA0006.jpg?ex=6a2d0eab&is=6a2bbd2b&hm=8c01f5cb628020ae99d1e5913f8e396a13b2509f269cc45e1647ee4603e70018&",
+  "description": "Knight of the Emperor. Azeroth Veyrath is a spectral conqueror forged from the legacy of fallen kings — each victory stacks imperial power until its Emperor's Judgment Lance obliterates all who dare oppose it.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 150,
+    "defense": 100,
+    "stamina": 100,
+    "special": 160,
+    "hp": 130
+  },
+  "ability": {
+    "name": "Imperial Conquest",
+    "trigger": "on_attack_win",
+    "description": "Every successful win grants 1 Conquest Stack (max 10). Each stack: +4% ATK, +2% Crit Rate.",
+    "stack_atk_pct": 0.04,
+    "stack_crit_rate": 0.02,
+    "max_stacks": 10,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "activate_mode",
+        "value": 4,
+        "duration": 999,
+        "once": false,
+        "_note": "Imperial Conquest: +4% ATK per win stack, up to 10 stacks"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Emperor's Judgment Lance",
+    "description": "Veyrath summons spectral weapons from fallen kings and launches them at the enemy in a devastating barrage.",
+    "hits": 1,
+    "damage_per_hit": 160,
+    "total_damage": 160,
+    "ignore_def_pct": 0.4,
+    "flavour_texts": [
+      "👑 **EMPEROR'S JUDGMENT LANCE** — the spectral weapons of fallen kings converge into one divine strike — ALL DEFENSES SHATTERED!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Imperial Conquest",
+      "trigger": "on_attack_win",
+      "description": "Every successful win grants 1 Conquest Stack (max 10). Each stack: +4% ATK, +2% Crit Rate.",
+      "stack_atk_pct": 0.04,
+      "stack_crit_rate": 0.02,
+      "max_stacks": 10,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "activate_mode",
+          "value": 4,
+          "duration": 999,
+          "once": false,
+          "_note": "Imperial Conquest: +4% ATK per win stack, up to 10 stacks"
+        }
+      ]
+    },
+    {
+      "name": "Knight Authority",
+      "trigger": "passive",
+      "description": "Ignore 50% DEF. Critical hits deal +100% damage. Cannot be debuffed.",
+      "ignore_def_pct": 0.5,
+      "crit_damage_bonus_pct": 1,
+      "cannot_be_debuffed": true
+    }
+  ],
+  "spin_direction": "Right",
+  "limited": true,
+  "available_until": "2026-01-01T00:00:00Z",
+  "main_frame": {
+    "hp": 130,
+    "attack": 150,
+    "defense": 100,
+    "stamina": 100
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 39,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "id": "BB034",
+  "name": "Tempest Dragon",
+  "rarity": "Mythic",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513096339146407997/BBSK_Tempest_Dragon_Charge_Metal_1A_Beyblade.webp?ex=6a287687&is=6a272507&hm=1ce81a10e9049462079c1fd264b09dd4ff0569267ee4b6bb08022ce9475b023c&",
+  "description": "A storm-forged dragon that channels the raw power of tempests. Its Charge Metal blade tears through defenses like lightning through clouds, growing more ferocious as the battle rages on.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 118,
+    "defense": 55,
+    "stamina": 82,
+    "special": 130,
+    "hp": 106
+  },
+  "ability": {
+    "name": "Tempest Charge",
+    "trigger": "on_attack_win",
+    "description": "Each Attack win generates a Tempest Stack (+12 ATK, max 4). At 4 stacks, Tempest Dragon unleashes Storm Break — dealing 50 true damage and resetting stacks. Additionally, each stack increases Special Move damage by +10.",
+    "stack_atk": 12,
+    "max_stacks": 4,
+    "storm_break_true_dmg": 50,
+    "special_boost_per_stack": 10,
+    "chain": [
+      {
+        "condition": "stack_threshold",
+        "threshold": 4,
+        "effect": "true_damage",
+        "value": 50,
+        "once": false,
+        "_note": "Storm Break: 50 true damage at 4 stacks, resets"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Tempest Charge Strike",
+    "description": "The Dragon ignites in storm energy and unleashes three thundering charges across the stadium!",
+    "hits": 3,
+    "damage_per_hit": 43,
+    "total_damage": 129,
+    "flavour_texts": [
+      "⛈️ **Tempest Charge Strike** — the storm awakens!",
+      "⚡ **Strike 2** — lightning tears through every defense!",
+      "🐉 **Strike 3** — TEMPEST CHARGE STRIKE — STORM DRAGON FINAL ROAR!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Tempest Charge",
+      "trigger": "on_attack_win",
+      "description": "Each Attack win generates a Tempest Stack (+12 ATK, max 4). At 4 stacks, Tempest Dragon unleashes Storm Break — dealing 50 true damage and resetting stacks. Additionally, each stack increases Special Move damage by +10.",
+      "stack_atk": 12,
+      "max_stacks": 4,
+      "storm_break_true_dmg": 50,
+      "special_boost_per_stack": 10,
+      "chain": [
+        {
+          "condition": "stack_threshold",
+          "threshold": 4,
+          "effect": "true_damage",
+          "value": 50,
+          "once": false,
+          "_note": "Storm Break: 50 true damage at 4 stacks, resets"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 106,
+    "attack": 118,
+    "defense": 55,
+    "stamina": 82
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 32,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

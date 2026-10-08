@@ -1,0 +1,20 @@
+{
+  "name": "Apex Disk",
+  "type": "disk",
+  "price": 2300,
+  "stat": "attack",
+  "bonus": 38,
+  "desc": "Razor apex disk — catastrophic burst damage.",
+  "penalty_stat": "stamina",
+  "penalty": 32,
+  "id": "apex_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 38,
+    "defense": 0,
+    "stamina": -32
+  },
+  "compatibility": {},
+  "_registry_order": 32
+}

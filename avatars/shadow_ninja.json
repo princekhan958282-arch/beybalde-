@@ -1,0 +1,57 @@
+{
+  "id": "avatar_u002",
+  "name": "Shadow Ninja",
+  "rarity": "Ultimate",
+  "type": "attack",
+  "price": 0,
+  "description": "A phantom that cannot be hit. Maximum dodge, counter, and crit — every multi-hit strike lands harder and more often.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520391560192200824/4e1149f60cf0c95a13af779ce24f9ee8.jpg",
+  "bonuses": {
+    "attack_flat": 15,
+    "attack_percent": 0.15,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 10,
+    "stamina_percent": 0.1,
+    "stability_flat": 8,
+    "stability_percent": 0.08,
+    "charge_flat": 15,
+    "charge_percent": 0.15,
+    "special_move_flat": 20,
+    "special_move_percent": 0.2,
+    "crit_percent": 0.22,
+    "dodge_chance": 0.28,
+    "counter_chance": 0.25,
+    "multi_hit_power_double": true,
+    "multi_hit_extra_hits": true,
+    "resistance_damage_percent": 0.1,
+    "resistance_status_chance": 0.2,
+    "hp_flat": 0,
+    "hp_percent": 0.12
+  },
+  "skills": [
+    {
+      "name": "Silent Fang",
+      "description": "Attack increased by 30%.",
+      "bonuses": {
+        "attack_percent": 0.3
+      }
+    },
+    {
+      "name": "Body Flicker",
+      "description": "Dodge chance increased by 35%.",
+      "bonuses": {
+        "dodge_chance": 0.35
+      }
+    },
+    {
+      "name": "Assassin's Mark",
+      "description": "Crit chance increased by 32%.",
+      "bonuses": {
+        "crit_percent": 0.32
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 12
+}

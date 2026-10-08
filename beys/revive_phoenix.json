@@ -1,0 +1,69 @@
+{
+  "id": "BB027",
+  "name": "Revive Phoenix",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513081333910343680/BBC-RP10F_Beyblade.webp?ex=6a266e4d&is=6a251ccd&hm=6dcda03b2c70a4784d88324fc14a8679f3414503ea88c4c1551316ebf22ae1f2&",
+  "description": "Born from ash and undying will, Revive Phoenix rises every time it falls. Its blazing wings carry the fire of resurrection — an eternal guardian that refuses to be extinguished.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 60,
+    "defense": 110,
+    "stamina": 100,
+    "special": 100,
+    "hp": 117
+  },
+  "ability": {
+    "name": "Blazing Rebirth",
+    "trigger": "on_special",
+    "description": "When Phoenix uses its Special, it erupts in sacred flame: heal 40 HP, grant a 50 HP shield, and apply 2 burn stacks to the enemy (15 dmg/stack/turn for 3 turns). Additionally, the next time Phoenix would die, it revives once with 80 HP.",
+    "phoenix_heal": 40,
+    "phoenix_shield": 50,
+    "phoenix_burn_stacks": 2,
+    "phoenix_burn_dmg": 15,
+    "phoenix_burn_duration": 3,
+    "revival": true,
+    "revival_hp": 80
+  },
+  "special_move": {
+    "name": "Eternal Flame Surge",
+    "description": "Phoenix unleashes the fires of rebirth — a blazing slam that scorches the enemy and ignites the arena with sacred flame!",
+    "hits": 1,
+    "damage_per_hit": 100,
+    "total_damage": 100,
+    "flavour_texts": [
+      "🦅 **Eternal Flame Surge** — the undying Phoenix rises and unleashes the inferno of immortality!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Blazing Rebirth",
+      "trigger": "on_special",
+      "description": "When Phoenix uses its Special, it erupts in sacred flame: heal 40 HP, grant a 50 HP shield, and apply 2 burn stacks to the enemy (15 dmg/stack/turn for 3 turns). Additionally, the next time Phoenix would die, it revives once with 80 HP.",
+      "phoenix_heal": 40,
+      "phoenix_shield": 50,
+      "phoenix_burn_stacks": 2,
+      "phoenix_burn_dmg": 15,
+      "phoenix_burn_duration": 3,
+      "revival": true,
+      "revival_hp": 80
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 117,
+    "attack": 60,
+    "defense": 110,
+    "stamina": 100
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 25,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

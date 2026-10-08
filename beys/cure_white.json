@@ -1,0 +1,71 @@
+{
+  "id": "BB125",
+  "name": "Cure White",
+  "rarity": "Epic",
+  "type": "Defense",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1552923900449529896/image1.jpg?ex=6ab76095&is=6ab60f15&hm=a7923c6e831e69b8cb8b2b2cfe5b540663d940361416ca5ea24faa655b809f2d&",
+  "description": "An Epic support Bey that strengthens teammates' defense in boss battles.",
+  "stats": {
+    "attack": 82,
+    "defense": 120,
+    "stamina": 75,
+    "special": 100,
+    "hp": 120
+  },
+  "special_move": {
+    "name": "White Cure",
+    "hits": 1,
+    "damage_per_hit": 100,
+    "total_damage": 100,
+    "description": "A cleansing defensive strike that restores HP and braces Cure White for the next incoming hit.",
+    "flavour_texts": [
+      "🤍 **White Cure** — purity becomes an unbreakable guard!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Pure Heart Support",
+      "trigger": "passive",
+      "description": "In co-op boss battles, living Cure White grants other teammates +30% Defense. Ends when Cure White is defeated; duplicate auras do not stack. No team buff in solo or PvP. White Cure restores 12 HP and grants 10% reduction against the next incoming hit.",
+      "boss_support": {
+        "stat": "defense",
+        "percent": 30
+      },
+      "rules": [
+        {
+          "when": "on_special",
+          "cooldown": 4,
+          "do": [
+            {
+              "op": "heal",
+              "value": 12
+            },
+            {
+              "op": "shield",
+              "value": 10
+            }
+          ],
+          "_name": "White Cure"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 120,
+    "attack": 82,
+    "defense": 120,
+    "stamina": 75
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 125,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

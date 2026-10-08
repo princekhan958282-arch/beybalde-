@@ -1,0 +1,60 @@
+{
+  "id": "BB068",
+  "name": "Storm Aries",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060968705200158/StormAries125SBeyblade.webp?ex=6a333f8d&is=6a31ee0d&hm=fef1498bdfc601cd2848b6488001c20326bd6f28c173520e5ca5bea3985c584f&",
+  "description": "Storm Aries uses stamina and balance to survive long battles. Its Spike tip reduces friction and helps maintain spin for extended engagements.",
+  "burst_height": "Mid",
+  "type": "Stamina",
+  "stats": {
+    "attack": 57,
+    "defense": 91,
+    "stamina": 98,
+    "special": 72,
+    "hp": 121
+  },
+  "ability": {
+    "name": "Wind Control",
+    "trigger": "passive",
+    "description": "Uses stamina and balance to survive long battles. The Spike tip reduces friction and helps maintain spin.",
+    "stamina_drain_reduction_pct": 0.12,
+    "evasion_chance": 0.1
+  },
+  "special_move": {
+    "name": "Wind Storm Assault",
+    "description": "Aries dodges attacks and redirects opponents using powerful wind currents.",
+    "hits": 1,
+    "damage_per_hit": 75,
+    "total_damage": 75,
+    "redirect_chance": 0.25,
+    "flavour_texts": [
+      "🌪️ **Wind Storm Assault** — Storm Aries rides the wind and redirects the opponent!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Wind Control",
+      "trigger": "passive",
+      "description": "Uses stamina and balance to survive long battles. The Spike tip reduces friction and helps maintain spin.",
+      "stamina_drain_reduction_pct": 0.12,
+      "evasion_chance": 0.1
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 121,
+    "attack": 57,
+    "defense": 91,
+    "stamina": 98
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 66,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "BB010",
+  "name": "Cosmic Pegasus",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511197831606567084/Big_Bang_Pegasis_Anime.webp?ex=6a1f9427&is=6a1e42a7&hm=9f50326bbeb24a8494132a69f4719e1702e88520368ff6a5005e577c951c795f&",
+  "description": "The legendary horse of the stars. Cosmic Pegasus shifts its PC Frame to change modes mid-battle, overwhelming foes with cosmic evolution.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 111,
+    "defense": 61,
+    "stamina": 85,
+    "special": 105,
+    "hp": 90
+  },
+  "ability": {
+    "name": "Cosmic Mode",
+    "trigger": "on_special",
+    "description": "After using Cosmic Strike, Cosmic Pegasus enters Cosmic Mode for 3 turns. Instantly heals 30 HP, grants +50 Attack power, and generates +2 extra Stamina during Attack or Defense phases for the duration.",
+    "duration_turns": 3,
+    "attack_boost": 50,
+    "heal": 30,
+    "bonus_stamina_per_turn": 2
+  },
+  "special_move": {
+    "name": "Cosmic Strike",
+    "description": "Pegasus takes to the skies, descending from orbit in a blazing streak of starlight!",
+    "hits": 1,
+    "damage_per_hit": 105,
+    "total_damage": 105,
+    "flavour_texts": [
+      "💫 **COSMIC STRIKE** — Pegasus rides the galaxy and crashes into the stadium!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Cosmic Mode",
+      "trigger": "on_special",
+      "description": "After using Cosmic Strike, Cosmic Pegasus enters Cosmic Mode for 3 turns. Instantly heals 30 HP, grants +50 Attack power, and generates +2 extra Stamina during Attack or Defense phases for the duration.",
+      "duration_turns": 3,
+      "attack_boost": 50,
+      "heal": 30,
+      "bonus_stamina_per_turn": 2
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 90,
+    "attack": 111,
+    "defense": 61,
+    "stamina": 85
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 9,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

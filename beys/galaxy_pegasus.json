@@ -1,0 +1,81 @@
+{
+  "id": "BB042",
+  "name": "Galaxy Pegasus",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1514906892525109272/Galaxy_Pegasis_ANIME.webp?ex=6a2d127c&is=6a2bc0fc&hm=5b80adbd31b96aa7e2d87f60ca79c35d3fbcf4f2ce2438acb8ab74bff2c26fab&",
+  "description": "The cosmic stallion reborn. Galaxy Pegasus soars into orbit to channel the power of star constellations, combining celestial energy into a swirling energy blast that crashes down from above.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 130,
+    "defense": 60,
+    "stamina": 70,
+    "special": 130,
+    "hp": 94
+  },
+  "ability": {
+    "name": "Stardust Driver / Galaxy Nova",
+    "trigger": "on_special",
+    "description": "Pegasus flies into space to channel cosmic energy, combining with the constellation to attack the opponent in a swirling energy blast. Special Move deals bonus cosmic damage with a 40% crit chance for +40 bonus damage.",
+    "special_crit_chance": 0.4,
+    "special_crit_bonus": 40,
+    "chain": [
+      {
+        "condition": "on_special_use",
+        "effect": "dmg_amp",
+        "value": 0.3,
+        "duration": 1,
+        "once": false,
+        "_note": "Galaxy Nova: +30% damage amp on special activation"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Starblast Attack",
+    "description": "Pegasus flies high into the sky, channels the power of the galaxy, and dives down for a crushing star-powered strike!",
+    "hits": 3,
+    "damage_per_hit": 43,
+    "total_damage": 129,
+    "flavour_texts": [
+      "🌟 **Starblast Attack** — Pegasus ascends into the cosmos!",
+      "💫 **Strike 2** — constellation energy ignites around the blades!",
+      "🌌 **STARBLAST ATTACK** — GALAXY CRASH — COSMIC ANNIHILATION!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Stardust Driver / Galaxy Nova",
+      "trigger": "on_special",
+      "description": "Pegasus flies into space to channel cosmic energy, combining with the constellation to attack the opponent in a swirling energy blast. Special Move deals bonus cosmic damage with a 40% crit chance for +40 bonus damage.",
+      "special_crit_chance": 0.4,
+      "special_crit_bonus": 40,
+      "chain": [
+        {
+          "condition": "on_special_use",
+          "effect": "dmg_amp",
+          "value": 0.3,
+          "duration": 1,
+          "once": false,
+          "_note": "Galaxy Nova: +30% damage amp on special activation"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 94,
+    "attack": 130,
+    "defense": 60,
+    "stamina": 70
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 40,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

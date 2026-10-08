@@ -1,0 +1,20 @@
+{
+  "name": "Volcanic Driver",
+  "type": "driver",
+  "price": 1100,
+  "stat": "attack",
+  "bonus": 20,
+  "desc": "Eruption rubber tip — surges at the opponent.",
+  "penalty_stat": "defense",
+  "penalty": 12,
+  "id": "volcanic_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 20,
+    "defense": -12,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 8
+}

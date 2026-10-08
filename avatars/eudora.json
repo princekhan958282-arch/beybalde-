@@ -1,0 +1,62 @@
+{
+  "id": "avatar_mlbb004",
+  "name": "Eudora",
+  "rarity": "MLBB",
+  "type": "attack",
+  "price": 0,
+  "description": "Lightning Sorceress. Eudora does not build up to anything — the first strike is already the biggest one.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1536106127551627386/1c1662b7112cd05b8d8a32094ed8bffd.jpg?ex=6a7a31d0&is=6a78e050&hm=6855dab2d805c2b14cdc92a3eb21c431de33c60afb05dcbb19642ec7482e40f4&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "skills": [
+    {
+      "name": "Electric Arrow",
+      "description": "Special Move damage increased by 88%.",
+      "bonuses": {
+        "special_move_percent": 0.88
+      }
+    },
+    {
+      "name": "Forked Lightning",
+      "description": "Attack increased by 62, and by a further 18%.",
+      "bonuses": {
+        "attack_flat": 62,
+        "attack_percent": 0.18
+      }
+    },
+    {
+      "name": "Thunder's Wrath",
+      "description": "Crit chance +26%, and every Special fires an extra hit.",
+      "bonuses": {
+        "crit_percent": 0.26,
+        "multi_hit_extra_hits": true
+      }
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 62,
+    "attack_percent": 0.18,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0.88,
+    "crit_percent": 0.26,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": true,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.15
+  },
+  "generation": null,
+  "_registry_order": 35
+}

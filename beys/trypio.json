@@ -1,0 +1,80 @@
+{
+  "id": "BB016",
+  "name": "Trypio",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511378989019566390/Trypio_.webp?ex=6a20e59f&is=6a1f941f&hm=a13d48dd6bfb50b901c74b1bfdcf662df9f82a5238d6dfc71ccb64c1ecf985bd&",
+  "description": "An absolute classic from the early generations. Trypio features a massive, distinctive outer propeller ring designed to catch updrafts and alter air currents inside the stadium, turning raw wind into survival energy.",
+  "burst_height": "Low",
+  "type": "Stamina",
+  "stats": {
+    "attack": 62,
+    "defense": 107,
+    "stamina": 136,
+    "special": 105,
+    "hp": 128
+  },
+  "ability": {
+    "name": "Updraft Glide",
+    "trigger": "passive",
+    "description": "Trypio's massive propeller layer generates constant lift. Reduces all incoming impact damage by 25, converts friction into stability, and recovers 1 Stamina per turn passively.",
+    "damage_reduction": 25,
+    "stamina_steal": 1,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "heal_pct",
+        "value": 0.1571,
+        "once": false,
+        "_note": "special_move heal – trigger from on_special (engine reads chain from ability)"
+      }
+    ],
+    "special_stamina_drain": 5
+  },
+  "special_move": {
+    "name": "Tornado Glide",
+    "description": "Creates a localized vortex that aggressively destabilizes the opponent while trapping air currents to restore Trypio's own rotation.",
+    "hits": 1,
+    "damage_per_hit": 105,
+    "total_damage": 105,
+    "flavour_texts": [
+      "🌪️ **Tornado Glide** — The massive propeller whips up a devastating vortex!",
+      "🌀 The enemy loses 4 Stamina while Trypio recovers 90 HP!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Updraft Glide",
+      "trigger": "passive",
+      "description": "Trypio's massive propeller layer generates constant lift. Reduces all incoming impact damage by 25, converts friction into stability, and recovers 1 Stamina per turn passively.",
+      "damage_reduction": 25,
+      "stamina_steal": 1,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "heal_pct",
+          "value": 0.1571,
+          "once": false,
+          "_note": "special_move heal – trigger from on_special (engine reads chain from ability)"
+        }
+      ],
+      "special_stamina_drain": 5
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 128,
+    "attack": 62,
+    "defense": 107,
+    "stamina": 136
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 15,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

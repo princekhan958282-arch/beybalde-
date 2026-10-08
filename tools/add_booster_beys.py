@@ -17,12 +17,20 @@ Run:  python3 tools/add_booster_beys.py [--check]
 """
 from __future__ import annotations
 
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
+
 import json
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(ROOT, "data", "beyblades.json")
+DATA = os.path.join(ROOT, "beys")
 
 # Epic medians:      hp 101 · atk 100 · def  70 · sta  80 · spc 105
 # Legendary medians: hp 116 · atk 102 · def 101 · sta 101 · spc 112
@@ -292,7 +300,7 @@ def build(entry: dict) -> dict:
 
 def main() -> int:
     check_only = "--check" in sys.argv
-    with open(DATA, encoding="utf-8") as fh:
+    with authored_open('bey', encoding="utf-8") as fh:
         doc = json.load(fh)
 
     if isinstance(doc, dict) and "beyblades" in doc:
@@ -339,7 +347,7 @@ def main() -> int:
     else:
         doc = {b["name"]: b for b in out}
 
-    with open(DATA, "w", encoding="utf-8") as fh:
+    with authored_open('bey', "w", encoding="utf-8") as fh:
         json.dump(doc, fh, indent=2, ensure_ascii=False)
         fh.write("\n")
     print(f"wrote {DATA}")

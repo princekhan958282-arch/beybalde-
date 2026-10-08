@@ -1,0 +1,63 @@
+{
+  "id": "BB026",
+  "name": "Myth Evo Dragon D5",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513084740176183296/Myth_Evo_Dragon_D5.webp?ex=6a267179&is=6a251ff9&hm=0518e7964973e0f786eb6ff1cd7384f6b6526bd6f3602c809010bd13fc197d80&",
+  "description": "A dragon reborn through myth and evolution. Each revolution fuels its ancient power, unleashing catastrophic force that grows stronger the longer it spins.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 115,
+    "defense": 50,
+    "stamina": 95,
+    "special": 135,
+    "hp": 104
+  },
+  "ability": {
+    "name": "Draconic Ascension",
+    "trigger": "on_special",
+    "description": "Myth Evo Dragon D5 channels its mythic evolution — every Special hit has a 70% chance to grant a permanent +15 ATK stack (max 3 stacks). On the third stack, Dragon Surge detonates: deal 60 true damage and reset stacks.",
+    "evolve_crit_chance": 0.7,
+    "evolve_atk_stack": 15,
+    "evolve_max_stacks": 3,
+    "evolve_burst_true_dmg": 60
+  },
+  "special_move": {
+    "name": "Mythic Dragon Fang",
+    "description": "The Dragon awakens — five slashing strikes from evolved claws, each charged with ancient mythic energy!",
+    "hits": 5,
+    "damage_per_hit": 27,
+    "total_damage": 135,
+    "flavour_texts": [
+      "🐉 **Mythic Dragon Fang** — five fangs of the ascended dragon tear through the heavens!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Draconic Ascension",
+      "trigger": "on_special",
+      "description": "Myth Evo Dragon D5 channels its mythic evolution — every Special hit has a 70% chance to grant a permanent +15 ATK stack (max 3 stacks). On the third stack, Dragon Surge detonates: deal 60 true damage and reset stacks.",
+      "evolve_crit_chance": 0.7,
+      "evolve_atk_stack": 15,
+      "evolve_max_stacks": 3,
+      "evolve_burst_true_dmg": 60
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 104,
+    "attack": 115,
+    "defense": 50,
+    "stamina": 95
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 24,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

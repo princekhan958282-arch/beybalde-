@@ -1,0 +1,69 @@
+{
+  "id": "BB095",
+  "name": "Geist Fafnir",
+  "rarity": "Legendary",
+  "type": "Stamina",
+  "spin_direction": "Left",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565700958949446/37087cb8c50fb00373931f996a96bd62.jpg?ex=6a832478&is=6a81d2f8&hm=eb7914e10efa60cfb8e3c3b3527494194848858b9288eacd61bae75819b20047&",
+  "description": "Fafnir returns with the drain sharpened into a hand. What it takes it no longer merely keeps — it turns around and opens with it.",
+  "stats": {
+    "attack": 88,
+    "defense": 104,
+    "stamina": 138,
+    "special": 122,
+    "hp": 126
+  },
+  "special_move": {
+    "name": "Geist Claw",
+    "description": "The absorbed spin comes back out as a four-fingered rake across the opponent's track.",
+    "hits": 4,
+    "damage_per_hit": 36,
+    "total_damage": 144,
+    "flavour_texts": [
+      "👻 **Geist Claw** — what it drank, it returns!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Geist Spin",
+      "trigger": "on_take_damage",
+      "description": "Drains 0.8 stamina from the attacker, heals from the theft, and cuts 12% off the hit that fed it.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 0.8
+            },
+            {
+              "op": "heal_per_drain",
+              "value": 18
+            },
+            {
+              "op": "reduce_damage_pct",
+              "value": 12
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 126,
+    "attack": 88,
+    "defense": 104,
+    "stamina": 138
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 94,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

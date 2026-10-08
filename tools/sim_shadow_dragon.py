@@ -16,6 +16,14 @@ real value was +50/+50, double what the card said.
 
 Run:  python3 tools/sim_shadow_dragon.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import json
 import os
 import sys
@@ -39,8 +47,7 @@ from cogs.abilities.ability_engine import AbilityEngine    # noqa: E402
 from cogs.battle.status_manager import StatusManager       # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BLADES = json.load(open(os.path.join(ROOT, "data", "beyblades.json"),
-                        encoding="utf-8"))
+BLADES = json.load(authored_open('bey', encoding="utf-8"))
 SDK = BLADES["Shadow Dragon King"]
 DW = [a for a in SDK["abilities"] if a["name"] == "Dark Weather"][0]
 AD = [a for a in SDK["abilities"] if a["name"] == "Absolute Darkness"][0]

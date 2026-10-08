@@ -1,0 +1,65 @@
+{
+  "id": "BB050",
+  "name": "Emerald Phantom Dragon",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1515583468405522513/1781413636218.png?ex=6a2f8899&is=6a2e3719&hm=9ef013c5f69dd0f4080087b85d4aa64d52dba9f045f759e7838a39ce7aa68d65&",
+  "description": "The purple outer blades absorb impact and reduce knockback, while the emerald core helps maintain spin for a long time. As its spin decreases, Emerald Phantom Dragon becomes harder to burst.",
+  "burst_height": "Mid",
+  "type": "Stamina",
+  "stats": {
+    "attack": 66,
+    "defense": 113,
+    "stamina": 121,
+    "special": 90,
+    "hp": 131
+  },
+  "ability": {
+    "name": "Phantom Guard",
+    "trigger": "passive",
+    "description": "The purple outer blades absorb impact and reduce knockback, while the emerald core helps maintain spin for a long time. Becomes harder to burst as its spin decreases.",
+    "knockback_reduction_pct": 0.2,
+    "burst_resistance_low_spin_pct": 0.25
+  },
+  "special_move": {
+    "name": "Emerald Vortex Breaker",
+    "description": "Creates a powerful circular attack pattern, pulling opponents toward the center before striking with the silver blades, then finishes with a high-speed counterattack that can knock opponents out of the stadium.",
+    "hits": 2,
+    "damage_per_hit": [
+      40,
+      70
+    ],
+    "total_damage": 110,
+    "pull_effect": true,
+    "knockout_chance": 0.15,
+    "flavour_texts": [
+      "🌀 **Emerald Vortex Breaker** — the vortex pulls the opponent inward!",
+      "✨ **Counterattack** — silver blades strike — knockout chance!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Phantom Guard",
+      "trigger": "passive",
+      "description": "The purple outer blades absorb impact and reduce knockback, while the emerald core helps maintain spin for a long time. Becomes harder to burst as its spin decreases.",
+      "knockback_reduction_pct": 0.2,
+      "burst_resistance_low_spin_pct": 0.25
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 131,
+    "attack": 66,
+    "defense": 113,
+    "stamina": 121
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 48,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

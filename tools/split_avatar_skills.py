@@ -19,12 +19,20 @@ Run:  python3 tools/split_avatar_skills.py [--check]
 """
 from __future__ import annotations
 
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
+
 import json
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(ROOT, "cogs", "avatar", "avatar_data.json")
+DATA = os.path.join(ROOT, "avatars")
 
 sys.path.insert(0, ROOT)
 # Imported, not restated. Two copies of "which keys are outside the split"
@@ -140,7 +148,7 @@ def score(bonuses: dict) -> float:
 
 def main() -> int:
     check_only = "--check" in sys.argv
-    with open(DATA, encoding="utf-8") as fh:
+    with authored_open('avatar', encoding="utf-8") as fh:
         doc = json.load(fh)
 
     problems: list[str] = []
@@ -200,7 +208,7 @@ def main() -> int:
         print("\ncheck only — nothing written")
         return 0
 
-    with open(DATA, "w", encoding="utf-8") as fh:
+    with authored_open('avatar', "w", encoding="utf-8") as fh:
         json.dump(doc, fh, indent=2, ensure_ascii=False)
         fh.write("\n")
     print(f"\nwrote {DATA}  ({changed} card(s) reordered)")

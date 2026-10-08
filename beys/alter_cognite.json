@@ -1,0 +1,61 @@
+{
+  "id": "BB075",
+  "name": "Alter Cognite",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516469028586258522/c9a97c75cf9bccbce8210c9f288071c4.jpg?ex=6a336a17&is=6a321897&hm=5807a4b2fcab9d7a28ef1bf0193c0d7f63543acc8d2eeabd1dc1f69f0a0308e8&",
+  "description": "Alter Cognite can switch between Attack Mode for aggressive movement and stronger hits, or Stamina Mode for better balance and longer spin time. Its signature gimmick is adapting its battle style to counter different opponents.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 85,
+    "defense": 80,
+    "stamina": 89,
+    "special": 82,
+    "hp": 109
+  },
+  "ability": {
+    "name": "Time Shift",
+    "trigger": "passive",
+    "description": "Alter Cognite can switch between Attack Mode (aggressive movement and stronger hits) and Stamina Mode (better balance and longer spin time) to adapt to different opponents.",
+    "mode_atk_bonus": 12,
+    "mode_stamina_bonus": 12,
+    "stamina_drain_reduction_pct": 0.12
+  },
+  "special_move": {
+    "name": "Cognite Dive",
+    "description": "Cuza's most famous anime move — a powerful aerial-style attack that crashes down on the opponent.",
+    "hits": 1,
+    "damage_per_hit": 115,
+    "total_damage": 115,
+    "flavour_texts": [
+      "⏳ **Cognite Dive** — Alter Cognite soars and dives with full aerial force!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Time Shift",
+      "trigger": "passive",
+      "description": "Alter Cognite can switch between Attack Mode (aggressive movement and stronger hits) and Stamina Mode (better balance and longer spin time) to adapt to different opponents.",
+      "mode_atk_bonus": 12,
+      "mode_stamina_bonus": 12,
+      "stamina_drain_reduction_pct": 0.12
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 109,
+    "attack": 85,
+    "defense": 80,
+    "stamina": 89
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 73,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

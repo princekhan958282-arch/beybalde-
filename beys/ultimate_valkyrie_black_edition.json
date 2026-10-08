@@ -1,0 +1,172 @@
+{
+  "id": "BB089",
+  "name": "Ultimate Valkyrie (Black Edition)",
+  "rarity": "Ultimate",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "High",
+  "booster_exclusive": true,
+  "hidden_drop_one_in": 5000000,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537064143088124014/1786534758260.png?ex=6a7e56c8&is=6a7d0548&hm=58e0e3a8f054595fb7e4fbc2c806720073e55da8fdf4f0acb70a55192c01df99&",
+  "description": "The same blade, finished in black. Identical on the scales and not remotely identical in the stadium — the layer is tuned so hard that it barely pays for the privilege. Almost nobody has one.",
+  "stats": {
+    "attack": 165,
+    "defense": 40,
+    "stamina": 117,
+    "special": 165,
+    "hp": 134
+  },
+  "ability": {
+    "name": "Ultimate Blade",
+    "trigger": "on_attack_hit",
+    "description": "The black edition trades raw excess for controlled offence. Every Attack that lands hits for +20%, every hit of the Special for +22%, and crits land at 1.8x. Until mastered, Attack and Special drain 20% more stamina; at bey level 100 the surcharge is removed. Ultimate Wing V is undodgeable.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "bonus_damage_pct",
+            "value": 20
+          }
+        ],
+        "_name": "Ultimate Blade"
+      },
+      {
+        "when": "on_hit",
+        "do": [
+          {
+            "op": "bonus_damage_pct",
+            "value": 22
+          }
+        ],
+        "_name": "Ultimate Blade"
+      },
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "crit_damage",
+            "value": 1.8
+          }
+        ],
+        "_name": "Ultimate Blade"
+      },
+      {
+        "when": "setup",
+        "if": [
+          {
+            "cond": "bey_level_below",
+            "value": 100
+          }
+        ],
+        "do": [
+          {
+            "op": "stamina_cost_increase",
+            "value": 20,
+            "moves": [
+              "attack",
+              "special"
+            ]
+          }
+        ],
+        "_name": "Ultimate Blade — unmastered"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Ultimate Wing V",
+    "description": "The V opens into a wing. Five cuts that go past the guard and cannot be stepped out of.",
+    "hits": 5,
+    "damage_per_hit": 38,
+    "total_damage": 190,
+    "flavour_texts": [
+      "🖤 **ULTIMATE WING V** — the black wing opens!",
+      "⚡ Five cuts, no guard, nowhere to go!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Ultimate Blade",
+      "trigger": "on_attack_hit",
+      "description": "The black edition trades raw excess for controlled offence. Every Attack that lands hits for +20%, every hit of the Special for +22%, and crits land at 1.8x. Until mastered, Attack and Special drain 20% more stamina; at bey level 100 the surcharge is removed. Ultimate Wing V is undodgeable.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 20
+            }
+          ],
+          "_name": "Ultimate Blade"
+        },
+        {
+          "when": "on_hit",
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 22
+            }
+          ],
+          "_name": "Ultimate Blade"
+        },
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "crit_damage",
+              "value": 1.8
+            }
+          ],
+          "_name": "Ultimate Blade"
+        },
+        {
+          "when": "setup",
+          "if": [
+            {
+              "cond": "bey_level_below",
+              "value": 100
+            }
+          ],
+          "do": [
+            {
+              "op": "stamina_cost_increase",
+              "value": 20,
+              "moves": [
+                "attack",
+                "special"
+              ]
+            }
+          ],
+          "_name": "Ultimate Blade — unmastered"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "undodgeable",
+              "turns": 1
+            }
+          ],
+          "_name": "Ultimate Wing V"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 134,
+    "attack": 165,
+    "defense": 40,
+    "stamina": 117
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 88,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

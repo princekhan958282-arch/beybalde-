@@ -4,7 +4,7 @@ avatar_engine.py
 Core avatar logic.
 
 Responsibilities:
-  - Load and cache avatar_data.json
+  - Load and cache individual root avatars/*.json definitions
   - Manage equip/unequip per player
   - Cache bonuses at battle start
   - Expose a single clean API to the combat engine
@@ -310,24 +310,26 @@ class AvatarEngine:
     # ── Data loading ──────────────────────────────────────────────────────────
 
     def load(self) -> None:
-        """Load and validate avatar_data.json. Call once at bot startup."""
-        with open(_DATA_PATH, "r", encoding="utf-8") as f:
-            raw = json.load(f)
+        """Load and validate root avatars/*.json. Call once at bot startup."""
+        from utils.character_registry import REGISTRY, load_avatars
+        REGISTRY.load("avatar", reload=True)
+        raw = load_avatars()
 
-        self._avatars = {}
+        candidates = {}
         errors = []
         for entry in raw.get("avatars", []):
             ok, msg = validate_avatar_data(entry)
             if not ok:
                 errors.append(f"  [{entry.get('id', '?')}] {msg}")
                 continue
-            self._avatars[entry["id"]] = entry
+            candidates[entry["id"]] = entry
 
         if errors:
             raise ValueError(
-                f"avatar_data.json has {len(errors)} invalid entries:\n" + "\n".join(errors)
+                f"avatars/ has {len(errors)} invalid entries:\n" + "\n".join(errors)
             )
 
+        self._avatars = candidates
         self._loaded = True
 
     def reload(self) -> None:

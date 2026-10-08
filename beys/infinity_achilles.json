@@ -1,0 +1,97 @@
+{
+  "id": "BB045",
+  "name": "Infinity Achilles",
+  "type": "Balance",
+  "rarity": "Mythic",
+  "pre_battle_choice": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1514963949567737896/1781265935890.png",
+  "stats": {
+    "attack": 105,
+    "defense": 105,
+    "stamina": 100,
+    "special": 105,
+    "hp": 118
+  },
+  "attack_mode_stats": {
+    "type": "Attack",
+    "attack": 125,
+    "defense": 85,
+    "stamina": 100,
+    "special": 115,
+    "hp": 110
+  },
+  "defense_mode_stats": {
+    "type": "Defense",
+    "attack": 85,
+    "defense": 125,
+    "stamina": 100,
+    "special": 95,
+    "hp": 126
+  },
+  "ability": {
+    "name": "Infinity Attack",
+    "trigger": "passive",
+    "description": "Attack Mode. The Infinity Ring charges every 2 turns, amplifying damage by 30% per charge. Switching into this form converts 50% of the shed Defense into Attack.",
+    "ring_charge_interval": 2,
+    "ring_charge_dmg_amp": 0.3,
+    "switch_conversion_atk_pct": 0.5
+  },
+  "abilities": [
+    {
+      "name": "Infinity Attack",
+      "trigger": "passive",
+      "description": "Attack Mode. The Infinity Ring charges every 2 turns, amplifying damage by 30% per charge. Switching into this form converts 50% of the shed Defense into Attack.",
+      "ring_charge_interval": 2,
+      "ring_charge_dmg_amp": 0.3,
+      "switch_conversion_atk_pct": 0.5
+    },
+    {
+      "name": "Infinity Defense",
+      "trigger": "passive",
+      "description": "Defense Mode. The free-spinning ring bleeds off impact — incoming damage reduced by 15 and 30% of what lands is absorbed rather than taken.",
+      "passive_dmg_reduction": 15,
+      "absorb_pct": 0.3
+    }
+  ],
+  "special_move": {
+    "name": "Infinite Attack",
+    "damage_per_hit": 140,
+    "charged_damage": 175,
+    "charged_threshold_turns": 4,
+    "charged_flavour_text": "  ⚔️✨ **Infinite Attack — RING FULLY CHARGED** — Infinity Achilles UNLEASHES THE ULTIMATE STRIKE — **{dmg} DAMAGE**!",
+    "hits": 1,
+    "total_damage": 140,
+    "description": "The ring releases everything it has stored into one unstoppable strike.",
+    "flavour_texts": [
+      "⚔️ **Infinite Attack** — the ring unwinds in one blow!"
+    ]
+  },
+  "special_move_2": {
+    "name": "Infinite Shield",
+    "reflect_turns": 2,
+    "reflect_pct": 0.4,
+    "description": "Achilles plants the ring and turns the stadium's fury back on its owner.",
+    "flavour_texts": [
+      "🛡️ **Infinite Shield** — every blow returns to sender!"
+    ]
+  },
+  "spin_direction": "Dual",
+  "description": "The infinite ring never stops turning. Achilles locks into Attack or Defense form before launch and rides that choice to the end — one charges a strike that grows every turn, the other turns the enemy's own force back on them.",
+  "burst_height": "Mid",
+  "main_frame": {
+    "hp": 118,
+    "attack": 105,
+    "defense": 105,
+    "stamina": 100
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 43,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

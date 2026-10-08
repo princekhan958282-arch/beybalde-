@@ -1,0 +1,20 @@
+{
+  "name": "Jolt Driver",
+  "type": "driver",
+  "price": 1000,
+  "stat": "attack",
+  "bonus": 18,
+  "desc": "Spring-loaded tip — unpredictable burst speed.",
+  "penalty_stat": "stamina",
+  "penalty": 10,
+  "id": "jolt_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 18,
+    "defense": 0,
+    "stamina": -10
+  },
+  "compatibility": {},
+  "_registry_order": 9
+}
