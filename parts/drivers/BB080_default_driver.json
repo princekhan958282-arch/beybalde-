@@ -1,0 +1,18 @@
+{
+  "id": "BB080_default_driver",
+  "name": "Aetherion Vortex Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 30,
+    "attack": 33,
+    "defense": 33,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB080",
+  "_registry_order": 1079
+}

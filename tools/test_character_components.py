@@ -39,7 +39,7 @@ class MigrationTests(unittest.TestCase):
                 # Includes complete abilities, transformations, skills, images,
                 # shop metadata, cooldowns and every other original field.
                 self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected['sha256'])
-        for folder, number in (('beys', 132), ('avatars', 54), ('parts/disks', 18), ('parts/drivers', 17)):
+        for folder, number in (('beys', 132), ('avatars', 54), ('parts/disks', 150), ('parts/drivers', 149)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
         for folder in ('beys', 'avatars'):
             self.assertFalse(any(p.is_dir() for p in (ROOT / folder).iterdir()))
@@ -121,11 +121,11 @@ class EquipmentTests(unittest.TestCase):
         self.assertEqual(assemble(self.profile, self.blade)[0]['stats'], first['stats'])
         equip(self.profile, 'Atomic Driver')
         changed, delta = assemble(self.profile, self.blade)
-        self.assertEqual(delta, {'hp': 0, 'attack': 10, 'defense': 12, 'stamina': 0})
-        self.assertEqual(changed['stats']['attack'], self.blade['stats']['attack'] + 10)
+        self.assertEqual(changed['stats'], dict(self.blade['stats'], **{s: self.blade['main_frame'][s] + REGISTRY.part('Nexus Disk')['stats'][s] + REGISTRY.part('Atomic Driver')['stats'][s] for s in CORE_STATS}))
+        self.assertEqual(changed['stats']['attack'], self.blade['main_frame']['attack'] + 10)
         equip(self.profile, 'Over Disk')
         _, delta = assemble(self.profile, self.blade)
-        self.assertEqual(delta, {'hp': 0, 'attack': 0, 'defense': 12, 'stamina': 8})
+        self.assertEqual(delta, {s: REGISTRY.part('Over Disk')['stats'][s] + REGISTRY.part('Atomic Driver')['stats'][s] - sum(REGISTRY.part(self.blade['default_parts'][slot])['stats'][s] for slot in ('disk','driver')) for s in CORE_STATS})
         self.assertEqual(self.blade, DB.get_beyblade('Dranzer'))
 
     def test_every_component_contributes_independently(self):
@@ -156,10 +156,10 @@ class EquipmentTests(unittest.TestCase):
         equip(self.profile, 'Atomic Driver')
         self.assertNotEqual(first['parts'], second['parts'])
         select_instance(self.profile, first['instance_id'])
-        self.assertEqual(self.profile['equipped_parts'], ['Destroy Driver'])
-        self.assertEqual(assemble(self.profile, self.blade)[1]['attack'], 10)
+        self.assertIn('Destroy Driver', self.profile['equipped_parts'])
+        self.assertEqual(assemble(self.profile, self.blade)[1]['attack'], 10 - REGISTRY.part(self.blade['default_parts']['driver'])['stats']['attack'])
         select_instance(self.profile, second['instance_id'])
-        self.assertEqual(assemble(self.profile, self.blade)[1]['defense'], 12)
+        self.assertEqual(assemble(self.profile, self.blade)[1]['defense'], 12 - REGISTRY.part(self.blade['default_parts']['driver'])['stats']['defense'])
 
     def test_unowned_incompatible_and_removed_copy_rejected(self):
         with self.assertRaisesRegex(EquipmentError, 'not own'):
@@ -179,13 +179,14 @@ class EquipmentTests(unittest.TestCase):
         snapshot = copy.deepcopy(p)
         reconcile(p)
         self.assertEqual(p, snapshot)
-        self.assertEqual(p['bey_instances'][0]['parts'], {'driver': 'destroy_driver', 'disk': 'nexus_disk'})
-        self.assertEqual(p['bey_instances'][1]['parts'], {})
+        from utils.bey_components import definition_for
+        self.assertEqual({slot: definition_for(p, ident)['id'] for slot, ident in p['bey_instances'][0]['parts'].items()}, {'driver': 'destroy_driver', 'disk': 'nexus_disk'})
+        self.assertEqual(set(p['bey_instances'][1]['parts']), {'disk','driver'})
         assembled, _ = assemble(p, self.blade)
-        self.assertEqual(assembled['stats']['attack'], self.blade['stats']['attack'] + 29)
+        self.assertEqual(assembled['stats']['attack'], self.blade['main_frame']['attack'] + 29)
         p['parts'].remove('Destroy Driver')
         reconcile(p)
-        self.assertNotIn('driver', p['bey_instances'][0]['parts'])
+        self.assertEqual(definition_for(p, p['bey_instances'][0]['parts']['driver'])['id'], self.blade['default_parts']['driver'])
 
     def test_copy_removal_releases_equipment_and_preserves_remaining_id(self):
         equip(self.profile, 'Destroy Driver')
@@ -193,7 +194,7 @@ class EquipmentTests(unittest.TestCase):
         self.profile['inventory'].remove('Dranzer')
         reconcile(self.profile)
         self.assertEqual(self.profile['bey_instances'][0]['instance_id'], remaining_id)
-        self.assertEqual(self.profile['bey_instances'][0]['parts'], {})
+        self.assertEqual(set(self.profile['bey_instances'][0]['parts']), {'disk','driver'})
         self.assertIn('Destroy Driver', self.profile['parts'])
 
 class PersistenceTests(unittest.IsolatedAsyncioTestCase):
@@ -232,11 +233,11 @@ class PersistenceTests(unittest.IsolatedAsyncioTestCase):
         blade = DB.get_beyblade('Dranzer')
         p = await DB.get_user(701)
         first, _, _ = await effective_blade(701, profile=p, blade=blade, include_avatar=False)
-        self.assertEqual(first['stats']['attack'], blade['stats']['attack'] + 10)
+        self.assertEqual(first['stats']['attack'], blade['stats']['attack'] + 10 - REGISTRY.part(blade['default_parts']['driver'])['stats']['attack'])
         await DB.mutate_user(701, lambda p: equip(p, 'Atomic Driver'))
         second, _, _ = await effective_blade(701, blade=blade, include_avatar=False)
-        self.assertEqual(first['stats']['attack'], blade['stats']['attack'] + 10)
-        self.assertEqual(second['stats']['attack'], blade['stats']['attack'])
+        self.assertEqual(first['stats']['attack'], blade['stats']['attack'] + 10 - REGISTRY.part(blade['default_parts']['driver'])['stats']['attack'])
+        self.assertEqual(second['stats']['attack'], blade['stats']['attack'] - REGISTRY.part(blade['default_parts']['driver'])['stats']['attack'])
         self.assertNotEqual(first['component_snapshot']['parts'], second['component_snapshot']['parts'])
 
     async def test_custom_bey_keeps_legacy_equipment_and_authored_roster_untouched(self):

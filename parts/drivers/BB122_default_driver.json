@@ -1,0 +1,18 @@
+{
+  "id": "BB122_default_driver",
+  "name": "Achilles CX Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 37,
+    "attack": 38,
+    "defense": 36,
+    "stamina": 34
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB122",
+  "_registry_order": 1121
+}

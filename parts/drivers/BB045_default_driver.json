@@ -1,0 +1,18 @@
+{
+  "id": "BB045_default_driver",
+  "name": "Infinity Achilles Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 32,
+    "attack": 29,
+    "defense": 29,
+    "stamina": 27
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB045",
+  "_registry_order": 1043
+}

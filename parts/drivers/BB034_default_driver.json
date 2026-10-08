@@ -1,0 +1,18 @@
+{
+  "id": "BB034_default_driver",
+  "name": "Tempest Dragon Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 29,
+    "attack": 32,
+    "defense": 15,
+    "stamina": 22
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB034",
+  "_registry_order": 1032
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB006_default_disk",
+  "name": "Guilty Longinus Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 31,
+    "attack": 32,
+    "defense": 18,
+    "stamina": 24
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB006",
+  "_registry_order": 1005
+}

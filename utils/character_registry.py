@@ -69,8 +69,6 @@ class CharacterRegistry:
                             raise ValueError(f"missing {field}")
                     validate_stats(entry["main_frame"], "main_frame")
                     validate_stats(entry["stats"], "stats")
-                    if any(entry["stats"][s] != entry["main_frame"][s] for s in CORE_STATS):
-                        raise ValueError("compatibility stats must match main_frame")
                     if set(entry["default_parts"]) != {"disk", "driver"}:
                         raise ValueError("default_parts requires disk and driver slots")
                 elif kind == "avatar":
@@ -83,7 +81,10 @@ class CharacterRegistry:
                     validate_stats(entry.get("stats"), "stats")
                     if not isinstance(entry.get("compatibility"), dict):
                         raise ValueError("missing compatibility rules")
-                    if entry.get("price", -1) < 0:
+                    if entry.get("source") == "beyblade_default":
+                        if entry.get("shop_available") is not False or entry.get("tradable") is not False or "price" in entry:
+                            raise ValueError("bundled defaults cannot have a price or be purchasable/tradable")
+                    elif entry.get("price", -1) < 0:
                         raise ValueError("invalid price")
                 result[entry["name"] if kind == "bey" else entry["id"]] = entry
             except (ValueError, TypeError, KeyError, OSError) as exc:
@@ -107,8 +108,12 @@ class CharacterRegistry:
                     for entry in candidate.values():
                         for slot, parts in (("disk", disks), ("driver", drivers)):
                             ref = entry["default_parts"][slot]
-                            if ref is not None and ref not in parts:
+                            if ref not in parts:
                                 raise ValueError(f"{entry['id']}: unknown default {slot} {ref}")
+                        for stat in CORE_STATS:
+                            total = entry["main_frame"][stat] + disks[entry["default_parts"]["disk"]]["stats"][stat] + drivers[entry["default_parts"]["driver"]]["stats"][stat]
+                            if total != entry["stats"][stat]:
+                                raise ValueError(f"{entry['id']}: default components do not preserve {stat}")
                 self._cache[kind] = candidate
                 self._indexes[kind] = index
             return self._cache[kind]
@@ -140,12 +145,13 @@ def load_avatars():
     return {"avatars": list(REGISTRY.load("avatar").values())}
 
 
-def load_parts():
+def load_parts(*, shop_only=False):
     REGISTRY.load("driver")
     REGISTRY.load("disk")
     if REGISTRY._indexes["driver"].keys() & REGISTRY._indexes["disk"].keys():
         raise ValueError("duplicate part IDs/names across Disk and Driver catalogues")
-    return [copy.deepcopy(p) for kind in ("driver", "disk") for p in REGISTRY.load(kind).values()]
+    return [copy.deepcopy(p) for kind in ("driver", "disk") for p in REGISTRY.load(kind).values()
+            if not shop_only or p.get("shop_available", True)]
 
 
 class _AuthoredStream(io.StringIO):
@@ -178,9 +184,12 @@ class _AuthoredStream(io.StringIO):
                 entry.setdefault("_registry_order", order)
                 if self.kind == "bey":
                     validate_stats(entry["stats"], entry["name"])
-                    entry["main_frame"] = {s: entry["stats"][s] for s in CORE_STATS}
-                    entry.setdefault("default_parts", {"disk": None, "driver": None})
-                    entry.setdefault("component_migration", {"strategy": "legacy_unsplit_frame", "stock_components_verified": False})
+                    existing = next((v for v in current.values() if v["id"] == ident), None)
+                    if not existing or any(existing["stats"][s] != entry["stats"][s] for s in CORE_STATS):
+                        raise ValueError("new Beys/base-stat changes require explicit component definition updates")
+                    entry["main_frame"] = copy.deepcopy(existing["main_frame"])
+                    entry["default_parts"] = copy.deepcopy(existing["default_parts"])
+                    entry["component_migration"] = copy.deepcopy(existing["component_migration"])
                 elif not all(k in entry for k in ("price", "bonuses", "rarity", "description")):
                     raise ValueError("incomplete Avatar definition")
                 staged.append((folder / filename, entry))

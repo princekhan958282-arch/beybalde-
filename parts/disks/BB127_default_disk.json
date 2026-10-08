@@ -1,0 +1,18 @@
+{
+  "id": "BB127_default_disk",
+  "name": "Draciel V Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 32,
+    "attack": 18,
+    "defense": 33,
+    "stamina": 26
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB127",
+  "_registry_order": 1127
+}

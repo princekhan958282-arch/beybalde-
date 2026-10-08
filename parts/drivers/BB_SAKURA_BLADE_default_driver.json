@@ -1,0 +1,18 @@
+{
+  "id": "BB_SAKURA_BLADE_default_driver",
+  "name": "Sakura Blade Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 41,
+    "attack": 37,
+    "defense": 31,
+    "stamina": 18
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB_SAKURA_BLADE",
+  "_registry_order": 1123
+}

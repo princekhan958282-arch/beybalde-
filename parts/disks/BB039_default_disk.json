@@ -1,0 +1,18 @@
+{
+  "id": "BB039_default_disk",
+  "name": "Chain Ragnaruk Orbit Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 36,
+    "attack": 20,
+    "defense": 26,
+    "stamina": 35
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB039",
+  "_registry_order": 1036
+}

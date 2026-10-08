@@ -121,19 +121,20 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 106,
-    "attack": 112,
-    "defense": 70,
-    "stamina": 80
+    "hp": 48,
+    "attack": 50,
+    "defense": 32,
+    "stamina": 36
   },
   "default_parts": {
-    "disk": null,
-    "driver": null
+    "disk": "BB078_default_disk",
+    "driver": "BB078_default_driver"
   },
   "generation": null,
   "_registry_order": 77,
   "component_migration": {
-    "strategy": "legacy_unsplit_frame",
-    "stock_components_verified": false
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
   }
 }

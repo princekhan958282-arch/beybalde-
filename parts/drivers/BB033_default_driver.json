@@ -1,0 +1,18 @@
+{
+  "id": "BB033_default_driver",
+  "name": "Soligle Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 35,
+    "attack": 34,
+    "defense": 25,
+    "stamina": 31
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB033",
+  "_registry_order": 1031
+}

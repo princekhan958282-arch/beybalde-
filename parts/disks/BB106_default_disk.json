@@ -1,0 +1,18 @@
+{
+  "id": "BB106_default_disk",
+  "name": "Hyper Horusood Orbit Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 32,
+    "attack": 17,
+    "defense": 22,
+    "stamina": 29
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB106",
+  "_registry_order": 1105
+}

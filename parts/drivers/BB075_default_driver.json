@@ -1,0 +1,18 @@
+{
+  "id": "BB075_default_driver",
+  "name": "Alter Cognite Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 30,
+    "attack": 23,
+    "defense": 22,
+    "stamina": 24
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB075",
+  "_registry_order": 1073
+}

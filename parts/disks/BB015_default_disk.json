@@ -1,0 +1,18 @@
+{
+  "id": "BB015_default_disk",
+  "name": "Dark Achilles Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 32,
+    "attack": 30,
+    "defense": 29,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB015",
+  "_registry_order": 1014
+}

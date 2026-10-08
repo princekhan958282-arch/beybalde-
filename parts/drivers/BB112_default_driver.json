@@ -1,0 +1,18 @@
+{
+  "id": "BB112_default_driver",
+  "name": "Drakoryn Anchor Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 52,
+    "attack": 27,
+    "defense": 52,
+    "stamina": 24
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB112",
+  "_registry_order": 1111
+}

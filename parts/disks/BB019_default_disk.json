@@ -1,0 +1,18 @@
+{
+  "id": "BB019_default_disk",
+  "name": "Excalibur Ascendant Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 31,
+    "attack": 44,
+    "defense": 25,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB019",
+  "_registry_order": 1076
+}

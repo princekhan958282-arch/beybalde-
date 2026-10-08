@@ -1,0 +1,18 @@
+{
+  "id": "BB069_default_disk",
+  "name": "Dark Wolf Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 29,
+    "attack": 21,
+    "defense": 24,
+    "stamina": 22
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB069",
+  "_registry_order": 1067
+}

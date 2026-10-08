@@ -101,6 +101,9 @@ def _avatar_lookup() -> dict[str, dict]:
 
 
 def _part_lookup(name: str) -> dict | None:
+    from utils.character_registry import REGISTRY
+    if REGISTRY.part(name):
+        return REGISTRY.part(name)
     low = name.lower()
     return next((p for p in PARTS_CATALOG if p["name"].lower() == low), None)
 
@@ -223,20 +226,21 @@ class InventoryView(discord.ui.View):
                 "bonuses": av.get("bonuses", {}), "equipped": aid == eq_av,
             })
 
-        equipped_parts = [p.lower() for p in prof.get("equipped_parts", [])]
+        from utils.bey_components import owned_parts
+        from utils.character_registry import REGISTRY
         parts = []
+        for cat in owned_parts(prof):
+            parts.append({"kind": "part", "name": cat["name"], "instance_id": cat["instance_id"],
+                "ptype": cat["category"], "stat": cat.get("stat"), "stats": cat["stats"],
+                "bonus": cat.get("bonus", 0), "penalties": _part_penalties(cat),
+                "equipped": cat["equipped_on"] == prof.get("active_bey_instance"), "equipped_on": cat["equipped_on"]})
         for nm in prof.get("parts", []):
+            if REGISTRY.part(nm):
+                continue
             cat = _part_lookup(nm) or {}
-            parts.append({
-                "kind": "part", "name": nm,
-                "ptype": cat.get("type", "?"), "stat": cat.get("stat"),
-                "bonus": cat.get("bonus", 0),
-                # Every stat this part reduces, not just the first. A part can
-                # carry more than one penalty and the singular pair could only
-                # ever show one of them.
-                "penalties": _part_penalties(cat) if cat else {},
-                "equipped": nm.lower() in equipped_parts,
-            })
+            parts.append({"kind": "part", "name": nm, "ptype": cat.get("type", "?"),
+                "stat": cat.get("stat"), "bonus": cat.get("bonus", 0),
+                "penalties": _part_penalties(cat), "equipped": nm in prof.get("equipped_parts", [])})
 
         self._cache = {"bey": beys, "copy": copies, "avatar": avatars,
                        "part": parts,
@@ -344,7 +348,7 @@ class InventoryView(discord.ui.View):
         elif it["kind"] == "avatar":
             sub = f"{RARITY_EMOJIS.get(it['rarity'], '')} {it['rarity']}"
         else:
-            sub = f"`+{it['bonus']} {str(it.get('stat'))[:3].upper()}`"
+            sub = (" ".join(f"`{s[:3].upper()} {v:+}`" for s,v in it["stats"].items()) if it.get("stats") else f"`+{it['bonus']} {str(it.get('stat'))[:3].upper()}`")
             for _stat, _amt in (it.get("penalties") or {}).items():
                 sub += f" `-{_amt} {str(_stat)[:3].upper()}`"
         return f"{head}\n{sub}"
@@ -428,7 +432,7 @@ class InventoryView(discord.ui.View):
         else:
             e.description = (
                 f"{str(it.get('ptype', '?')).title()}\n"
-                f"`+{it['bonus']} {str(it.get('stat')).upper()}`"
+                + (" ".join(f"`{s[:3].upper()} {v:+}`" for s,v in it["stats"].items()) if it.get("stats") else f"`+{it['bonus']} {str(it.get('stat')).upper()}`")
                 + "".join(f" `-{a} {str(s).upper()}`"
                           for s, a in (it.get("penalties") or {}).items())
                 + ("\n✅ **Equipped**" if it["equipped"] else "")
@@ -536,18 +540,28 @@ class InventoryView(discord.ui.View):
         if self.parts_mode:
             # Part-swap select for owned parts
             owned = self._cache.get("part", [])
+            page = min(getattr(self, "parts_page", 0), max(0, (len(owned)-1)//25))
+            self.parts_page = page
             if owned:
                 opts = [
                     discord.SelectOption(
                         label=p["name"][:80],
-                        description=f"+{p['bonus']} {str(p.get('stat'))[:6]}"[:100],
+                        description=(p.get("instance_id") or f"+{p['bonus']} {str(p.get('stat'))[:6]}")[:100],
                         value=str(i),
                         emoji="✅" if p["equipped"] else None)
-                    for i, p in enumerate(owned[:25])
+                    for i, p in enumerate(owned[page*25:(page+1)*25], start=page*25)
                 ]
                 sel = discord.ui.Select(placeholder="Tap a part to equip/unequip…",
                                         options=opts, row=0)
                 sel.callback = self._part_toggle_cb
+                if len(owned) > 25:
+                    for label, step in (("Previous parts", -1), ("Next parts", 1)):
+                        button = discord.ui.Button(label=label, row=1, disabled=(page == 0 if step < 0 else (page+1)*25 >= len(owned)))
+                        async def turn(interaction, step=step):
+                            self.parts_page += step
+                            await self._refresh(interaction)
+                        button.callback = turn
+                        self.add_item(button)
                 self.add_item(sel)
             back = discord.ui.Button(label="🔙 Back", style=discord.ButtonStyle.secondary, row=1)
             back.callback = self._back_from_parts_cb
@@ -654,6 +668,14 @@ class InventoryView(discord.ui.View):
         await self._refresh(interaction)
 
     async def _parts_mode_cb(self, interaction: discord.Interaction):
+        if self.detail and self.detail.get("instance_id"):
+            from utils.bey_components import select_instance, EquipmentError
+            try:
+                await mutate_user(self.owner.id, lambda p: select_instance(p, self.detail["instance_id"]))
+            except EquipmentError as exc:
+                return await interaction.response.send_message(str(exc), ephemeral=True)
+            await self._load_cache()
+            self.detail = self._find_refreshed(self.detail)
         self.parts_mode = True
         await self._refresh(interaction)
 
@@ -725,7 +747,7 @@ class InventoryView(discord.ui.View):
         else:
             from utils.bey_components import EquipmentError
             try:
-                await self._toggle_part(it["name"])
+                await self._toggle_part(it.get("instance_id") or it["name"])
             except EquipmentError as exc:
                 return await interaction.response.send_message(str(exc), ephemeral=True)
         await self._load_cache()
@@ -757,11 +779,11 @@ class InventoryView(discord.ui.View):
         """Equip a part (replacing any same-type part) or unequip if already on."""
         prof     = await get_user(self.owner.id)
         from utils.character_registry import REGISTRY
-        if REGISTRY.part(part_name) and REGISTRY.find_bey(prof.get("active_beyblade", "")):
+        from utils.bey_components import definition_for
+        if (definition_for(prof, part_name) or REGISTRY.part(part_name)) and REGISTRY.find_bey(prof.get("active_beyblade", "")):
             from utils.bey_components import equip
             def toggle(current):
-                remove = part_name in current.get("equipped_parts", [])
-                return equip(current, part_name, remove=remove)
+                return equip(current, part_name)
             await mutate_user(self.owner.id, toggle)
             return
         equipped = prof.get("equipped_parts", [])
@@ -783,7 +805,7 @@ class InventoryView(discord.ui.View):
         if 0 <= idx < len(owned):
             from utils.bey_components import EquipmentError
             try:
-                await self._toggle_part(owned[idx]["name"])
+                await self._toggle_part(owned[idx].get("instance_id") or owned[idx]["name"])
             except EquipmentError as exc:
                 return await interaction.response.send_message(str(exc), ephemeral=True)
             await self._load_cache()

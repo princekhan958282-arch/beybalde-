@@ -1,0 +1,18 @@
+{
+  "id": "BB070_default_disk",
+  "name": "Cobalt Dragoon Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 29,
+    "attack": 33,
+    "defense": 17,
+    "stamina": 20
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB070",
+  "_registry_order": 1068
+}

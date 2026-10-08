@@ -1,0 +1,18 @@
+{
+  "id": "BB003_default_driver",
+  "name": "Rage Longinus Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 25,
+    "attack": 30,
+    "defense": 12,
+    "stamina": 20
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB003",
+  "_registry_order": 1002
+}

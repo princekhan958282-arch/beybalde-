@@ -1,0 +1,18 @@
+{
+  "id": "BB104_default_driver",
+  "name": "Heaven's Ring Anchor Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 40,
+    "attack": 24,
+    "defense": 44,
+    "stamina": 31
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB104",
+  "_registry_order": 1103
+}

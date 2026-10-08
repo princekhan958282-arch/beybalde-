@@ -1,0 +1,18 @@
+{
+  "id": "BB074_default_disk",
+  "name": "Acid Anubion Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 28,
+    "attack": 17,
+    "defense": 26,
+    "stamina": 21
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB074",
+  "_registry_order": 1072
+}

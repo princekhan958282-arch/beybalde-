@@ -1,0 +1,18 @@
+{
+  "id": "BB038_default_driver",
+  "name": "Cyclone Valkyrie Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 27,
+    "attack": 30,
+    "defense": 12,
+    "stamina": 24
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB038",
+  "_registry_order": 1035
+}

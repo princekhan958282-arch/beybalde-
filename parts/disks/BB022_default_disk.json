@@ -1,0 +1,18 @@
+{
+  "id": "BB022_default_disk",
+  "name": "Shadow Dragon King Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 34,
+    "attack": 36,
+    "defense": 36,
+    "stamina": 36
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB022",
+  "_registry_order": 1020
+}

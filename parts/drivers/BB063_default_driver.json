@@ -1,0 +1,18 @@
+{
+  "id": "BB063_default_driver",
+  "name": "Deathscyther Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 24,
+    "attack": 29,
+    "defense": 13,
+    "stamina": 18
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB063",
+  "_registry_order": 1061
+}

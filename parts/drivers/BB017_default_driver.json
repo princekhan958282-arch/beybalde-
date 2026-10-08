@@ -1,0 +1,18 @@
+{
+  "id": "BB017_default_driver",
+  "name": "Z Achilles Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 30,
+    "attack": 28,
+    "defense": 28,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB017",
+  "_registry_order": 1016
+}

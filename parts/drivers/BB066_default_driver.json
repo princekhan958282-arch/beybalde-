@@ -1,0 +1,18 @@
+{
+  "id": "BB066_default_driver",
+  "name": "Beast Behemoth Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 28,
+    "attack": 28,
+    "defense": 17,
+    "stamina": 22
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB066",
+  "_registry_order": 1064
+}

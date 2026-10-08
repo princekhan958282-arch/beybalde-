@@ -1,0 +1,18 @@
+{
+  "id": "BB079_default_driver",
+  "name": "Void Longinus Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 28,
+    "attack": 40,
+    "defense": 32,
+    "stamina": 34
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB079",
+  "_registry_order": 1078
+}

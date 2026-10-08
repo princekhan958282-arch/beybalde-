@@ -1,0 +1,18 @@
+{
+  "id": "BB005_default_disk",
+  "name": "Imperial Dragon Orbit Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 33,
+    "attack": 27,
+    "defense": 29,
+    "stamina": 33
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB005",
+  "_registry_order": 1004
+}

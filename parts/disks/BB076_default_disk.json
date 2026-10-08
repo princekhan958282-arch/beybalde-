@@ -1,0 +1,18 @@
+{
+  "id": "BB076_default_disk",
+  "name": "Sea Excalibur Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 27,
+    "attack": 32,
+    "defense": 21,
+    "stamina": 19
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB076",
+  "_registry_order": 1074
+}

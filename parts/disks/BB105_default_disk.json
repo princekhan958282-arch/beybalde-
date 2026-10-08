@@ -1,0 +1,18 @@
+{
+  "id": "BB105_default_disk",
+  "name": "Omni Odax Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 27,
+    "attack": 30,
+    "defense": 17,
+    "stamina": 22
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB105",
+  "_registry_order": 1104
+}

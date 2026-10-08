@@ -75,10 +75,10 @@ BEY_QUICKSELL_BLOCKED: set[str] = {"Exclusive"}
 # (Ragnarok Core) pays for it with two penalties and a price seventeen times
 # the next most expensive part. Nothing should sit between 40 and 100 — that
 # gap is what keeps the ordinary catalog readable.
-from utils.character_registry import load_parts
+from utils.character_registry import load_parts, REGISTRY
 
 # Legacy Rings remain frame accessories; Disk/Driver definitions live in JSON.
-PARTS_CATALOG: list[dict] = sorted(load_parts() + [
+PARTS_CATALOG: list[dict] = sorted(load_parts(shop_only=True) + [
     {
         "name": "Flugel Wing",
         "type": "ring",
@@ -297,6 +297,10 @@ def apply_part_purchase(profile: dict, part_name: str) -> dict:
     ago — the four rules are spelled out in `cogs/avatar/avatar_upgrade.py`,
     and this is the shop's copy of them.
     """
+    from utils.character_registry import REGISTRY
+    definition = REGISTRY.part(part_name)
+    if definition and (definition.get("source") == "beyblade_default" or definition.get("shop_available") is False):
+        raise PurchaseError("Bundled default parts cannot be purchased.")
     part = _parts_by_name().get(str(part_name).lower())
     if not part:
         raise PurchaseError(f"**{part_name}** isn't in the shop. Try `;shop`.")
@@ -719,23 +723,33 @@ class ShopCog(commands.Cog, name="Shop"):
 
         refund = int(part["price"] * SELL_RATIO)
 
-        owned_parts.remove(match)
-        profile["parts"] = owned_parts
-
-        # Auto-unequip if the sold part was currently equipped
-        equipped: list[str] = profile.get("equipped_parts", [])
-        was_equipped = match in equipped
-        if was_equipped:
-            equipped.remove(match)
-            profile["equipped_parts"] = equipped
-
-        profile["coins"] = profile.get("coins", 0) + refund
-        await update_user(ctx.author.id, profile)
+        from utils.bey_components import equip, select_instance, EquipmentError
+        def sell_owned(current):
+            if match not in current.get("parts", []):
+                raise EquipmentError("This part is no longer owned.")
+            was_equipped = match in current.get("equipped_parts", [])
+            old_selection = {key: current.get(key) for key in ("active_beyblade", "active_bey_instance", "active_copy", "active_custom_bey")}
+            for entry in current.get("bey_instances", []):
+                from utils.bey_components import definition_for
+                for ident in list(entry["parts"].values()):
+                    definition = definition_for(current, ident)
+                    if definition and definition["name"] == match:
+                        select_instance(current, entry["instance_id"])
+                        equip(current, ident, remove=True)
+            current.update(old_selection)
+            current["parts"].remove(match)
+            current["equipped_parts"] = [n for n in current.get("equipped_parts", []) if n != match]
+            current["coins"] = current.get("coins", 0) + refund
+            return was_equipped, current["coins"]
+        try:
+            was_equipped, coins = await mutate_user(ctx.author.id, sell_owned)
+        except EquipmentError as exc:
+            return await ctx.send(f"❌ {exc}")
 
         unequip_note = " *(auto-unequipped)*" if was_equipped else ""
         await ctx.send(
             f"💸 Sold **{match}**{unequip_note} for **{refund:,} coins** (50% of {part['price']:,}).\n"
-            f"💰 Balance: **{profile['coins']:,} coins**"
+            f"💰 Balance: **{coins:,} coins**"
         )
 
     # ── ;quicksell <bey name> ─────────────────────────────────────────────────
@@ -773,7 +787,7 @@ class ShopCog(commands.Cog, name="Shop"):
                 f"Use `;inventory` to see your Beys."
             )
 
-        if profile.get("active_beyblade", "").lower() == match.lower():
+        if (profile.get("active_beyblade") or "").lower() == match.lower():
             return await ctx.send(
                 f"❌ **{match}** is your currently equipped Bey!\n"
                 f"Unequip it before quick-selling."
@@ -859,60 +873,22 @@ class ShopCog(commands.Cog, name="Shop"):
     )
     async def myparts(self, ctx: commands.Context) -> None:
         profile  = await get_user(ctx.author.id)
-        owned    = profile.get("parts", [])
-        equipped = profile.get("equipped_parts", [])
-        catalog  = _parts_by_name()
-
-        if not owned:
-            return await ctx.send(
-                f"❌ {ctx.author.mention}, you don't own any parts yet!\n"
-                f"Buy some with `;shop` → `;buy <part name>`."
-            )
-
-        by_type: dict[str, list[str]] = {"ring": [], "disk": [], "driver": []}
-        for name in owned:
-            part = catalog.get(name.lower())
-            if part:
-                by_type[part["type"]].append(name)
-
-        embed = discord.Embed(
-            title=f"⚙️ {ctx.author.display_name}'s Parts",
-            description=(
-                "**Equipped parts apply in every battle.**\n"
-                "`;equippart <name>` / `;unequippart <name>` to manage.\n"
-                "─────────────────────────────────"
-            ),
-            color=discord.Color.teal(),
-        )
-
-        for ptype, label in PART_TYPE_LABEL.items():
-            emoji = PART_TYPE_EMOJI[ptype]
-            names = by_type.get(ptype, [])
-            if not names:
-                embed.add_field(name=f"{emoji} {label} Slot", value="*(none owned)*", inline=False)
-                continue
-
-            lines = []
-            for name in names:
-                part   = catalog.get(name.lower())
-                if part:
-                    ps     = part.get("penalty_stat")
-                    pv     = part.get("penalty", 0)
-                    pen    = f"  `−{pv} {ps.capitalize()}`" if ps and pv else ""
-                    bonus  = f"+{part['bonus']} {part['stat'].capitalize()}{pen}"
-                else:
-                    bonus  = ""
-                status = "✅ **EQUIPPED**" if name in equipped else "○ unequipped"
-                lines.append(f"• **{name}** {bonus} — {status}")
-
-            embed.add_field(
-                name=f"{emoji} {label} Slot  *(1 max)*",
-                value="\n".join(lines),
-                inline=False,
-            )
-
-        embed.set_footer(text=f"Owned: {len(owned)} parts | Equipped: {len(equipped)}/3")
-        await ctx.send(embed=embed)
+        from utils.bey_components import owned_parts
+        items = owned_parts(profile)
+        rows = [f"**{p['name']}** · `{p['instance_id']}`\n"
+                f"HP {p['stats']['hp']} / ATK {p['stats']['attack']} / DEF {p['stats']['defense']} / STM {p['stats']['stamina']} · "
+                + ("equipped" if p["equipped_on"] else "available") for p in items]
+        rows += [f"**{n}** (Ring)" for n in profile.get("parts", []) if not REGISTRY.part(n)]
+        if not rows:
+            return await ctx.send("You do not own any parts yet.")
+        pages = []
+        for start in range(0, len(rows), 8):
+            embed = discord.Embed(title=f"⚙️ {ctx.author.display_name}'s Parts",
+                description="`;equippart <name or physical ID>` to replace a slot.\n\n" + "\n".join(rows[start:start+8]),
+                color=discord.Color.teal())
+            embed.set_footer(text=f"Owned: {len(rows)} · Page {start // 8 + 1}/{(len(rows)+7)//8}")
+            pages.append(embed)
+        await ctx.send(embed=pages[0], view=ShopView(pages, ctx.author.id))
 
     # ── ;equippart <name> ─────────────────────────────────────────────────────
 
@@ -929,8 +905,8 @@ class ShopCog(commands.Cog, name="Shop"):
     async def equippart(self, ctx: commands.Context, *, part_name: str) -> None:
         profile = await get_user(ctx.author.id)
         from utils.character_registry import REGISTRY
-        from utils.bey_components import equip, EquipmentError
-        modular_part = REGISTRY.part(part_name)
+        from utils.bey_components import equip, EquipmentError, definition_for
+        modular_part = definition_for(profile, part_name) or REGISTRY.part(part_name)
         if modular_part and REGISTRY.find_bey(profile.get("active_beyblade", "")):
             try:
                 result = await mutate_user(ctx.author.id, lambda p: equip(p, part_name))
@@ -1021,13 +997,13 @@ class ShopCog(commands.Cog, name="Shop"):
     async def unequippart(self, ctx: commands.Context, *, part_name: str) -> None:
         profile  = await get_user(ctx.author.id)
         from utils.character_registry import REGISTRY
-        from utils.bey_components import equip, EquipmentError
-        if REGISTRY.part(part_name) and REGISTRY.find_bey(profile.get("active_beyblade", "")):
+        from utils.bey_components import equip, EquipmentError, definition_for
+        if (definition_for(profile, part_name) or REGISTRY.part(part_name)) and REGISTRY.find_bey(profile.get("active_beyblade", "")):
             try:
                 result = await mutate_user(ctx.author.id, lambda p: equip(p, part_name, remove=True))
             except EquipmentError as exc:
                 return await ctx.send(f"❌ {exc}")
-            return await ctx.send(f"✅ **{result['part']}** unequipped from this copy and remains in your inventory.")
+            return await ctx.send(f"✅ Returned the previous part to inventory and equipped **{result['part']}**.")
         equipped: list[str] = profile.get("equipped_parts", [])
 
         match = next((p for p in equipped if p.lower() == part_name.lower()), None)
@@ -1459,7 +1435,7 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
             )
 
         # Prevent listing the equipped Bey
-        if profile.get("active_beyblade", "").lower() == match.lower():
+        if (profile.get("active_beyblade") or "").lower() == match.lower():
             return await ctx.send(
                 f"❌ **{match}** is your currently equipped Bey!\n"
                 f"Unequip it first before listing."
@@ -1473,16 +1449,21 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
                 f"Use `;cancellisting {match}` to update the price."
             )
 
-        # Remove from inventory and add listing
-        inventory.remove(match)
-        listings.append({
-            "bey_name":  match,
-            "price":     price,
-            "listed_at": datetime.now(timezone.utc).isoformat(),
-        })
-        profile["inventory"]            = inventory
-        profile["marketplace_listings"] = listings
-        await update_user(ctx.author.id, profile)
+        from utils.bey_components import detach_bey
+        def create_listing(current):
+            if (current.get("active_beyblade") or "").casefold() == match.casefold():
+                raise ValueError("Unequip the Bey before listing it.")
+            listings = current.setdefault("marketplace_listings", [])
+            if any(l["bey_name"].casefold() == match.casefold() for l in listings):
+                raise ValueError("This Bey is already listed.")
+            bundle = detach_bey(current, match)
+            listings.append({"bey_name": match, "price": price,
+                             "listed_at": datetime.now(timezone.utc).isoformat(),
+                             "component_bundle": bundle})
+        try:
+            await mutate_user(ctx.author.id, create_listing)
+        except ValueError as exc:
+            return await ctx.send(f"❌ {exc}")
 
         fee = int(price * MARKETPLACE_FEE)
         await ctx.send(
@@ -1509,10 +1490,21 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
                 f"❌ No active listing found for **{bey_name}**."
             )
 
-        listings.remove(match)
-        profile.setdefault("inventory", []).append(match["bey_name"])
-        profile["marketplace_listings"] = listings
-        await update_user(ctx.author.id, profile)
+        from utils.bey_components import attach_bey
+        def cancel(current):
+            listing = next((l for l in current.get("marketplace_listings", [])
+                            if l["bey_name"].casefold() == bey_name.casefold()), None)
+            if not listing:
+                raise ValueError("Listing is no longer available.")
+            if listing.get("component_bundle"):
+                attach_bey(current, listing["component_bundle"])
+            else:
+                current.setdefault("inventory", []).append(listing["bey_name"])
+            current["marketplace_listings"].remove(listing)
+        try:
+            await mutate_user(ctx.author.id, cancel)
+        except ValueError as exc:
+            return await ctx.send(f"❌ {exc}")
 
         await ctx.send(
             f"↩️ Listing for **{match['bey_name']}** cancelled.\n"
@@ -1636,7 +1628,14 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
             seller_profile["marketplace_listings"] = listings
             seller_profile["coins"] = int(seller_profile.get("coins", 0)) + payout
             buyer_profile["coins"] = buyer_coins - price
-            buyer_profile.setdefault("inventory", []).append(listing["bey_name"])
+            if listing.get("component_bundle"):
+                from utils.bey_components import attach_bey, EquipmentError
+                try:
+                    attach_bey(buyer_profile, listing["component_bundle"])
+                except EquipmentError as exc:
+                    raise SaleRejected(f"components:{exc}") from exc
+            else:
+                buyer_profile.setdefault("inventory", []).append(listing["bey_name"])
             return {"listing": dict(listing), "price": price, "payout": payout}
 
         try:
@@ -1660,6 +1659,8 @@ class MarketplaceCog(commands.Cog, name="Marketplace"):
                     f"❌ This Bey costs **{price:,} coins** but you only have "
                     f"**{buyer_coins:,}**. Short by **{price - buyer_coins:,} coins**."
                 )
+            if reason.startswith("components:"):
+                return await ctx.send(f"❌ {reason.split(':', 1)[1]}")
             logger.error("Rejected invalid marketplace listing from seller %s", seller.id)
             return await ctx.send("❌ This listing is invalid and cannot be purchased.")
 

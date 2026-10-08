@@ -1,0 +1,18 @@
+{
+  "id": "BB061_default_disk",
+  "name": "Epic Evipero Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 28,
+    "attack": 13,
+    "defense": 24,
+    "stamina": 21
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB061",
+  "_registry_order": 1059
+}

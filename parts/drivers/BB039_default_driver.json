@@ -1,0 +1,18 @@
+{
+  "id": "BB039_default_driver",
+  "name": "Chain Ragnaruk Glide Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 35,
+    "attack": 20,
+    "defense": 26,
+    "stamina": 35
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB039",
+  "_registry_order": 1036
+}

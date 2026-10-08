@@ -1,0 +1,18 @@
+{
+  "id": "BB101_default_disk",
+  "name": "Surge Xcalius Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 31,
+    "attack": 44,
+    "defense": 13,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB101",
+  "_registry_order": 1102
+}

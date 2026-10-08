@@ -1,0 +1,18 @@
+{
+  "id": "BB057_default_driver",
+  "name": "Lost Longinus Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 32,
+    "attack": 35,
+    "defense": 24,
+    "stamina": 26
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB057",
+  "_registry_order": 1055
+}

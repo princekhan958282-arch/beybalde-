@@ -1,0 +1,18 @@
+{
+  "id": "BB006_default_driver",
+  "name": "Guilty Longinus Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 31,
+    "attack": 31,
+    "defense": 18,
+    "stamina": 23
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB006",
+  "_registry_order": 1005
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB011_default_driver",
+  "name": "Cho-Z Spriggan Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 31,
+    "attack": 29,
+    "defense": 32,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB011",
+  "_registry_order": 1010
+}

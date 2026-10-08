@@ -1,0 +1,18 @@
+{
+  "id": "BB054_default_disk",
+  "name": "Archer Hercules Orbit Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 34,
+    "attack": 14,
+    "defense": 21,
+    "stamina": 38
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB054",
+  "_registry_order": 1052
+}

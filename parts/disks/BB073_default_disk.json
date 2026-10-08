@@ -1,0 +1,18 @@
+{
+  "id": "BB073_default_disk",
+  "name": "Hazard Cognite Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 30,
+    "attack": 21,
+    "defense": 22,
+    "stamina": 27
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB073",
+  "_registry_order": 1071
+}

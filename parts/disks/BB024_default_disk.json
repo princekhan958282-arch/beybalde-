@@ -1,0 +1,18 @@
+{
+  "id": "BB024_default_disk",
+  "name": "Crimson Spriggan Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 34,
+    "attack": 21,
+    "defense": 42,
+    "stamina": 29
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB024",
+  "_registry_order": 1023
+}

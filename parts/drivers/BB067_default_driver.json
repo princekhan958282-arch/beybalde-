@@ -1,0 +1,18 @@
+{
+  "id": "BB067_default_driver",
+  "name": "Thermal Pisces Glide Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 33,
+    "attack": 16,
+    "defense": 19,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB067",
+  "_registry_order": 1065
+}

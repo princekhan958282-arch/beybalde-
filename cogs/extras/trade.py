@@ -417,10 +417,11 @@ class TradeView(discord.ui.View):
             if is_owner_bound(_blade_def(a_name)) or is_owner_bound(_blade_def(b_name)):
                 raise ValueError("A personal Bey cannot be traded.")
 
-            a_prof.setdefault("inventory", []).remove(a_item)
-            b_prof.setdefault("inventory", []).remove(b_item)
-            a_prof["inventory"].append(b_item)
-            b_prof["inventory"].append(a_item)
+            from utils.bey_components import detach_bey, attach_bey
+            a_bundle = detach_bey(a_prof, _item_name(a_item))
+            b_bundle = detach_bey(b_prof, _item_name(b_item))
+            attach_bey(a_prof, b_bundle)
+            attach_bey(b_prof, a_bundle)
 
             if str(a_prof.get("active_beyblade", "")).casefold() == str(a_name).casefold():
                 a_prof["active_beyblade"] = None

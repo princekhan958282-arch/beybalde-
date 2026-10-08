@@ -1,0 +1,18 @@
+{
+  "id": "BB128_default_disk",
+  "name": "Draciel V2 Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 35,
+    "attack": 21,
+    "defense": 37,
+    "stamina": 29
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB128",
+  "_registry_order": 1128
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB055_default_disk",
+  "name": "Crystal Zeutron Orbit Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 35,
+    "attack": 19,
+    "defense": 22,
+    "stamina": 35
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB055",
+  "_registry_order": 1053
+}

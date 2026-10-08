@@ -1,0 +1,18 @@
+{
+  "id": "BB085_default_driver",
+  "name": "Victory Valkyrie X Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 30,
+    "attack": 30,
+    "defense": 16,
+    "stamina": 22
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB085",
+  "_registry_order": 1084
+}

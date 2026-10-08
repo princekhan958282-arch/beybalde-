@@ -1,0 +1,18 @@
+{
+  "id": "BB009_default_disk",
+  "name": "Dead Phoenix Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 49,
+    "attack": 33,
+    "defense": 52,
+    "stamina": 43
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB009",
+  "_registry_order": 1008
+}

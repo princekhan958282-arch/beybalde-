@@ -1,207 +1,188 @@
-# Individual character files and component equipment
+# Individual characters and physical component equipment
 
-## Audit and content preservation
+## Audited content
 
-Baseline: `5267682163ced3dccd4dae6e3281ceed000d3855` (main / PR #206).
-The committed `data/beyblades.json` contains **131** official definitions.
-The existing startup migration adds **Unlock Unicorn**, so the running roster
-contains **132**. All 132 are migrated. `avatar_data.json` contains **54** Avatars.
-The Python parts catalogue contains **18 Disks, 17 Drivers and 16 Rings**.
+This follow-up starts from `dc33f6529b025f68cf00a37a0ee57c5b41c92486`
+(current main, including PRs #207 and #208). The original content manifest in
+`component_migration_baseline.json` remains unchanged: 132 runtime official
+Beyblades (131 formerly authored in the monolith plus startup's Unlock Unicorn),
+54 Avatars, 18 purchasable Disks, 17 purchasable Drivers and 16 legacy Rings.
+Original record hashes verify IDs, total base stats, abilities, Specials, forms,
+images, rarity, Avatar skills and shop metadata. No Avatar definition changes.
 
-`component_migration_baseline.json` records every original character ID, field
-list, complete-record SHA-256, printed statline and the original part catalogue.
-Tests reconstruct each original record from its original fields and compare
-hashes, covering all abilities, special moves, forms, images, skills, shop and
-restriction metadata. Registry ordering is preserved, including Avatar skill
-order and shop catalogue order. No rarity/type/generation subfolders exist.
+The former null-default/unsplit-frame compatibility strategy is superseded by
+the user's authorized distribution. All 132 Beys now reference unique default
+Disks and Drivers. There are **264 new defaults**, **150 Disk definitions** and
+**149 Driver definitions** in total. Characters remain flat in root `beys/`
+and `avatars/`; parts remain individual files in `parts/disks/` and
+`parts/drivers/`. No character monolith or nested character folders return.
 
-Old definitions came from two monolithic character files and the Python shop
-catalogue. The authoritative layout is now:
+## Distribution and balance
 
-```
-beys/<one species>.json
-avatars/<one avatar>.json
-parts/disks/<one disk>.json
-parts/drivers/<one driver>.json
-```
+For each integer HP/ATK/DEF/STM total, take integer floors with weights
+18/40, 11/40 and 11/40. Assign the remaining points to the greatest fractional
+remainders; ties use Frame, Disk, Driver order. This largest-remainder algorithm
+uses integer arithmetic and exactly preserves each original total. Special is
+intrinsic and unchanged. Dranzer retains its real HP 112 / ATK 105 / DEF 95 /
+STM 100; its frame is 50 / 47 / 43 / 45. The illustrative 122/59/20/9 values
+still do not match this repository's Dranzer.
 
-The monolithic files are removed. Maintenance/simulation scripts use a
-compatibility stream that reads/writes the individual files; it does not create
-a second on-disk character registry. The former startup migration exports its
-Unicorn constant from the individual file instead of keeping another authored
-copy or writing definitions at startup.
+Names combine the full original Bey identity with type themes: Impact/Rush
+(Attack), Bastion/Anchor (Defense), Orbit/Glide (Stamina), Harmony/Pivot
+(Balance), and Core/Spin where no standard type is recorded. Unknown generation
+remains null rather than invented. Defaults have unrestricted compatibility
+rules, following the existing empty-rules convention; purchased compatibility
+rules are unchanged. No new compatibility restriction is introduced.
 
-The existing names, `BB...` IDs and `avatar_...` IDs remain unchanged. Parts had
-name-based identities; new slug IDs are additive and names remain valid for
-existing inventories and commands. Generation was not recorded in either
-original catalogue; new `generation: null` properties mean **unknown**, not an
-invented generation. Global type growth remains in `utils/bey_levels.py`.
+`stats` retains the complete stock statline for existing level/cap and display
+interfaces. `main_frame` contains only the 45% component. Runtime assembly
+sums this frame and the two equipped definitions afresh. The shared level
+adapter applies **current parts minus stock parts** to the existing levelled
+stock calculation, which is algebraically frame + current parts + existing
+level growth. It does not add another full-Bey stat bonus. Mounted form deltas
+remain frame modifiers; intrinsic abilities/Specials and form stats are unchanged.
+Rings remain existing frame accessories. Avatar/mastery/type modifiers, stamina
+rules, damage formulas and level caps retain their existing ordering.
 
-## Balance decisions and unknown stock data
+**Purchased equipment values and prices are unchanged.** Their old definitions
+are small bonus/penalty statlines with zero HP. With the newly authorized real
+stock split, replacing stock with one of these removes the stock contribution.
+Therefore previously upgraded effective totals can decrease, including HP.
+The migration preserves those equipped selections rather than inventing
+purchase-part balance, adding hidden stock bonuses or changing their stats.
+This is a consequence of the requested replacement model, not a base-roster
+rebalance. Reviewers should inspect purchased builds before deployment; no
+additional balance numbers have been invented.
 
-The existing `stats` are the game's **printed complete-Bey compatibility
-statline**, not verified physical Main Frame contributions. Separate shop part
-bonuses were added on top, including their penalties. No official character
-record supplied a stock Disk/Driver assignment or a component decomposition.
+Existing HP pools use type-band conversion (PvP/Story) or a flat baseline (Boss).
+Those conversions stay in place. Negative equipment HP replacement deltas now
+reach those pools, alongside the existing positive growth; they are not dropped
+by the previous positive-growth clamp. No damage formula changes.
 
-Accordingly, each file uses `component_migration.strategy =
-legacy_unsplit_frame`: the unchanged printed statline is carried as the
-compatibility Main Frame. `default_parts.disk` and `.driver` are **null**.
-An unassigned stock slot contributes an explicit zero delta; it is not a new
-part, a shop item or a claim about the physical stock component's real stats.
-We do not fabricate default part names, prices, HP bonuses or distributions.
-All four stat keys exist in every shipped Disk/Driver definition. Existing
-non-HP bonuses/penalties are converted exactly; **all current part HP deltas
-are zero** because the existing catalogue supplies no HP modifiers.
+## Physical ownership and migration
 
-The committed **Dranzer** is Balance, Epic, with HP 112 / ATK 105 / DEF 95 /
-STM 100 (Special 125). The proposed HP 122 / ATK 59 / DEF 20 / STM 9 does not
-match a repository variant; it has **not** replaced the real values.
+Existing inventory names, purchased `parts` names, per-species progression,
+Custom Bey records and SQLite/MySQL architecture remain intact. Additive JSON:
 
-Before assigning real stock components, a reviewer must supply verified stock
-IDs and approved component contributions per Bey/form. Subtract those stock
-contributions from the compatibility frame to preserve the old assembled
-statline, update the compatibility `stats` adapter with the frame, and rerun
-baseline/default-stat tests with an explicitly approved balance-data revision.
-This PR enables customization with verified shop parts immediately without
-silently decomposing or rebalancing the existing roster.
+- `bey_instances`: stable copy UUID, name, exactly one disk and driver UUID,
+  `components_granted`, and original `bundled_parts` UUIDs.
+- `part_instances`: stable physical UUID and authored `definition_id`.
+- `active_bey_instance`: selected copy UUID.
+- `component_equipment_version: 2`: profile adapter version.
 
-## Assembly and integration
+Reconciliation creates two distinct defaults per owned official copy **once**.
+Older name-only profiles and version-one definition-ID loadouts migrate under
+existing profile locks. Purchased ownership and equipment selections survive;
+unused bundled defaults remain available. Repeated reads, updates, restart,
+and reconciliation preserve item IDs and counts. Missing/duplicate physical
+records raise errors instead of silently minting replacements. Migration is
+lazy on access and also runs before shared inventory persistence: spawn,
+reward/code, shop/booster, admin and direct acquisition writes receive bundles.
+No production profile was used for testing.
 
-`utils/character_registry.py` discovers and caches the four flat directories,
-rejects duplicate IDs/names/aliases, malformed records, missing stats,
-unresolved defaults and nested character folders. Lookup retains existing
-name/ID interfaces. A bad reload leaves the previous validated cache intact.
-No JSON is read on a battle turn. Content updates take effect after restart;
-Avatar's existing reload entry point explicitly reloads its files.
+Parts have no independent equipped flag that could become stale. Assignment is
+derived from Bey slots; available inventory is the physical ledger minus those
+assignments. Switching replaces one UUID, returns the old UUID to availability,
+keeps the other slot and recalculates from definitions. Physical IDs can be used
+with `;equippart` to distinguish identical default definitions. Equipping an
+already equipped part is idempotent. A physical UUID cannot occupy two Bey slots.
 
-`utils/bey_components.py` assembles each stat afresh from the mounted frame,
-the selected copy's Disk and its Driver. It never modifies a frame or adds to
-a saved total. Existing Rings remain legacy **frame modifiers**, retaining
-ownership, prices, equip commands and their exact bonuses/tradeoffs. They are
-not an additional assembled base-Bey bonus. Special remains the existing
-intrinsic Special stat and follows the existing Special/Avatar rules.
+`;unequippart` restores that copy's original bundled part when it is still owned
+and available. If it was transferred or equipped elsewhere, the command asks
+for a replacement. It never leaves an empty slot or manufactures another part.
+Purchased-part sales are atomic and restore available stock when needed; if
+that stock is unavailable, select a replacement before selling.
 
-The existing level growth/cap is applied to the intrinsic frame and component
-deltas remain outside that cap, exactly as equipment worked before migration.
-Mastery, Avatar bonuses, type passives, HP-pool conversion and combat formulas
-retain their existing ordering. Mounted dual-spin forms retain their own
-printed frame statline. No action, damage formula or ability engine is rewritten.
+Default definitions have `source: beyblade_default`, `shop_available: false`,
+`tradable: false`, and **no price**. The shop catalogue contains only the original
+51 purchasable entries. The purchase backend rejects defaults by ID or name,
+even if called directly. Default parts cannot be sold/traded independently.
+`myparts` and inventory display physical IDs and availability; existing panels
+paginate larger collections rather than silently truncating them.
 
-- PvP/Tournament/Story share `BattleSession.create` and snapshot the selected
-  part IDs and stat deltas before constructing the session.
-- Boss initialization and cards use the existing `effective_blade` resolver.
-- NPCs receive no player equipment. Boss copies retain their fixed-roll rules.
-- `;info` and `;ainfo` keep their existing renderers; card layouts are untouched.
-- Custom Bey records stay in player persistence, outside `beys/`, and retain
-  their previous global-equipment behavior. Creation/approval/pricing are unchanged.
+## Transfers and escrow
 
-## Ownership, UI and database compatibility
+Trade moves the first named copy (the existing picker/name semantics), its UUID,
+and its **currently attached two physical components** in one multi-profile
+transaction. Available components stay with the sender. No recipient defaults
+are granted again: the copy's grant marker travels with it. Default `tradable`
+false prevents standalone part trading; attached components travel with their
+Bey bundle. Purchased attached parts move their legacy ownership name as well.
+The existing one-owned-copy-per-purchased-part-name rule remains: a trade/sale
+to a recipient already owning that purchased definition is rejected atomically.
+Choose another attached part before making that trade. Existing progression
+remains per species/player, as it was before this equipment migration.
 
-The existing `inventory: [name, name, ...]`, `parts: [part name, ...]` and
-`bey_progress` structures remain intact. Additive JSON fields in each existing
-SQLite/MySQL profile provide:
+Marketplace listing escrows the same copy and two components outside available
+inventory. Cancellation restores that bundle; purchase transfers it. Listings
+and cancellation now run through locked mutations, and purchase retains the
+existing atomic two-profile coin transfer and fee. Old pre-component listings
+receive a recipient stock grant on acquisition. Ordinary consumption/removal
+(quicksell, duplicate cleanup, admin removal) releases components to their
+current owner; no part is silently destroyed with a removed frame.
 
-- `bey_instances`: ordered `{instance_id, name, parts: {disk?, driver?}}` records;
-- `active_bey_instance`: the selected owned-copy UUID;
-- `component_equipment_version`: an idempotent migration marker.
+Snapshots include the ledger and marketplace escrow in the Bey section. Restoring
+an old Bey snapshot clears newer component fields absent from that backup before
+running its one-time migration, avoiding a mixture of unrelated ledgers.
 
-Old global Disk/Driver selections migrate once to the active official copy.
-Other copies begin with the unchanged stock configuration. Coins, progress,
-abilities, Custom Bey records and inventory names are not reset. The existing
-SQLite/MySQL profile storage supports these extra JSON fields without a SQL
-schema replacement. Snapshot Bey-section restore includes these fields.
+## Battle and Custom Bey compatibility
 
-Existing `;buy`, `;myparts`, `;equippart`, `;unequippart`, shop and inventory
-buttons are reused. Part purchases retain the existing atomic profile mutation,
-exact prices and one-owned-copy-per-part-name rule. Equipping/unequipping a
-Disk/Driver now uses that same atomic profile mutation and validates current
-ownership, compatibility and exclusive assignment to a single official copy.
-Replacement removes only the same slot's reference; the other slot survives.
+PvP, ranked/Tournament and Story share the existing session initialization;
+Boss and effective-stat/card callers use the shared loadout adapter. Sessions
+snapshot physical equipment/stat contributions, so later switching cannot
+change a running battle. NPCs use stock authored totals; fixed boss copies keep
+their previous rules. Avatar skill and ability engines are unchanged and tested
+through execution. `;info`, `;ainfo` and all startup extensions still register.
 
-Players can select duplicates using the existing inventory dropdown, whose
-items carry stable copy IDs and display inventory slot numbers. `;equip #12`
-selects inventory slot 12. `;equip <name>` retains the name-based interface.
-Disk/Driver configurations persist when switching copies and after restart.
+Custom Beys remain outside the official directories and retain their existing
+global purchased-equipment path, stat allocation, abilities, approval, pricing
+and ownership. They are not given generated official default parts.
+Maintenance streams preserve split metadata; creating new characters or changing
+base stats requires explicit component JSON updates rather than resetting frames.
 
-Existing name-based sale/trade/listing APIs do not identify an individual
-UUID. Reconciliation follows their `list.remove` semantics: removing the first
-matching copy releases its parts back to their owner. A transferred/marketplace
-Bey arrives with a stock build; equipped parts are **not** transferred or sold
-with it. This avoids silently duplicating a uniquely owned part and leaves
-existing trade, sell, listing, currency and progression behavior intact.
-Per-copy level/IV progression is not introduced: the existing name-keyed
-progress system remains unchanged. Custom Beys retain the legacy equipment
-exception rather than receiving an unapproved player-record redesign.
+## Verification
 
-## Validation and known baseline failures
-
-All tests use isolated SQLite files or existing in-memory harnesses. No Discord
-login, production database, real player or live purchase was used.
-
-Passing focused suites:
+**123 focused tests and 186 simulation checks pass**, in separate processes
+because legacy harnesses patch global stores/modules:
 
 | Suite | Result |
 | --- | --- |
-| `python -m unittest tools.test_character_components` | 16 tests |
-| `python tools/test_component_battles.py` | 7 tests |
-| `python tools/test_avatar_battle_connection.py` | 8 tests |
-| `python tools/test_original_generation.py` | 24 tests |
-| `python tools/test_draciel.py` | 19 tests |
-| `python -m unittest tools.test_boss_flow` | 6 tests |
-| `python tools/test_beycbot_info_card.py` | 10 tests |
-| `python tools/sim_avatar_info_card.py` | 17 tests |
-| `python tools/sim_stats_pipeline.py` | 24 checks |
-| `python tools/sim_updater_paths.py` | 37 checks |
-| `python tools/sim_snapshots.py` | 62 checks |
-| `python -m unittest tools.test_character_startup` | all 51 extensions loaded; info/ainfo/part commands registered |
-| Compileall / diff whitespace checks | passed |
+| Character migration, equipment and persistence | 16 tests |
+| Physical conservation, all-132 totals, purchase blocking, migration, trade/escrow | 14 tests |
+| Real PvP/ranked/Boss/Story and inventory/commands | 8 tests |
+| Startup and command registration | 1 test, all 51 extensions |
+| Avatar battle connection / Original Generation / Draciel / Boss flow | 8 / 24 / 19 / 6 tests |
+| Bey and Avatar info cards | 10 / 17 tests |
+| Stats / updater / snapshots / gift codes | 24 / 37 / 62 / 63 checks |
 
-The component suites cover exact migration, defaults, four-stat summation,
-negative tradeoffs, replacement, idempotence, exclusive ownership, compatibility,
-concurrent purchase charging, real SQLite restart, duplicate builds, inventory
-controls, selected-build battle stats, HP-pool contribution and battle snapshots.
-Existing suites exercise real Avatar skill/ability execution and info cards.
+All 132 stock builds and duplicate bundles are checked; all 264 default
+definitions are blocked from backend purchase by both ID and name. Repeated
+switches, bought-part sale, SQLite restart, concurrent acquisition, transaction
+rollback, actual trade callbacks, marketplace escrow/cancel/purchase and old
+snapshot restore are exercised using isolated databases and mocks.
+Compilation and whitespace checks pass. The PR workflow runs focused regressions.
+Live Discord gateway behavior and live MySQL restart are not exercised.
 
-Broader legacy simulations were also run against the untouched baseline in a
-separate worktree. These failures occur before and after this change and were
-left outside scope:
-
-| Legacy simulation | Same baseline failure |
-| --- | --- |
-| `sim_inventory_ui.py` | rarity-order fixture does not recognize `Limited` |
-| `sim_shop_ui.py` | rarity presentation lacks `Boss Fighter`/`Limited` entries |
-| `sim_levels.py` | 2 damaging Specials do not grow at level 100 |
-| `sim_booster_beys.py` | one legacy opponent-stamina-drain assertion fails |
-| `sim_avatar.py` | HP-band fixture lacks `Original Generation` |
-| `sim_avatar_skills.py` | price-weight fixture lacks `stability_percent` |
-| `sim_tournament.py` | draft rarity weights lack `Boss Fighter` and `Limited` |
-
-The optional full `sim_story.py` statistical survey did not finish within the
-verification window; it is not counted as a passing suite. Dedicated Story
-build/real-session component tests and existing Draciel Story projections passed.
-
-Live Discord gateway interactions and live MySQL restart were not exercised.
-SQLite restart and the unchanged JSON profile API were tested. Browser profile
-rendering dependency bootstrap was mocked for startup; actual card regression
-suites were run separately. Existing harnesses mutate module globals, so the
-listed battle suites must run in separate Python processes.
+Seven broader simulations fail **identically on untouched current main** and this
+branch: inventory/shop rarity fixtures lack Limited/Boss Fighter; the level
+suite has one check covering non-growing damaging Specials; booster suite has
+one opponent stamina-drain assertion; Avatar fixtures lack Original Generation
+HP bands/stability_percent weights; tournament draft weights lack Boss Fighter/
+Limited. These pre-existing issues remain outside this focused migration.
+Full Story statistical surveys are not used as a bounded regression test;
+actual Story session initialization/execution tests pass.
 
 ## Deployment and rollback
 
-Review/merge through a PR only. Deploy the complete checkout/ZIP and restart;
-include **all four new definition directories** with the Python adapters.
-Existing hosted auto-update accepts their `.json` files while keeping live
-`data/` player state protected. Removed monolithic files left behind by an old
-ZIP updater are ignored by the new runtime; they are not a fallback registry.
+Take a full player snapshot before deployment, deploy the entire checkout with
+all JSON directories, and restart. Migration runs on the first profile access
+or acquisition and saves under existing locks. Keep the snapshot for rollback.
 
-Before deployment, use the existing snapshot command. For rollback:
-
-1. Stop the bot and restore the previous code checkout/release, including the
-   two previous monolithic character files; do not replace player databases.
-2. Restart. Old code ignores additive `bey_instances` metadata and uses the
-   retained active `equipped_parts` name mirror, keeping the active build's
-   verified bonuses. Per-copy builds remain saved for a later redeploy.
-3. If intentionally reverting player equipment as well, restore only the Bey
-   section from the predeployment snapshot through the existing restore flow.
-   Do not reset inventory or overwrite the whole database to roll back code.
+To undo this release, stop the bot and restore the prior code **and the
+predeployment player snapshot**, including Bey/parts/marketplace fields. Physical
+UUID references differ from version-one definition IDs; do not run the old
+component code against version-two profiles or try a code-only downgrade.
+A full predeployment snapshot also restores escrow/currency consistently.
+Never reset inventories or progression to perform a rollback. If trades or
+purchases occurred after deployment, reconcile those transactions before
+restoring the snapshot; review the snapshot before using existing restore tools.

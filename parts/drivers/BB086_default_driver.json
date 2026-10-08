@@ -1,0 +1,18 @@
+{
+  "id": "BB086_default_driver",
+  "name": "Storm Spriggan X Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 32,
+    "attack": 25,
+    "defense": 26,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB086",
+  "_registry_order": 1085
+}

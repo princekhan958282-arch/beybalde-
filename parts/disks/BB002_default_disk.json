@@ -1,0 +1,18 @@
+{
+  "id": "BB002_default_disk",
+  "name": "Savior Valkyrie Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 22,
+    "attack": 31,
+    "defense": 13,
+    "stamina": 23
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB002",
+  "_registry_order": 1001
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB035_default_disk",
+  "name": "Lord Spriggan Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 33,
+    "attack": 31,
+    "defense": 30,
+    "stamina": 29
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB035",
+  "_registry_order": 1033
+}

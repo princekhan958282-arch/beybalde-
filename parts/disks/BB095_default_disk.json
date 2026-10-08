@@ -1,0 +1,18 @@
+{
+  "id": "BB095_default_disk",
+  "name": "Geist Fafnir Orbit Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 35,
+    "attack": 24,
+    "defense": 29,
+    "stamina": 38
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB095",
+  "_registry_order": 1094
+}

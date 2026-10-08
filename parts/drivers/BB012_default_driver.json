@@ -1,0 +1,18 @@
+{
+  "id": "BB012_default_driver",
+  "name": "Vanguard DX Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 30,
+    "attack": 28,
+    "defense": 19,
+    "stamina": 29
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB012",
+  "_registry_order": 1011
+}

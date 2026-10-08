@@ -1,0 +1,18 @@
+{
+  "id": "BB048_default_disk",
+  "name": "Bahamut Blitz Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 28,
+    "attack": 28,
+    "defense": 19,
+    "stamina": 14
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB048",
+  "_registry_order": 1046
+}

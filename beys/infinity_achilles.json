@@ -79,19 +79,20 @@
   "description": "The infinite ring never stops turning. Achilles locks into Attack or Defense form before launch and rides that choice to the end — one charges a strike that grows every turn, the other turns the enemy's own force back on them.",
   "burst_height": "Mid",
   "main_frame": {
-    "hp": 118,
-    "attack": 105,
-    "defense": 105,
-    "stamina": 100
+    "hp": 53,
+    "attack": 47,
+    "defense": 47,
+    "stamina": 45
   },
   "default_parts": {
-    "disk": null,
-    "driver": null
+    "disk": "BB045_default_disk",
+    "driver": "BB045_default_driver"
   },
   "generation": null,
   "_registry_order": 43,
   "component_migration": {
-    "strategy": "legacy_unsplit_frame",
-    "stock_components_verified": false
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
   }
 }

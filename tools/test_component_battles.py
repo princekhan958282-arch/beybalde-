@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tools import sim_story as H
 from utils import database as DB
-from utils.bey_components import equip, select_instance
+from utils.bey_components import equip, select_instance, assemble
 from utils.character_registry import REGISTRY
 from cogs.battle.battle import _apply_parts
 from cogs.battle.boss import boss_battle as BB
@@ -37,7 +37,7 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
 
     def assert_stats(self, s):
         for stat in ('attack','defense','stamina'):
-            bonus = 20 if stat == 'attack' else 0
+            bonus = (20 if stat == 'attack' else 0) - sum(REGISTRY.part(self.raw['default_parts'][slot])['stats'][stat] for slot in ('disk','driver'))
             expected = (self.raw['stats'][stat] + bonus) * passive_stat_multiplier(self.raw['type'], stat)
             self.assertEqual(s.battle_stats['701'][stat], expected)
 
@@ -51,16 +51,16 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         snapshot = copy.deepcopy(s.blades['701']['component_snapshot'])
         await DB.mutate_user(701, lambda p: equip(p, 'Atomic Driver'))
         self.assertEqual(s.battle_stats, before)
-        self.assertEqual(s.part_deltas['701']['attack'], 20)
+        self.assertEqual(s.part_deltas['701']['attack'], 20 - sum(REGISTRY.part(self.raw['default_parts'][slot])['stats']['attack'] for slot in ('disk','driver')))
         self.assertEqual(s.blades['701']['component_snapshot'], snapshot)
         later = await self.pvp()
         self.assertNotEqual(s.battle_stats, later.battle_stats)
 
     async def test_boss_uses_same_current_components(self):
         fighter, blade = await BB._player_fighter(701)
-        self.assertEqual(fighter.attack, self.raw['stats']['attack'] + 20)
-        self.assertEqual(fighter.defense, self.raw['stats']['defense'])
-        self.assertEqual(fighter.stamina_stat, self.raw['stats']['stamina'])
+        self.assertEqual(fighter.attack, self.raw['main_frame']['attack'] + 20)
+        self.assertEqual(fighter.defense, self.raw['main_frame']['defense'])
+        self.assertEqual(fighter.stamina_stat, self.raw['main_frame']['stamina'])
         before = copy.deepcopy(blade)
         await DB.mutate_user(701, lambda p: equip(p, 'Atomic Driver'))
         self.assertEqual(blade, before)
@@ -76,14 +76,28 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         baseline = await self.pvp()
         boss_base, _ = await BB._player_fighter(701)
         driver = REGISTRY.part('Destroy Driver')
-        with patch.dict(driver['stats'], hp=13):
+        stock_hp = sum(REGISTRY.part(self.raw['default_parts'][slot])['stats']['hp'] for slot in ('disk','driver'))
+        with patch.dict(driver['stats'], hp=stock_hp+13):
             boosted = await self.pvp()
             boss_boosted, _ = await BB._player_fighter(701)
         from utils.hp_system import max_hp_for_blade
         import math
         passive = passive_stat_multiplier(self.raw['type'], 'hp')
         self.assertEqual(boosted.hp['701'], math.floor((max_hp_for_blade(self.raw) + 13) * passive))
-        self.assertEqual(boss_boosted.hp - boss_base.hp, 13)
+        mult = await DB.get_stat_multiplier(701, self.raw['name'])
+        self.assertEqual(boss_boosted.hp, math.floor((BB.BASE_PLAYER_HP + 13) * mult * passive))
+        self.assertEqual(boss_base.hp, math.floor((BB.BASE_PLAYER_HP - stock_hp) * mult * passive))
+        self.assertLess(baseline.hp['701'], boosted.hp['701'])
+
+    async def test_level_growth_and_equipment_replacement_are_applied_once(self):
+        from utils import bey_levels as BL
+        await DB.mutate_user(701, lambda p:p.update(bey_progress={'Dranzer':{'xp':BL.xp_for_level(30),'ivs':{}}}))
+        p=await DB.get_user(701)
+        expected=BL.stats_at(self.raw,30,{})
+        delta=assemble(p,self.raw)[1]
+        session=await self.pvp()
+        for stat in ('attack','defense','stamina'):
+            self.assertEqual(session.battle_stats['701'][stat],(expected[stat]+delta[stat])*passive_stat_multiplier(self.raw['type'],stat))
 
     async def test_inventory_buttons_select_exact_copy_and_validate_parts(self):
         view = InventoryView(self.p1, self.p1)
@@ -99,7 +113,7 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(view._cache['bey'][0]['equipped'])
         self.assertTrue(view._cache['bey'][1]['equipped'])
         await view._toggle_part('Atomic Driver')
-        self.assertNotIn('Atomic Driver', (await DB.get_user(701))['equipped_parts'])
+        self.assertIn('Atomic Driver', (await DB.get_user(701))['equipped_parts'])
 
     async def test_equippart_command_replaces_part_through_atomic_adapter(self):
         ctx = SimpleNamespace(author=self.p1, send=AsyncMock())
@@ -109,6 +123,6 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(set(p['equipped_parts']), {'Nexus Disk','Atomic Driver'})
         self.assertIn('equipped', ctx.send.call_args.args[0])
         await ShopCog.unequippart.callback(shop,ctx,part_name='Atomic Driver')
-        self.assertEqual((await DB.get_user(701))['equipped_parts'], ['Nexus Disk'])
+        self.assertEqual(set((await DB.get_user(701))['equipped_parts']), {'Nexus Disk', REGISTRY.part(self.raw['default_parts']['driver'])['name']})
 
 if __name__=='__main__': unittest.main()

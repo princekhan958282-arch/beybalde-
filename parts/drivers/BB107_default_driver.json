@@ -1,0 +1,18 @@
+{
+  "id": "BB107_default_driver",
+  "name": "Artemis Roze Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 45,
+    "attack": 42,
+    "defense": 19,
+    "stamina": 33
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB107",
+  "_registry_order": 1106
+}

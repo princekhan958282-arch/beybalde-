@@ -1,0 +1,18 @@
+{
+  "id": "BB120_default_disk",
+  "name": "Phantom Nightmare Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 35,
+    "attack": 33,
+    "defense": 32,
+    "stamina": 31
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB120",
+  "_registry_order": 1119
+}

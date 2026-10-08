@@ -1,0 +1,18 @@
+{
+  "id": "BB001_default_disk",
+  "name": "Bloody Longinus Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 25,
+    "attack": 31,
+    "defense": 9,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB001",
+  "_registry_order": 1000
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB078_default_disk",
+  "name": "Breaker Excalibur Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 29,
+    "attack": 31,
+    "defense": 19,
+    "stamina": 22
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB078",
+  "_registry_order": 1077
+}

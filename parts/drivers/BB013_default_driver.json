@@ -1,0 +1,18 @@
+{
+  "id": "BB013_default_driver",
+  "name": "Dark Strike Valkyrie Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 25,
+    "attack": 31,
+    "defense": 10,
+    "stamina": 16
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB013",
+  "_registry_order": 1012
+}

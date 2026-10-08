@@ -1,0 +1,18 @@
+{
+  "id": "BB011_default_disk",
+  "name": "Cho-Z Spriggan Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 32,
+    "attack": 29,
+    "defense": 32,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB011",
+  "_registry_order": 1010
+}

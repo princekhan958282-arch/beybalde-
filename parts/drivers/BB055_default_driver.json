@@ -1,0 +1,18 @@
+{
+  "id": "BB055_default_driver",
+  "name": "Crystal Zeutron Glide Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 34,
+    "attack": 19,
+    "defense": 22,
+    "stamina": 34
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB055",
+  "_registry_order": 1053
+}

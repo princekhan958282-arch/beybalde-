@@ -1,0 +1,18 @@
+{
+  "id": "BB092_default_disk",
+  "name": "Janus Bahamut Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 31,
+    "attack": 40,
+    "defense": 31,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB092",
+  "_registry_order": 1091
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB054_default_driver",
+  "name": "Archer Hercules Glide Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 34,
+    "attack": 14,
+    "defense": 20,
+    "stamina": 37
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB054",
+  "_registry_order": 1052
+}

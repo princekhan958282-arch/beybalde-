@@ -1,0 +1,18 @@
+{
+  "id": "BB042_default_disk",
+  "name": "Galaxy Pegasus Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 26,
+    "attack": 36,
+    "defense": 17,
+    "stamina": 19
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB042",
+  "_registry_order": 1040
+}

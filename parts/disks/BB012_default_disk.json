@@ -1,0 +1,18 @@
+{
+  "id": "BB012_default_disk",
+  "name": "Vanguard DX Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 30,
+    "attack": 29,
+    "defense": 19,
+    "stamina": 29
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB012",
+  "_registry_order": 1011
+}

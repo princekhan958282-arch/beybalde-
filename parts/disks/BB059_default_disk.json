@@ -1,0 +1,18 @@
+{
+  "id": "BB059_default_disk",
+  "name": "Fang Fenrir Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 25,
+    "attack": 24,
+    "defense": 16,
+    "stamina": 19
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB059",
+  "_registry_order": 1057
+}

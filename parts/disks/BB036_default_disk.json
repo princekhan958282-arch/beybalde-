@@ -1,0 +1,18 @@
+{
+  "id": "BB036_default_disk",
+  "name": "Flare Dragon Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 27,
+    "attack": 29,
+    "defense": 14,
+    "stamina": 22
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB036",
+  "_registry_order": 1034
+}

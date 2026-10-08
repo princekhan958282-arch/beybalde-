@@ -1,0 +1,18 @@
+{
+  "id": "BB003_default_disk",
+  "name": "Rage Longinus Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 25,
+    "attack": 30,
+    "defense": 13,
+    "stamina": 20
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB003",
+  "_registry_order": 1002
+}

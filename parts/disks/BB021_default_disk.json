@@ -1,0 +1,18 @@
+{
+  "id": "BB021_default_disk",
+  "name": "Eternal Blaze Garuda Orbit Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 38,
+    "attack": 25,
+    "defense": 30,
+    "stamina": 41
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB021",
+  "_registry_order": 1019
+}

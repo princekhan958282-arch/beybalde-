@@ -1,0 +1,18 @@
+{
+  "id": "BB027_default_disk",
+  "name": "Revive Phoenix Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 32,
+    "attack": 17,
+    "defense": 30,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB027",
+  "_registry_order": 1025
+}
