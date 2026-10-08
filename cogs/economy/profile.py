@@ -204,25 +204,13 @@ async def _with_viewer_level(user_id, blade: dict) -> dict:
         return blade
 
 
-async def _viewer_parts(user_id) -> dict:
-    """The viewer's equipped ratchet/bit for the card's parts strip.
-
-    Our parts system uses driver/disk/ring slots; the card speaks Beyblade-X
-    (Blade / Ratchet / Bit). Map disk -> Ratchet, driver -> Bit.
-    """
-    try:
-        from cogs.economy.shop import PARTS_CATALOG
-        equipped = (await get_user(user_id)).get("equipped_parts", []) or []
-        by_type  = {}
-        for name in equipped:
-            cat = next((p for p in PARTS_CATALOG
-                        if p["name"].lower() == str(name).lower()), None)
-            if cat:
-                by_type[cat.get("type")] = name
-        return {"ratchet": by_type.get("disk") or by_type.get("ring"),
-                "bit":     by_type.get("driver")}
-    except Exception:
-        return {}
+async def _viewer_parts(user_id, blade: dict | None = None) -> dict:
+    """Parts belonging to the displayed Bey, including bundled defaults."""
+    from utils.info_card_parts import card_parts
+    profile = await get_user(user_id)
+    if blade is None:
+        blade = get_beyblade(profile.get("active_beyblade")) or {}
+    return card_parts(blade, profile=profile)
 
 
 def _availability_fields(blade: dict) -> list[tuple[str, str]]:
@@ -1437,7 +1425,7 @@ class ProfileCog(commands.Cog, name="Profile"):
                         pass
             buf = await info_card.render_info_card(
                 blade,
-                parts=await _viewer_parts(ctx.author.id),
+                parts=await _viewer_parts(ctx.author.id, blade),
                 info_theme=equipped_info_theme(_viewer_profile),
             )
             if buf is not None:

@@ -439,22 +439,18 @@ def _render(blade: dict, parts: dict) -> io.BytesIO:
 
     # Parts strip.
     _panel(d, (PAD, y_parts + 7, W - PAD, y_parts + 58), rarity_accent, fill=(5, 17, 30, 225), radius=16, width=1)
-    part_f = _font(16)
-    value_f = _font(17)
-    part_values = [
-        ("BLADE", str(blade.get("blade_part") or blade.get("name") or "—")),
-        ("RATCHET", str(parts.get("ratchet") or blade.get("ratchet") or "—")),
-        ("BIT", str(parts.get("bit") or blade.get("bit") or "—")),
-    ]
+    from .info_card_parts import parts_slots
+    part_values = [(p["slot"], str(p["value"])) for p in parts_slots(blade, parts)]
     seg = (W - PAD * 2) // 3
     for i, (label, value) in enumerate(part_values):
         x = PAD + i * seg
         if i:
             d.line((x, y_parts + 17, x, y_parts + 48), fill=(89, 133, 165, 120), width=1)
-        d.text((x + 16, y_parts + 22), f"{label}:", font=part_f, fill=rarity_accent + (255,))
-        max_w = seg - 24 - _tw(d, f"{label}:", part_f) - 10
-        vf = _fit_font(d, value, max_w, 17, 12)
-        d.text((x + 22 + _tw(d, f"{label}:", part_f), y_parts + 21), value, font=vf, fill=text)
+        d.text((x + 12, y_parts + 10), f"{label}:", font=_font(12), fill=rarity_accent + (255,))
+        # Full stock names can be longer than the former Ratchet/Bit values.
+        # Keep them within their existing third of the strip, on two lines.
+        for row, line in enumerate(_wrap(d, value, _font(14), seg - 24, 2)):
+            d.text((x + 12, y_parts + 25 + row * 14), line, font=_font(14), fill=text)
 
     # Stats panel.
     sx0, sy0 = PAD, y_mid
