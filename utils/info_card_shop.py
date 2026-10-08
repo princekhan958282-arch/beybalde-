@@ -1,88 +1,167 @@
-"""BEYCBOT two-ability ;info cosmetic renderer."""
+"""Render dynamic fields on the supplied BEYCBOT two-ability template.
+
+Coordinates use the original 1536x1152 asset. No background is reconstructed.
+Returning None delegates to the normal info card.
+"""
 from __future__ import annotations
+
 import io
-from PIL import Image, ImageDraw, ImageFont
+import logging
+from pathlib import Path
+from functools import lru_cache
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from utils import info_card_legacy as legacy
+from utils import bey_levels
 from utils.hp_system import blade_hp_stat
 
-W, H = 1400, 1050
-BG=(3,13,25); PANEL=(7,22,37); CYAN=(83,213,247); WHITE=(238,245,250); GOLD=(236,190,62); MUTED=(130,162,183)
+log = logging.getLogger(__name__)
+ROOT = Path(__file__).resolve().parents[1]
+TEMPLATE = ROOT / 'assets/ui/beycbot_info_frame.png'
+FONT = ROOT / 'assets/ui/beycbot_font.ttf'
+WHITE = (238, 245, 250)
+CYAN = (112, 218, 241)
+GOLD = (236, 198, 94)
 
-def _font(size, bold=True):
-    paths=["assets/font.ttf","/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
-    for p in paths:
-        try: return ImageFont.truetype(p,size)
-        except Exception: pass
-    return ImageFont.load_default()
 
-def _txt(d, xy, text, size, fill=WHITE, bold=True):
-    d.text(xy, str(text), font=_font(size,bold), fill=fill)
+@lru_cache(maxsize=64)
+def _font(size):
+    return ImageFont.truetype(str(FONT), size)
 
-def _box(d, box, outline=CYAN, width=2, fill=PANEL):
-    d.rounded_rectangle(box, radius=10, fill=fill, outline=outline, width=width)
 
 def _abilities(blade):
-    return legacy._collect_abilities(blade)
+    """Reject malformed entries before the legacy collector can silently skip them."""
+    raw = blade.get('abilities')
+    if raw is not None and not isinstance(raw, list):
+        return []
+    entries = list(raw or [])
+    entries += [blade[k] for k in ('ability', 'ability_2') if blade.get(k) is not None]
+    if any(not isinstance(a, dict) or any(
+        not isinstance(a.get(k), str) or not a[k].strip()
+        for k in ('name', 'description')) for a in entries):
+        return []
+    abilities = legacy._collect_abilities(blade)
+    return abilities if len(abilities) == 2 else []
 
-def _art(blade, size):
-    try:
-        from utils.info_card_v2 import _art
-        return _art(blade,size)
-    except Exception:
-        return None
+
+def _lines(draw, text, font, width):
+    # Character wrapping also bounds unbroken URLs and unusually long names.
+    lines, current = [], ''
+    for word in str(text).split():
+        probe = (current + ' ' + word).strip()
+        if draw.textlength(probe, font=font) <= width:
+            current = probe
+            continue
+        if current:
+            lines.append(current)
+        current = ''
+        for char in word:
+            if current and draw.textlength(current + char, font=font) > width:
+                lines.append(current)
+                current = ''
+            current += char
+    return lines + ([current] if current else [])
+
+
+def _text(draw, box, text, size=30, minimum=18, max_lines=1, fill=WHITE):
+    x, y, right, bottom = box
+    for n in range(size, minimum - 1, -1):
+        font = _font(n)
+        lines = _lines(draw, text, font, right - x)
+        step = n + 5
+        if len(lines) <= max_lines and len(lines) * step <= bottom - y:
+            break
+    allowed = min(max_lines, max(1, (bottom - y) // step))
+    if len(lines) > allowed:
+        lines = lines[:allowed]
+        last = lines[-1]
+        while last and draw.textlength(last + '…', font=font) > right - x:
+            last = last[:-1]
+        lines[-1] = last.rstrip() + '…'
+    for line in lines:
+        draw.text((x, y), line, font=font, fill=fill, anchor='lt')
+        y += step
+
+
+def _art(blade):
+    from utils.info_card_v2 import _load_source
+    path = legacy._local_art_path(str(blade.get('name', '')))
+    source = str(path or blade.get('image_url') or '')
+    if source and not source.startswith(('https://', 'http://')):
+        p = Path(source)
+        source = str(p if p.is_absolute() else ROOT / p)
+    art = _load_source(source)
+    if art is not None:
+        bounds = art.getchannel('A').getbbox()
+        if not bounds:
+            return None
+        art = art.crop(bounds)
+        return ImageOps.contain(art, (526, 356), Image.Resampling.LANCZOS)
+    return None
+
 
 def render(blade: dict):
-    abilities=_abilities(blade)
-    if len(abilities) != 2:
+    if not isinstance(blade, dict) or not _abilities(blade):
         return None
-    img=Image.new("RGB",(W,H),BG); d=ImageDraw.Draw(img)
-    d.rectangle((18,18,W-18,H-18),outline=CYAN,width=2)
-    _txt(d,(52,28),"BEYCBOT",30); _txt(d,(W-125,28),";info",26)
-    d.line((260,31,W-150,31),fill=CYAN,width=2)
+    try:
+        return _render(blade)
+    except Exception:
+        log.warning('BEYCBOT template render failed; using default card', exc_info=True)
+        return None
 
-    rarity=str(blade.get("rarity","Common")); btype=str(blade.get("type","Balance")); level=blade.get("level",1); name=str(blade.get("name","Unknown"))
-    chips=[("★  "+rarity,GOLD),("○  "+btype,CYAN),(name,CYAN),("▥  LEVEL "+str(level),CYAN)]
-    x=60
-    for label,col in chips:
-        w=max(170,min(310,40+len(label)*12)); _box(d,(x,160,x+w,207),outline=col); _txt(d,(x+18,170),label,19,fill=col); x+=w+18
 
-    _box(d,(60,235,580,600))
-    art=_art(blade,470)
-    if art:
-        art.thumbnail((450,450),Image.Resampling.LANCZOS)
-        px=60+(520-art.width)//2; py=235+(365-art.height)//2
-        img.paste(art,(px,py),art)
+def _render(blade):
+    abilities = _abilities(blade)
+    with Image.open(TEMPLATE) as source:
+        img = source.convert('RGBA')
+    if img.size != (1536, 1152):
+        raise ValueError('Unexpected BEYCBOT template dimensions')
+    d = ImageDraw.Draw(img)
+    # Erase only printed preview placeholders inside the existing chips.
+    # Keep the authored borders, icons, panels and artwork intact.
+    for box in ((119, 187, 244, 221), (328, 187, 450, 221),
+                (768, 187, 910, 221), (584, 1097, 950, 1131)):
+        d.rectangle(box, fill=(5, 16, 26))
+    _text(d, (68, 83, 1467, 155), blade.get('name') or 'Unknown Bey', 48, 24, 1)
+    _text(d, (120, 190, 244, 219), blade.get('rarity') or 'Unknown', 23, 14, fill=GOLD)
+    _text(d, (330, 190, 450, 219), blade.get('type') or 'Unknown', 23, 16, fill=CYAN)
+    _text(d, (529, 190, 680, 219), blade.get('spin_direction') or blade.get('spin') or 'Unknown', 23, 16, fill=CYAN)
+    level = max(1, min(bey_levels.MAX_LEVEL, int(blade.get('level') or 1)))
+    _text(d, (771, 190, 909, 219), f'Lv. {level}', 23, 16, fill=CYAN)
+    art = _art(blade)
+    if art is not None:
+        img.alpha_composite(art, (87 + (526-art.width)//2, 278 + (356-art.height)//2))
     else:
-        d.ellipse((145,270,495,620),outline=(35,75,100),width=2)
-
-    st=blade.get("stats") or {}
-    vals=[("HP",blade_hp_stat(blade),"♡"),("ATK",st.get("attack",0),"⚔"),("DEF",st.get("defense",st.get("defence",0)),"⬡"),("STM",st.get("stamina",0),"ϟ")]
-    positions=[(610,235,970,365),(980,235,1340,365),(610,375,970,505),(980,375,1340,505)]
-    for (lab,val,icon),box in zip(vals,positions):
-        _box(d,box,outline=(75,102,120)); _txt(d,(box[0]+25,box[1]+24),icon,34); _txt(d,(box[0]+95,box[1]+25),lab,31); _txt(d,(box[0]+95,box[1]+72),val,25,fill=CYAN)
-        d.line((box[0]+25,box[3]-20,box[2]-25,box[3]-20),fill=CYAN,width=3)
-
-    _box(d,(610,515,1340,600),outline=(75,102,120)); _txt(d,(635,532),"EXP",27)
-    xp=blade.get("xp",blade.get("experience",0)); _txt(d,(735,535),xp,23,fill=CYAN)
-    d.line((635,580,1310,580),fill=CYAN,width=5)
-
-    rows=[("ABILITY 1",abilities[0],CYAN),("ABILITY 2",abilities[1],CYAN)]
-    y=630
-    for label,ab,col in rows:
-        _box(d,(60,y,1340,y+105),outline=col)
-        _txt(d,(82,y+15),label,18,fill=col); _txt(d,(220,y+14),ab.get("name","Unknown"),24)
-        desc=str(ab.get("description",""))
-        if len(desc)>115: desc=desc[:112]+"..."
-        _txt(d,(220,y+55),desc,16,fill=MUTED,bold=False); y+=120
-
-    special=blade.get("special") or blade.get("special_move") or {}
-    _box(d,(60,870,1340,990),outline=GOLD,width=3)
-    _txt(d,(82,892),"SPECIAL\nMOVE",21,fill=GOLD)
-    if isinstance(special,dict):
-        sname=special.get("name","Special Move"); sdesc=str(special.get("description",""))
+        _text(d, (150, 430, 550, 470), 'Artwork unavailable', 25, fill=CYAN)
+    stats = blade.get('stats') or {}
+    values = (stats.get('hp', blade_hp_stat(blade)), stats.get('attack', 0),
+              stats.get('defense', stats.get('defence', 0)), stats.get('stamina', 0))
+    for value, box in zip(values, ((803, 323, 1037, 367), (1202, 323, 1438, 367),
+                                  (803, 475, 1037, 517), (1202, 475, 1438, 517))):
+        _text(d, box, value, 32, 18, fill=CYAN)
+    xp = blade.get('xp', blade.get('experience'))
+    if level >= bey_levels.MAX_LEVEL:
+        label, ratio = 'MAX LEVEL', 1.0
+    elif xp is not None:
+        _, into, need = bey_levels.progress(max(0, int(xp)))
+        label, ratio = f'{into:,} / {need:,}', into / need if need else 1.0
     else:
-        sname=str(special or "Special Move"); sdesc=""
-    _txt(d,(280,888),sname,27,fill=GOLD)
-    if len(sdesc)>120: sdesc=sdesc[:117]+"..."
-    _txt(d,(280,935),sdesc,16,fill=MUTED,bold=False)
-    out=io.BytesIO(); img.save(out,"PNG",optimize=True); out.name="beycbot_info.png"; out.seek(0); return out
+        # A species sheet/rolled copy has no player progress to invent.
+        label, ratio = 'Progress unavailable', 0.0
+    d.rectangle((796, 570, 1428, 620), fill=(12, 21, 30))
+    _text(d, (795, 579, 1420, 620), label, 30, 20, fill=CYAN)
+    d.rectangle((698, 638, 1344, 647), fill=(23, 49, 61))
+    if ratio > 0:
+        d.rectangle((698, 638, 698 + round(646 * min(1, ratio)), 647), fill=CYAN)
+    for ab, top in zip(abilities, (700, 832)):
+        _text(d, (260, top, 1442, top+37), ab['name'], 29, 20)
+        _text(d, (260, top+40, 1442, top+99), ab['description'], 23, 18, 2, CYAN)
+    special = blade.get('special') or blade.get('special_move') or {}
+    if not isinstance(special, dict):
+        special = {'name': str(special)}
+    _text(d, (442, 973, 1441, 1011), special.get('name') or 'Special unavailable', 29, 20, fill=GOLD)
+    _text(d, (442, 1015, 1441, 1072), special.get('description') or '', 23, 18, 2)
+    out = io.BytesIO()
+    img.convert('RGB').save(out, 'PNG')
+    out.name = 'beycbot_info.png'
+    out.seek(0)
+    return out
