@@ -972,7 +972,7 @@ async def _render_once(html_doc: str) -> bytes:
         await page.close()
 
 
-async def render_info_card(blade: dict, parts: Optional[dict] = None) -> Optional[io.BytesIO]:
+async def _render_compat_legacy(blade: dict, parts: Optional[dict] = None) -> Optional[io.BytesIO]:
     """Render a blade's info card. Returns a PNG buffer, or None on any failure.
 
     Cached, bounded-concurrency, crash-tolerant: a browser that dies mid-render
@@ -1034,6 +1034,34 @@ async def render_info_card(blade: dict, parts: Optional[dict] = None) -> Optiona
         log.warning("pillow info card failed for %r: %s", blade.get("name"), exc)
         last_engine = "none"
         return None
+
+
+async def render_info_card(blade: dict, parts: Optional[dict] = None,
+                           info_theme: str = "default") -> Optional[io.BytesIO]:
+    """Stable public API even when the eager package selector failed at boot.
+
+    Retry the selector lazily: bootstrap/update may have repaired an import
+    dependency after utils.__init__ first ran. A failed retry still accepts
+    cosmetic arguments and preserves the original crash-tolerant renderer.
+    """
+    if not CARD_ENABLED or not blade:
+        return None
+    try:
+        from . import info_card_router as router
+    except Exception:
+        log.warning("info-card selector unavailable; using compatibility renderer", exc_info=True)
+    else:
+        return await router.render_info_card(blade, parts=parts, info_theme=info_theme)
+
+    if str(info_theme).lower() == "beycbot_2ability":
+        try:
+            from . import info_card_shop
+            custom = await asyncio.to_thread(info_card_shop.render, blade)
+            if custom is not None:
+                return custom
+        except Exception:
+            log.warning("info-card cosmetic unavailable; using normal card", exc_info=True)
+    return await _render_compat_legacy(blade, parts=parts)
 
 
 async def shutdown() -> None:

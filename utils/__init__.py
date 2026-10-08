@@ -33,7 +33,11 @@ try:
     info_card = _selected_info_card
     _sys.modules[f"{__name__}.info_card"] = _selected_info_card
 except Exception:
-    # If the router/V2 ever has an import-time problem, leave Python free to
-    # import the original utils/info_card.py normally.  A visual upgrade must
-    # never stop Beycord from booting.
-    pass
+    # The public compatibility renderer accepts the same cosmetic arguments
+    # and retries routing after bootstrap has finished. Log the boot failure
+    # so a production import/dependency problem can be diagnosed.
+    import logging as _logging
+    _logging.getLogger(__name__).warning(
+        "[info-card] selector import failed; compatibility renderer will retry lazily",
+        exc_info=True,
+    )
