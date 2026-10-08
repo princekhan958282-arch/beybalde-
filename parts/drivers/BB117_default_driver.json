@@ -1,0 +1,18 @@
+{
+  "id": "BB117_default_driver",
+  "name": "Xeno Xcalius Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 32,
+    "attack": 36,
+    "defense": 20,
+    "stamina": 24
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB117",
+  "_registry_order": 1116
+}

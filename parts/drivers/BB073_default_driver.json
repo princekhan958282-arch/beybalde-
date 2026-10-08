@@ -1,0 +1,18 @@
+{
+  "id": "BB073_default_driver",
+  "name": "Hazard Cognite Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 29,
+    "attack": 21,
+    "defense": 22,
+    "stamina": 27
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB073",
+  "_registry_order": 1071
+}

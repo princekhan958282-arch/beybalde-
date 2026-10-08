@@ -1,0 +1,18 @@
+{
+  "id": "BB099_default_disk",
+  "name": "Drain Fafnir (Black Edition) Orbit Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 34,
+    "attack": 21,
+    "defense": 25,
+    "stamina": 35
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB099",
+  "_registry_order": 1098
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB100_default_disk",
+  "name": "Twin Nemesis Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 35,
+    "attack": 34,
+    "defense": 33,
+    "stamina": 33
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB100",
+  "_registry_order": 1099
+}

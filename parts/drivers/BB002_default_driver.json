@@ -1,0 +1,18 @@
+{
+  "id": "BB002_default_driver",
+  "name": "Savior Valkyrie Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 22,
+    "attack": 31,
+    "defense": 13,
+    "stamina": 23
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB002",
+  "_registry_order": 1001
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB024_default_driver",
+  "name": "Crimson Spriggan Anchor Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 34,
+    "attack": 20,
+    "defense": 41,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB024",
+  "_registry_order": 1023
+}

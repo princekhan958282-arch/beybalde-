@@ -1,0 +1,18 @@
+{
+  "id": "BB063_default_disk",
+  "name": "Deathscyther Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 24,
+    "attack": 30,
+    "defense": 13,
+    "stamina": 18
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB063",
+  "_registry_order": 1061
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB121_default_driver",
+  "name": "Phantom X Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 36,
+    "attack": 38,
+    "defense": 33,
+    "stamina": 36
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB121",
+  "_registry_order": 1120
+}

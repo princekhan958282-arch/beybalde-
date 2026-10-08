@@ -1,0 +1,18 @@
+{
+  "id": "BB049_default_disk",
+  "name": "DranSword Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 24,
+    "attack": 28,
+    "defense": 11,
+    "stamina": 14
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB049",
+  "_registry_order": 1047
+}

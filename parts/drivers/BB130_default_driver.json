@@ -1,0 +1,18 @@
+{
+  "id": "BB130_default_driver",
+  "name": "Draciel MS Anchor Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 42,
+    "attack": 25,
+    "defense": 45,
+    "stamina": 33
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB130",
+  "_registry_order": 1130
+}

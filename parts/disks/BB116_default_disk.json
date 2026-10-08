@@ -1,0 +1,18 @@
+{
+  "id": "BB116_default_disk",
+  "name": "Hermiblaze Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 36,
+    "attack": 42,
+    "defense": 21,
+    "stamina": 29
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB116",
+  "_registry_order": 1115
+}

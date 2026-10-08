@@ -1,0 +1,18 @@
+{
+  "id": "BB097_default_disk",
+  "name": "Cho-Z Achilles Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 33,
+    "attack": 38,
+    "defense": 27,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB097",
+  "_registry_order": 1096
+}

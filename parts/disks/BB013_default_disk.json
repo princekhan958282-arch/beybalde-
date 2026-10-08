@@ -1,0 +1,18 @@
+{
+  "id": "BB013_default_disk",
+  "name": "Dark Strike Valkyrie Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 25,
+    "attack": 31,
+    "defense": 11,
+    "stamina": 17
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB013",
+  "_registry_order": 1012
+}

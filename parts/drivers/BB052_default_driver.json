@@ -1,0 +1,18 @@
+{
+  "id": "BB052_default_driver",
+  "name": "Big Bang Genesis Anchor Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 35,
+    "attack": 22,
+    "defense": 38,
+    "stamina": 33
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB052",
+  "_registry_order": 1050
+}

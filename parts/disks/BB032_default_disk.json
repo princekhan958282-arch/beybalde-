@@ -1,0 +1,18 @@
+{
+  "id": "BB032_default_disk",
+  "name": "Death Diabolos Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 32,
+    "attack": 33,
+    "defense": 28,
+    "stamina": 29
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB032",
+  "_registry_order": 1030
+}

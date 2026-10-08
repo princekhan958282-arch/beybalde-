@@ -1,0 +1,18 @@
+{
+  "id": "BB053_default_driver",
+  "name": "Prime Apocalypse Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 32,
+    "attack": 36,
+    "defense": 22,
+    "stamina": 27
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB053",
+  "_registry_order": 1051
+}

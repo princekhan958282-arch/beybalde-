@@ -1,0 +1,18 @@
+{
+  "id": "BB037_default_disk",
+  "name": "Wind Knight Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 32,
+    "attack": 24,
+    "defense": 33,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB037",
+  "_registry_order": 1038
+}

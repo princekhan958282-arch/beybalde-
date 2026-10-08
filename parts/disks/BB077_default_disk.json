@@ -1,0 +1,18 @@
+{
+  "id": "BB077_default_disk",
+  "name": "Tartarus Reaper Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 34,
+    "attack": 35,
+    "defense": 36,
+    "stamina": 34
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB077",
+  "_registry_order": 1075
+}

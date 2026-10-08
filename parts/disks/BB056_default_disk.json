@@ -1,0 +1,18 @@
+{
+  "id": "BB056_default_disk",
+  "name": "Quitziko Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 30,
+    "attack": 20,
+    "defense": 24,
+    "stamina": 22
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB056",
+  "_registry_order": 1054
+}

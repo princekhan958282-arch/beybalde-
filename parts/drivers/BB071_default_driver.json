@@ -1,0 +1,18 @@
+{
+  "id": "BB071_default_driver",
+  "name": "Aero Pegasus Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 33,
+    "attack": 28,
+    "defense": 26,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB071",
+  "_registry_order": 1069
+}

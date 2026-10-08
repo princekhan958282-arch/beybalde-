@@ -503,9 +503,8 @@ async def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
         # decorative, so the gain over base is added to the pool — the blade's
         # base hp still doesn't matter, but levelling it does.
         hp_bd = (_breakdown or {}).get("hp") or {}
-        hp_gain = float(hp_bd.get("total", 0)) - float(hp_bd.get("base", 0))
-        if hp_gain > 0:
-            hp += hp_gain * mult
+        from utils.loadout import hp_adjustment
+        hp += hp_adjustment(hp_bd) * mult
     if av is not None:
         from utils.loadout import effective_hp
         hp = await effective_hp(user_id, hp, av)

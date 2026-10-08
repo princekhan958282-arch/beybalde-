@@ -1,0 +1,18 @@
+{
+  "id": "BB059_default_driver",
+  "name": "Fang Fenrir Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 25,
+    "attack": 24,
+    "defense": 15,
+    "stamina": 19
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB059",
+  "_registry_order": 1057
+}

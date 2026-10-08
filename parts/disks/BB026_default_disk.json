@@ -1,0 +1,18 @@
+{
+  "id": "BB026_default_disk",
+  "name": "Myth Evo Dragon D5 Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 29,
+    "attack": 32,
+    "defense": 14,
+    "stamina": 26
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB026",
+  "_registry_order": 1024
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB020_default_driver",
+  "name": "Inferno Viper Anchor Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 30,
+    "attack": 33,
+    "defense": 36,
+    "stamina": 16
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB020",
+  "_registry_order": 1018
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB118_default_driver",
+  "name": "Abyss Drakon Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 30,
+    "attack": 31,
+    "defense": 27,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB118",
+  "_registry_order": 1117
+}

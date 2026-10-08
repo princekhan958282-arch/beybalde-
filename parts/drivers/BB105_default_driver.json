@@ -1,0 +1,18 @@
+{
+  "id": "BB105_default_driver",
+  "name": "Omni Odax Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 27,
+    "attack": 30,
+    "defense": 16,
+    "stamina": 21
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB105",
+  "_registry_order": 1104
+}

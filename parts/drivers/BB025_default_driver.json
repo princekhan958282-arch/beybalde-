@@ -1,0 +1,18 @@
+{
+  "id": "BB025_default_driver",
+  "name": "Void Dragon Zephyros Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 33,
+    "attack": 31,
+    "defense": 30,
+    "stamina": 31
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB025",
+  "_registry_order": 1022
+}

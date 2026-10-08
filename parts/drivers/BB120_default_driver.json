@@ -1,0 +1,18 @@
+{
+  "id": "BB120_default_driver",
+  "name": "Phantom Nightmare Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 34,
+    "attack": 33,
+    "defense": 31,
+    "stamina": 31
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB120",
+  "_registry_order": 1119
+}

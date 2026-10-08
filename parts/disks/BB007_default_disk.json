@@ -1,0 +1,18 @@
+{
+  "id": "BB007_default_disk",
+  "name": "Brave Valkyrie Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 25,
+    "attack": 30,
+    "defense": 17,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB007",
+  "_registry_order": 1006
+}

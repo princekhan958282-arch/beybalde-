@@ -1,0 +1,18 @@
+{
+  "id": "BB115_default_disk",
+  "name": "Astral Valkyrie — Skyrend Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 40,
+    "attack": 35,
+    "defense": 29,
+    "stamina": 36
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB115",
+  "_registry_order": 1114
+}

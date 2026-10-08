@@ -1,0 +1,18 @@
+{
+  "id": "BB068_default_driver",
+  "name": "Storm Aries Glide Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 33,
+    "attack": 16,
+    "defense": 25,
+    "stamina": 27
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB068",
+  "_registry_order": 1066
+}

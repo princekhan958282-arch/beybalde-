@@ -48,19 +48,20 @@
     "emoji": "🐢"
   },
   "main_frame": {
-    "hp": 125,
-    "attack": 75,
-    "defense": 135,
-    "stamina": 105
+    "hp": 56,
+    "attack": 34,
+    "defense": 61,
+    "stamina": 47
   },
   "default_parts": {
-    "disk": null,
-    "driver": null
+    "disk": "BB128_default_disk",
+    "driver": "BB128_default_driver"
   },
   "generation": null,
   "_registry_order": 128,
   "component_migration": {
-    "strategy": "legacy_unsplit_frame",
-    "stock_components_verified": false
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
   }
 }

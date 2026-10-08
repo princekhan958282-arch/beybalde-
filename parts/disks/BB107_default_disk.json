@@ -1,0 +1,18 @@
+{
+  "id": "BB107_default_disk",
+  "name": "Artemis Roze Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 46,
+    "attack": 43,
+    "defense": 19,
+    "stamina": 33
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB107",
+  "_registry_order": 1106
+}

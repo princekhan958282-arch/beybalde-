@@ -286,6 +286,9 @@ def all_user_ids() -> list[int]:
 
 def save_users(data: dict) -> None:
     """Bulk-persist a registry dict. Upserts only — it never deletes rows."""
+    from .bey_components import reconcile
+    for profile in data.values():
+        reconcile(profile)
     USER_STORE.save_all(data)
 
 
@@ -655,6 +658,8 @@ def add_beyblade_to_inventory(user_id: int, beyblade_name: str) -> bool:
         profile.setdefault("inventory", []).append(beyblade_name)
         if profile.get("active_beyblade") is None:
             profile["active_beyblade"] = beyblade_name
+        from .bey_components import reconcile
+        reconcile(profile)
         USER_STORE.put_one(uid, profile)
     return True
 

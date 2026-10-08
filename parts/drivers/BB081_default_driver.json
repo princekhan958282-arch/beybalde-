@@ -1,0 +1,18 @@
+{
+  "id": "BB081_default_driver",
+  "name": "Rising Ragnaruk Glide Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 30,
+    "attack": 17,
+    "defense": 20,
+    "stamina": 27
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB081",
+  "_registry_order": 1080
+}

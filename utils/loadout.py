@@ -257,6 +257,13 @@ def summary_lines(breakdown: dict) -> list[str]:
     return out
 
 
+def hp_adjustment(breakdown: dict) -> int:
+    """Keep legacy positive growth while applying negative replacement HP."""
+    parts = float(breakdown.get("parts", 0))
+    other = float(breakdown.get("total", 0)) - float(breakdown.get("base", 0)) - parts
+    return int(max(0, other + max(0, parts)) + min(0, parts))
+
+
 async def level_hp_gain(user_id, blade: Optional[dict]) -> int:
     """Extra HP a bey has earned from its level, above the printed pool.
 
@@ -277,8 +284,7 @@ async def level_hp_gain(user_id, blade: Optional[dict]) -> int:
     try:
         _eff, breakdown, _av = await effective_blade(int(user_id), blade=blade)
         hp_bd = (breakdown or {}).get("hp") or {}
-        gain = float(hp_bd.get("total", 0)) - float(hp_bd.get("base", 0))
-        return int(gain) if gain > 0 else 0
+        return hp_adjustment(hp_bd)
     except Exception:                                    # noqa: BLE001
         return 0
 

@@ -1,0 +1,18 @@
+{
+  "id": "BB031_default_driver",
+  "name": "Curse Satan Anchor Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 33,
+    "attack": 19,
+    "defense": 33,
+    "stamina": 29
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB031",
+  "_registry_order": 1029
+}

@@ -78,7 +78,7 @@ KEEP_DAILY = 14
 SECTIONS: dict[str, tuple[str, ...]] = {
     "beys": ("inventory", "bey_progress", "active_beyblade", "boss_copies",
              "active_copy", "equipped_parts", "parts", "mastery",
-             "bey_instances", "active_bey_instance", "component_equipment_version"),
+             "bey_instances", "active_bey_instance", "component_equipment_version", "part_instances", "marketplace_listings"),
     "avatars": ("equipped_avatar",),        # plus the avatars side file
     "community": ("community_xp", "com_level", "com_day", "com_last_msg",
                   "com_recent_hashes"),
@@ -322,6 +322,13 @@ async def restore(snap: dict, sections: Iterable[str] = (ALL,)) -> dict:
             continue
 
         def _apply(profile: dict, saved=saved, present=present) -> None:
+            if "inventory" in present:
+                # Old backups predate physical ownership. Retaining today's
+                # ledger/marker would mix two inventories and duplicate grants.
+                for key in ("bey_instances", "active_bey_instance", "component_equipment_version",
+                            "part_instances", "marketplace_listings"):
+                    if key not in saved:
+                        profile.pop(key, None)
             for key in present:
                 profile[key] = saved[key]
 

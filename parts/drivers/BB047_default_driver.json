@@ -1,0 +1,18 @@
+{
+  "id": "BB047_default_driver",
+  "name": "Super Hyperion Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 28,
+    "attack": 30,
+    "defense": 19,
+    "stamina": 14
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB047",
+  "_registry_order": 1045
+}

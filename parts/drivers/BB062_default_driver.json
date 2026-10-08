@@ -1,0 +1,18 @@
+{
+  "id": "BB062_default_driver",
+  "name": "Dragoon Fantom Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 24,
+    "attack": 33,
+    "defense": 15,
+    "stamina": 16
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB062",
+  "_registry_order": 1060
+}

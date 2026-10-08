@@ -288,11 +288,11 @@ class BattleSession:
 
             profile   = await get_user(pid)
             # Resolve HP, Special and equipment from the same profile snapshot.
-            from utils.loadout import effective_blade, part_bonuses
+            from utils.loadout import effective_blade, part_bonuses, hp_adjustment
             effective, breakdown, _ = await effective_blade(pid, profile=profile, blade=blade, include_avatar=False,
                                                            include_parts=not bool(profile.get("active_copy")))
             hp_bd = breakdown.get("hp") or {}
-            hp_gain = max(0, int(hp_bd.get("total", 0) - hp_bd.get("base", 0)))
+            hp_gain = hp_adjustment(hp_bd)
             if effective.get("component_snapshot"):
                 blade["component_snapshot"] = effective["component_snapshot"]
             avatar_id = await _AE.get_equipped_avatar_id(int(pid))

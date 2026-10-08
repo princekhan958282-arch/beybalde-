@@ -1,0 +1,18 @@
+{
+  "id": "BB082_default_disk",
+  "name": "King Kerbeus Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 29,
+    "attack": 16,
+    "defense": 27,
+    "stamina": 21
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB082",
+  "_registry_order": 1081
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB126_default_disk",
+  "name": "Draciel F Bastion Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 28,
+    "attack": 15,
+    "defense": 26,
+    "stamina": 22
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB126",
+  "_registry_order": 1126
+}

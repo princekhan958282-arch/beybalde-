@@ -1,0 +1,18 @@
+{
+  "id": "BB018_default_driver",
+  "name": "Ronin Dragoon Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 27,
+    "attack": 27,
+    "defense": 14,
+    "stamina": 19
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB018",
+  "_registry_order": 1017
+}

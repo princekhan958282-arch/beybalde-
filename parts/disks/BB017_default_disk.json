@@ -1,0 +1,18 @@
+{
+  "id": "BB017_default_disk",
+  "name": "Z Achilles Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 31,
+    "attack": 28,
+    "defense": 29,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB017",
+  "_registry_order": 1016
+}

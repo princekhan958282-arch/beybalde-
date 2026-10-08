@@ -1,0 +1,18 @@
+{
+  "id": "BB016_default_driver",
+  "name": "Trypio Glide Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 35,
+    "attack": 17,
+    "defense": 29,
+    "stamina": 37
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB016",
+  "_registry_order": 1015
+}

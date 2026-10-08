@@ -1,0 +1,18 @@
+{
+  "id": "BB123_default_disk",
+  "name": "Epsilon Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 37,
+    "attack": 34,
+    "defense": 12,
+    "stamina": 18
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB123",
+  "_registry_order": 1122
+}

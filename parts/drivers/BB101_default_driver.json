@@ -1,0 +1,18 @@
+{
+  "id": "BB101_default_driver",
+  "name": "Surge Xcalius Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 31,
+    "attack": 43,
+    "defense": 13,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB101",
+  "_registry_order": 1102
+}

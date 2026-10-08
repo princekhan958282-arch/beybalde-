@@ -1,0 +1,18 @@
+{
+  "id": "BB108_default_disk",
+  "name": "Aegis Valorian Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 33,
+    "attack": 34,
+    "defense": 34,
+    "stamina": 32
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB108",
+  "_registry_order": 1107
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB087_default_driver",
+  "name": "Master Diabolos Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 30,
+    "attack": 37,
+    "defense": 27,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB087",
+  "_registry_order": 1086
+}

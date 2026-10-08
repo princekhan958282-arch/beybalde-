@@ -1,0 +1,18 @@
+{
+  "id": "BB041_default_driver",
+  "name": "Azeroth Veyrath Rush Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 36,
+    "attack": 41,
+    "defense": 27,
+    "stamina": 27
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB041",
+  "_registry_order": 1039
+}

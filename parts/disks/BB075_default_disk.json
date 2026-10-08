@@ -1,0 +1,18 @@
+{
+  "id": "BB075_default_disk",
+  "name": "Alter Cognite Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 30,
+    "attack": 24,
+    "defense": 22,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB075",
+  "_registry_order": 1073
+}

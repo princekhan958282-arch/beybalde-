@@ -1,0 +1,18 @@
+{
+  "id": "BB129_default_driver",
+  "name": "Draciel G Anchor Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 38,
+    "attack": 23,
+    "defense": 41,
+    "stamina": 31
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB129",
+  "_registry_order": 1129
+}

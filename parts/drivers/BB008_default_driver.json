@@ -1,0 +1,18 @@
+{
+  "id": "BB008_default_driver",
+  "name": "Vanish Fafnir Glide Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 34,
+    "attack": 22,
+    "defense": 28,
+    "stamina": 33
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB008",
+  "_registry_order": 1007
+}

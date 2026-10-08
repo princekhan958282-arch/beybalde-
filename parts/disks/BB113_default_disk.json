@@ -1,0 +1,18 @@
+{
+  "id": "BB113_default_disk",
+  "name": "Radiant Valkyrie Impact Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 39,
+    "attack": 44,
+    "defense": 18,
+    "stamina": 32
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB113",
+  "_registry_order": 1112
+}
