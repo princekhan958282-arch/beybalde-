@@ -1,0 +1,137 @@
+{
+  "id": "BB090",
+  "name": "Shining Shuriken",
+  "rarity": "Mythic",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537309156535570472/1786592956078.png?ex=6a7e9238&is=6a7d40b8&hm=14cdb4ae8081f01b330be92bf253b14bd38c84ad8a1b362982789ebcb81e798c&",
+  "description": "A blade with almost nothing to lose and everything to give back. Shining Shuriken carries the thinnest HP pool in the roster behind a heavy 128 Defence, and answers contact rather than opening it — every blow that lands on it comes back sharper than it went in.",
+  "stats": {
+    "attack": 148,
+    "defense": 128,
+    "stamina": 77,
+    "special": 125,
+    "hp": 69
+  },
+  "ability": {
+    "name": "Counter Point",
+    "trigger": "on_take_damage",
+    "description": "Every normal Attack that lands on Shining Shuriken is paid for: the attacker takes **50 true damage**, loses **1 stamina** and **3 stability**. It answers Attacks, not Specials — a multi-hit Special connects without waking it. Shuriken Strike fires the same counter on demand.",
+    "rules": [
+      {
+        "when": "on_take_damage",
+        "if": [
+          {
+            "cond": "incoming_move_is",
+            "value": "attack"
+          }
+        ],
+        "do": [
+          {
+            "op": "true_damage",
+            "value": 50
+          },
+          {
+            "op": "drain_stamina",
+            "value": 1,
+            "steal": false
+          },
+          {
+            "op": "enemy_lose_stability",
+            "amount": 3
+          }
+        ],
+        "_name": "Counter Point",
+        "_note": "on_take_damage fires once PER HIT. Without the incoming_move_is gate this returns 50 damage sixteen times against a sixteen-hit Special."
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Shuriken Strike",
+    "description": "The blade opens up and throws every edge it has at once. What survives the volley is 40% weaker for it, and takes the counter on the way out.",
+    "hits": 3,
+    "damage_per_hit": 45,
+    "total_damage": 135,
+    "flavour_texts": [
+      "✴️ **SHURIKEN STRIKE** — every edge at once!",
+      "🩸 The volley lands — and the counter lands with it!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Counter Point",
+      "trigger": "on_take_damage",
+      "description": "Every normal Attack that lands on Shining Shuriken is paid for: the attacker takes **50 true damage**, loses **1 stamina** and **3 stability**. It answers Attacks, not Specials — a multi-hit Special connects without waking it. Shuriken Strike fires the same counter on demand.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "if": [
+            {
+              "cond": "incoming_move_is",
+              "value": "attack"
+            }
+          ],
+          "do": [
+            {
+              "op": "true_damage",
+              "value": 50
+            },
+            {
+              "op": "drain_stamina",
+              "value": 1,
+              "steal": false
+            },
+            {
+              "op": "enemy_lose_stability",
+              "amount": 3
+            }
+          ],
+          "_name": "Counter Point",
+          "_note": "on_take_damage fires once PER HIT. Without the incoming_move_is gate this returns 50 damage sixteen times against a sixteen-hit Special."
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "enemy_debuff_pct",
+              "stat": "attack",
+              "value": 40,
+              "turns": 3
+            },
+            {
+              "op": "true_damage",
+              "value": 50
+            },
+            {
+              "op": "drain_stamina",
+              "value": 1,
+              "steal": false
+            },
+            {
+              "op": "enemy_lose_stability",
+              "amount": 3
+            }
+          ],
+          "_name": "Shuriken Strike"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 69,
+    "attack": 148,
+    "defense": 128,
+    "stamina": 77
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 89,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

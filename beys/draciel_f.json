@@ -1,0 +1,66 @@
+{
+  "id": "BB126",
+  "name": "Draciel F",
+  "rarity": "Common",
+  "type": "Defense",
+  "spin_direction": "Right",
+  "burst_height": "Low",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556917346332057670/1791268398307.png?backend=b2&ex=6ac73945&is=6ac5e7c5&hm=5f7744cc41719c880bd7c0c829f78954cfa567fb73262a11d50072a9fcdf8688&",
+  "description": "Max Tate's water guardian. Draciel F specializes in fortress endurance.",
+  "stats": {
+    "attack": 55,
+    "defense": 95,
+    "stamina": 80,
+    "special": 70,
+    "hp": 100
+  },
+  "draciel_kit": "F",
+  "ability": {
+    "name": "Draciel’s Fortress Foundation",
+    "trigger": "on_defense_win",
+    "description": "On Defense Win against Attack, restore HP equal to 8% of current DEF (max 35) and recover 3 Stability. Cooldown: 2 rounds.",
+    "rules": [],
+    "runtime": "draciel"
+  },
+  "abilities": [
+    {
+      "name": "Draciel’s Fortress Foundation",
+      "trigger": "on_defense_win",
+      "description": "On Defense Win against Attack, restore HP equal to 8% of current DEF (max 35) and recover 3 Stability. Cooldown: 2 rounds.",
+      "rules": [],
+      "runtime": "draciel"
+    }
+  ],
+  "special_move": {
+    "name": "Draciel Fortress Defense",
+    "description": "A shield worth 60% of current DEF (max 180 HP) absorbs damage after normal mitigation for 2 rounds or until broken. While it remains, incoming Stability damage is reduced by 40%. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 0,
+    "total_damage": 0,
+    "non_damage": true,
+    "flavour_texts": [
+      "🐢 Draciel Fortress Defense!"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "draciel_special",
+    "label": "Draciel Fortress Defense",
+    "emoji": "🐢"
+  },
+  "main_frame": {
+    "hp": 100,
+    "attack": 55,
+    "defense": 95,
+    "stamina": 80
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 126,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,51 @@
+name: Character and Component Regression
+
+on:
+  pull_request:
+    paths:
+      - 'beys/**'
+      - 'avatars/**'
+      - 'parts/**'
+      - 'utils/**'
+      - 'cogs/avatar/**'
+      - 'cogs/battle/session.py'
+      - 'cogs/economy/**'
+      - 'cogs/ui/inventory_ui.py'
+      - 'tools/**'
+      - '.github/workflows/character-components.yml'
+
+jobs:
+  isolated-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install 'discord.py>=2.6' python-dotenv pillow playwright
+      - name: Migration, equipment and SQLite restart
+        run: python -m unittest tools.test_character_components
+      - name: PvP, Boss, Story, inventory controls and battle snapshots
+        run: python tools/test_component_battles.py
+      - name: Startup registration without a Discord login
+        env:
+          BEYCORD_AUTO_INSTALL: '0'
+          BEYCORD_AUTO_UPDATE: '0'
+        run: python -m unittest tools.test_character_startup
+      - name: Existing Avatar and ability execution
+        run: |
+          python tools/test_avatar_battle_connection.py
+          python tools/test_original_generation.py
+          python tools/test_draciel.py
+          python -m unittest tools.test_boss_flow
+      - name: Character info cards and effective-stat compatibility
+        run: |
+          python tools/test_beycbot_info_card.py
+          python tools/sim_avatar_info_card.py
+          python tools/sim_stats_pipeline.py
+      - name: Deployment paths, snapshot compatibility and syntax
+        run: |
+          python tools/sim_updater_paths.py
+          python tools/sim_snapshots.py
+          python -m compileall -q utils cogs tools

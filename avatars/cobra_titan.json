@@ -1,0 +1,61 @@
+{
+  "id": "avatar_x004",
+  "name": "Cobra Titan",
+  "rarity": "Exclusive",
+  "type": "stamina",
+  "price": 0,
+  "description": "A coiled titan that never tires. Cobra Titan outlasts everything in the stadium and strikes the moment its opponent finally slows.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1530707172571349112/Screenshot_20260725_134656_Google.jpg?ex=6a79ab65&is=6a7859e5&hm=7e34bb1cc4ac8fc92be7b596aceda806aefc51c8145ada7ecbac71343a7b4ffc&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": 0.002,
+  "skills": [
+    {
+      "name": "Venom Strike",
+      "description": "Attack increased by 58.",
+      "bonuses": {
+        "attack_flat": 58
+      }
+    },
+    {
+      "name": "Endless Coil",
+      "description": "Stamina increased by 169.",
+      "bonuses": {
+        "stamina_flat": 169
+      }
+    },
+    {
+      "name": "Scaled Guard",
+      "description": "Stamina increased by a further 120%, and 12% of all incoming damage is absorbed by the scales.",
+      "bonuses": {
+        "stamina_percent": 1.2,
+        "resistance_damage_percent": 0.12
+      }
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 58,
+    "attack_percent": 0,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 169,
+    "stamina_percent": 1.2,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.12,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.15
+  },
+  "generation": null,
+  "_registry_order": 30
+}

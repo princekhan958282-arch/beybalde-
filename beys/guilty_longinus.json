@@ -1,0 +1,175 @@
+{
+  "id": "BB006",
+  "name": "Guilty Longinus",
+  "rarity": "Mythic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1510864500151029770/Beyblade_Burst_Dynamite_Battle_-_Guilty_Longinus_Karma_Metal_Destroy-2_28Low_Mode29.webp?ex=6a1e5db7&is=6a1d0c37&hm=e64ff6f189987d6e06d461336c46ae20afff71acf62689206cfe513093e59126&",
+  "description": "The dark judge of Beyblade — elevated to Legendary status. Guilty Longinus delivers forbidden verdicts with terrifying precision, punishing every mistake with escalating critical judgements that grow more devastating with each condemned strike.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 115,
+    "defense": 65,
+    "stamina": 85,
+    "special": 135,
+    "hp": 113
+  },
+  "ability": {
+    "name": "Guilty Upper",
+    "trigger": "on_attack_hit",
+    "description": "Every landed hit winds Longinus up (+7 attack, up to 3). On the third, the Guilty Upper lands — 40 bonus damage and the opponent is knocked 25 stability off balance. Left-spin contact hits harder still: +20% damage against an opposite-spinning blade.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "stacking_buff",
+            "name": "guilty_upper",
+            "stat": "attack",
+            "per_stack": 7,
+            "max": 3
+          }
+        ]
+      },
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "enemy_lose_stability",
+            "value": 25,
+            "_if": [
+              {
+                "cond": "counter_at_least",
+                "name": "guilty_upper",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "op": "counter_burst",
+            "name": "guilty_upper",
+            "at": 3,
+            "damage": 40,
+            "reset": true
+          }
+        ]
+      },
+      {
+        "when": "on_attack_hit",
+        "if": [
+          {
+            "cond": "opposite_spin"
+          }
+        ],
+        "do": [
+          {
+            "op": "bonus_damage_pct",
+            "value": 20
+          }
+        ]
+      },
+      {
+        "when": "on_special",
+        "do": [
+          {
+            "op": "gain_stability",
+            "value": 20
+          }
+        ]
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Guilty Smash",
+    "description": "Longinus rises and brings the full weight of its verdict down in one descending smash — and plants itself firmly as it lands.",
+    "hits": 1,
+    "damage_per_hit": 170,
+    "total_damage": 170,
+    "flavour_texts": [
+      "⚖️ **GUILTY SMASH** — the judgement falls, and the stadium shakes!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Guilty Upper",
+      "trigger": "on_attack_hit",
+      "description": "Every landed hit winds Longinus up (+7 attack, up to 3). On the third, the Guilty Upper lands — 40 bonus damage and the opponent is knocked 25 stability off balance. Left-spin contact hits harder still: +20% damage against an opposite-spinning blade.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "guilty_upper",
+              "stat": "attack",
+              "per_stack": 7,
+              "max": 3
+            }
+          ]
+        },
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "value": 25,
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "guilty_upper",
+                  "value": 3
+                }
+              ]
+            },
+            {
+              "op": "counter_burst",
+              "name": "guilty_upper",
+              "at": 3,
+              "damage": 40,
+              "reset": true
+            }
+          ]
+        },
+        {
+          "when": "on_attack_hit",
+          "if": [
+            {
+              "cond": "opposite_spin"
+            }
+          ],
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 20
+            }
+          ]
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "gain_stability",
+              "value": 20
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 113,
+    "attack": 115,
+    "defense": 65,
+    "stamina": 85
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 5,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

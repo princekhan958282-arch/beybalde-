@@ -1,0 +1,73 @@
+{
+  "id": "BB011",
+  "name": "Cho-Z Spriggan",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511199174660587570/BBC_Cho-Z_Spriggan_0Wall_Zeta27_Beyblade.webp?ex=6a1f9567&is=6a1e43e7&hm=cdd363688cab4eb4410c173400c077e8011d623a48e00a3608a13a73fafeda5e&",
+  "description": "The ultimate customizable tactical beast. Cho-Z Spriggan utilizes its internal Cho-Z Wings to prevent bursts while adapting its spin style to completely counter any challenger.",
+  "burst_height": "Low",
+  "type": "Balance",
+  "stats": {
+    "attack": 106,
+    "defense": 117,
+    "stamina": 92,
+    "special": 110,
+    "hp": 114
+  },
+  "ability": {
+    "name": "Zeta Overdrive",
+    "trigger": "on_special",
+    "description": "Cho-Z Spriggan overclock its adaptive tip to maximum output. vs Attack: 50 HP shield with 20% reflect (20 true dmg). vs Defense/Stamina: +35 ATK for 3 turns + silence for 1 turn. vs Balance: both 30 HP shield AND +20 ATK. All variants grant defense-pierce on the next Attack.",
+    "defense_counter_buff": 50,
+    "attack_counter_buff": 35,
+    "spriggan_reflect_chance": 0.2,
+    "spriggan_reflect_true_dmg": 20,
+    "spriggan_silence_on_atk_debuff": 1,
+    "spriggan_balance_shield": 30,
+    "spriggan_balance_atk": 20,
+    "spriggan_pierce_turns": 1
+  },
+  "special_move": {
+    "name": "Cho-Z Upper",
+    "description": "Spriggan extends its hidden crimson wings and delivers a massive, un-burstable upward strike that launches the enemy into the air!",
+    "hits": 3,
+    "damage_per_hit": 35,
+    "total_damage": 105,
+    "flavour_texts": [
+      "🛡️ **Hit 1** — The Cho-Z Wings lock into place!",
+      "💥 **Hit 2** — Spriggan slams the opponent's layer!",
+      "🔥 **Hit 3** — CHO-Z UPPER — ULTRA REBOUND FINISH!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Zeta Overdrive",
+      "trigger": "on_special",
+      "description": "Cho-Z Spriggan overclock its adaptive tip to maximum output. vs Attack: 50 HP shield with 20% reflect (20 true dmg). vs Defense/Stamina: +35 ATK for 3 turns + silence for 1 turn. vs Balance: both 30 HP shield AND +20 ATK. All variants grant defense-pierce on the next Attack.",
+      "defense_counter_buff": 50,
+      "attack_counter_buff": 35,
+      "spriggan_reflect_chance": 0.2,
+      "spriggan_reflect_true_dmg": 20,
+      "spriggan_silence_on_atk_debuff": 1,
+      "spriggan_balance_shield": 30,
+      "spriggan_balance_atk": 20,
+      "spriggan_pierce_turns": 1
+    }
+  ],
+  "spin_direction": "Dual",
+  "main_frame": {
+    "hp": 114,
+    "attack": 106,
+    "defense": 117,
+    "stamina": 92
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 10,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

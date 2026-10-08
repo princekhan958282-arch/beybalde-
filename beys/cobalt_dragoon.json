@@ -1,0 +1,71 @@
+{
+  "id": "BB070",
+  "name": "Cobalt Dragoon",
+  "rarity": "Mythic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516061005602492488/CobaltDragoon_2-60C_Render.webp?ex=6a333f96&is=6a31ee16&hm=caa86dea7fd39437fd1a87d8174f964db5abe1b5b4e1fb2ca906a7246675be38&",
+  "description": "The first major left-spin Beyblade X release. Four upward-angled blades create powerful upper attacks, and its left-spin design can steal spin from right-spin opponents before launching devastating counterattacks.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 121,
+    "defense": 61,
+    "stamina": 72,
+    "special": 115,
+    "hp": 104
+  },
+  "ability": {
+    "name": "Dragonic Break",
+    "trigger": "passive",
+    "description": "First major left-spin Beyblade X release. Uses four upward-angled blades to create powerful upper attacks. Can steal some spin from right-spin opponents and launch devastating counterattacks.",
+    "passive_atk_bonus": 14,
+    "spin_steal_pct": 0.15,
+    "upper_attack_lift_chance": 0.18
+  },
+  "special_move": {
+    "name": "Xtreme Dash Dragonic Break",
+    "description": "Cobalt Dragoon rides the X-Rail at extreme speed and smashes the opponent.",
+    "hits": 1,
+    "damage_per_hit": 140,
+    "total_damage": 140,
+    "flavour_texts": [
+      "🐉 **Xtreme Dash Dragonic Break** — Cobalt Dragoon rockets down the X-Rail and SMASHES!"
+    ]
+  },
+  "special_move_2": {
+    "name": "Xtreme Dash Dragonic Break Infinite",
+    "description": "An enhanced version of Dragonic Break with repeated high-speed attacks along the X-Rail.",
+    "hits": 3,
+    "damage_per_hit": 50,
+    "total_damage": 150,
+    "flavour_texts": [
+      "⚡ **Dragonic Break Infinite** — repeated X-Rail strikes overwhelm the opponent!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dragonic Break",
+      "trigger": "passive",
+      "description": "First major left-spin Beyblade X release. Uses four upward-angled blades to create powerful upper attacks. Can steal some spin from right-spin opponents and launch devastating counterattacks.",
+      "passive_atk_bonus": 14,
+      "spin_steal_pct": 0.15,
+      "upper_attack_lift_chance": 0.18
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 104,
+    "attack": 121,
+    "defense": 61,
+    "stamina": 72
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 68,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

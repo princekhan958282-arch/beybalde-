@@ -1,0 +1,66 @@
+{
+  "id": "BB127",
+  "name": "Draciel V",
+  "rarity": "Epic",
+  "type": "Defense",
+  "spin_direction": "Right",
+  "burst_height": "Low",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556917360219398154/1791268303750.png?backend=b2&ex=6ac73948&is=6ac5e7c8&hm=2a9af3706b3046b74fc19fc08a3e04f3d6596289c87d2e7af06a3f808c0afddc&",
+  "description": "Max Tate's water guardian. Draciel V specializes in deflection and retaliation.",
+  "stats": {
+    "attack": 65,
+    "defense": 120,
+    "stamina": 95,
+    "special": 90,
+    "hp": 115
+  },
+  "draciel_kit": "V",
+  "ability": {
+    "name": "Draciel’s Viper Rebound",
+    "trigger": "on_defense_win",
+    "description": "On Defense Win against Attack, deal bonus counter damage equal to 15% of current DEF (max 50) and reduce enemy ATK by 10% for the next round. Cooldown: 2 rounds.",
+    "rules": [],
+    "runtime": "draciel"
+  },
+  "abilities": [
+    {
+      "name": "Draciel’s Viper Rebound",
+      "trigger": "on_defense_win",
+      "description": "On Defense Win against Attack, deal bonus counter damage equal to 15% of current DEF (max 50) and reduce enemy ATK by 10% for the next round. Cooldown: 2 rounds.",
+      "rules": [],
+      "runtime": "draciel"
+    }
+  ],
+  "special_move": {
+    "name": "Draciel Viper Wall",
+    "description": "For 2 rounds, reduce incoming Attack damage by 25% and Special damage by 15%. Counter for 25% of actual HP damage received from Attack or Special, max 45 per round. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 0,
+    "total_damage": 0,
+    "non_damage": true,
+    "flavour_texts": [
+      "🐢 Draciel Viper Wall!"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "draciel_special",
+    "label": "Draciel Viper Wall",
+    "emoji": "🐢"
+  },
+  "main_frame": {
+    "hp": 115,
+    "attack": 65,
+    "defense": 120,
+    "stamina": 95
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 127,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

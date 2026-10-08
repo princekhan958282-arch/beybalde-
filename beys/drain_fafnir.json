@@ -1,0 +1,65 @@
+{
+  "id": "BB094",
+  "name": "Drain Fafnir",
+  "rarity": "Epic",
+  "type": "Stamina",
+  "spin_direction": "Left",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565694516502588/86d8568c9fc11b628be2d1f033f63e61.jpg?ex=6a832476&is=6a81d2f6&hm=0f82683c3e09aa7a1ccbc7b874a97b313782106ce13eaaeb78b7b32eb5404858&",
+  "description": "A left-spin layer built to take rather than to give. Fafnir does not block the attack — it accepts it, and keeps whatever the attacker brought with them.",
+  "stats": {
+    "attack": 74,
+    "defense": 92,
+    "stamina": 128,
+    "special": 108,
+    "hp": 124
+  },
+  "special_move": {
+    "name": "Nothing Break",
+    "description": "Fafnir absorbs the charge and gives none of it back, draining the stadium dry in two long pulls.",
+    "hits": 2,
+    "damage_per_hit": 52,
+    "total_damage": 104,
+    "flavour_texts": [
+      "🌀 **Nothing Break** — Fafnir takes it all!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Drain Spin",
+      "trigger": "on_take_damage",
+      "description": "Every hit taken is stamina stolen: 0.6 off the attacker and onto Fafnir, and a little HP with it.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 0.6
+            },
+            {
+              "op": "heal_per_drain",
+              "value": 14
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 124,
+    "attack": 74,
+    "defense": 92,
+    "stamina": 128
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 93,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

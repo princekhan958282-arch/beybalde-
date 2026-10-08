@@ -1,0 +1,114 @@
+{
+  "id": "BB015",
+  "name": "Dark Achilles",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511667795782402089/b-194-02__07134.1647901588.jpg?ex=6a2149d7&is=6a1ff857&hm=9fc11d7fc6b3accefcade4d71aca2e2603b7e598230fa4131a4b689e2f0ccdf0&",
+  "description": "A legendary hero fallen from grace, bound in gold-accented midnight armor. Dark Achilles balances catastrophic crushing power with an unyielding shield layer, shifting its tactical stance depending on the battlefield conditions.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 110,
+    "defense": 105,
+    "stamina": 102,
+    "special": 120,
+    "hp": 116
+  },
+  "ability": {
+    "name": "Fallen Knight",
+    "trigger": "on_special",
+    "description": "Activating Dark Knight Strike triggers a corrupted stance shift. If Dark Achilles has more than 50% HP, it permanently gains +20 Attack for the rest of the phase. If below 50% HP, it generates a 40 HP dark barrier and increases defense counter damage by 15.",
+    "high_hp_attack_buff": 20,
+    "low_hp_shield_value": 40,
+    "low_hp_counter_bonus": 15,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "activate_mode",
+        "value": 20,
+        "duration": 999,
+        "once": true,
+        "_note": "high_hp_attack_buff: +20 ATK permanently if triggered while HP>50% (engine fires once)"
+      },
+      {
+        "condition": "hp_below",
+        "threshold": 0.5,
+        "effect": "shield",
+        "value": 40,
+        "once": true,
+        "_note": "low_hp_shield_value: 40 HP dark barrier below 50% HP"
+      },
+      {
+        "condition": "hp_below",
+        "threshold": 0.5,
+        "effect": "dmg_amp",
+        "value": 0.125,
+        "once": true,
+        "_note": "low_hp_counter_bonus: +15 counter damage approximated as dmg_amp"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Dark Knight Strike",
+    "description": "Sprints along the stadium ridge before descending into a punishing multi-angled shield bash and sword pierce combo.",
+    "hits": 2,
+    "damage_per_hit": 60,
+    "total_damage": 120,
+    "flavour_texts": [
+      "🛡️ **Dark Knight Strike** — The corrupted shield absorbs the stadium's friction!",
+      "🗡️ **Second Strike** — An obsidian blade cleaves right through the center map!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Fallen Knight",
+      "trigger": "on_special",
+      "description": "Activating Dark Knight Strike triggers a corrupted stance shift. If Dark Achilles has more than 50% HP, it permanently gains +20 Attack for the rest of the phase. If below 50% HP, it generates a 40 HP dark barrier and increases defense counter damage by 15.",
+      "high_hp_attack_buff": 20,
+      "low_hp_shield_value": 40,
+      "low_hp_counter_bonus": 15,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "activate_mode",
+          "value": 20,
+          "duration": 999,
+          "once": true,
+          "_note": "high_hp_attack_buff: +20 ATK permanently if triggered while HP>50% (engine fires once)"
+        },
+        {
+          "condition": "hp_below",
+          "threshold": 0.5,
+          "effect": "shield",
+          "value": 40,
+          "once": true,
+          "_note": "low_hp_shield_value: 40 HP dark barrier below 50% HP"
+        },
+        {
+          "condition": "hp_below",
+          "threshold": 0.5,
+          "effect": "dmg_amp",
+          "value": 0.125,
+          "once": true,
+          "_note": "low_hp_counter_bonus: +15 counter damage approximated as dmg_amp"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 116,
+    "attack": 110,
+    "defense": 105,
+    "stamina": 102
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 14,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

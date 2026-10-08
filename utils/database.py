@@ -1,7 +1,7 @@
 """
 utils/database.py
 -----------------
-Centralised read/write helpers for beyblades.json and users.json.
+Centralised character lookups and player persistence helpers.
 All Cogs import from here so file-path logic lives in exactly one place.
 
 Level System
@@ -35,7 +35,8 @@ log = logging.getLogger("beyblade_bot")
 
 # ── Absolute paths (works regardless of CWD) ──────────────────────────────────
 BASE_DIR       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BEYBLADES_PATH = os.path.join(BASE_DIR, "data", "beyblades.json")
+BEYS_PATH      = os.path.join(BASE_DIR, "beys")
+BEYBLADES_PATH = BEYS_PATH  # deprecated path alias; use load_beyblades()
 USERS_PATH     = os.path.join(BASE_DIR, "data", "users.json")
 CONFIG_PATH    = os.path.join(BASE_DIR, "data", "config.json")
 SPAWN_PATH     = os.path.join(BASE_DIR, "data", "spawn_state.json")
@@ -218,7 +219,8 @@ def load_beyblades() -> dict:
     `get_beyblade` answers for a fiftieth of the cost. At ~2 ms a call that is
     invisible at one bey and very much not at two thousand.
     """
-    return _read_json_cached(BEYBLADES_PATH)
+    from .character_registry import load_beys
+    return load_beys()
 
 
 def beyblade_ref(name: str) -> Optional[dict]:
@@ -228,14 +230,8 @@ def beyblade_ref(name: str) -> Optional[dict]:
     when a 2,000-item inventory panel builds its cache, synchronously, on the
     event loop. Use this where the record is only read and never stored.
     """
-    blades = _read_json_cached(BEYBLADES_PATH)
-    data = blades.get(name)
-    if data is None:
-        lowered = str(name).lower()
-        for key, val in blades.items():
-            if key.lower() == lowered:
-                return val
-    return data
+    from .character_registry import REGISTRY
+    return REGISTRY.find_bey(name)
 
 
 def get_beyblade(name: str) -> Optional[dict]:
@@ -247,14 +243,7 @@ def get_beyblade(name: str) -> Optional[dict]:
     (~0.04 ms) instead of re-parsing the whole registry (~1.8 ms) — this is
     called once per item by ;list, ;inventory and the tournament seeder.
     """
-    blades = _read_json_cached(BEYBLADES_PATH)
-    data = blades.get(name)
-    if data is None:
-        lowered = name.lower()
-        for key, val in blades.items():
-            if key.lower() == lowered:
-                data = val
-                break
+    data = beyblade_ref(name)
     return copy.deepcopy(data) if data is not None else None
 
 
@@ -332,6 +321,8 @@ def _get_user_sync(user_id: int) -> dict:
 
         if prof is None:
             prof = _default_profile(uid)
+            from .bey_components import reconcile
+            reconcile(prof)
             USER_STORE.put_one(uid, prof)
             return copy.deepcopy(prof)
 
@@ -363,6 +354,10 @@ def _get_user_sync(user_id: int) -> dict:
             prof["level"] = _true_level
             changed = True
 
+        from .bey_components import reconcile
+        previous = copy.deepcopy(prof)
+        reconcile(prof)
+        changed = changed or previous != prof
         if changed:
             USER_STORE.put_one(uid, prof, touch=False)
 
@@ -392,6 +387,8 @@ def _update_user_sync(user_id: int, profile: dict, touch: bool = True) -> None:
     busy game.
     """
     with _users_lock:
+        from .bey_components import reconcile
+        reconcile(profile)
         USER_STORE.put_one(str(user_id), profile, touch=touch)
 
 
@@ -426,7 +423,10 @@ def _mutate_user_sync(user_id: int, fn, touch: bool = True):
         prof = USER_STORE.get_one(uid)
         if prof is None:
             prof = _default_profile(uid)
+        from .bey_components import reconcile
+        reconcile(prof)
         result = fn(prof)
+        reconcile(prof)
         USER_STORE.put_one(uid, prof, touch=touch)
         return result
 
@@ -450,7 +450,12 @@ def _mutate_users_sync(user_ids, fn, touch: bool = True):
             uid: USER_STORE.get_one(uid) or _default_profile(uid)
             for uid in ids
         }
+        from .bey_components import reconcile
+        for profile in profiles.values():
+            reconcile(profile)
         result = fn(profiles)
+        for profile in profiles.values():
+            reconcile(profile)
         USER_STORE.put_many(profiles, touch=touch)
         return result
 
@@ -672,6 +677,8 @@ def set_active_beyblade(user_id: int, beyblade_name: str) -> bool:
         # while every battle still resolved to the boss copy.
         profile["active_copy"] = None
         profile["active_custom_bey"] = False
+        from .bey_components import reconcile
+        reconcile(profile)
         USER_STORE.put_one(uid, profile)
     return True
 

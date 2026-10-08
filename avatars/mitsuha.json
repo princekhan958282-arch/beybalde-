@@ -1,0 +1,59 @@
+{
+  "id": "avatar_e003",
+  "name": "Mitsuha",
+  "rarity": "Epic",
+  "type": "balance",
+  "price": 0,
+  "description": "The girl whose name connects worlds. Balanced across all stats with strong resistance.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520391536485859508/0a650082b7a0563d5888fc2abbf266c0.jpg",
+  "bonuses": {
+    "attack_flat": 6,
+    "attack_percent": 0.06,
+    "defence_flat": 6,
+    "defence_percent": 0.06,
+    "stamina_flat": 6,
+    "stamina_percent": 0.06,
+    "stability_flat": 6,
+    "stability_percent": 0.06,
+    "charge_flat": 6,
+    "charge_percent": 0.06,
+    "special_move_flat": 8,
+    "special_move_percent": 0.08,
+    "crit_percent": 0.05,
+    "dodge_chance": 0.05,
+    "counter_chance": 0.05,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.12,
+    "resistance_status_chance": 0.15,
+    "hp_flat": 0,
+    "hp_percent": 0.05
+  },
+  "skills": [
+    {
+      "name": "Red Thread",
+      "description": "Attack and Defence increased by 12%.",
+      "bonuses": {
+        "attack_percent": 0.12,
+        "defence_percent": 0.12
+      }
+    },
+    {
+      "name": "Twilight Balance",
+      "description": "Stamina and Stability increased by 12%.",
+      "bonuses": {
+        "stamina_percent": 0.12,
+        "stability_percent": 0.12
+      }
+    },
+    {
+      "name": "Comet Wish",
+      "description": "Special Move damage increased by 18%.",
+      "bonuses": {
+        "special_move_percent": 0.18
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 11
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Revolve Driver",
+  "type": "driver",
+  "price": 750,
+  "stat": "stamina",
+  "bonus": 8,
+  "desc": "Low-friction tip for extended stamina.",
+  "id": "revolve_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 0,
+    "defense": 0,
+    "stamina": 8
+  },
+  "compatibility": {},
+  "_registry_order": 4
+}

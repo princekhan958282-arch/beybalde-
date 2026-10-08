@@ -1,0 +1,57 @@
+{
+  "id": "avatar_e004",
+  "name": "Gen",
+  "rarity": "Epic",
+  "type": "balance",
+  "price": 0,
+  "description": "A genius tactician. Supercharges special moves and charge with exceptional stability.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521059929434230835/9b420a2e93a038a10b60c4dddae2ba30.jpg?ex=6a4374f3&is=6a422373&hm=d75fb762ac0dc4924842d888500cc8a4882a4313d0245041718801229e908883&",
+  "bonuses": {
+    "attack_flat": 5,
+    "attack_percent": 0.05,
+    "defence_flat": 3,
+    "defence_percent": 0,
+    "stamina_flat": 5,
+    "stamina_percent": 0,
+    "stability_flat": 10,
+    "stability_percent": 0.1,
+    "charge_flat": 12,
+    "charge_percent": 0.12,
+    "special_move_flat": 18,
+    "special_move_percent": 0.15,
+    "crit_percent": 0.08,
+    "dodge_chance": 0,
+    "counter_chance": 0.08,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.05,
+    "resistance_status_chance": 0.1,
+    "hp_flat": 0,
+    "hp_percent": 0.05
+  },
+  "skills": [
+    {
+      "name": "Calculated Strike",
+      "description": "Attack increased by 16%.",
+      "bonuses": {
+        "attack_percent": 0.16
+      }
+    },
+    {
+      "name": "Steady Mind",
+      "description": "Stability increased by 18%.",
+      "bonuses": {
+        "stability_percent": 0.18
+      }
+    },
+    {
+      "name": "Perfect Timing",
+      "description": "Special Move damage increased by 22%.",
+      "bonuses": {
+        "special_move_percent": 0.22
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 14
+}

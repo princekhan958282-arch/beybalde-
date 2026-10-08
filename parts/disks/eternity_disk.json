@@ -1,0 +1,20 @@
+{
+  "name": "Eternity Disk",
+  "type": "disk",
+  "price": 2500,
+  "stat": "stamina",
+  "bonus": 40,
+  "desc": "Infinite rotation design — defies spin decay.",
+  "penalty_stat": "defense",
+  "penalty": 30,
+  "id": "eternity_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 0,
+    "defense": -30,
+    "stamina": 40
+  },
+  "compatibility": {},
+  "_registry_order": 33
+}

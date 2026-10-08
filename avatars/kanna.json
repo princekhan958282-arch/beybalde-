@@ -1,0 +1,57 @@
+{
+  "id": "avatar_r008",
+  "name": "Kanna",
+  "rarity": "Rare",
+  "type": "balance",
+  "price": 0,
+  "description": "Quiet but watchful. Subtle resistance and steady dodging instinct.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012738065694780/download.jpg?ex=6a4348ff&is=6a41f77f&hm=4d1271fbad981b5095b4fb9da088e285f55fe473ab25889c58928bad2c255cc5&",
+  "bonuses": {
+    "attack_flat": 3,
+    "attack_percent": 0,
+    "defence_flat": 4,
+    "defence_percent": 0,
+    "stamina_flat": 7,
+    "stamina_percent": 0.05,
+    "stability_flat": 5,
+    "stability_percent": 0,
+    "charge_flat": 5,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0.1,
+    "counter_chance": 0.05,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.08,
+    "resistance_status_chance": 0.08,
+    "hp_flat": 0,
+    "hp_percent": 0.03
+  },
+  "skills": [
+    {
+      "name": "Dragon's Calm",
+      "description": "Stamina increased by 14%.",
+      "bonuses": {
+        "stamina_percent": 0.14
+      }
+    },
+    {
+      "name": "Tiny Guardian",
+      "description": "Defence increased by 14%.",
+      "bonuses": {
+        "defence_percent": 0.14
+      }
+    },
+    {
+      "name": "Playful Drift",
+      "description": "Dodge chance increased by 12%.",
+      "bonuses": {
+        "dodge_chance": 0.12
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 22
+}

@@ -1,0 +1,4805 @@
+{
+  "baseline_commit": "5267682163ced3dccd4dae6e3281ceed000d3855",
+  "beys": {
+    "BB001": {
+      "name": "Bloody Longinus",
+      "sha256": "7fc217c0446786f8b2d723f27c02419cd0079379916668975b80b90b65567d76",
+      "stats": {
+        "attack": 112,
+        "defense": 31,
+        "stamina": 92,
+        "special": 120,
+        "hp": 92
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB002": {
+      "name": "Savior Valkyrie",
+      "sha256": "6834f188bde8edc9fe0b801e6b73cfaf43a3d3e5948b7a7f805cbef397cc4711",
+      "stats": {
+        "attack": 113,
+        "defense": 47,
+        "stamina": 83,
+        "special": 110,
+        "hp": 80
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB003": {
+      "name": "Rage Longinus",
+      "sha256": "3fb80e792e173a5a859414662d98d62ccd6b493953f896bca92de9399cedbaa5",
+      "stats": {
+        "attack": 108,
+        "defense": 45,
+        "stamina": 72,
+        "special": 120,
+        "hp": 92
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB004": {
+      "name": "Dynamite Belial",
+      "sha256": "7779122bb2410813fc06b7cf2d4a6fadbcb9e1770001f5fe30c3ef78d86d3596",
+      "stats": {
+        "attack": 128,
+        "defense": 118,
+        "stamina": 115,
+        "special": 160,
+        "hp": 117
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB005": {
+      "name": "Imperial Dragon",
+      "sha256": "cd815b2ee111622b709b88254dc5445b74491e3dff83ed1782e9500895de7c85",
+      "stats": {
+        "attack": 99,
+        "defense": 104,
+        "stamina": 119,
+        "special": 110,
+        "hp": 119
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB006": {
+      "name": "Guilty Longinus",
+      "sha256": "64baa81d7bcc28808d7f643d6ed5088e926c7145be164b67d52062cd6908af91",
+      "stats": {
+        "attack": 115,
+        "defense": 65,
+        "stamina": 85,
+        "special": 135,
+        "hp": 113
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB007": {
+      "name": "Brave Valkyrie",
+      "sha256": "08aa69674d37fafb81ef8825d9aad431da88a4cb8f0e4335dd0c1705352362e5",
+      "stats": {
+        "attack": 109,
+        "defense": 62,
+        "stamina": 90,
+        "special": 130,
+        "hp": 92
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB008": {
+      "name": "Vanish Fafnir",
+      "sha256": "5870b2419508a77c320c91c9b3570aa0847321a770218d7766c62d534a7d4f75",
+      "stats": {
+        "attack": 81,
+        "defense": 102,
+        "stamina": 120,
+        "special": 105,
+        "hp": 126
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB009": {
+      "name": "Dead Phoenix",
+      "sha256": "d0f093f360ecddb76a93d0d7563335e792270e492520d8bd13738f9156472762",
+      "stats": {
+        "attack": 121,
+        "defense": 189,
+        "stamina": 154,
+        "special": 178,
+        "hp": 176
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction",
+        "hidden_drop_one_in"
+      ]
+    },
+    "BB010": {
+      "name": "Cosmic Pegasus",
+      "sha256": "d128c5f73903a59e73b785f8000b3dfc8d2c40e7b83c4efde7513f3cd2a53b7e",
+      "stats": {
+        "attack": 111,
+        "defense": 61,
+        "stamina": 85,
+        "special": 105,
+        "hp": 90
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB011": {
+      "name": "Cho-Z Spriggan",
+      "sha256": "29b4d9a1399597b4e6bd8c7ecccb2f1f7964d6aca4e69df4de1cb18316636e96",
+      "stats": {
+        "attack": 106,
+        "defense": 117,
+        "stamina": 92,
+        "special": 110,
+        "hp": 114
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB012": {
+      "name": "Vanguard DX",
+      "sha256": "34e9b30ca09e435fd8bf4ed3c43de329196d3dc29ff6e71cc358eb6722074d7e",
+      "stats": {
+        "attack": 104,
+        "defense": 70,
+        "stamina": 106,
+        "special": 115,
+        "hp": 109
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB013": {
+      "name": "Dark Strike Valkyrie",
+      "sha256": "efefa9f10eb49e2a79a7767c572f31f843437940209a3d3ee5c768e893544019",
+      "stats": {
+        "attack": 112,
+        "defense": 38,
+        "stamina": 60,
+        "special": 125,
+        "hp": 92
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB014": {
+      "name": "Hollow Deathscyther",
+      "sha256": "6470a23218f88ea61022e5ebf9bd0add7ed4acc82c8cdd7bce1901cb1e81e36f",
+      "stats": {
+        "attack": 102,
+        "defense": 75,
+        "stamina": 80,
+        "special": 110,
+        "hp": 99
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB015": {
+      "name": "Dark Achilles",
+      "sha256": "b3b6408dd1fecb3b44dec7f784561788f3c211e2764264e28fd419c5292aa31a",
+      "stats": {
+        "attack": 110,
+        "defense": 105,
+        "stamina": 102,
+        "special": 120,
+        "hp": 116
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB016": {
+      "name": "Trypio",
+      "sha256": "1fce2db769a3fb27d9b35b255df8bfe5393d2dcbb14a04ea8d16310cee237264",
+      "stats": {
+        "attack": 62,
+        "defense": 107,
+        "stamina": 136,
+        "special": 105,
+        "hp": 128
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB017": {
+      "name": "Z Achilles",
+      "sha256": "67d57804a6358e0e0b18052d2d36921b9fea9de12adda86a9f58851308146bc1",
+      "stats": {
+        "attack": 102,
+        "defense": 104,
+        "stamina": 91,
+        "special": 100,
+        "hp": 111
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB018": {
+      "name": "Ronin Dragoon",
+      "sha256": "8ba5eaf3f181c90e714ec413cf4466258aee5e07486eb3d218f21083ebbd057d",
+      "stats": {
+        "attack": 98,
+        "defense": 50,
+        "stamina": 68,
+        "special": 105,
+        "hp": 97
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB020": {
+      "name": "Inferno Viper",
+      "sha256": "07f9b3e816002fe624fcef81cf2d0c648f196d9b12d357b6574b5633c604f94f",
+      "stats": {
+        "attack": 120,
+        "defense": 130,
+        "stamina": 60,
+        "special": 130,
+        "hp": 111
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB021": {
+      "name": "Eternal Blaze Garuda",
+      "sha256": "caf4243a4a3f0435f08319ee289dc27b614b42663a66bf78c3ab15c1320ffc09",
+      "stats": {
+        "attack": 90,
+        "defense": 110,
+        "stamina": 150,
+        "special": 120,
+        "hp": 139
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB022": {
+      "name": "Shadow Dragon King",
+      "sha256": "62b61e025107c37f55a2df41047f0b35e203b4d80958df19b680f8f53cb00ed6",
+      "stats": {
+        "attack": 130,
+        "defense": 130,
+        "stamina": 130,
+        "special": 130,
+        "hp": 122
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB023": {
+      "name": "Spriggan Requiem",
+      "sha256": "3a837a40d36340d11c682d556b1307d2bd362b151adedd60f34e241fa31f6313",
+      "stats": {
+        "attack": 100,
+        "defense": 100,
+        "stamina": 100,
+        "special": 145,
+        "hp": 116
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "dual_special",
+        "chosen_special",
+        "special_moves",
+        "special_move",
+        "_note",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB025": {
+      "name": "Void Dragon Zephyros",
+      "sha256": "153bfbc8d24fecabb16bb68df95c2bd21491d8238a0757111a9e0c48af62eeba",
+      "stats": {
+        "attack": 115,
+        "defense": 108,
+        "stamina": 112,
+        "special": 135,
+        "hp": 119
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB024": {
+      "name": "Crimson Spriggan",
+      "sha256": "d4cc93bc92c5802cbb8f848bd01caf33b279a258e5a00ea22d6f87028bc7482a",
+      "stats": {
+        "attack": 75,
+        "defense": 151,
+        "stamina": 104,
+        "special": 115,
+        "hp": 123
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB026": {
+      "name": "Myth Evo Dragon D5",
+      "sha256": "82b0142ed321dcf6678b8593f45e04aec22f2eff00703279574448c2b655a486",
+      "stats": {
+        "attack": 115,
+        "defense": 50,
+        "stamina": 95,
+        "special": 135,
+        "hp": 104
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB027": {
+      "name": "Revive Phoenix",
+      "sha256": "d6fa435cf178a8014f480467a6ad70e26663770a366287566b844874afff57b4",
+      "stats": {
+        "attack": 60,
+        "defense": 110,
+        "stamina": 100,
+        "special": 100,
+        "hp": 117
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB028": {
+      "name": "Dread Hades",
+      "sha256": "e9d872358d5328ddc0e5a4ed9511b9bb4a19c32e469e9115847b3e1d713739e3",
+      "stats": {
+        "attack": 75,
+        "defense": 85,
+        "stamina": 130,
+        "special": 110,
+        "hp": 128
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB029": {
+      "name": "Shadow Ragnarok",
+      "sha256": "6e9b29d1f994975c3dff6f9d3e843c40e9e2352329b0b4e89b4916447f802ccb",
+      "stats": {
+        "attack": 60,
+        "defense": 78,
+        "stamina": 115,
+        "special": 105,
+        "hp": 130
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB030": {
+      "name": "Jet Wyvern",
+      "sha256": "4e29f7804ecd3c64422d736b84e2e17e6db47cc65a7babbaefc4167bf2af9197",
+      "stats": {
+        "attack": 55,
+        "defense": 108,
+        "stamina": 88,
+        "special": 100,
+        "hp": 115
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB031": {
+      "name": "Curse Satan",
+      "sha256": "7d57b8885e05112b7a4c87a48212bf926a28a33b80787b9fee98ded50f2d5d7a",
+      "stats": {
+        "attack": 70,
+        "defense": 120,
+        "stamina": 105,
+        "special": 105,
+        "hp": 120
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB032": {
+      "name": "Death Diabolos",
+      "sha256": "ad209c2a7abad97e1aaa7cd4b99a1f614354359371ee713e4044d4f115aabeb2",
+      "stats": {
+        "attack": 120,
+        "defense": 100,
+        "stamina": 105,
+        "special": 150,
+        "hp": 115
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB033": {
+      "name": "Soligle",
+      "sha256": "e632749c4626836b4752ef6fbd464aa7282dde158bed52fd745ead1f42374b45",
+      "stats": {
+        "attack": 125,
+        "defense": 90,
+        "stamina": 115,
+        "special": 170,
+        "hp": 128
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "abilities",
+        "special_move",
+        "spin_direction"
+      ]
+    },
+    "BB034": {
+      "name": "Tempest Dragon",
+      "sha256": "c77710a00539e3e341f717f97fffc126ae9cdf6a3dbe22a4b5769bee74b43e67",
+      "stats": {
+        "attack": 118,
+        "defense": 55,
+        "stamina": 82,
+        "special": 130,
+        "hp": 106
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB035": {
+      "name": "Lord Spriggan",
+      "sha256": "03370a40a50db986b807f184eab4c0a647a6d7118fa89314c8d2129cc6a18deb",
+      "stats": {
+        "attack": 112,
+        "defense": 108,
+        "stamina": 105,
+        "special": 140,
+        "hp": 118
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB036": {
+      "name": "Flare Dragon",
+      "sha256": "733565aa86848fbf8bb8ec5d216483d6ac9891dc2ace95f3dcc832d1c1590cdc",
+      "stats": {
+        "attack": 105,
+        "defense": 50,
+        "stamina": 78,
+        "special": 115,
+        "hp": 97
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB038": {
+      "name": "Cyclone Valkyrie",
+      "sha256": "d2105bb2ae0efe11e52cf0f5cae0a73014abd07e9479f8f5e0e5f15eaa8bf4a7",
+      "stats": {
+        "attack": 110,
+        "defense": 45,
+        "stamina": 88,
+        "special": 125,
+        "hp": 97
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB039": {
+      "name": "Chain Ragnaruk",
+      "sha256": "d8509ebc9e8e24cad2d365d3db76d1eec4b697eb72036da35613167ee4726769",
+      "stats": {
+        "attack": 72,
+        "defense": 95,
+        "stamina": 128,
+        "special": 110,
+        "hp": 129
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB040": {
+      "name": "Dynamite Kerbeus",
+      "sha256": "17866f026c415899cc3888ea248ad4a6b9bf451151a4d21de627b3c5a16e186d",
+      "stats": {
+        "attack": 98,
+        "defense": 135,
+        "stamina": 108,
+        "special": 128,
+        "hp": 119
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB037": {
+      "name": "Wind Knight",
+      "sha256": "6e4dfa15ae528250dd33dbbd2700314f335370865e42ea1b7f84c3c47b1efc7a",
+      "stats": {
+        "attack": 88,
+        "defense": 118,
+        "stamina": 90,
+        "special": 110,
+        "hp": 114
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB041": {
+      "name": "Azeroth Veyrath",
+      "sha256": "7e4978fc0c70cd2baa7239814dddfe7285df2969b049a5288a2d988a1f19f241",
+      "stats": {
+        "attack": 150,
+        "defense": 100,
+        "stamina": 100,
+        "special": 160,
+        "hp": 130
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction",
+        "limited",
+        "available_until"
+      ]
+    },
+    "BB042": {
+      "name": "Galaxy Pegasus",
+      "sha256": "b3f226746c6d6d673b17df2d371d153ebbe882dfbd9b60c8a64456c8924f834c",
+      "stats": {
+        "attack": 130,
+        "defense": 60,
+        "stamina": 70,
+        "special": 130,
+        "hp": 94
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB043": {
+      "name": "Dranzer",
+      "sha256": "556820dbf64b436ba18e1bdb024d57016ae4127a7665714b5cb12c1eb6cd3a09",
+      "stats": {
+        "attack": 105,
+        "defense": 95,
+        "stamina": 100,
+        "special": 125,
+        "hp": 112
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB044": {
+      "name": "Boom Khalzar",
+      "sha256": "1d9fe4c9b9fdf75acf3561627fe8d21190609bf9fa7294f04227ae42feeb463e",
+      "stats": {
+        "attack": 135,
+        "defense": 75,
+        "stamina": 80,
+        "special": 120,
+        "hp": 99
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB045": {
+      "name": "Infinity Achilles",
+      "sha256": "74a2852d7066fbb9ad2ab5b048262d8795b0008b3a9f51c759b36bc2079ced4b",
+      "stats": {
+        "attack": 105,
+        "defense": 105,
+        "stamina": 100,
+        "special": 105,
+        "hp": 118
+      },
+      "fields": [
+        "id",
+        "name",
+        "type",
+        "rarity",
+        "pre_battle_choice",
+        "image_url",
+        "stats",
+        "attack_mode_stats",
+        "defense_mode_stats",
+        "ability",
+        "abilities",
+        "special_move",
+        "special_move_2",
+        "spin_direction",
+        "description",
+        "burst_height"
+      ]
+    },
+    "BB046": {
+      "name": "Variant Lucifer",
+      "sha256": "be7d874db79f42a44098c00ed1563852578e4085e7fcd5173d6f84a887fbe198",
+      "stats": {
+        "attack": 75,
+        "defense": 160,
+        "stamina": 90,
+        "special": 100,
+        "hp": 128
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "special_move_2",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB047": {
+      "name": "Super Hyperion",
+      "sha256": "40c52be9ce9d2b675efcc6bbab9cdc66ec3e0dc40ca5a5a4ae1ee5a24f026d2b",
+      "stats": {
+        "attack": 110,
+        "defense": 70,
+        "stamina": 50,
+        "special": 100,
+        "hp": 101
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB048": {
+      "name": "Bahamut Blitz",
+      "sha256": "8dcad882e0b439b9087b2ead22c7da4f0c5a955c8832bf4366f5bde7b753ce46",
+      "stats": {
+        "attack": 100,
+        "defense": 70,
+        "stamina": 50,
+        "special": 95,
+        "hp": 101
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB049": {
+      "name": "DranSword",
+      "sha256": "9ede288f503e2bd2f529c098ac849a22686b20eb496be089e3ab9eaadfb5ead3",
+      "stats": {
+        "attack": 100,
+        "defense": 40,
+        "stamina": 50,
+        "special": 95,
+        "hp": 85
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB050": {
+      "name": "Emerald Phantom Dragon",
+      "sha256": "d4fe58cc0389b9a0c2a9e668f1eb08340dc8e0f7cde557e63a99987679a0890c",
+      "stats": {
+        "attack": 66,
+        "defense": 113,
+        "stamina": 121,
+        "special": 90,
+        "hp": 131
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB051": {
+      "name": "Hell Salamander",
+      "sha256": "eda4226d127fd4a8d4082b7fabcb69ff91a41746d19775e2121f8842c9fcc2e9",
+      "stats": {
+        "attack": 100,
+        "defense": 80,
+        "stamina": 90,
+        "special": 105,
+        "hp": 108
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "special_move_2",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB052": {
+      "name": "Big Bang Genesis",
+      "sha256": "41f706732bfaec407f7cb7cafb805f6375c3c8d9f7649fa615236a64545dfc46",
+      "stats": {
+        "attack": 80,
+        "defense": 140,
+        "stamina": 120,
+        "special": 110,
+        "hp": 128
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB053": {
+      "name": "Prime Apocalypse",
+      "sha256": "7e6b4663983997cd2098906542e4063fe0c873f17c245d25bc736e227e21304f",
+      "stats": {
+        "attack": 130,
+        "defense": 80,
+        "stamina": 100,
+        "special": 115,
+        "hp": 118
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB054": {
+      "name": "Archer Hercules",
+      "sha256": "06cfb06429875af0393023b310418e4a1908e94824626124d65ba77b7b6a705c",
+      "stats": {
+        "attack": 50,
+        "defense": 74,
+        "stamina": 136,
+        "special": 75,
+        "hp": 123
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB055": {
+      "name": "Crystal Zeutron",
+      "sha256": "794945133c9d3205473bdfb7e5bcaa608abcf75ed8642e24da064f8b90c8a883",
+      "stats": {
+        "attack": 70,
+        "defense": 80,
+        "stamina": 125,
+        "special": 95,
+        "hp": 126
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB056": {
+      "name": "Quitziko",
+      "sha256": "483b5d44a441438d57dcd3781f63b2e80d223301481d3082292fda5b46e77e39",
+      "stats": {
+        "attack": 71,
+        "defense": 88,
+        "stamina": 81,
+        "special": 75,
+        "hp": 108
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB057": {
+      "name": "Lost Longinus",
+      "sha256": "490d25565ed0b61fa29313c96e38be092e8531e7a3a368625895423edef8d190",
+      "stats": {
+        "attack": 128,
+        "defense": 88,
+        "stamina": 96,
+        "special": 110,
+        "hp": 118
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "special_move_2",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB058": {
+      "name": "Giga Gaianon",
+      "sha256": "0e3ef6dc35e59ed2e6471412ee3e30400a70302a6bb8878730d2e040936643e6",
+      "stats": {
+        "attack": 75,
+        "defense": 89,
+        "stamina": 74,
+        "special": 70,
+        "hp": 106
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB059": {
+      "name": "Fang Fenrir",
+      "sha256": "8d6f999719769c93d5f4199ed929a4cc367cb16ecf9096ca81578e1633bc7b93",
+      "stats": {
+        "attack": 87,
+        "defense": 56,
+        "stamina": 68,
+        "special": 70,
+        "hp": 90
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB060": {
+      "name": "Ferro Fengriff",
+      "sha256": "68f7f43864564c9b757b16bbfdc656ead4e7d1e971060a9837625f3cb45b4ee1",
+      "stats": {
+        "attack": 80,
+        "defense": 44,
+        "stamina": 74,
+        "special": 68,
+        "hp": 90
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB061": {
+      "name": "Epic Evipero",
+      "sha256": "f2f510e4b27f6d3625173d2f6859579ed2c8d407be3afc4a263c410bf2faef64",
+      "stats": {
+        "attack": 48,
+        "defense": 88,
+        "stamina": 74,
+        "special": 65,
+        "hp": 101
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB062": {
+      "name": "Dragoon Fantom",
+      "sha256": "79123515e680432f6743ba104848ee26cd1f1612b2cf0df990e1ded6fd4b6887",
+      "stats": {
+        "attack": 119,
+        "defense": 54,
+        "stamina": 59,
+        "special": 100,
+        "hp": 87
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB063": {
+      "name": "Deathscyther",
+      "sha256": "67e33b7151393954b6c99cf13e62b063dcc81a7f4dd9ab8e0dc06317bce280ee",
+      "stats": {
+        "attack": 107,
+        "defense": 48,
+        "stamina": 66,
+        "special": 80,
+        "hp": 87
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB064": {
+      "name": "Dark Deathscyther",
+      "sha256": "51d04f017484876ff686d2989e997c815d2d6918dc2c20e6ee8ddbb29e65603d",
+      "stats": {
+        "attack": 100,
+        "defense": 78,
+        "stamina": 74,
+        "special": 85,
+        "hp": 109
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB065": {
+      "name": "Baldur Bumper",
+      "sha256": "5c7097094370f4de1dc5d067a37de1798d8252a892e9a51689e4a4a7a6a66637",
+      "stats": {
+        "attack": 47,
+        "defense": 98,
+        "stamina": 88,
+        "special": 75,
+        "hp": 111
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB066": {
+      "name": "Beast Behemoth",
+      "sha256": "8f9456318aacc94c622f2f247aee7669bb649fa6cc45fedb0b29dbac1e96cb1a",
+      "stats": {
+        "attack": 103,
+        "defense": 64,
+        "stamina": 82,
+        "special": 85,
+        "hp": 101
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB067": {
+      "name": "Thermal Pisces",
+      "sha256": "b47efc73c0f69db85df9caaa2cc57993244cb83ef3ae98b0038ba07f8e7b340b",
+      "stats": {
+        "attack": 60,
+        "defense": 69,
+        "stamina": 101,
+        "special": 80,
+        "hp": 120
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB068": {
+      "name": "Storm Aries",
+      "sha256": "e855e95597e169627f9cd7035ce2504662dcd7d40db8180c41f86dafdedd40e8",
+      "stats": {
+        "attack": 57,
+        "defense": 91,
+        "stamina": 98,
+        "special": 72,
+        "hp": 121
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB069": {
+      "name": "Dark Wolf",
+      "sha256": "84b3cbce285f75f6d4faa68675e7d93f230ee8e6f103e2f94a0b52dd1db9e89e",
+      "stats": {
+        "attack": 75,
+        "defense": 86,
+        "stamina": 78,
+        "special": 76,
+        "hp": 106
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB070": {
+      "name": "Cobalt Dragoon",
+      "sha256": "6562c4c1a0e75f5543f294d1912af3b38084a3179ab4aa74dd2c6610b9a9e323",
+      "stats": {
+        "attack": 121,
+        "defense": 61,
+        "stamina": 72,
+        "special": 115,
+        "hp": 104
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "special_move_2",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB071": {
+      "name": "Aero Pegasus",
+      "sha256": "04bb9155d115526c4591b8f0f1638ed69b1d2377c284f3610bf25569be73cbd9",
+      "stats": {
+        "attack": 104,
+        "defense": 96,
+        "stamina": 91,
+        "special": 95,
+        "hp": 120
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB072": {
+      "name": "Cyber Valkyrie",
+      "sha256": "f2a1808e87d85dd707f4690087de0bd1575aadaf9f22129f6311c09ef768f17f",
+      "stats": {
+        "attack": 107,
+        "defense": 70,
+        "stamina": 76,
+        "special": 90,
+        "hp": 101
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "special_move_2",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB073": {
+      "name": "Hazard Cognite",
+      "sha256": "44ac98976b52bb16de04e789290c68d36e857b190f977ce4f16a77a8a16a2491",
+      "stats": {
+        "attack": 77,
+        "defense": 81,
+        "stamina": 98,
+        "special": 74,
+        "hp": 107
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB074": {
+      "name": "Acid Anubion",
+      "sha256": "74f3d23c01797356d2dab48112390f48c93a30a9559b136550891bfb84ce9da4",
+      "stats": {
+        "attack": 63,
+        "defense": 93,
+        "stamina": 76,
+        "special": 68,
+        "hp": 100
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB075": {
+      "name": "Alter Cognite",
+      "sha256": "eadfac64269b015da074eac52599436780f1edc768a8357c784f59732dc9eed3",
+      "stats": {
+        "attack": 85,
+        "defense": 80,
+        "stamina": 89,
+        "special": 82,
+        "hp": 109
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB076": {
+      "name": "Sea Excalibur",
+      "sha256": "22ec23ffa464169fea15fa1178572b851125f1e5768a776afae74011ac63fbae",
+      "stats": {
+        "attack": 114,
+        "defense": 74,
+        "stamina": 69,
+        "special": 105,
+        "hp": 99
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "special_move_2",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB077": {
+      "name": "Tartarus Reaper",
+      "sha256": "bfd3030d703838fc58bc17fc77652816fae30884de80eeed8e4d1c6d1da50c61",
+      "stats": {
+        "attack": 127,
+        "defense": 129,
+        "stamina": 122,
+        "special": 125,
+        "hp": 122
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB019": {
+      "name": "Excalibur Ascendant",
+      "sha256": "91a3b5b54cda066052a6d49e2db556022f45016508cfa0840fbd4906af2404b5",
+      "stats": {
+        "attack": 160,
+        "defense": 90,
+        "stamina": 110,
+        "special": 150,
+        "hp": 113
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB078": {
+      "name": "Breaker Excalibur",
+      "sha256": "96f15241c068361d3f85d16cb1e3cb1b336b3416f7b086c16891df171932ba58",
+      "stats": {
+        "attack": 112,
+        "defense": 70,
+        "stamina": 80,
+        "special": 130,
+        "hp": 106
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB079": {
+      "name": "Void Longinus",
+      "sha256": "557465f1ec3f4b96f0d4fa1fef2d55ec6c3a50c7d3c934ca4fabed7d4af962e5",
+      "stats": {
+        "attack": 147,
+        "defense": 118,
+        "stamina": 123,
+        "special": 160,
+        "hp": 101
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB080": {
+      "name": "Aetherion Vortex",
+      "sha256": "8cd46109dcf01ae25402ef15260f368f823560d4847793c777da6c26bbe2764c",
+      "stats": {
+        "attack": 121,
+        "defense": 121,
+        "stamina": 111,
+        "special": 145,
+        "hp": 111
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB081": {
+      "name": "Rising Ragnaruk",
+      "sha256": "9b6fcfa1664c6f0ecd1254157649510c49dce06f0461a3fee0aa60118dac2d0e",
+      "stats": {
+        "attack": 62,
+        "defense": 74,
+        "stamina": 98,
+        "special": 74,
+        "hp": 108
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB082": {
+      "name": "King Kerbeus",
+      "sha256": "37830a8ba5a3a87ce8081f05b7d2f8dd26534939d3d78d27200bc754dfc18334",
+      "stats": {
+        "attack": 58,
+        "defense": 96,
+        "stamina": 76,
+        "special": 72,
+        "hp": 104
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB083": {
+      "name": "Storm Spriggan",
+      "sha256": "4d94b776c3ebd37cca77e55d14e916c3651b5ad056904e6cab7ced8a654db816",
+      "stats": {
+        "attack": 74,
+        "defense": 78,
+        "stamina": 78,
+        "special": 82,
+        "hp": 104
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB084": {
+      "name": "Victory Valkyrie",
+      "sha256": "f32ce227266a0959f232c99c00873f460f729f50aba6f14102565d9720bb70bf",
+      "stats": {
+        "attack": 92,
+        "defense": 48,
+        "stamina": 70,
+        "special": 76,
+        "hp": 96
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB085": {
+      "name": "Victory Valkyrie X",
+      "sha256": "447c1d430e12f7366ef517525cc583e459eee6f8d60c5f508ad490997bd26a02",
+      "stats": {
+        "attack": 110,
+        "defense": 58,
+        "stamina": 82,
+        "special": 96,
+        "hp": 108
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB086": {
+      "name": "Storm Spriggan X",
+      "sha256": "91656c78082028646bbcb2fdf72e0afa641945c880afbbef684f7d657101af31",
+      "stats": {
+        "attack": 90,
+        "defense": 94,
+        "stamina": 90,
+        "special": 102,
+        "hp": 118
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB087": {
+      "name": "Master Diabolos",
+      "sha256": "c55eaaf601828779f5baf3bb858e7953f0a455bf46de2d81edb3435ab67d044e",
+      "stats": {
+        "attack": 136,
+        "defense": 100,
+        "stamina": 103,
+        "special": 120,
+        "hp": 110
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "dual_spin",
+        "image_url",
+        "description",
+        "stats",
+        "spin_modes",
+        "ability",
+        "abilities",
+        "special_move"
+      ]
+    },
+    "BB088": {
+      "name": "Ultimate Valkyrie",
+      "sha256": "f44a6cd0cb28744d0edb3d871384293cec6fdb8f362fc594fda67c583b18502b",
+      "stats": {
+        "attack": 165,
+        "defense": 40,
+        "stamina": 117,
+        "special": 165,
+        "hp": 134
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "hidden_drop_one_in"
+      ]
+    },
+    "BB089": {
+      "name": "Ultimate Valkyrie (Black Edition)",
+      "sha256": "4ae0a206c474efa0bd544bae2a8ef2dedbcbccc59cc9da7b33db781d9d3765dc",
+      "stats": {
+        "attack": 165,
+        "defense": 40,
+        "stamina": 117,
+        "special": 165,
+        "hp": 134
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "booster_exclusive",
+        "hidden_drop_one_in",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB090": {
+      "name": "Shining Shuriken",
+      "sha256": "645290a16a1b31b452d454b86548610c700bc233e2386803647cce75e50044d1",
+      "stats": {
+        "attack": 148,
+        "defense": 128,
+        "stamina": 77,
+        "special": 125,
+        "hp": 69
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB091": {
+      "name": "Blood Dragon",
+      "sha256": "ebe078e4968872807da0f0f3a8c24beac2f938a6837b2c95652169c8d059f821",
+      "stats": {
+        "attack": 158,
+        "defense": 29,
+        "stamina": 81,
+        "special": 125,
+        "hp": 111
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB092": {
+      "name": "Janus Bahamut",
+      "sha256": "36f226d7dd9259ae06fd15911444ed86f93d987a7bfc886d37e8ac1a804f7cc1",
+      "stats": {
+        "attack": 144,
+        "defense": 111,
+        "stamina": 101,
+        "special": 118,
+        "hp": 112
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "dual_spin",
+        "limited",
+        "owner_ids",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities",
+        "spin_modes"
+      ]
+    },
+    "BB093": {
+      "name": "Cho-Z Valkyrie",
+      "sha256": "b68e45d0bd1d5aac2d9867b9a78979f282991e236223b4333ecd6b35013881b1",
+      "stats": {
+        "attack": 132,
+        "defense": 96,
+        "stamina": 102,
+        "special": 130,
+        "hp": 112
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB094": {
+      "name": "Drain Fafnir",
+      "sha256": "3e06bd80884f490a3ba55c7548964ab47acf1ed3420776f2df228b839a80655e",
+      "stats": {
+        "attack": 74,
+        "defense": 92,
+        "stamina": 128,
+        "special": 108,
+        "hp": 124
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB095": {
+      "name": "Geist Fafnir",
+      "sha256": "0390aefe49d778b51970bf8bd5a858dd93d490c084e8ccd27af7c819f80297d3",
+      "stats": {
+        "attack": 88,
+        "defense": 104,
+        "stamina": 138,
+        "special": 122,
+        "hp": 126
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB096": {
+      "name": "Nightmare Longinus",
+      "sha256": "c2ea4c35e6e239f763cd6075c0f942ce6c461fe8e03741510b3b51be80da9f34",
+      "stats": {
+        "attack": 142,
+        "defense": 88,
+        "stamina": 96,
+        "special": 138,
+        "hp": 108
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB097": {
+      "name": "Cho-Z Achilles",
+      "sha256": "a36740304d55b32829029b6d566b8a39391ba3a60c50aa37c0e2dab6443d81af",
+      "stats": {
+        "attack": 138,
+        "defense": 98,
+        "stamina": 110,
+        "special": 126,
+        "hp": 118
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities",
+        "dual_spin",
+        "spin_modes"
+      ]
+    },
+    "BB098": {
+      "name": "Wild Wyvern",
+      "sha256": "122cf6b5f173829442ab56c135ef758927f270702e3379750a0cb50944456e9d",
+      "stats": {
+        "attack": 78,
+        "defense": 130,
+        "stamina": 96,
+        "special": 104,
+        "hp": 128
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB099": {
+      "name": "Drain Fafnir (Black Edition)",
+      "sha256": "716c07caba35a57e06a970dbcddb436941d837d77c870be54e55736f16e8118c",
+      "stats": {
+        "attack": 74,
+        "defense": 92,
+        "stamina": 128,
+        "special": 108,
+        "hp": 124
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "abilities",
+        "stats",
+        "special_move"
+      ]
+    },
+    "BB100": {
+      "name": "Twin Nemesis",
+      "sha256": "e23368bb2c87bbc2550be6941546343551f78132c6f93953782a0033ebbcf7e5",
+      "stats": {
+        "attack": 124,
+        "defense": 121,
+        "stamina": 118,
+        "special": 130,
+        "hp": 126
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB102": {
+      "name": "Deep Caynox",
+      "sha256": "6d2940f95c801bbd8faa0255a6a212281f8be64cacd61fb5a3ee4801ae280d25",
+      "stats": {
+        "attack": 50,
+        "defense": 101,
+        "stamina": 121,
+        "special": 116,
+        "hp": 134
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB103": {
+      "name": "Deep Caynox ELT",
+      "sha256": "e368d3a0c3a040a8ff8a725bb471f44a998607a71b7360991e8489a7641c4c20",
+      "stats": {
+        "attack": 50,
+        "defense": 101,
+        "stamina": 121,
+        "special": 116,
+        "hp": 134
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "booster_exclusive",
+        "image_url",
+        "description",
+        "abilities",
+        "stats",
+        "special_move"
+      ]
+    },
+    "BB101": {
+      "name": "Surge Xcalius",
+      "sha256": "00a230434c1f79f91412ad7687ccfdd17db03339345f35a15ed79f5d633ab370",
+      "stats": {
+        "attack": 158,
+        "defense": 47,
+        "stamina": 92,
+        "special": 152,
+        "hp": 112
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB104": {
+      "name": "Heaven's Ring",
+      "sha256": "23d4a8103a75a3c419d085dc86c960cb24249dac0ed566e2e26ede09f0f49a2f",
+      "stats": {
+        "attack": 88,
+        "defense": 161,
+        "stamina": 112,
+        "special": 130,
+        "hp": 145
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "booster_exclusive",
+        "limited",
+        "owner_ids",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "abilities",
+        "special_move"
+      ]
+    },
+    "BB105": {
+      "name": "Omni Odax",
+      "sha256": "50688713ed6bcf3958f8a2c7687ad331cf9d51513179733ef6cdc9af2b1b5c4b",
+      "stats": {
+        "attack": 108,
+        "defense": 60,
+        "stamina": 78,
+        "special": 98,
+        "hp": 98
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "spin_direction",
+        "stats",
+        "abilities",
+        "special_move"
+      ]
+    },
+    "BB106": {
+      "name": "Hyper Horusood",
+      "sha256": "5401d90361299e2471edb4405400300d7de432ba2cbcbd3a874e475ae7ce5b8f",
+      "stats": {
+        "attack": 62,
+        "defense": 78,
+        "stamina": 104,
+        "special": 76,
+        "hp": 116
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "spin_direction",
+        "stats",
+        "abilities",
+        "special_move"
+      ]
+    },
+    "BB107": {
+      "name": "Artemis Roze",
+      "sha256": "6ccad63e69cc98d25c645c70a02a6907ee8b35e9359024a7fbddd921fdaae8ed",
+      "stats": {
+        "attack": 155,
+        "defense": 70,
+        "stamina": 120,
+        "special": 155,
+        "hp": 165
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "limited",
+        "owner_ids",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "abilities",
+        "special_move",
+        "card_theme"
+      ]
+    },
+    "BB108": {
+      "name": "Aegis Valorian",
+      "sha256": "7e062d6723d2f4e72bb42bbcc862a380236c6ce06d35f3658f4f4ee72cf8f5b2",
+      "stats": {
+        "attack": 124,
+        "defense": 124,
+        "stamina": 116,
+        "special": 118,
+        "hp": 118
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "dual_spin",
+        "limited",
+        "available_until",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "ability",
+        "abilities",
+        "spin_modes"
+      ]
+    },
+    "BB109": {
+      "name": "Kirindael",
+      "sha256": "5da25474d3c5e8425406b8eb9837fc9448f853ec33498f8f69fea34e5c36305d",
+      "stats": {
+        "attack": 123,
+        "defense": 103,
+        "stamina": 113,
+        "special": 160,
+        "hp": 123
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_requires",
+        "special_move",
+        "ability",
+        "abilities"
+      ]
+    },
+    "BB110": {
+      "name": "Cosmic Phoenix",
+      "sha256": "75877c20db744d214d3f29373e643ae72eb2799197abe1149deab3611b5749e7",
+      "stats": {
+        "attack": 120,
+        "defense": 110,
+        "stamina": 118,
+        "special": 148,
+        "hp": 128
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "limited",
+        "available_until",
+        "owner_ids",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_requires",
+        "special_move",
+        "ability",
+        "abilities"
+      ]
+    },
+    "BB111": {
+      "name": "Azure Drakonyx",
+      "sha256": "2e149b2d0bbe2d3bfdc06c31a3d93decec0ffa2792d91e64c65ac266cfdef9c9",
+      "stats": {
+        "attack": 150,
+        "defense": 88,
+        "stamina": 96,
+        "special": 138,
+        "hp": 118
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "limited",
+        "available_until",
+        "owner_ids",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "ability",
+        "abilities"
+      ]
+    },
+    "BB112": {
+      "name": "Drakoryn",
+      "sha256": "c08041f8d07c52e02ae1374401ea06452463fb6f5646559bef1badfaeb923c39",
+      "stats": {
+        "attack": 99,
+        "defense": 190,
+        "stamina": 88,
+        "special": 150,
+        "hp": 189
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "limited",
+        "available_until",
+        "owner_ids",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "ability",
+        "abilities"
+      ]
+    },
+    "BB113": {
+      "name": "Radiant Valkyrie",
+      "sha256": "f43f8ba34bfb81daa418e631a624889054678003ffc6000186f4380a65a837df",
+      "stats": {
+        "attack": 158,
+        "defense": 66,
+        "stamina": 114,
+        "special": 145,
+        "hp": 143
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "limited",
+        "available_until",
+        "owner_ids",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "art_position",
+        "description",
+        "stats",
+        "special_move",
+        "ability",
+        "abilities"
+      ]
+    },
+    "BB114": {
+      "name": "Astral Valkyrie — Starbreaker",
+      "sha256": "3ac2c1f2f299f3ab773a3b6164108086c06da6d7deb4c427f74bf4abd59ea079",
+      "stats": {
+        "attack": 152,
+        "defense": 96,
+        "stamina": 88,
+        "special": 148,
+        "hp": 150
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "limited",
+        "available_until",
+        "owner_ids",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "button_profile",
+        "special_move",
+        "ability",
+        "abilities"
+      ]
+    },
+    "BB115": {
+      "name": "Astral Valkyrie — Skyrend",
+      "sha256": "738042a493c2beaebee00d6900d012586121878f5b1b14b48c8c4d68d55c9cc2",
+      "stats": {
+        "attack": 128,
+        "defense": 104,
+        "stamina": 132,
+        "special": 140,
+        "hp": 145
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "limited",
+        "available_until",
+        "owner_ids",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "button_profile",
+        "special_move",
+        "ability",
+        "abilities"
+      ]
+    },
+    "BB116": {
+      "name": "Hermiblaze",
+      "sha256": "fccf657f05e88ccbc6abb7f012bccc95626ff3d9287c3191b6f2f5594e848c86",
+      "stats": {
+        "attack": 152,
+        "defense": 74,
+        "stamina": 104,
+        "special": 150,
+        "hp": 132
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "limited",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "abilities",
+        "special_move"
+      ]
+    },
+    "BB117": {
+      "name": "Xeno Xcalius",
+      "sha256": "ac534375a9900e4a04eff2fbdfe4ee07147a776c08fd962299235f2a03bf9124",
+      "stats": {
+        "attack": 132,
+        "defense": 72,
+        "stamina": 88,
+        "special": 140,
+        "hp": 118
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "abilities",
+        "special_move"
+      ]
+    },
+    "BB118": {
+      "name": "Abyss Drakon",
+      "sha256": "5210611b30a756b1afdaa7edee396987159317a41fe0cdc2f8427999ba4cdda8",
+      "stats": {
+        "attack": 114,
+        "defense": 98,
+        "stamina": 104,
+        "special": 120,
+        "hp": 109
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB119": {
+      "name": "Noctilune",
+      "sha256": "aff3c466b846f75f8ab6dce1d0eadb9a81c0cf0e1d7bcaca4ea8217898137d42",
+      "stats": {
+        "attack": 108,
+        "defense": 112,
+        "stamina": 110,
+        "special": 125,
+        "hp": 115
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "limited"
+      ]
+    },
+    "BB120": {
+      "name": "Phantom Nightmare",
+      "sha256": "b5e2b5293f1c38605a41ced5c371d64deddaecdc90ce805ad0dbdea8d27d8783",
+      "stats": {
+        "attack": 120,
+        "defense": 115,
+        "stamina": 112,
+        "special": 145,
+        "hp": 125
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "spin_direction",
+        "limited",
+        "stats",
+        "ability",
+        "abilities",
+        "special_move"
+      ]
+    },
+    "BB121": {
+      "name": "Phantom X",
+      "sha256": "e2be57d6c96f1f0bd160b6005e57e6db74c24e153dd07a35893cb2ff7240fc95",
+      "stats": {
+        "attack": 140,
+        "defense": 120,
+        "stamina": 130,
+        "special": 180,
+        "hp": 130
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "spin_direction",
+        "limited",
+        "stats",
+        "ability",
+        "abilities",
+        "special_requires",
+        "special_move"
+      ]
+    },
+    "BB122": {
+      "name": "Achilles CX",
+      "sha256": "aa7667e4c6f925c861524b0a105afb36ceba941688edb5c717498cef2e9586d7",
+      "stats": {
+        "attack": 138,
+        "defense": 132,
+        "stamina": 125,
+        "special": 180,
+        "hp": 135
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "spin_direction",
+        "limited",
+        "stats",
+        "ability",
+        "abilities",
+        "special_move"
+      ]
+    },
+    "BB123": {
+      "name": "Epsilon",
+      "sha256": "3054e60bc4cb082c490f603dcb6d1cab98481a09a378a5ce21ab4b4543250129",
+      "stats": {
+        "attack": 124,
+        "defense": 43,
+        "stamina": 65,
+        "special": 175,
+        "hp": 135
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "shop_exclusive",
+        "shop_price",
+        "spawnable",
+        "booster_exclusive"
+      ]
+    },
+    "BB_SAKURA_BLADE": {
+      "name": "Sakura Blade",
+      "sha256": "b61c1d5256da0f1b566a2a7e5c61577608a21b6ac3116aa95d4d8efc5c454988",
+      "stats": {
+        "attack": 134,
+        "defense": 112,
+        "stamina": 65,
+        "special": 170,
+        "hp": 150
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "limited",
+        "image_url",
+        "description",
+        "burst_height",
+        "type",
+        "stats",
+        "ability",
+        "special_move",
+        "abilities",
+        "spin_direction"
+      ]
+    },
+    "BB124": {
+      "name": "Cure Black",
+      "sha256": "751640f513ef65043038bd5802d856a6bfef5ec914be195d9983c6ab431ecc27",
+      "stats": {
+        "attack": 125,
+        "defense": 87,
+        "stamina": 80,
+        "special": 115,
+        "hp": 105
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB125": {
+      "name": "Cure White",
+      "sha256": "3dcf2a0116d31b6f4e507dd4332498c0bd5fd3f658c3a78a652eb3fd90a406b5",
+      "stats": {
+        "attack": 82,
+        "defense": 120,
+        "stamina": 75,
+        "special": 100,
+        "hp": 120
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "special_move",
+        "abilities"
+      ]
+    },
+    "BB126": {
+      "name": "Draciel F",
+      "sha256": "2eaab84539cfad305bc28512afda8ae2e61e226f6fae9f03e0606651fbe3de28",
+      "stats": {
+        "attack": 55,
+        "defense": 95,
+        "stamina": 80,
+        "special": 70,
+        "hp": 100
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "draciel_kit",
+        "ability",
+        "abilities",
+        "special_move",
+        "special_requires"
+      ]
+    },
+    "BB127": {
+      "name": "Draciel V",
+      "sha256": "82264ef5615729bbb61d509e3287c1112a06e1bbe0218cdc57f91645c9faee6e",
+      "stats": {
+        "attack": 65,
+        "defense": 120,
+        "stamina": 95,
+        "special": 90,
+        "hp": 115
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "draciel_kit",
+        "ability",
+        "abilities",
+        "special_move",
+        "special_requires"
+      ]
+    },
+    "BB128": {
+      "name": "Draciel V2",
+      "sha256": "43051d86e0ed37fb143a7789ac292524093d64c907809c2b1d04637c51e74726",
+      "stats": {
+        "attack": 75,
+        "defense": 135,
+        "stamina": 105,
+        "special": 110,
+        "hp": 125
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "draciel_kit",
+        "ability",
+        "abilities",
+        "special_move",
+        "special_requires"
+      ]
+    },
+    "BB129": {
+      "name": "Draciel G",
+      "sha256": "e74fd22af3b84bfb6a26f1c22614bb9adba99392f414877fe15f6b489c292e16",
+      "stats": {
+        "attack": 85,
+        "defense": 150,
+        "stamina": 115,
+        "special": 125,
+        "hp": 140
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "draciel_kit",
+        "ability",
+        "abilities",
+        "special_move",
+        "special_requires"
+      ]
+    },
+    "BB130": {
+      "name": "Draciel MS",
+      "sha256": "565822b2ec07c16312df76ba62f7199cd8a0bb3460fd03dedd7735c46d5557d8",
+      "stats": {
+        "attack": 90,
+        "defense": 165,
+        "stamina": 120,
+        "special": 140,
+        "hp": 155
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "draciel_kit",
+        "ability",
+        "abilities",
+        "special_move",
+        "special_requires"
+      ]
+    },
+    "BB131": {
+      "name": "Unlock Unicorn",
+      "sha256": "1b6bebcd797a22655d740cd48fcdf5953a9017ee40ce9956ac51984d8d0c5d46",
+      "stats": {
+        "attack": 70,
+        "defense": 112,
+        "stamina": 82,
+        "special": 100,
+        "hp": 112
+      },
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "spin_direction",
+        "burst_height",
+        "image_url",
+        "description",
+        "stats",
+        "ability",
+        "abilities",
+        "special_move"
+      ]
+    }
+  },
+  "avatars": {
+    "avatar_c002": {
+      "name": "Yuki",
+      "sha256": "b8665a375117f4c3705cb2b772cf9b7f2926a8f45320685d9d5210fbb93faba7",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_r001": {
+      "name": "Sable",
+      "sha256": "28d336859530942d9cf91fe6cb3705dbe75e2083cb2deec778f267929253f7b3",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_r002": {
+      "name": "Marina",
+      "sha256": "4b3cc05c70098446167171bbbaf4aed75fc0aa793ec0e14e33234cb4859e450c",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_e001": {
+      "name": "Miku",
+      "sha256": "a883b375aa2af625e90b4120bfe384709537b81fc6a2256e550f714fab657b10",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_l001": {
+      "name": "Storm Reaper",
+      "sha256": "9b3d990700610070c32724458779198502c670adff2fc2cfc835e0951f53fc16",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_m001": {
+      "name": "Eternal Inferno",
+      "sha256": "69d415e9dcbe4940eafbe2bad8c842a5751e717fd158596b09ee842076de21e0",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_m002": {
+      "name": "Abyssal Warden",
+      "sha256": "d884bd508bd9bba0e2cfc282232b267cdcedd03e308d998ee8eecc14748001f9",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_x001": {
+      "name": "Omega Prime",
+      "sha256": "bf754390d19bcd59c29d24139137074360361da51455ad338b005852c55672f3",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_m003": {
+      "name": "Sukuna",
+      "sha256": "e56baab7d49fc2d15036a75dbae31d6a704f74d86810e805203afc692008a4fe",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_l003": {
+      "name": "Zero Two",
+      "sha256": "6df6f23aaa8085aff1201bb6455ab74246f479f3d0d26c57aeedc079d7ee8598",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_r003": {
+      "name": "Hinata",
+      "sha256": "1c109dfe48cab26d3d7924fe56bc1b82bdf4a2ef0235307c1ff2b8bee080741f",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_e003": {
+      "name": "Mitsuha",
+      "sha256": "b744e2ca9a407bfc60101982598d513574c9177ac954445f965766b372b81281",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_u002": {
+      "name": "Shadow Ninja",
+      "sha256": "3080f0fa6c676a68ccb9f133f3fce8622dc5237a9d33307eca8f0f35c600d06d",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_r004": {
+      "name": "Alya",
+      "sha256": "36dd12a6052430c4400a597cc96f3cf6afbf8949d1cd226c4403a5891ee9a1e8",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_e004": {
+      "name": "Gen",
+      "sha256": "9a5e889ea042079c39c5f4a81d06abdb32b8af93603adbec56825997bb234e6d",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_u003": {
+      "name": "Mikasa",
+      "sha256": "349fa4d59a13ac3b4bd23981748e9b7cbf2ec8ce58abea92fb2082f1b863ccd1",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_l004": {
+      "name": "Taki",
+      "sha256": "5acfa869024a4218f95e51a2d492a8b8e8ff48f4bdb931b9f299d80d2d3ca9d7",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_r005": {
+      "name": "Yotsuha",
+      "sha256": "50354d46742d34e876577b690ba8203314c2ced8d8a9f0e3f5837362561afdd5",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_e005": {
+      "name": "Reina",
+      "sha256": "9c56c4a53d2bd330ee4583ee2a5c58b6f03831039dceac6bda5f58799d6976c6",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_r006": {
+      "name": "Okudera",
+      "sha256": "e5c24573ca4e13ea4e5832cd0f78db6b829133b4ff1f88d92687f004fb60c34f",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_m004": {
+      "name": "Tifa",
+      "sha256": "c29d6e2dd3b68e6f8828b245d4fb2e7f9c3033c792ac524dbf8494cf4db301c9",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_r007": {
+      "name": "Tessie",
+      "sha256": "956228f9c401a375d08cc631688afe615eebd06725757a0250166ac284d43b79",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_r008": {
+      "name": "Kanna",
+      "sha256": "fcd99ad35794ff804b0521cd87f2fdfa2f234f55b978843b14955b817cd025c2",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_e006": {
+      "name": "Ymir",
+      "sha256": "d65a0d496d90d75ff4dd6a174357bbf9102e2f20d53d45c34cc4f298a1082b02",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_l005": {
+      "name": "Historia",
+      "sha256": "de4d2ae3d590b9c31e65d2053e571c4c50dea902377f984bd560e7b8e64b0259",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_u004": {
+      "name": "Mitsuri",
+      "sha256": "dce33ced2d58236d6a46bbf90964341cec3c4adf1ed8b6e9d153b9f157601719",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_u005": {
+      "name": "Shinobu",
+      "sha256": "8e72ed598968871443577738dc1d368a1f6b61cade2933d7a24da2a09eb617b1",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_x002": {
+      "name": "Argus",
+      "sha256": "6432df26560344dcd57359a8802bff83982f75058a22d897b997dbd32559fb7b",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_x003": {
+      "name": "Dyrroth",
+      "sha256": "f9456faab1434b93bc6e9f98da12b8202349d1b9f5c287a2c9b706c24e96ce1c",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_u006": {
+      "name": "Mare",
+      "sha256": "ef4fb00adb16d9b02335b5b48f41a91e6dbc72ce631d81de6aed3b125d01bf2f",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_x004": {
+      "name": "Cobra Titan",
+      "sha256": "1551f0861a410258e61443e1ec58b979bf4cf374ed994bed2c1eaff40d070f75",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_u007": {
+      "name": "Miffy",
+      "sha256": "c69bce7fd23c341628076d46ebfc61951263d5db0544602da5686512b59366d6",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_mlbb001": {
+      "name": "Freya",
+      "sha256": "ec6f8644f10e8c12fd68f64fbd1f8ac20a80aefb01742799b7d9c494c322e7af",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_mlbb002": {
+      "name": "Vexana",
+      "sha256": "0ec96af738813be02a84add89a24dfdec80e2d2ac9d11ec6a53c26d9d371f947",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_mlbb003": {
+      "name": "Helcurt",
+      "sha256": "9747172c925077ee89f4dcd74aba3905968072c32ff82f6ecdc55488bf965458",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_mlbb004": {
+      "name": "Eudora",
+      "sha256": "d1dba0787251e9999e41beed7242678ea978068d707dfd08536e2fa1d6d298a2",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_u001": {
+      "name": "Dr. W. D. Gaster",
+      "sha256": "b50545e64a65a73b3b83de344ada5b5ccee3269160428cdb4c5180a6bd5a9a5e",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_s101": {
+      "name": "Rantaro Kiyama",
+      "sha256": "e022d3ef25d82c0275d9be6428f9c3cdbd4ae3d7bcdec0dffc83f85ce5077363",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "school_league_bey",
+        "theme",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_s102": {
+      "name": "Ken Midori",
+      "sha256": "23ec57d64ffba8902b98a998273b545a4640179b9a79efee0d0c9409e9c99de2",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "school_league_bey",
+        "theme",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_s103": {
+      "name": "Daigo Kurogami",
+      "sha256": "f1be6cbfe249dbbebb63612737ca07e81b7741a8cb45f268f8f5797be2378d10",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "school_league_bey",
+        "theme",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_s104": {
+      "name": "Hoji Konda",
+      "sha256": "ab32318957636e3ca18b8f147b03dcc71768e4e13e7c396547f3ff3d8b06fc33",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "school_league_bey",
+        "theme",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_s105": {
+      "name": "Wakiya Murasaki",
+      "sha256": "56ca59eff0e0df567b9215e739fd70de839fa18f3b229eb6879607f3b6e9c042",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "school_league_bey",
+        "theme",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_s106": {
+      "name": "Orochi Ginba",
+      "sha256": "78bf527dd5f27d87da366e7cad9687bbfcdc391a368f68a80648d8c4f9393f88",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "school_league_bey",
+        "theme",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_s107": {
+      "name": "Valt Aoi",
+      "sha256": "528ecdb5111992782ce8384b367096f65e829b5ae0327dd1578f3495fd10249c",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "school_league_bey",
+        "theme",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_s108": {
+      "name": "Shu Kurenai",
+      "sha256": "bf441e120f628fb4216134aee06028538409bc0d65e42d0a272f53b5282c3c52",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "school_league_bey",
+        "theme",
+        "skills",
+        "bonuses"
+      ]
+    },
+    "avatar_og_tyson": {
+      "name": "Tyson",
+      "sha256": "9febf20e4623e93ec11089bd8a890cdc662104871c0ebfe34d98219b4909a4fc",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "active_battle_skills",
+        "character",
+        "anime_bey",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_og_kai": {
+      "name": "Kai",
+      "sha256": "55ecbee3ee923ef5322dcadc66ce0e7a406f54e14aa3c706975e95980908905b",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "active_battle_skills",
+        "character",
+        "anime_bey",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_og_ray": {
+      "name": "Ray",
+      "sha256": "6bafccf295742cd262f846a173338fa9639986dda62f409490cf9b6d30b3907c",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "active_battle_skills",
+        "character",
+        "anime_bey",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_og_max": {
+      "name": "Max",
+      "sha256": "cc1ded7dc8b58389d7ce3f8ee291f287fc70615e7fbedc3ea849efdfca861c72",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "active_battle_skills",
+        "character",
+        "anime_bey",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_og_mariah": {
+      "name": "Mariah",
+      "sha256": "fe07c65596811bf2556717c85534338c134e8ae1e61eea649432dfd9142e11b0",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "active_battle_skills",
+        "character",
+        "anime_bey",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_og_daichi": {
+      "name": "Daichi",
+      "sha256": "7d888775abc8d6678843e11c062a25ed2ee5192481dcee1f61d2327ca61bc1d1",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "active_battle_skills",
+        "character",
+        "anime_bey",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_og_lee": {
+      "name": "Lee",
+      "sha256": "83f1bb7e83cdad37dc9c679c273e010c91dd102839ba1c2299469ab83b81f14a",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "active_battle_skills",
+        "character",
+        "anime_bey",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_og_gary": {
+      "name": "Gary",
+      "sha256": "04b409329084c19c04eb1a43800cbd6d714b591b777b169673d113b262002879",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "active_battle_skills",
+        "character",
+        "anime_bey",
+        "bonuses",
+        "skills"
+      ]
+    },
+    "avatar_og_kevin": {
+      "name": "Kevin",
+      "sha256": "b2d5640a13e4f6315831aac63b5ab9384887095a372df138d6f90bdcdd54c8ae",
+      "fields": [
+        "id",
+        "name",
+        "rarity",
+        "type",
+        "price",
+        "description",
+        "image",
+        "limited",
+        "available_until",
+        "draw_chance",
+        "stats_always_on",
+        "active_battle_skills",
+        "character",
+        "anime_bey",
+        "bonuses",
+        "skills"
+      ]
+    }
+  },
+  "parts": [
+    {
+      "name": "Destroy Driver",
+      "type": "driver",
+      "price": 800,
+      "stat": "attack",
+      "bonus": 10,
+      "desc": "Aggressive tip — pushes your bey into the opponent."
+    },
+    {
+      "name": "Xtend+ Driver",
+      "type": "driver",
+      "price": 800,
+      "stat": "stamina",
+      "bonus": 10,
+      "desc": "Wide flat tip — maximises spin time."
+    },
+    {
+      "name": "High Xtend Tip",
+      "type": "driver",
+      "price": 700,
+      "stat": "attack",
+      "bonus": 8,
+      "desc": "Balanced tip with slight attack lean."
+    },
+    {
+      "name": "Atomic Driver",
+      "type": "driver",
+      "price": 850,
+      "stat": "defense",
+      "bonus": 12,
+      "desc": "Ball tip — locks position for great defense."
+    },
+    {
+      "name": "Revolve Driver",
+      "type": "driver",
+      "price": 750,
+      "stat": "stamina",
+      "bonus": 8,
+      "desc": "Low-friction tip for extended stamina."
+    },
+    {
+      "name": "Xtreme Driver",
+      "type": "driver",
+      "price": 900,
+      "stat": "attack",
+      "bonus": 12,
+      "desc": "Rubber tip — violent attack movement."
+    },
+    {
+      "name": "Bearing Driver",
+      "type": "driver",
+      "price": 1000,
+      "stat": "stamina",
+      "bonus": 18,
+      "desc": "Bearing-core tip — near-zero friction spin.",
+      "penalty_stat": "attack",
+      "penalty": 10
+    },
+    {
+      "name": "Drift Driver",
+      "type": "driver",
+      "price": 1050,
+      "stat": "stamina",
+      "bonus": 20,
+      "desc": "Drifts outward — extreme stamina, poor aggression.",
+      "penalty_stat": "attack",
+      "penalty": 12
+    },
+    {
+      "name": "Volcanic Driver",
+      "type": "driver",
+      "price": 1100,
+      "stat": "attack",
+      "bonus": 20,
+      "desc": "Eruption rubber tip — surges at the opponent.",
+      "penalty_stat": "defense",
+      "penalty": 12
+    },
+    {
+      "name": "Jolt Driver",
+      "type": "driver",
+      "price": 1000,
+      "stat": "attack",
+      "bonus": 18,
+      "desc": "Spring-loaded tip — unpredictable burst speed.",
+      "penalty_stat": "stamina",
+      "penalty": 10
+    },
+    {
+      "name": "Giga Driver",
+      "type": "driver",
+      "price": 1150,
+      "stat": "defense",
+      "bonus": 20,
+      "desc": "Wide flat base — anchors perfectly, but slows attack.",
+      "penalty_stat": "attack",
+      "penalty": 14
+    },
+    {
+      "name": "Wedge Driver",
+      "type": "driver",
+      "price": 1200,
+      "stat": "defense",
+      "bonus": 22,
+      "desc": "Reinforced wedge tip — fortress-like defense.",
+      "penalty_stat": "stamina",
+      "penalty": 14
+    },
+    {
+      "name": "Valkyrie Rush Driver",
+      "type": "driver",
+      "price": 1800,
+      "stat": "attack",
+      "bonus": 30,
+      "desc": "Pure aggression — you rush or you lose.",
+      "penalty_stat": "stamina",
+      "penalty": 25
+    },
+    {
+      "name": "Zero-G Driver",
+      "type": "driver",
+      "price": 1700,
+      "stat": "stamina",
+      "bonus": 28,
+      "desc": "Ultra-low contact tip — floats in battle.",
+      "penalty_stat": "defense",
+      "penalty": 22
+    },
+    {
+      "name": "Hyper Driver",
+      "type": "driver",
+      "price": 2000,
+      "stat": "attack",
+      "bonus": 35,
+      "desc": "Maximum aggression, minimum survival.",
+      "penalty_stat": "defense",
+      "penalty": 30
+    },
+    {
+      "name": "Iron Shield Driver",
+      "type": "driver",
+      "price": 1900,
+      "stat": "defense",
+      "bonus": 30,
+      "desc": "Heavy iron tip — immovable but sluggish.",
+      "penalty_stat": "attack",
+      "penalty": 25
+    },
+    {
+      "name": "Omega Driver",
+      "type": "driver",
+      "price": 2200,
+      "stat": "stamina",
+      "bonus": 35,
+      "desc": "Bearing + rubber hybrid — incredible stamina sacrifice.",
+      "penalty_stat": "attack",
+      "penalty": 30
+    },
+    {
+      "name": "Over Disk",
+      "type": "disk",
+      "price": 650,
+      "stat": "stamina",
+      "bonus": 8,
+      "desc": "Light disk — preserves spin energy."
+    },
+    {
+      "name": "Nexus Disk",
+      "type": "disk",
+      "price": 750,
+      "stat": "attack",
+      "bonus": 10,
+      "desc": "Pointed edges — chips away at opponents."
+    },
+    {
+      "name": "Dynamite Disk",
+      "type": "disk",
+      "price": 900,
+      "stat": "defense",
+      "bonus": 12,
+      "desc": "Heavy disk — absorbs hits efficiently."
+    },
+    {
+      "name": "Spread Disk",
+      "type": "disk",
+      "price": 700,
+      "stat": "stamina",
+      "bonus": 9,
+      "desc": "Wide disk — centrifugal stamina boost."
+    },
+    {
+      "name": "Quad Disk",
+      "type": "disk",
+      "price": 800,
+      "stat": "attack",
+      "bonus": 11,
+      "desc": "Four-prong disk — rotational attack power."
+    },
+    {
+      "name": "Glaive Disk",
+      "type": "disk",
+      "price": 850,
+      "stat": "defense",
+      "bonus": 10,
+      "desc": "Angled disk — deflects incoming force."
+    },
+    {
+      "name": "Yell Disk",
+      "type": "disk",
+      "price": 1000,
+      "stat": "attack",
+      "bonus": 18,
+      "desc": "Asymmetric disk — generates burst momentum.",
+      "penalty_stat": "stamina",
+      "penalty": 10
+    },
+    {
+      "name": "Trans Disk",
+      "type": "disk",
+      "price": 1050,
+      "stat": "stamina",
+      "bonus": 20,
+      "desc": "Transforming disk — shifts weight during spin.",
+      "penalty_stat": "defense",
+      "penalty": 12
+    },
+    {
+      "name": "Heavy Disk",
+      "type": "disk",
+      "price": 1100,
+      "stat": "defense",
+      "bonus": 20,
+      "desc": "Dense metal disk — outstanding defense weight.",
+      "penalty_stat": "attack",
+      "penalty": 14
+    },
+    {
+      "name": "Vortex Disk",
+      "type": "disk",
+      "price": 1150,
+      "stat": "attack",
+      "bonus": 20,
+      "desc": "Spiral channels — pulls opponent into attacks.",
+      "penalty_stat": "defense",
+      "penalty": 12
+    },
+    {
+      "name": "Low Rider Disk",
+      "type": "disk",
+      "price": 1000,
+      "stat": "stamina",
+      "bonus": 18,
+      "desc": "Low-profile center — friction-free stamina.",
+      "penalty_stat": "attack",
+      "penalty": 10
+    },
+    {
+      "name": "Forge Disk",
+      "type": "disk",
+      "price": 1200,
+      "stat": "defense",
+      "bonus": 22,
+      "desc": "Forged-steel weight — absorbs burst force.",
+      "penalty_stat": "stamina",
+      "penalty": 14
+    },
+    {
+      "name": "Destroyer Disk",
+      "type": "disk",
+      "price": 1800,
+      "stat": "attack",
+      "bonus": 30,
+      "desc": "Blade-edged disk — relentless offense.",
+      "penalty_stat": "defense",
+      "penalty": 25
+    },
+    {
+      "name": "Titan Disk",
+      "type": "disk",
+      "price": 1900,
+      "stat": "defense",
+      "bonus": 30,
+      "desc": "Legendary weight — near-impenetrable block.",
+      "penalty_stat": "stamina",
+      "penalty": 22
+    },
+    {
+      "name": "Phantom Disk",
+      "type": "disk",
+      "price": 2000,
+      "stat": "stamina",
+      "bonus": 30,
+      "desc": "Hollow-core disk — ghostly spin endurance.",
+      "penalty_stat": "attack",
+      "penalty": 25
+    },
+    {
+      "name": "Apex Disk",
+      "type": "disk",
+      "price": 2300,
+      "stat": "attack",
+      "bonus": 38,
+      "desc": "Razor apex disk — catastrophic burst damage.",
+      "penalty_stat": "stamina",
+      "penalty": 32
+    },
+    {
+      "name": "Eternity Disk",
+      "type": "disk",
+      "price": 2500,
+      "stat": "stamina",
+      "bonus": 40,
+      "desc": "Infinite rotation design — defies spin decay.",
+      "penalty_stat": "defense",
+      "penalty": 30
+    },
+    {
+      "name": "Flugel Wing",
+      "type": "ring",
+      "price": 600,
+      "stat": "defense",
+      "bonus": 8,
+      "desc": "Wing blade — deflects attacks gracefully."
+    },
+    {
+      "name": "Keel Ring",
+      "type": "ring",
+      "price": 700,
+      "stat": "defense",
+      "bonus": 10,
+      "desc": "Low-profile ring — resists upper attacks."
+    },
+    {
+      "name": "Slash Ring",
+      "type": "ring",
+      "price": 650,
+      "stat": "attack",
+      "bonus": 9,
+      "desc": "Angled blades — scrapes opponents on contact."
+    },
+    {
+      "name": "Spin Ring",
+      "type": "ring",
+      "price": 700,
+      "stat": "stamina",
+      "bonus": 9,
+      "desc": "Smooth ring — reduces air resistance."
+    },
+    {
+      "name": "Impact Ring",
+      "type": "ring",
+      "price": 750,
+      "stat": "attack",
+      "bonus": 10,
+      "desc": "Spoked ring — delivers concentrated hits."
+    },
+    {
+      "name": "Prominence Ring",
+      "type": "ring",
+      "price": 1100,
+      "stat": "attack",
+      "bonus": 18,
+      "desc": "Prominent blades — massive contact power.",
+      "penalty_stat": "defense",
+      "penalty": 10
+    },
+    {
+      "name": "Belial Nexus Ring",
+      "type": "ring",
+      "price": 1500,
+      "stat": "defense",
+      "bonus": 20,
+      "desc": "Layered armor ring — legendary defense.",
+      "penalty_stat": "attack",
+      "penalty": 12
+    },
+    {
+      "name": "Tempest Ring",
+      "type": "ring",
+      "price": 1200,
+      "stat": "attack",
+      "bonus": 20,
+      "desc": "Storm blade ring — punishes defense types.",
+      "penalty_stat": "stamina",
+      "penalty": 14
+    },
+    {
+      "name": "Fortress Ring",
+      "type": "ring",
+      "price": 1300,
+      "stat": "defense",
+      "bonus": 22,
+      "desc": "Castle-wall ring — extreme impact absorption.",
+      "penalty_stat": "attack",
+      "penalty": 14
+    },
+    {
+      "name": "Spiral Ring",
+      "type": "ring",
+      "price": 1100,
+      "stat": "stamina",
+      "bonus": 18,
+      "desc": "Helical ring — converts spin to endurance.",
+      "penalty_stat": "attack",
+      "penalty": 10
+    },
+    {
+      "name": "Pulse Ring",
+      "type": "ring",
+      "price": 1250,
+      "stat": "stamina",
+      "bonus": 20,
+      "desc": "Resonance ring — stabilises spin frequency.",
+      "penalty_stat": "defense",
+      "penalty": 12
+    },
+    {
+      "name": "Dragon God Ring",
+      "type": "ring",
+      "price": 2000,
+      "stat": "attack",
+      "bonus": 32,
+      "desc": "Fang-edged ring — divine destruction.",
+      "penalty_stat": "defense",
+      "penalty": 26
+    },
+    {
+      "name": "Valkyrie Claw Ring",
+      "type": "ring",
+      "price": 2100,
+      "stat": "attack",
+      "bonus": 30,
+      "desc": "Claw tips — rips through defenses.",
+      "penalty_stat": "stamina",
+      "penalty": 22
+    },
+    {
+      "name": "Aegis Shield Ring",
+      "type": "ring",
+      "price": 2200,
+      "stat": "defense",
+      "bonus": 35,
+      "desc": "Mythic shield ring — blocks almost anything.",
+      "penalty_stat": "attack",
+      "penalty": 28
+    },
+    {
+      "name": "Phantom Veil Ring",
+      "type": "ring",
+      "price": 2400,
+      "stat": "stamina",
+      "bonus": 35,
+      "desc": "Ghostly ring — infinite endurance at a cost.",
+      "penalty_stat": "defense",
+      "penalty": 25
+    },
+    {
+      "name": "Omega Blaze Ring",
+      "type": "ring",
+      "price": 2600,
+      "stat": "attack",
+      "bonus": 40,
+      "desc": "Blazing omega tips — unstoppable raw power.",
+      "penalty_stat": "stamina",
+      "penalty": 32
+    },
+    {
+      "name": "Ragnarok Core",
+      "type": "disk",
+      "price": 45000,
+      "stat": "attack",
+      "bonus": 120,
+      "penalties": {
+        "defense": 50,
+        "stamina": 120
+      },
+      "desc": "☄️ **Endgame.** Everything routed into the swing and nothing left over. Needs a **level 100** bey — below that its stamina cost zeroes the bar and the fight ends on attrition."
+    }
+  ]
+}

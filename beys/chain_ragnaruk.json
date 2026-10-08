@@ -1,0 +1,88 @@
+{
+  "id": "BB039",
+  "name": "Chain Ragnaruk",
+  "rarity": "Epic",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513733559204974622/file_00000000dd3071fab25b15d5b6c5a1d6.png?ex=6a28cdbc&is=6a277c3c&hm=3bfe9bccc67400d04d1c42d79b2480cc4c3f1e12aada301dd7bda417187c46e5&",
+  "description": "A chained demon beast of immense stamina. Chain Ragnaruk uses its bound chain layers to absorb enemy spin energy, growing more powerful with every hit it takes while locking down the opponent's ability to fight back.",
+  "burst_height": "Mid",
+  "type": "Stamina",
+  "stats": {
+    "attack": 72,
+    "defense": 95,
+    "stamina": 128,
+    "special": 110,
+    "hp": 129
+  },
+  "ability": {
+    "name": "Chain Absorption",
+    "trigger": "on_take_damage",
+    "description": "Each time Chain Ragnaruk takes damage, it absorbs chain energy — gaining +6 Stamina and building Chain Stacks (max 5, each grants +8 ATK). At 5 stacks, Chain Release fires: drains 40 HP from the enemy (true damage) and resets stacks.",
+    "stamina_gain_per_hit": 6,
+    "stack_atk": 8,
+    "max_stacks": 5,
+    "chain_release_drain": 40,
+    "chain_release_true": true,
+    "chain": [
+      {
+        "condition": "stack_threshold",
+        "threshold": 5,
+        "effect": "true_damage",
+        "value": 40,
+        "once": false,
+        "_note": "Chain Release: 40 true damage HP drain at 5 stacks"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Chain Bind Crush",
+    "description": "Chain Ragnaruk whips its bound chains in a devastating sweeping assault — three crushing blows that drain the enemy's stamina!",
+    "hits": 3,
+    "damage_per_hit": 36,
+    "total_damage": 108,
+    "flavour_texts": [
+      "⛓️ **Chain Bind Crush** — the chains tighten!",
+      "💢 **Strike 2** — the demon's chains whip the stadium!",
+      "💥 **Strike 3** — CHAIN BIND CRUSH — BOUND IN ETERNAL CHAINS!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Chain Absorption",
+      "trigger": "on_take_damage",
+      "description": "Each time Chain Ragnaruk takes damage, it absorbs chain energy — gaining +6 Stamina and building Chain Stacks (max 5, each grants +8 ATK). At 5 stacks, Chain Release fires: drains 40 HP from the enemy (true damage) and resets stacks.",
+      "stamina_gain_per_hit": 6,
+      "stack_atk": 8,
+      "max_stacks": 5,
+      "chain_release_drain": 40,
+      "chain_release_true": true,
+      "chain": [
+        {
+          "condition": "stack_threshold",
+          "threshold": 5,
+          "effect": "true_damage",
+          "value": 40,
+          "once": false,
+          "_note": "Chain Release: 40 true damage HP drain at 5 stacks"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 129,
+    "attack": 72,
+    "defense": 95,
+    "stamina": 128
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 36,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

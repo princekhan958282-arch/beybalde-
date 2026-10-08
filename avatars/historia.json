@@ -1,0 +1,57 @@
+{
+  "id": "avatar_l005",
+  "name": "Historia",
+  "rarity": "Legendary",
+  "type": "defense",
+  "price": 0,
+  "description": "The true queen. Unshakeable HP and resistance — she endures all and rises stronger.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521013550754304071/d677001e1afb4ec621d9e6a944e67b17.jpg?ex=6a4349c1&is=6a41f841&hm=80d2f11d1be964ca1f11c70b0862cc2dd3a5543e2ac94c45c0ca2202d12af4e1&",
+  "bonuses": {
+    "attack_flat": 5,
+    "attack_percent": 0.05,
+    "defence_flat": 12,
+    "defence_percent": 0.12,
+    "stamina_flat": 10,
+    "stamina_percent": 0.1,
+    "stability_flat": 10,
+    "stability_percent": 0.1,
+    "charge_flat": 8,
+    "charge_percent": 0.08,
+    "special_move_flat": 10,
+    "special_move_percent": 0.1,
+    "crit_percent": 0.05,
+    "dodge_chance": 0.1,
+    "counter_chance": 0.1,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.2,
+    "resistance_status_chance": 0.3,
+    "hp_flat": 40,
+    "hp_percent": 0.09
+  },
+  "skills": [
+    {
+      "name": "Queen's Guard",
+      "description": "Defence increased by 26%.",
+      "bonuses": {
+        "defence_percent": 0.26
+      }
+    },
+    {
+      "name": "Royal Resolve",
+      "description": "Incoming damage reduced by 18%.",
+      "bonuses": {
+        "resistance_damage_percent": 0.18
+      }
+    },
+    {
+      "name": "Unbroken Crown",
+      "description": "Status resistance increased by 35%.",
+      "bonuses": {
+        "resistance_status_chance": 0.35
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 24
+}

@@ -1,0 +1,57 @@
+{
+  "id": "avatar_e001",
+  "name": "Miku",
+  "rarity": "Epic",
+  "type": "defense",
+  "price": 0,
+  "description": "An unyielding guardian who fortifies defences and counters blows.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520787499960762508/07ea285927d39ddb1f543de99661b82e.jpg?ex=6a42773a&is=6a4125ba&hm=170dbd69a43a9f8ba7f7013f24fb07c5f7550df6529e28f6a7c9e2a9841a3825&",
+  "bonuses": {
+    "attack_flat": 0,
+    "attack_percent": 0,
+    "defence_flat": 10,
+    "defence_percent": 0.1,
+    "stamina_flat": 5,
+    "stamina_percent": 0,
+    "stability_flat": 8,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0.12,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.1,
+    "resistance_status_chance": 0.2,
+    "hp_flat": 0,
+    "hp_percent": 0.06
+  },
+  "skills": [
+    {
+      "name": "Fortress Rhythm",
+      "description": "Defence increased by 20%.",
+      "bonuses": {
+        "defence_percent": 0.2
+      }
+    },
+    {
+      "name": "Perfect Tempo",
+      "description": "Counter chance increased by 18%.",
+      "bonuses": {
+        "counter_chance": 0.18
+      }
+    },
+    {
+      "name": "Unshaken Voice",
+      "description": "Status resistance increased by 30%.",
+      "bonuses": {
+        "resistance_status_chance": 0.3
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 3
+}

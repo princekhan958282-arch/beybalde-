@@ -1,0 +1,61 @@
+{
+  "id": "avatar_u006",
+  "name": "Mare",
+  "rarity": "Ultimate",
+  "type": "defense",
+  "price": 0,
+  "description": "The unmoved bulwark. Mare does not dodge, does not counter, and does not need to — everything that reaches her simply stops.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1530707144289288375/41ac048c61eaf8c0c55433f9f684cb2f.jpg?ex=6a7a541e&is=6a79029e&hm=9b67cd24fe846bfe25d4fd84b4d77be39d1f1e9d387461d5bbd9cbae9eb3fd61&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "skills": [
+    {
+      "name": "Iron Verdict",
+      "description": "Defence increased by a further 30%.",
+      "bonuses": {
+        "defence_percent": 0.3
+      }
+    },
+    {
+      "name": "Standing Ground",
+      "description": "Attack +40 and Stamina +40 — the wall pushes back.",
+      "bonuses": {
+        "attack_flat": 40,
+        "stamina_flat": 40
+      }
+    },
+    {
+      "name": "Bulwark",
+      "description": "Defence increased by 209.",
+      "bonuses": {
+        "defence_flat": 209
+      }
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 40,
+    "attack_percent": 0,
+    "defence_flat": 209,
+    "defence_percent": 0.3,
+    "stamina_flat": 40,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.13
+  },
+  "generation": null,
+  "_registry_order": 29
+}

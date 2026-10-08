@@ -1,0 +1,131 @@
+{
+  "id": "BB023",
+  "name": "Spriggan Requiem",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1512973469434777711/IMG-20260606-WA0004.jpg?ex=6a2609d8&is=6a24b858&hm=42d7cab304365e764e2456afbf07429c5f05b42e75fe46b62c1e579ee478436e&",
+  "description": "The ultimate king of spin. Spriggan Requiem reverses its spin direction mid-battle, making it immune to burst. Its divine aura nullifies all burst risk and heals continuously.",
+  "burst_height": "Low",
+  "type": "Balance",
+  "stats": {
+    "attack": 100,
+    "defense": 100,
+    "stamina": 100,
+    "special": 145,
+    "hp": 116
+  },
+  "ability": {
+    "name": "Requiem Spirit",
+    "trigger": "passive",
+    "description": "Spriggan Requiem cannot burst. Each turn passively heals 8 HP. When HP drops below 40%, all stats permanently increase by 30 for the rest of the battle.",
+    "heal_per_turn": 8,
+    "hp_threshold": 0.4,
+    "stat_boost_on_threshold": 30,
+    "burst_immune": true,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "heal_pct",
+        "value": 0.0114,
+        "once": false,
+        "_note": "Requiem Spirit: heals 8 HP per turn (8/700 ≈ 0.0114)"
+      },
+      {
+        "condition": "hp_below",
+        "threshold": 0.4,
+        "effect": "all_stats_boost",
+        "value": 30,
+        "duration": 999,
+        "once": true,
+        "_note": "Requiem Spirit: +30 all stats permanently below 40% HP"
+      }
+    ]
+  },
+  "dual_special": true,
+  "chosen_special": "Requiem Whip",
+  "special_moves": {
+    "Requiem Whip": {
+      "name": "Requiem Whip",
+      "description": "Spriggan reverses its spin and delivers a devastating whipping slash that tears through all defenses!",
+      "hits": 3,
+      "damage_per_hit": 48.33,
+      "total_damage": 145,
+      "flavour_texts": [
+        "👑 **Requiem Whip** — Spriggan's spin axis reverses!",
+        "⚡ **Hit 2** — The whip tears through the stadium walls!",
+        "🌀 **Hit 3** — REQUIEM WHIP — DIVINE SPIN FINISH!"
+      ]
+    },
+    "Requiem Zone": {
+      "name": "Requiem Zone",
+      "description": "Spriggan creates a zone of absolute domination — raining divine spin energy on the opponent from all angles!",
+      "hits": 4,
+      "damage_per_hit": 36.25,
+      "total_damage": 145,
+      "flavour_texts": [
+        "🌑 **Requiem Zone** — The zone of absolute domination activates!",
+        "💫 **Hit 2** — Divine energy floods the stadium!",
+        "⚡ **Hit 3** — The zone tightens — no escape!",
+        "👑 **Hit 4** — REQUIEM ZONE — ABSOLUTE DOMINATION!"
+      ]
+    }
+  },
+  "special_move": {
+    "name": "Requiem Whip",
+    "description": "Spriggan reverses its spin and delivers a devastating whipping slash that tears through all defenses!",
+    "hits": 3,
+    "damage_per_hit": 48.33,
+    "total_damage": 144,
+    "flavour_texts": [
+      "👑 **Requiem Whip** — Spriggan's spin axis reverses!",
+      "⚡ **Hit 2** — The whip tears through the stadium walls!",
+      "🌀 **Hit 3** — REQUIEM WHIP — DIVINE SPIN FINISH!"
+    ]
+  },
+  "_note": "dual_special=True: battle.py's DualSpecialView overwrites special_move + chosen_special at runtime. special_move is pre-seeded with Requiem Whip because tournament.py builds a BattleSession WITHOUT calling _resolve_dual_special — a null special_move there hits the resolve_special() fallback of 1 x 360 damage. Never let special_move go back to null.",
+  "abilities": [
+    {
+      "name": "Requiem Spirit",
+      "trigger": "passive",
+      "description": "Spriggan Requiem cannot burst. Each turn passively heals 8 HP. When HP drops below 40%, all stats permanently increase by 30 for the rest of the battle.",
+      "heal_per_turn": 8,
+      "hp_threshold": 0.4,
+      "stat_boost_on_threshold": 30,
+      "burst_immune": true,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "heal_pct",
+          "value": 0.0114,
+          "once": false,
+          "_note": "Requiem Spirit: heals 8 HP per turn (8/700 ≈ 0.0114)"
+        },
+        {
+          "condition": "hp_below",
+          "threshold": 0.4,
+          "effect": "all_stats_boost",
+          "value": 30,
+          "duration": 999,
+          "once": true,
+          "_note": "Requiem Spirit: +30 all stats permanently below 40% HP"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Dual",
+  "main_frame": {
+    "hp": 116,
+    "attack": 100,
+    "defense": 100,
+    "stamina": 100
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 21,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

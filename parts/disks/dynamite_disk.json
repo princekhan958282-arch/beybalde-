@@ -1,0 +1,18 @@
+{
+  "name": "Dynamite Disk",
+  "type": "disk",
+  "price": 900,
+  "stat": "defense",
+  "bonus": 12,
+  "desc": "Heavy disk — absorbs hits efficiently.",
+  "id": "dynamite_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 0,
+    "defense": 12,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 19
+}

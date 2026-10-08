@@ -1,0 +1,64 @@
+{
+  "id": "avatar_og_max",
+  "name": "Max",
+  "rarity": "Original Generation",
+  "type": "defense",
+  "price": 0,
+  "description": "Draciel partner — original-generation anime-inspired active battle skills.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301601466220604/MaxSeason1.webp?backend=b2&ex=6ac3aa50&is=6ac258d0&hm=52f53551ccc795cd1924b8d2fcb3017d66005c37365f1b9c5aad8fb32b986c0b&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "stats_always_on": true,
+  "active_battle_skills": true,
+  "character": "max",
+  "anime_bey": "Draciel",
+  "bonuses": {
+    "attack_flat": 5,
+    "attack_percent": 0,
+    "defence_flat": 25,
+    "defence_percent": 0,
+    "stamina_flat": 10,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 20,
+    "hp_percent": 0
+  },
+  "skills": [
+    {
+      "name": "Draciel Shield",
+      "description": "Gain a shield equal to 10% maximum HP, lasting 2 rounds.",
+      "energy_cost": 40,
+      "cooldown_rounds": 3,
+      "once_per_battle": false
+    },
+    {
+      "name": "Fortress Defense",
+      "description": "For 2 rounds, store 30% of damage prevented by your Defense-button guard. Afterwards restore it as HP, capped at 12% maximum HP.",
+      "energy_cost": 60,
+      "cooldown_rounds": 4,
+      "once_per_battle": false
+    },
+    {
+      "name": "Unbreakable Fortress",
+      "description": "For 2 rounds, prevent one stability finish at 1 stability, then consume protection and restore 8 stability. HP and stamina finishes still apply. Once per battle.",
+      "energy_cost": 100,
+      "cooldown_rounds": 0,
+      "once_per_battle": true
+    }
+  ],
+  "generation": null,
+  "_registry_order": 48
+}

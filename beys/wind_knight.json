@@ -1,0 +1,88 @@
+{
+  "id": "BB037",
+  "name": "Wind Knight",
+  "rarity": "Legendary",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513733294435598477/file_000000004a10720b9dbc59ca718469f6.png?ex=6a28cd7d&is=6a277bfd&hm=e7524b26ba8b3f8b0a46aea61da930ce74a5c45b4f27505bd0bb0a8bbf090a85&",
+  "description": "A noble knight mounted on armored wings. Wing Knight soars above the stadium, using its winged armor to deflect attacks and retaliate with precise slashing strikes from above.",
+  "burst_height": "High",
+  "type": "Defense",
+  "stats": {
+    "attack": 88,
+    "defense": 118,
+    "stamina": 90,
+    "special": 110,
+    "hp": 114
+  },
+  "ability": {
+    "name": "Wing Guard",
+    "trigger": "on_defense_win",
+    "description": "When Wing Knight successfully defends, its wings absorb the impact — reducing damage taken by 25 and dealing 20 recoil damage to the attacker. Every 3 successful defenses, Wing Knight launches a Wing Dive: +35 ATK for 2 turns and ignores enemy defense on the next attack.",
+    "damage_reduction": 25,
+    "recoil_damage": 20,
+    "streak_threshold": 3,
+    "streak_atk_boost": 35,
+    "streak_atk_turns": 2,
+    "streak_pierce": true,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "reflect",
+        "value": 20,
+        "once": false,
+        "_note": "Wing Guard: 20 recoil damage on defense win"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Wing Dive Slash",
+    "description": "Wing Knight folds its wings and dives from above — a three-hit aerial assault that strikes before the opponent can react!",
+    "hits": 3,
+    "damage_per_hit": 36,
+    "total_damage": 108,
+    "flavour_texts": [
+      "🦅 **Wing Dive Slash** — the knight takes flight!",
+      "⚔️ **Strike 2** — the armored wings slash through!",
+      "💥 **Strike 3** — WING DIVE SLASH — AERIAL EXECUTION!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Wing Guard",
+      "trigger": "on_defense_win",
+      "description": "When Wing Knight successfully defends, its wings absorb the impact — reducing damage taken by 25 and dealing 20 recoil damage to the attacker. Every 3 successful defenses, Wing Knight launches a Wing Dive: +35 ATK for 2 turns and ignores enemy defense on the next attack.",
+      "damage_reduction": 25,
+      "recoil_damage": 20,
+      "streak_threshold": 3,
+      "streak_atk_boost": 35,
+      "streak_atk_turns": 2,
+      "streak_pierce": true,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "reflect",
+          "value": 20,
+          "once": false,
+          "_note": "Wing Guard: 20 recoil damage on defense win"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 114,
+    "attack": 88,
+    "defense": 118,
+    "stamina": 90
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 38,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

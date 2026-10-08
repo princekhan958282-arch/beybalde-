@@ -1,0 +1,22 @@
+{
+  "name": "Ragnarok Core",
+  "type": "disk",
+  "price": 45000,
+  "stat": "attack",
+  "bonus": 120,
+  "penalties": {
+    "defense": 50,
+    "stamina": 120
+  },
+  "desc": "☄️ **Endgame.** Everything routed into the swing and nothing left over. Needs a **level 100** bey — below that its stamina cost zeroes the bar and the fight ends on attrition.",
+  "id": "ragnarok_core",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 120,
+    "defense": -50,
+    "stamina": -120
+  },
+  "compatibility": {},
+  "_registry_order": 50
+}

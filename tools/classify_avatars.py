@@ -16,13 +16,21 @@ weights, Marina is stamina and charge, Historia is defence and HP. Assigning typ
 by vibe would contradict what the cards actually DO, and the contradiction would
 only surface later as "why is my Attack avatar bad at attacking".
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import argparse
 import json
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(ROOT, "cogs", "avatar", "avatar_data.json")
+DATA = os.path.join(ROOT, "avatars")
 
 # Weight every bonus field into one of three identities.
 #
@@ -96,7 +104,7 @@ def main() -> int:
                     help="stamp the derived type onto avatar_data.json")
     args = ap.parse_args()
 
-    with open(DATA, "r", encoding="utf-8") as fh:
+    with authored_open('avatar', "r", encoding="utf-8") as fh:
         data = json.load(fh)
 
     counts: dict[str, int] = {}
@@ -133,7 +141,7 @@ def main() -> int:
     print(f"{changed} entr{'y' if changed == 1 else 'ies'} differ from the file")
 
     if args.write and changed:
-        with open(DATA, "w", encoding="utf-8") as fh:
+        with authored_open('avatar', "w", encoding="utf-8") as fh:
             json.dump(data, fh, indent=2, ensure_ascii=False)
             fh.write("\n")
         print(f"wrote {DATA}")

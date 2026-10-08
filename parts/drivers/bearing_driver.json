@@ -1,0 +1,20 @@
+{
+  "name": "Bearing Driver",
+  "type": "driver",
+  "price": 1000,
+  "stat": "stamina",
+  "bonus": 18,
+  "desc": "Bearing-core tip — near-zero friction spin.",
+  "penalty_stat": "attack",
+  "penalty": 10,
+  "id": "bearing_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": -10,
+    "defense": 0,
+    "stamina": 18
+  },
+  "compatibility": {},
+  "_registry_order": 6
+}

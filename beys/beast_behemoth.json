@@ -1,0 +1,62 @@
+{
+  "id": "BB066",
+  "name": "Beast Behemoth",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060914351083611/BB_Beast_Behemoth_Heavy_Hold_Beyblade.webp?ex=6a333f81&is=6a31ee01&hm=fad2a805c8d9bd6fa4d9fb0c496345a665a277171d48426e54a68b4900a20e3e&",
+  "description": "The Hold Driver gives sudden bursts of speed and aggressive movement, switching from wild attacks to surprisingly stable movement. Known for powerful knockouts rather than stamina wins.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 103,
+    "defense": 64,
+    "stamina": 82,
+    "special": 85,
+    "hp": 101
+  },
+  "ability": {
+    "name": "Beast Charge",
+    "trigger": "passive",
+    "description": "The Hold Driver gives sudden bursts of speed and aggressive movement. Can switch from wild attacks to surprisingly stable movement. Known for powerful knockouts rather than stamina wins.",
+    "passive_atk_bonus": 10,
+    "knockout_chance_bonus": 0.15,
+    "speed_burst_chance": 0.2
+  },
+  "special_move": {
+    "name": "Beast Charge",
+    "description": "Beast Behemoth speeds up during battle and crashes into opponents with tremendous force.",
+    "hits": 1,
+    "damage_per_hit": 120,
+    "total_damage": 120,
+    "knockout_chance": 0.2,
+    "flavour_texts": [
+      "💥 **Beast Charge** — Beast Behemoth surges forward and CRASHES in!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Beast Charge",
+      "trigger": "passive",
+      "description": "The Hold Driver gives sudden bursts of speed and aggressive movement. Can switch from wild attacks to surprisingly stable movement. Known for powerful knockouts rather than stamina wins.",
+      "passive_atk_bonus": 10,
+      "knockout_chance_bonus": 0.15,
+      "speed_burst_chance": 0.2
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 101,
+    "attack": 103,
+    "defense": 64,
+    "stamina": 82
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 64,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

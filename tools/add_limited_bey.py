@@ -30,13 +30,21 @@ anybody's inventory — see utils/availability.py.
 """
 from __future__ import annotations
 
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
+
 import argparse
 import json
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.join(ROOT, "data", "beyblades.json")
+DATA = os.path.join(ROOT, "beys")
 
 sys.path.insert(0, ROOT)
 
@@ -54,7 +62,7 @@ def main() -> int:
     ap.add_argument("--check", action="store_true", help="print, don't write")
     args = ap.parse_args()
 
-    with open(DATA, encoding="utf-8") as fh:
+    with authored_open('bey', encoding="utf-8") as fh:
         doc = json.load(fh)
 
     blade = doc.get(args.name)
@@ -101,7 +109,7 @@ def main() -> int:
         print("\ncheck only — nothing written")
         return 0
 
-    with open(DATA, "w", encoding="utf-8") as fh:
+    with authored_open('bey', "w", encoding="utf-8") as fh:
         json.dump(doc, fh, indent=2, ensure_ascii=False)
         fh.write("\n")
     print(f"\nwrote {DATA}")

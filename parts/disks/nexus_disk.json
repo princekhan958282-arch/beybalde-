@@ -1,0 +1,18 @@
+{
+  "name": "Nexus Disk",
+  "type": "disk",
+  "price": 750,
+  "stat": "attack",
+  "bonus": 10,
+  "desc": "Pointed edges — chips away at opponents.",
+  "id": "nexus_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 10,
+    "defense": 0,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 18
+}

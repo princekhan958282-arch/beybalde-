@@ -1,0 +1,57 @@
+{
+  "id": "avatar_c002",
+  "name": "Yuki",
+  "rarity": "Common",
+  "type": "defense",
+  "price": 0,
+  "description": "A trainee who hardens their body in every skirmish.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520787463314870422/92a33fd259241144eec72a3fb4819af7.jpg?ex=6a427732&is=6a4125b2&hm=40701a8a94939a78239c9a207392c5fe334af867c31d0885db2615278e7d2be6&",
+  "bonuses": {
+    "attack_flat": 0,
+    "attack_percent": 0,
+    "defence_flat": 5,
+    "defence_percent": 0,
+    "stamina_flat": 3,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.03
+  },
+  "skills": [
+    {
+      "name": "Steadfast Guard",
+      "description": "Defence increased by 12%.",
+      "bonuses": {
+        "defence_percent": 0.12
+      }
+    },
+    {
+      "name": "Second Wind",
+      "description": "Stamina increased by 12%.",
+      "bonuses": {
+        "stamina_percent": 0.12
+      }
+    },
+    {
+      "name": "Calm Foundation",
+      "description": "Stability increased by 10%.",
+      "bonuses": {
+        "stability_percent": 0.1
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 0
+}

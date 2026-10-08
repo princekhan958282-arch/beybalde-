@@ -1,0 +1,66 @@
+{
+  "id": "BB129",
+  "name": "Draciel G",
+  "rarity": "Mythic",
+  "type": "Defense",
+  "spin_direction": "Right",
+  "burst_height": "Low",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1556914560030613614/1791208346353.png?backend=b2&ex=6ac736ad&is=6ac5e52d&hm=fb15bb3a817a224872da490fa14be30c350ff2987817ee5bb239c23a19cb1e0a&",
+  "description": "Max Tate's water guardian. Draciel G specializes in gravity control.",
+  "stats": {
+    "attack": 85,
+    "defense": 150,
+    "stamina": 115,
+    "special": 125,
+    "hp": 140
+  },
+  "draciel_kit": "G",
+  "ability": {
+    "name": "Draciel’s Gravity Anchor",
+    "trigger": "on_defense_win",
+    "description": "On Defense Win against Attack, the enemy next move costs 0.4 extra battle stamina and deals 10% less damage. Does not stack. Cooldown: 2 rounds.",
+    "rules": [],
+    "runtime": "draciel"
+  },
+  "abilities": [
+    {
+      "name": "Draciel’s Gravity Anchor",
+      "trigger": "on_defense_win",
+      "description": "On Defense Win against Attack, the enemy next move costs 0.4 extra battle stamina and deals 10% less damage. Does not stack. Cooldown: 2 rounds.",
+      "rules": [],
+      "runtime": "draciel"
+    }
+  ],
+  "special_move": {
+    "name": "Draciel Gravity Control",
+    "description": "Create a gravity field for 2 rounds. Enemy Attack and Special moves cost 0.6 extra battle stamina; Draciel gains +20% DEF. On expiry, deal a gravity slam worth 65% of current DEF. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 0,
+    "total_damage": 0,
+    "non_damage": true,
+    "flavour_texts": [
+      "🐢 Draciel Gravity Control!"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "draciel_special",
+    "label": "Draciel Gravity Control",
+    "emoji": "🐢"
+  },
+  "main_frame": {
+    "hp": 140,
+    "attack": 85,
+    "defense": 150,
+    "stamina": 115
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 129,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

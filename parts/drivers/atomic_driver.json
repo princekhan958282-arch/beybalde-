@@ -1,0 +1,18 @@
+{
+  "name": "Atomic Driver",
+  "type": "driver",
+  "price": 850,
+  "stat": "defense",
+  "bonus": 12,
+  "desc": "Ball tip — locks position for great defense.",
+  "id": "atomic_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 0,
+    "defense": 12,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 3
+}

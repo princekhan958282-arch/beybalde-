@@ -1,0 +1,70 @@
+{
+  "id": "BB004",
+  "name": "Dynamite Belial",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1510862945301561494/Beyblade_Burst_Dynamite_Battle_-_Dynamite_Belial_Nexus_Venture-2_28Low_Mode29.webp?ex=6a1e5c44&is=6a1d0ac4&hm=6436f0b11108a3e5d0d7a645f169cca06bba76ab439b632fd2b62a11293851b7&",
+  "description": "The Demon King at full power. Dynamite Belial has transcended its limits — a godlike Balance type that dominates through overwhelming force, unholy resilience, and a demonic second wind that turns near-death into absolute destruction.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 128,
+    "defense": 118,
+    "stamina": 115,
+    "special": 160,
+    "hp": 117
+  },
+  "ability": {
+    "name": "Demon King's Wrath",
+    "trigger": "on_attack_win",
+    "description": "Each time Belial wins an Attack phase, it heals 10 HP and stacks +10 Attack permanently (max +50). At 5 stacks, Belial enters DEMON MODE for the rest of the battle: all stats gain +10 and the Special Move charges an extra hit.",
+    "bonus_damage": 0,
+    "heal_per_win": 10,
+    "stack_attack": 10,
+    "max_stack": 50,
+    "demon_mode_threshold": 5,
+    "demon_mode_stat_boost": 10
+  },
+  "special_move": {
+    "name": "Belial Apocalypse",
+    "description": "The Demon King unleashes the full wrath of the underworld — a four-hit demolition that shatters the stadium and leaves nothing standing!",
+    "hits": 4,
+    "damage_per_hit": 40,
+    "total_damage": 160,
+    "flavour_texts": [
+      "👑 **Hit 1** — The Demon King rises from the abyss!",
+      "💥 **Hit 2** — The stadium walls crack under the shockwave!",
+      "🔥 **Hit 3** — Hellfire engulfs the entire arena!",
+      "💣 **Hit 4** — BELIAL APOCALYPSE — DEMON KING'S JUDGMENT — TOTAL ANNIHILATION!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Demon King's Wrath",
+      "trigger": "on_attack_win",
+      "description": "Each time Belial wins an Attack phase, it heals 10 HP and stacks +10 Attack permanently (max +50). At 5 stacks, Belial enters DEMON MODE for the rest of the battle: all stats gain +10 and the Special Move charges an extra hit.",
+      "bonus_damage": 0,
+      "heal_per_win": 10,
+      "stack_attack": 10,
+      "max_stack": 50,
+      "demon_mode_threshold": 5,
+      "demon_mode_stat_boost": 10
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 117,
+    "attack": 128,
+    "defense": 118,
+    "stamina": 115
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 3,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

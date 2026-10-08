@@ -1,0 +1,90 @@
+{
+  "id": "BB040",
+  "name": "Dynamite Kerbeus",
+  "rarity": "Legendary",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513733700792352899/file_00000000b3b071f881f89791b1675cf6.png?ex=6a28cdde&is=6a277c5e&hm=743650eedcd54bc02f6c6d7e6f0b1869f64660ac76e22e2b812cdc6ac17289e8&",
+  "description": "The three-headed guardian reborn with dynamite power. Dynamite Kerbeus unleashes the fury of three heads simultaneously — an unstoppable defensive titan that punishes every attack with triple-headed retaliation.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 98,
+    "defense": 135,
+    "stamina": 108,
+    "special": 128,
+    "hp": 119
+  },
+  "ability": {
+    "name": "Triple Head Retaliation",
+    "trigger": "on_defense_win",
+    "description": "Each successful defense triggers one of Kerbeus's three heads (cycles through): Head 1 heals 25 HP; Head 2 grants a 30 HP shield; Head 3 deals 30 true damage to the attacker. After all three heads activate, Kerbeus enters TRIPLE FURY for 2 turns — all stats +20.",
+    "head_1_heal": 25,
+    "head_2_shield": 30,
+    "head_3_true_dmg": 30,
+    "triple_fury_stat_boost": 20,
+    "triple_fury_turns": 2,
+    "chain": [
+      {
+        "condition": "stack_threshold",
+        "threshold": 3,
+        "effect": "all_stats_boost",
+        "value": 20,
+        "duration": 2,
+        "once": false,
+        "_note": "Triple Fury: +20 all stats for 2 turns after 3 heads activated"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Dynamite Triple Fang",
+    "description": "All three heads of Kerbeus strike simultaneously — a three-phase explosive assault that detonates with the force of dynamite!",
+    "hits": 3,
+    "damage_per_hit": 42,
+    "total_damage": 126,
+    "flavour_texts": [
+      "🐕 **Dynamite Triple Fang** — the three heads converge!",
+      "💥 **Strike 2** — dynamite force ignites!",
+      "🔱 **Strike 3** — DYNAMITE TRIPLE FANG — THREE-HEADED ANNIHILATION!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Triple Head Retaliation",
+      "trigger": "on_defense_win",
+      "description": "Each successful defense triggers one of Kerbeus's three heads (cycles through): Head 1 heals 25 HP; Head 2 grants a 30 HP shield; Head 3 deals 30 true damage to the attacker. After all three heads activate, Kerbeus enters TRIPLE FURY for 2 turns — all stats +20.",
+      "head_1_heal": 25,
+      "head_2_shield": 30,
+      "head_3_true_dmg": 30,
+      "triple_fury_stat_boost": 20,
+      "triple_fury_turns": 2,
+      "chain": [
+        {
+          "condition": "stack_threshold",
+          "threshold": 3,
+          "effect": "all_stats_boost",
+          "value": 20,
+          "duration": 2,
+          "once": false,
+          "_note": "Triple Fury: +20 all stats for 2 turns after 3 heads activated"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 119,
+    "attack": 98,
+    "defense": 135,
+    "stamina": 108
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 37,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

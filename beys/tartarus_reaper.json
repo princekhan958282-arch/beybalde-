@@ -1,0 +1,192 @@
+{
+  "id": "BB077",
+  "name": "Tartarus Reaper",
+  "rarity": "Exclusive",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1518581816393470032/1781332376836.png?ex=6a3a7106&is=6a391f86&hm=ac7b9403f66136fce6609ec564f4050578faa5ee56ee2ff11ebfcd868f6ada98&",
+  "description": "Tartarus Reaper — wielded by Thanatos Veyrath — is a supreme Balance type that feeds on the judgement it passes. Every blow it absorbs is weighed and returned as strength, and Grave Decree lets each Judgment fall heavier than the last.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 127,
+    "defense": 129,
+    "stamina": 122,
+    "special": 125,
+    "hp": 122
+  },
+  "special_move": {
+    "name": "Judgment of the Reaper",
+    "description": "Thanatos Veyrath opens the death vortex. The first judgment lands for 110. The second is weighed against the damage already done — 50, plus half of every point of stability the opponent has already lost.",
+    "hits": 2,
+    "damage_per_hit": [
+      110,
+      50
+    ],
+    "total_damage": 160,
+    "per_hit_bonus": [
+      null,
+      {
+        "source": "enemy_stability_lost",
+        "pct": 0.5,
+        "_note": "Hit 2 only: +50% of the stability the enemy has lost. An enemy down 50 stability adds 25, for 75."
+      }
+    ],
+    "flavour_texts": [
+      "⚔️ **Judgment of the Reaper** — the death vortex opens!",
+      "💀 **Second Judgment** — the scales weigh every wound already dealt!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Soul Judgement",
+      "trigger": "on_take_damage",
+      "description": "Every Attack or Special hit Tartarus Reaper absorbs is weighed and returned: +30 Attack, +25 Defense, +45 Stamina, 59 HP restored, and 0.2 battle stamina recovered. The judgement can only be passed four times per battle.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "_name": "Soul Judgement",
+          "if": [
+            {
+              "cond": "enemy_move_is",
+              "value": "attack"
+            },
+            {
+              "cond": "counter_below",
+              "name": "soul_judgement",
+              "value": 4
+            }
+          ],
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "soul_judgement",
+              "stat": "attack",
+              "per_stack": 30,
+              "max": 4,
+              "turns": 999
+            },
+            {
+              "op": "buff",
+              "stat": "defense",
+              "amount": 25,
+              "turns": 999
+            },
+            {
+              "op": "buff",
+              "stat": "stamina",
+              "amount": 45,
+              "turns": 999
+            },
+            {
+              "op": "heal",
+              "value": 59
+            },
+            {
+              "op": "gain_stamina",
+              "value": 0.2
+            }
+          ]
+        },
+        {
+          "when": "on_take_damage",
+          "_name": "Soul Judgement",
+          "if": [
+            {
+              "cond": "enemy_move_is",
+              "value": "special"
+            },
+            {
+              "cond": "counter_below",
+              "name": "soul_judgement",
+              "value": 4
+            }
+          ],
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "soul_judgement",
+              "stat": "attack",
+              "per_stack": 30,
+              "max": 4,
+              "turns": 999
+            },
+            {
+              "op": "buff",
+              "stat": "defense",
+              "amount": 25,
+              "turns": 999
+            },
+            {
+              "op": "buff",
+              "stat": "stamina",
+              "amount": 45,
+              "turns": 999
+            },
+            {
+              "op": "heal",
+              "value": 59
+            },
+            {
+              "op": "gain_stamina",
+              "value": 0.2
+            }
+          ]
+        }
+      ],
+      "_note": "counter_below gates the WHOLE rule, so once three judgements have been passed the heal and stamina stop too — not just the stat line that owns the counter."
+    },
+    {
+      "name": "Grave Decree",
+      "trigger": "passive",
+      "description": "A standing decree: +15% to all stats. Every use of Judgment of the Reaper adds a further +50% Special damage, permanently and cumulatively — and raises the decree from 15% to 30% for 4 turns before it settles back.",
+      "rules": [
+        {
+          "when": "passive",
+          "_name": "Grave Decree",
+          "once": "battle",
+          "do": [
+            {
+              "op": "buff_all_pct",
+              "value": 0.15,
+              "turns": 999
+            }
+          ],
+          "_note": "once:battle + 999 turns makes this STANDING. As a plain passive it re-applies every round and StatusManager.add_buff appends, so 15% would compound into hundreds of percent."
+        },
+        {
+          "when": "on_special",
+          "_name": "Grave Decree",
+          "do": [
+            {
+              "op": "special_amp_stack",
+              "value": 0.5,
+              "max": 4
+            },
+            {
+              "op": "buff_all_pct",
+              "value": 0.15,
+              "turns": 4
+            }
+          ],
+          "_note": "The second op is the 15%->30% window: it stacks a SECOND 15% on top of the standing one for 4 turns, which is exactly 30% while it lasts and exactly 15% once it expires. Expressing it as a temporary +15% rather than a replacement means the standing buff never has to be found and edited."
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 122,
+    "attack": 127,
+    "defense": 129,
+    "stamina": 122
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 75,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -15,6 +15,14 @@ tools/sim_balance_pass.py — the five-part balance pass.
 
 Run:  python3 tools/sim_balance_pass.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import json
 import os
 import sys
@@ -39,8 +47,7 @@ from cogs.avatar.avatar_engine import AvatarBonuses, avatar_engine  # noqa: E402
 from cogs.battle import avatar_combat as AVC                  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BLADES = json.load(open(os.path.join(ROOT, "data", "beyblades.json"),
-                        encoding="utf-8"))
+BLADES = json.load(authored_open('bey', encoding="utf-8"))
 
 
 def ops_in(node, want=None):

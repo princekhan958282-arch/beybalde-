@@ -1,0 +1,59 @@
+{
+  "id": "BB060",
+  "name": "Ferro Fengriff",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060732213559367/F2_bj_hasbro.webp?ex=6a333f55&is=6a31edd5&hm=5e5085804ae002f7b8817d888ad79cf66c5beba72387f0b41cd2acd7d179e3e3&",
+  "description": "Ferro Fengriff F2 uses four aggressive blades for upper attacks and smash attacks, designed to knock opponents off balance and out of the stadium. Fast and fun to use, but not known for great stamina or defense.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 80,
+    "defense": 44,
+    "stamina": 74,
+    "special": 68,
+    "hp": 90
+  },
+  "ability": {
+    "name": "Wolf Fang Attack",
+    "trigger": "passive",
+    "description": "Uses four aggressive blades for upper attacks and smash attacks. Designed to knock opponents off balance and out of the stadium. Fast and fun to use, but not known for great stamina or defense.",
+    "passive_atk_bonus": 8,
+    "knockout_chance_bonus": 0.1
+  },
+  "special_move": {
+    "name": "Fenrir Fang",
+    "description": "Ferro Fengriff F2 charges directly at the opponent with wolf-like strikes.",
+    "hits": 1,
+    "damage_per_hit": 95,
+    "total_damage": 95,
+    "flavour_texts": [
+      "🐺 **Fenrir Fang** — Ferro Fengriff F2 charges in with relentless wolf-like strikes!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Wolf Fang Attack",
+      "trigger": "passive",
+      "description": "Uses four aggressive blades for upper attacks and smash attacks. Designed to knock opponents off balance and out of the stadium. Fast and fun to use, but not known for great stamina or defense.",
+      "passive_atk_bonus": 8,
+      "knockout_chance_bonus": 0.1
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 90,
+    "attack": 80,
+    "defense": 44,
+    "stamina": 74
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 58,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

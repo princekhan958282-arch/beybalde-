@@ -1,0 +1,20 @@
+{
+  "name": "Giga Driver",
+  "type": "driver",
+  "price": 1150,
+  "stat": "defense",
+  "bonus": 20,
+  "desc": "Wide flat base — anchors perfectly, but slows attack.",
+  "penalty_stat": "attack",
+  "penalty": 14,
+  "id": "giga_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": -14,
+    "defense": 20,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 10
+}

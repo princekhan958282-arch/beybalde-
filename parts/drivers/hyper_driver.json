@@ -1,0 +1,20 @@
+{
+  "name": "Hyper Driver",
+  "type": "driver",
+  "price": 2000,
+  "stat": "attack",
+  "bonus": 35,
+  "desc": "Maximum aggression, minimum survival.",
+  "penalty_stat": "defense",
+  "penalty": 30,
+  "id": "hyper_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 35,
+    "defense": -30,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 14
+}

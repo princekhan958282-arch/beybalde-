@@ -1,0 +1,165 @@
+{
+  "id": "BB115",
+  "name": "Astral Valkyrie — Skyrend",
+  "rarity": "Legendary",
+  "limited": true,
+  "available_until": "2026-01-01T00:00:00Z",
+  "owner_ids": null,
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1542557816047542332/file_00000000d8b48211b0dae822e63c91ae.png?ex=6a91aa6a&is=6a9058ea&hm=286e9af1111575b25b15b679aa741fd650d7c1b66baa622fa218b3c01cfc57ff&",
+  "description": "The steady wing. It cuts when the wind allows, turns a block into a wind-up, and lands hard enough to plant itself back on its feet.",
+  "stats": {
+    "attack": 128,
+    "defense": 104,
+    "stamina": 132,
+    "special": 140,
+    "hp": 145
+  },
+  "button_profile": {
+    "special": {
+      "stamina_cost": 3
+    }
+  },
+  "special_move": {
+    "name": "🌪️ Skyrend Crash",
+    "description": "A grounding crash that restores 3 Stability. Costs a full gauge and 3 stamina.",
+    "non_damage": true,
+    "hits": 1,
+    "damage_per_hit": 0,
+    "total_damage": 0,
+    "flavour_texts": [
+      "🌪️ **Skyrend Crash** — it plants itself and holds!",
+      "🌪️ **Skyrend Crash** — the wind returns to the wing!"
+    ]
+  },
+  "ability": {
+    "name": "Sky Cutter",
+    "trigger": "on_attack_hit",
+    "description": "Each Attack has a 25% chance to cut deeper for +30% Attack bonus damage.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "chance": 0.25,
+        "do": [
+          {
+            "op": "bonus_damage_stat",
+            "stat": "attack",
+            "scale": 0.3
+          },
+          {
+            "op": "log",
+            "text": "🌬️ **Sky Cutter** — the wind opens a seam!"
+          }
+        ],
+        "_name": "Sky Cutter"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Sky Cutter",
+      "trigger": "on_attack_hit",
+      "description": "Each Attack has a 25% chance to cut deeper for +30% Attack bonus damage.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "chance": 0.25,
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.3
+            },
+            {
+              "op": "log",
+              "text": "🌬️ **Sky Cutter** — the wind opens a seam!"
+            }
+          ],
+          "_name": "Sky Cutter"
+        }
+      ]
+    },
+    {
+      "name": "Wing Reversal",
+      "trigger": "on_defense_win",
+      "description": "After a successful Defense, Skyrend's NEXT Attack gains +25% Attack. Holding the charge does not stack it.",
+      "rules": [
+        {
+          "when": "on_defense_win",
+          "do": [
+            {
+              "op": "gain_counter",
+              "name": "wing_reversal",
+              "amount": 1,
+              "max": 1,
+              "label": "Reversal",
+              "emoji": "🪶"
+            },
+            {
+              "op": "log",
+              "text": "🪶 **Wing Reversal** — the block becomes a wind-up!"
+            }
+          ],
+          "_name": "Wing Reversal (arm)"
+        },
+        {
+          "when": "on_attack_hit",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "wing_reversal",
+              "value": 1
+            }
+          ],
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.25
+            },
+            {
+              "op": "reset_counter",
+              "name": "wing_reversal"
+            }
+          ],
+          "_name": "Wing Reversal (release)"
+        }
+      ]
+    },
+    {
+      "name": "Skyrend Crash",
+      "trigger": "on_special",
+      "description": "A grounding crash that costs no ground of its own — Skyrend restores 3 Stability.",
+      "rules": [
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "gain_stability",
+              "value": 3
+            }
+          ],
+          "_name": "Skyrend Crash"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 145,
+    "attack": 128,
+    "defense": 104,
+    "stamina": 132
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 114,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "id": "BB007",
+  "name": "Brave Valkyrie",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1510865589252390993/Beyblade_Burst_Superking_-_Brave_Valkyrie_Evolution27_2A.webp?ex=6a1e5ebb&is=6a1d0d3b&hm=9e6ab41dc433ac927a748fe21abf6012ba071ebffafdc3d3f7201fd5d4d07d43&",
+  "description": "The courageous Valkyrie that defined a generation. It fights hardest when its back is against the wall.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 109,
+    "defense": 62,
+    "stamina": 90,
+    "special": 130,
+    "hp": 92
+  },
+  "ability": {
+    "name": "Last Stand",
+    "trigger": "passive",
+    "description": "When HP falls below 40%, Attack and Special damage are increased by 40%. Also heals 20 HP the first time this threshold is crossed.",
+    "hp_threshold": 0.4,
+    "damage_boost": 0.4,
+    "once_heal": 20,
+    "chain": [
+      {
+        "condition": "hp_below",
+        "threshold": 0.4,
+        "effect": "heal_pct",
+        "value": 0.0286,
+        "once": true
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Brave Impact",
+    "description": "A courageous all-or-nothing charge!",
+    "hits": 3,
+    "damage_per_hit": 43.33,
+    "total_damage": 129,
+    "flavour_texts": [
+      "🦅 **Charge 1** — Valkyrie rushes bravely!",
+      "🦅 **Charge 2** — Shredding the stadium line!",
+      "🦅 **Charge 3** — BRAVE IMPACT — FOR VICTORY!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Last Stand",
+      "trigger": "passive",
+      "description": "When HP falls below 40%, Attack and Special damage are increased by 40%. Also heals 20 HP the first time this threshold is crossed.",
+      "hp_threshold": 0.4,
+      "damage_boost": 0.4,
+      "once_heal": 20,
+      "chain": [
+        {
+          "condition": "hp_below",
+          "threshold": 0.4,
+          "effect": "heal_pct",
+          "value": 0.0286,
+          "once": true
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 92,
+    "attack": 109,
+    "defense": 62,
+    "stamina": 90
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 6,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

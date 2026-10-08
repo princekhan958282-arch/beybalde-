@@ -16,6 +16,14 @@ alongside the blade:
 
 Run:  python3 tools/sim_void_longinus.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import json
 import os
 import sys
@@ -38,8 +46,7 @@ def check(label, cond, detail=""):
 from cogs.abilities.ability_engine import AbilityEngine   # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BLADES = json.load(open(os.path.join(ROOT, "data", "beyblades.json"),
-                        encoding="utf-8"))
+BLADES = json.load(authored_open('bey', encoding="utf-8"))
 VL = BLADES.get("Void Longinus")
 
 

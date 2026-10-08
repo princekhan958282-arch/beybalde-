@@ -1,0 +1,18 @@
+{
+  "name": "Xtend+ Driver",
+  "type": "driver",
+  "price": 800,
+  "stat": "stamina",
+  "bonus": 10,
+  "desc": "Wide flat tip — maximises spin time.",
+  "id": "xtend_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 0,
+    "defense": 0,
+    "stamina": 10
+  },
+  "compatibility": {},
+  "_registry_order": 1
+}

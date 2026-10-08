@@ -1,0 +1,57 @@
+{
+  "id": "avatar_r004",
+  "name": "Alya",
+  "rarity": "Rare",
+  "type": "balance",
+  "price": 0,
+  "description": "Sharp and calculated. Boosts attack speed and crit chance with quick charge recovery.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520391525480271952/692330aa964f002f2205a5a2f4443d3a.jpg",
+  "bonuses": {
+    "attack_flat": 6,
+    "attack_percent": 0.06,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 3,
+    "stability_percent": 0,
+    "charge_flat": 8,
+    "charge_percent": 0.08,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0.1,
+    "dodge_chance": 0.05,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0.05,
+    "hp_flat": 0,
+    "hp_percent": 0.03
+  },
+  "skills": [
+    {
+      "name": "Hidden Confidence",
+      "description": "Attack increased by 14%.",
+      "bonuses": {
+        "attack_percent": 0.14
+      }
+    },
+    {
+      "name": "Cool Composure",
+      "description": "Stability increased by 12%.",
+      "bonuses": {
+        "stability_percent": 0.12
+      }
+    },
+    {
+      "name": "Secret Push",
+      "description": "Charge increased by 18%.",
+      "bonuses": {
+        "charge_percent": 0.18
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 13
+}

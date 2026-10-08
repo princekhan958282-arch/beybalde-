@@ -1,0 +1,104 @@
+{
+  "id": "BB056",
+  "name": "Quitziko",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1515599414520057876/1781417419280.png?ex=6a338bf2&is=6a323a72&hm=50bd1dbf2030443d66571b7fc0db436202dacee5f049770bf18a104404fa410c&",
+  "description": "A balanced Beyblade whose wing-shaped blades help redirect attacks. Combines decent attack, defense, and stamina, performing best in balanced battles rather than specializing in one area.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 71,
+    "defense": 88,
+    "stamina": 81,
+    "special": 75,
+    "hp": 108
+  },
+  "ability": {
+    "name": "Sky Balance",
+    "trigger": "passive",
+    "description": "Combines decent attack, defense, and stamina. Wing-shaped blades help redirect attacks. Performs best in balanced battles rather than specializing in one area.",
+    "redirect_dmg_pct": 0.15,
+    "balanced_battle_bonus": 8,
+    "rules": [
+      {
+        "when": "on_take_damage",
+        "do": [
+          {
+            "op": "reflect_pct",
+            "value": 15
+          }
+        ],
+        "_name": "Sky Balance"
+      },
+      {
+        "when": "passive",
+        "do": [
+          {
+            "op": "bonus_damage",
+            "value": 8
+          }
+        ],
+        "_name": "Sky Balance"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Quetzal Storm",
+    "description": "Quitziko circles the stadium at high speed before striking the opponent with full momentum.",
+    "hits": 1,
+    "damage_per_hit": 80,
+    "total_damage": 80,
+    "speed_buff_turns": 1,
+    "flavour_texts": [
+      "🌪️ **Quetzal Storm** — Quitziko circles at high speed and strikes!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Sky Balance",
+      "trigger": "passive",
+      "description": "Combines decent attack, defense, and stamina. Wing-shaped blades help redirect attacks. Performs best in balanced battles rather than specializing in one area.",
+      "redirect_dmg_pct": 0.15,
+      "balanced_battle_bonus": 8,
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reflect_pct",
+              "value": 15
+            }
+          ],
+          "_name": "Sky Balance"
+        },
+        {
+          "when": "passive",
+          "do": [
+            {
+              "op": "bonus_damage",
+              "value": 8
+            }
+          ],
+          "_name": "Sky Balance"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 108,
+    "attack": 71,
+    "defense": 88,
+    "stamina": 81
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 54,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "id": "BB085",
+  "name": "Victory Valkyrie X",
+  "rarity": "Epic",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "High",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537064111081267251/VictoryValkyrie_2-60RA.webp?ex=6a7dae01&is=6a7c5c81&hm=c05bcf547525a05d41b7c0c12094905d3dd7fb7e9976402aaca4cde1d735caab&",
+  "description": "The same relentless forward rush, rebuilt. Valkyrie X keeps its guard down and its foot down — the flurry lands harder, lands more often, and every impact is looking for a crit.",
+  "stats": {
+    "attack": 110,
+    "defense": 58,
+    "stamina": 82,
+    "special": 96,
+    "hp": 108
+  },
+  "ability": {
+    "name": "Energy Layer X",
+    "trigger": "on_attack_win",
+    "description": "A tighter layer. Every Attack won winds on +10 Attack, up to 5 stacks, and firing the Special sharpens the whole flurry to a +35% crit chance — with the crits themselves landing at 1.8x instead of the usual 1.5x.",
+    "rules": [
+      {
+        "when": "on_attack_win",
+        "do": [
+          {
+            "op": "stacking_buff",
+            "stat": "attack",
+            "per_stack": 10,
+            "max": 5,
+            "name": "energy_x"
+          }
+        ],
+        "_name": "Energy Layer X"
+      },
+      {
+        "when": "on_special",
+        "do": [
+          {
+            "op": "crit_chance",
+            "value": 35
+          },
+          {
+            "op": "crit_damage",
+            "value": 1.8
+          }
+        ],
+        "_name": "Energy Layer X"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Rush Launch X",
+    "description": "Sixteen impacts again — but each one carries half again the force, and every single one can crit.",
+    "hits": 16,
+    "damage_per_hit": 15,
+    "total_damage": 240,
+    "flavour_texts": [
+      "⚔️ **Rush Launch X** — sixteen hits and not one of them soft!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Energy Layer X",
+      "trigger": "on_attack_win",
+      "description": "A tighter layer. Every Attack won winds on +10 Attack, up to 5 stacks, and firing the Special sharpens the whole flurry to a +35% crit chance — with the crits themselves landing at 1.8x instead of the usual 1.5x.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 10,
+              "max": 5,
+              "name": "energy_x"
+            }
+          ],
+          "_name": "Energy Layer X"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "crit_chance",
+              "value": 35
+            },
+            {
+              "op": "crit_damage",
+              "value": 1.8
+            }
+          ],
+          "_name": "Energy Layer X"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 108,
+    "attack": 110,
+    "defense": 58,
+    "stamina": 82
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 84,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

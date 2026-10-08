@@ -1,0 +1,99 @@
+{
+  "id": "BB020",
+  "name": "Inferno Viper",
+  "rarity": "Ultimate",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1512416413363474432/file_00000000a4987208bfe1aa3c5e302ead.png?ex=6a24030c&is=6a22b18c&hm=e2d8207040da4e369551ed64ddeddca177b805fbb04a2378dafc4451d14369a2&",
+  "description": "Born in the depths of hellfire, Inferno Viper is armored in volcanic scales that absorb punishment and redirect it as pure destructive force. A crimson predator that grows more dangerous the longer it endures.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 120,
+    "defense": 130,
+    "stamina": 60,
+    "special": 130,
+    "hp": 111
+  },
+  "special_move": {
+    "name": "Hellfire Dragon Breaker",
+    "description": "Inferno Viper erupts in a column of hellfire, launching a devastating three-phase inferno burst that melts through armor and scorches the stadium!",
+    "hits": 3,
+    "damage_per_hit": 43.33,
+    "total_damage": 129,
+    "flavour_texts": [
+      "🔥 **Hellfire 1** — The stadium floor ignites!",
+      "🐉 **Hellfire 2** — Crimson scales absorb the explosion and REDIRECT it!",
+      "💥 **Hellfire 3** — HELLFIRE DRAGON BREAKER — INFERNO OBLITERATION!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Inferno Viper",
+      "trigger": "on_attack_win",
+      "description": "When Inferno Viper wins an Attack phase, its crimson fangs sink deeper — dealing 20 bonus damage and applying a Burn status on the enemy for 2 turns (10 damage per turn). Burn stacks up to 2 times.",
+      "bonus_damage": 20,
+      "burn_damage_per_turn": 10,
+      "burn_duration": 2,
+      "max_burn_stacks": 2
+    },
+    {
+      "name": "Infernal Armor",
+      "trigger": "passive",
+      "description": "Inferno Viper's volcanic armor absorbs incoming blows. Reduces all damage taken by 20. When HP drops below 50%, the armor superheats — reflecting 25 damage back to the attacker each time it takes a hit, for the rest of the battle.",
+      "damage_reduction": 20,
+      "hp_threshold": 0.5,
+      "reflect_damage": 25,
+      "chain": [
+        {
+          "condition": "hp_below",
+          "threshold": 0.5,
+          "effect": "reflect",
+          "value": 25,
+          "once": false
+        }
+      ],
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reduce_damage_flat",
+              "value": 20
+            }
+          ]
+        },
+        {
+          "when": "on_take_damage",
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.5
+            }
+          ],
+          "do": [
+            {
+              "op": "reflect_flat",
+              "value": 25
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 111,
+    "attack": 120,
+    "defense": 130,
+    "stamina": 60
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 18,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

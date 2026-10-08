@@ -10,13 +10,21 @@ restart it. If this prints the OLD values, the upload did not reach this
 directory (wrong folder, or the panel extracted somewhere else).
 """
 
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
+
 import json
 import os
 import sys
 from datetime import datetime
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB   = os.path.join(ROOT, "data", "beyblades.json")
+DB   = os.path.join(ROOT, "beys")
 
 # (blade, dotted path, expected value) — the changes that should be live
 CHECKS = [
@@ -48,7 +56,7 @@ def main() -> int:
     print(f"  mtime   {datetime.fromtimestamp(st.st_mtime):%Y-%m-%d %H:%M:%S}")
     print()
 
-    data = json.load(open(DB, encoding="utf-8"))
+    data = json.load(authored_open('bey', encoding="utf-8"))
     ok = True
     for blade, path, expect in CHECKS:
         got = dig(data.get(blade, {}), path)

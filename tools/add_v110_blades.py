@@ -6,14 +6,22 @@ reviewable and re-runnable. It derives the next BB id, refuses to clobber an
 existing blade, and copies the ELT's shared half from the base blade rather
 than retyping it.
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import json
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PATH = os.path.join(ROOT, "data", "beyblades.json")
+PATH = os.path.join(ROOT, "beys")
 
-with open(PATH, encoding="utf-8") as fh:
+with authored_open('bey', encoding="utf-8") as fh:
     doc = json.load(fh)
 
 nums = [int(b["id"][2:]) for b in doc.values()
@@ -288,7 +296,7 @@ for ab in sx["abilities"]:
                  "same 30 the single-hit version took.",
     })
 
-with open(PATH, "w", encoding="utf-8") as fh:
+with authored_open('bey', "w", encoding="utf-8") as fh:
     json.dump(doc, fh, indent=2, ensure_ascii=False)
     fh.write("\n")
 

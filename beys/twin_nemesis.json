@@ -1,0 +1,87 @@
+{
+  "id": "BB100",
+  "name": "Twin Nemesis",
+  "rarity": "Legendary",
+  "type": "Balance",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565822400827452/f61b5a67f0ec747cec4736c7111b4e44.jpg?ex=6a832495&is=6a81d315&hm=a19f219c94f5bcb383ead467982cd3edec3cd4b6eb2c170f06125adc047895e5&",
+  "description": "Two beasts sharing one axis and refusing to share anything else. One head takes the hit, the other answers it, and the blade is never doing both at once — which is exactly why it never runs out of the one it needs.",
+  "stats": {
+    "attack": 124,
+    "defense": 121,
+    "stamina": 118,
+    "special": 130,
+    "hp": 126
+  },
+  "special_move": {
+    "name": "Twin Fang Devour",
+    "description": "Both heads come off the axis at once and close from opposite sides. There is no gap between the two bites to step out of.",
+    "hits": 4,
+    "damage_per_hit": 39,
+    "total_damage": 156,
+    "flavour_texts": [
+      "🐍 **Twin Fang Devour** — both heads close at once!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Beast Alternation",
+      "trigger": "on_attack_hit",
+      "description": "The heads trade off. Every strike takes **6 stability** and banks a Fang; at **3 Fangs** the second head bites for **85** and the count resets. Meanwhile every hit taken is answered with **12% reduction and 16 reflected** — whichever head is not attacking is guarding.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "value": 6
+            },
+            {
+              "op": "add_counter",
+              "name": "fang",
+              "amount": 1,
+              "max": 3
+            },
+            {
+              "op": "counter_burst",
+              "name": "fang",
+              "at": 3,
+              "damage": 85,
+              "reset": true
+            }
+          ]
+        },
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reduce_damage_pct",
+              "value": 12
+            },
+            {
+              "op": "reflect_flat",
+              "value": 16
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 126,
+    "attack": 124,
+    "defense": 121,
+    "stamina": 118
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 99,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

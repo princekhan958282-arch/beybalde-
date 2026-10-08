@@ -1,0 +1,18 @@
+{
+  "name": "High Xtend Tip",
+  "type": "driver",
+  "price": 700,
+  "stat": "attack",
+  "bonus": 8,
+  "desc": "Balanced tip with slight attack lean.",
+  "id": "high_xtend_tip",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 8,
+    "defense": 0,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 2
+}

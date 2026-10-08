@@ -1,0 +1,20 @@
+{
+  "name": "Trans Disk",
+  "type": "disk",
+  "price": 1050,
+  "stat": "stamina",
+  "bonus": 20,
+  "desc": "Transforming disk — shifts weight during spin.",
+  "penalty_stat": "defense",
+  "penalty": 12,
+  "id": "trans_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 0,
+    "defense": -12,
+    "stamina": 20
+  },
+  "compatibility": {},
+  "_registry_order": 24
+}

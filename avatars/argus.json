@@ -1,0 +1,63 @@
+{
+  "id": "avatar_x002",
+  "name": "Argus",
+  "rarity": "MLBB",
+  "type": "balance",
+  "price": 0,
+  "description": "The deathless sentinel. Argus strikes with overwhelming force and simply refuses to fall.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521123391103307918/b9be113f8dd6838140cc9ad2801d304b.jpg?ex=6a65f70d&is=6a64a58d&hm=4228f645a1eb3eeef555151af53c97bf1e7c5d67272220f9e12c9eba1144250b&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": 0.001,
+  "skills": [
+    {
+      "name": "Titan's Might",
+      "description": "Attack increased by 30%.",
+      "bonuses": {
+        "attack_percent": 0.3
+      }
+    },
+    {
+      "name": "Piercing Gaze",
+      "description": "Crit chance +40%. Every crit refunds 50 Special Gauge.",
+      "bonuses": {
+        "crit_percent": 0.4,
+        "gauge_on_crit": 50
+      }
+    },
+    {
+      "name": "Deathless",
+      "description": "The first lethal hit cannot kill — Argus is immortal for 2 rounds. Once per battle.",
+      "bonuses": {
+        "immortal_rounds": 2
+      }
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 0,
+    "attack_percent": 0.3,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0.4,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.15,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "gauge_on_crit": 50,
+    "immortal_rounds": 2
+  },
+  "generation": null,
+  "_registry_order": 27
+}

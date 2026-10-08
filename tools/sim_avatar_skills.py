@@ -23,6 +23,14 @@ mechanical binding that can actually fire.
 
 Run:  python3 tools/sim_avatar_skills.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import asyncio
 import json
 import os
@@ -738,8 +746,7 @@ check("every card still builds an AvatarBonuses",
 check("the split migration is idempotent",
       os.system(f"{sys.executable} tools/split_avatar_skills.py --check "
                 f"> /dev/null 2>&1") == 0)
-with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                       "cogs", "avatar", "avatar_data.json"), encoding="utf-8") as fh:
+with authored_open('avatar', encoding="utf-8") as fh:
     check("avatar_data.json is still valid JSON", bool(json.load(fh)))
 
 print(f"\n{'=' * 66}\n  {PASS} passed, {FAIL} failed\n{'=' * 66}")

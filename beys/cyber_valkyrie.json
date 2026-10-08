@@ -1,0 +1,72 @@
+{
+  "id": "BB072",
+  "name": "Cyber Valkyrie",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516462164381270087/1781621148975.png?ex=6a3363b2&is=6a321232&hm=8e45e9a3843cc9673a00799820625f4c490c04f707b509fa1af6d5040d6d34ee&",
+  "description": "Cyber Valkyrie gains speed after every impact and uses digital energy wings to increase attack power, performing rapid dash attacks around the stadium.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 107,
+    "defense": 70,
+    "stamina": 76,
+    "special": 90,
+    "hp": 101
+  },
+  "ability": {
+    "name": "Cyber Boost",
+    "trigger": "on_attack_hit",
+    "description": "Gains speed after every impact. Uses digital energy wings to increase attack power. Performs rapid dash attacks around the stadium.",
+    "passive_atk_bonus": 5,
+    "stacking_atk_bonus_per_hit": 5,
+    "max_stacks": 4
+  },
+  "special_move": {
+    "name": "Cyber Flash",
+    "description": "Cyber Valkyrie accelerates instantly for a surprise attack.",
+    "hits": 1,
+    "damage_per_hit": 115,
+    "total_damage": 115,
+    "first_strike_dmg_amp_pct": 0.2,
+    "flavour_texts": [
+      "⚡ **Cyber Flash** — Cyber Valkyrie accelerates in a digital instant!"
+    ]
+  },
+  "special_move_2": {
+    "name": "Valkyrie Wing Break",
+    "description": "A powerful aerial-style smash attack using Cyber Valkyrie's digital energy wings.",
+    "hits": 2,
+    "damage_per_hit": 55,
+    "total_damage": 110,
+    "flavour_texts": [
+      "⚡ **Valkyrie Wing Break** — digital wings spread and deliver an aerial smash!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Cyber Boost",
+      "trigger": "on_attack_hit",
+      "description": "Gains speed after every impact. Uses digital energy wings to increase attack power. Performs rapid dash attacks around the stadium.",
+      "passive_atk_bonus": 5,
+      "stacking_atk_bonus_per_hit": 5,
+      "max_stacks": 4
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 101,
+    "attack": 107,
+    "defense": 70,
+    "stamina": 76
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 70,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

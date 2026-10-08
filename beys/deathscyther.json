@@ -1,0 +1,61 @@
+{
+  "id": "BB063",
+  "name": "Deathscyther",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060845472219266/B12DeathscytherOvalAccel.webp?ex=6a333f70&is=6a31edf0&hm=da902776e8791fcc3c97ab5fbc8987488a9365bb51c3cc8a95ee9f8d47a69045&",
+  "description": "Four scythe-shaped blades create continuous attacks while the Accel driver gives high speed and aggressive movement. Known for delivering strong smash attacks and burst finishes.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 107,
+    "defense": 48,
+    "stamina": 66,
+    "special": 80,
+    "hp": 87
+  },
+  "ability": {
+    "name": "Reaper Slash",
+    "trigger": "passive",
+    "description": "Four scythe-shaped blades create continuous attacks. The Accel driver gives high speed and aggressive movement. Known for delivering strong smash attacks and burst finishes.",
+    "passive_atk_bonus": 10,
+    "burst_chance_bonus": 0.12,
+    "smash_dmg_amp_pct": 0.12
+  },
+  "special_move": {
+    "name": "Deathscythe",
+    "description": "Deathscyther Oval Accel charges at opponents with spinning scythe attacks.",
+    "hits": 2,
+    "damage_per_hit": 50,
+    "total_damage": 100,
+    "flavour_texts": [
+      "☠️ **Deathscythe** — the scythe blades carve through the opponent!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Reaper Slash",
+      "trigger": "passive",
+      "description": "Four scythe-shaped blades create continuous attacks. The Accel driver gives high speed and aggressive movement. Known for delivering strong smash attacks and burst finishes.",
+      "passive_atk_bonus": 10,
+      "burst_chance_bonus": 0.12,
+      "smash_dmg_amp_pct": 0.12
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 87,
+    "attack": 107,
+    "defense": 48,
+    "stamina": 66
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 61,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -3,14 +3,22 @@
 
 Both are Epic, mid-power designs with 397 total HP/ATK/DEF/STM.
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import json
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PATH = os.path.join(ROOT, "data", "beyblades.json")
+PATH = os.path.join(ROOT, "beys")
 
-with open(PATH, encoding="utf-8") as fh:
+with authored_open('bey', encoding="utf-8") as fh:
     doc = json.load(fh)
 
 nums = [int(b["id"][2:]) for b in doc.values()
@@ -92,7 +100,7 @@ for b in NEW.values():
     assert st["hp"] + st["attack"] + st["defense"] + st["stamina"] == 397
 
 doc.update(NEW)
-with open(PATH, "w", encoding="utf-8") as fh:
+with authored_open('bey', "w", encoding="utf-8") as fh:
     json.dump(doc, fh, indent=2, ensure_ascii=False)
     fh.write("\n")
 

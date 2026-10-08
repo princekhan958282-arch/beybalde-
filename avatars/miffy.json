@@ -1,0 +1,60 @@
+{
+  "id": "avatar_u007",
+  "name": "Miffy",
+  "rarity": "Ultimate",
+  "type": "defense",
+  "price": 0,
+  "description": "Small, soft, and entirely immovable. Miffy scales with whatever bey she is paired to — the sturdier the blade, the more absurd she becomes.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1530707808981483571/83c9f2cd8ef087daf7ce64906bfa467e-1.jpg?ex=6a79abfc&is=6a785a7c&hm=7bdb9c608f23c56fdeb6bfa0fc18eef9d2a278997719ec27929addc70e1e803e&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "skills": [
+    {
+      "name": "Soft Power",
+      "description": "Attack increased by 25%.",
+      "bonuses": {
+        "attack_percent": 0.25
+      }
+    },
+    {
+      "name": "Unbothered",
+      "description": "8% of all incoming damage is shrugged off entirely.",
+      "bonuses": {
+        "resistance_damage_percent": 0.08
+      }
+    },
+    {
+      "name": "Plush Armour",
+      "description": "Defence increased by 50%, applied on top of the bey's own Defence.",
+      "bonuses": {
+        "defence_percent": 0.5
+      }
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 0,
+    "attack_percent": 0.25,
+    "defence_flat": 0,
+    "defence_percent": 0.5,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.08,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.13
+  },
+  "generation": null,
+  "_registry_order": 31
+}

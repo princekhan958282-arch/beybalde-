@@ -1,0 +1,123 @@
+{
+  "id": "BB103",
+  "name": "Deep Caynox ELT",
+  "rarity": "Legendary",
+  "type": "Stamina",
+  "spin_direction": "Right",
+  "burst_height": "Low",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538764149973328022/Deep_Caynox_ELT.png?ex=6a83dd4a&is=6a828bca&hm=befef1edcea93c16ed31758919339973399ab08d8caf3ad502ca41107ac49a21&",
+  "description": "The same low disc, tuned past the point the standard release stops at. ELT does not switch which stat strikes — it stops distinguishing between them. Every point of spin is a point of edge, and the levitation comes back down heavier than it left.",
+  "abilities": [
+    {
+      "name": "Extreme Switch Strike",
+      "trigger": "on_attack_hit",
+      "description": "Switch Strike, taken further. Every Attack adds **70% of its Stamina** as damage; it drains **0.9 stamina** from whoever hits it and cuts **18%** off that hit, and every third hit taken answers for **60**.\n**Levitation Launch** restores **44 HP**, **3 stamina** and **30 stability**, leaves a **110 HP shield** with **+70 Defence for 3 turns**, and puts **+25 Attack** behind the next two strikes.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "stat": "stamina",
+              "scale": 0.7
+            }
+          ]
+        },
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 0.9
+            },
+            {
+              "op": "reduce_damage_pct",
+              "value": 18
+            },
+            {
+              "op": "add_counter",
+              "name": "elt",
+              "amount": 1,
+              "max": 3
+            },
+            {
+              "op": "counter_burst",
+              "name": "elt",
+              "at": 3,
+              "damage": 60,
+              "reset": true
+            }
+          ]
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "heal",
+              "value": 44
+            },
+            {
+              "op": "gain_stamina",
+              "value": 3
+            },
+            {
+              "op": "gain_stability",
+              "value": 30
+            },
+            {
+              "op": "buff",
+              "stat": "defense",
+              "amount": 70,
+              "turns": 3
+            },
+            {
+              "op": "shield",
+              "value": 110
+            },
+            {
+              "op": "buff",
+              "stat": "attack",
+              "amount": 25,
+              "turns": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "attack": 50,
+    "defense": 101,
+    "stamina": 121,
+    "special": 116,
+    "hp": 134
+  },
+  "special_move": {
+    "name": "Levitation Launch",
+    "non_damage": true,
+    "hits": 1,
+    "damage_per_hit": 0,
+    "total_damage": 0,
+    "description": "Caynox lifts clear of the floor entirely and stops touching anything. No damage, none intended — it comes back down with its spin restored and its footing back.",
+    "flavour_texts": [
+      "🌀 **Levitation Launch** — ELT does not come back down the same!"
+    ]
+  },
+  "main_frame": {
+    "hp": 134,
+    "attack": 50,
+    "defense": 101,
+    "stamina": 121
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 101,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "id": "avatar_m001",
+  "name": "Eternal Inferno",
+  "rarity": "Mythic",
+  "type": "attack",
+  "price": 0,
+  "description": "A blazing titan who adds an extra hit to every multi-hit assault.",
+  "image": "assets/avatars/eternal_inferno.png",
+  "bonuses": {
+    "attack_flat": 12,
+    "attack_percent": 0.12,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 5,
+    "stability_percent": 0,
+    "charge_flat": 15,
+    "charge_percent": 0.12,
+    "special_move_flat": 20,
+    "special_move_percent": 0.2,
+    "crit_percent": 0.15,
+    "dodge_chance": 0.05,
+    "counter_chance": 0.05,
+    "multi_hit_power_double": true,
+    "multi_hit_extra_hits": true,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.1
+  },
+  "skills": [
+    {
+      "name": "Hellfire Drive",
+      "description": "Attack increased by 30%.",
+      "bonuses": {
+        "attack_percent": 0.3
+      }
+    },
+    {
+      "name": "Infernal Execution",
+      "description": "Special Move damage increased by 38%.",
+      "bonuses": {
+        "special_move_percent": 0.38
+      }
+    },
+    {
+      "name": "Undying Flame",
+      "description": "Incoming damage reduced by 15%.",
+      "bonuses": {
+        "resistance_damage_percent": 0.15
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 5
+}

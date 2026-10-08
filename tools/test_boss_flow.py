@@ -1,4 +1,12 @@
 """Focused boss flow regressions. Run with: python -m unittest tools.test_boss_flow"""
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import unittest
 import json
 from pathlib import Path
@@ -19,8 +27,7 @@ def member(uid):
 
 class BossFlowTests(unittest.IsolatedAsyncioTestCase):
     def test_cure_support_applies_to_allies_and_restores_stats(self):
-        blades = json.loads((Path(__file__).resolve().parents[1] /
-                             "data/beyblades.json").read_text())
+        blades = json.loads(authored_open('bey').getvalue())
         for name, stat in (("Cure Black", "attack"), ("Cure White", "defense")):
             fight = self.make_fight()
             fight.kits[2] = bk.kit_for(blades[name])

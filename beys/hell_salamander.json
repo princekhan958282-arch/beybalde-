@@ -1,0 +1,73 @@
+{
+  "id": "BB051",
+  "name": "Hell Salamander",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1515579876214571018/1781412779136.png?ex=6a2f8540&is=6a2e33c0&hm=4277377c0982925461dabf08da8f4c2d031527382f32117b6f42f1d464b46259&",
+  "description": "A versatile Balance type that can be assembled in two modes — 5-Blade Mode for stamina and smooth rotation, or 10-Blade Mode for raw attack power. It can spin both clockwise and counterclockwise, making it adaptable against many opponents.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 100,
+    "defense": 80,
+    "stamina": 90,
+    "special": 105,
+    "hp": 108
+  },
+  "ability": {
+    "name": "Dual Spin",
+    "trigger": "passive",
+    "description": "Hell Salamander can be assembled in 5-Blade Mode for more stamina and smoother rotation, or 10-Blade Mode for more attack power and stronger hits. It can spin both clockwise and counterclockwise, making it versatile against many opponents.",
+    "mode_atk_bonus": 10,
+    "mode_stamina_bonus": 10,
+    "spin_versatility_dmg_reduction_pct": 0.1
+  },
+  "special_move": {
+    "name": "Salamander Claw",
+    "description": "Hell Salamander rushes the opponent with a flurry of powerful slashing attacks.",
+    "hits": 3,
+    "damage_per_hit": 35,
+    "total_damage": 105,
+    "flavour_texts": [
+      "🔥 **Salamander Claw** — Hell Salamander rushes in with slashing claws!"
+    ]
+  },
+  "special_move_2": {
+    "name": "Burning Salamander",
+    "description": "Hell Salamander surrounds itself with fiery energy and delivers repeated burning strikes.",
+    "hits": 3,
+    "damage_per_hit": 30,
+    "total_damage": 90,
+    "burn_damage": 15,
+    "burn_turns": 2,
+    "flavour_texts": [
+      "🔥 **Burning Salamander** — fiery energy surrounds Hell Salamander!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dual Spin",
+      "trigger": "passive",
+      "description": "Hell Salamander can be assembled in 5-Blade Mode for more stamina and smoother rotation, or 10-Blade Mode for more attack power and stronger hits. It can spin both clockwise and counterclockwise, making it versatile against many opponents.",
+      "mode_atk_bonus": 10,
+      "mode_stamina_bonus": 10,
+      "spin_versatility_dmg_reduction_pct": 0.1
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 108,
+    "attack": 100,
+    "defense": 80,
+    "stamina": 90
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 49,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,4 +1,12 @@
 """Verify real Draciel records through live rounds and boss projections."""
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import asyncio
 import copy
 import json
@@ -66,7 +74,7 @@ class DracielPvp(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(blade['image_url'].startswith('https://cdn.discordapp.com/'))
             ids.append(blade['id'])
         self.assertEqual(len(set(ids)), 5)
-        with open('data/beyblades.json') as source:
+        with authored_open('bey') as source:
             all_blades = json.load(source)
         self.assertEqual(len({b['id'] for b in all_blades.values()}), len(all_blades))
 

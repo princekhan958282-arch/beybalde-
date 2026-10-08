@@ -1,0 +1,57 @@
+{
+  "id": "avatar_u004",
+  "name": "Mitsuri",
+  "rarity": "Ultimate",
+  "type": "attack",
+  "price": 0,
+  "description": "The Love Hashira. Whip-fast multi-hit strikes with extreme crit and dodge — leaves no opening unfilled.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521013570085584956/HD-wallpaper-mitsuri-kanroji-kimetsu-no-yaiba-anime-girls-anime-manga-fantasy-girl-pink-hair-braids-braided-hair-green-eyes-looking-at-viewer-uniform-black-clothing-cleavage-no-bra-thick-thigh-thighs.jpg?ex=6a4349c6&is=6a41f846&hm=841bc1dbb4b8e2fdeab2acbd88f811d3367af905632d0a5a3a1e539072a65370&",
+  "bonuses": {
+    "attack_flat": 14,
+    "attack_percent": 0.16,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 10,
+    "stamina_percent": 0.08,
+    "stability_flat": 5,
+    "stability_percent": 0,
+    "charge_flat": 14,
+    "charge_percent": 0.14,
+    "special_move_flat": 18,
+    "special_move_percent": 0.18,
+    "crit_percent": 0.22,
+    "dodge_chance": 0.25,
+    "counter_chance": 0.1,
+    "multi_hit_power_double": true,
+    "multi_hit_extra_hits": true,
+    "resistance_damage_percent": 0.05,
+    "resistance_status_chance": 0.1,
+    "hp_flat": 0,
+    "hp_percent": 0.12
+  },
+  "skills": [
+    {
+      "name": "Love Breathing",
+      "description": "Attack increased by 32%.",
+      "bonuses": {
+        "attack_percent": 0.32
+      }
+    },
+    {
+      "name": "Flexible Motion",
+      "description": "Dodge chance increased by 30%.",
+      "bonuses": {
+        "dodge_chance": 0.3
+      }
+    },
+    {
+      "name": "Love Hashira Finale",
+      "description": "Special Move damage increased by 42%.",
+      "bonuses": {
+        "special_move_percent": 0.42
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 25
+}

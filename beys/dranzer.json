@@ -1,0 +1,104 @@
+{
+  "id": "BB043",
+  "name": "Dranzer",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513096323359051776/DZ.Hr.Dm.webp?ex=6a2d13c3&is=6a2bc243&hm=51653718993361311b75b581d8d1007fd2551103a41b4f225bf36f1f9b0f6b84&",
+  "description": "The blazing phoenix of balance. Dranzer builds flame heat with every passing moment — and when the heat reaches its peak, it erupts in a burst of true fire that scorches all who stand in its way.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 105,
+    "defense": 95,
+    "stamina": 100,
+    "special": 125,
+    "hp": 112
+  },
+  "ability": {
+    "name": "Dranzer Flame",
+    "trigger": "passive",
+    "description": "Dranzer builds flame heat each turn. Every 3 turns, it releases a Flame Burst — dealing 25 true damage to the enemy and healing 15 HP. While heat is building, Dranzer gains +10 ATK passively.",
+    "passive_atk_bonus": 10,
+    "flame_burst_interval": 3,
+    "flame_burst_true_dmg": 25,
+    "flame_burst_heal": 15,
+    "chain": [
+      {
+        "condition": "stack_threshold",
+        "threshold": 3,
+        "effect": "true_damage",
+        "value": 25,
+        "once": false,
+        "_note": "Flame Burst: 25 true damage every 3 stacks"
+      },
+      {
+        "condition": "stack_threshold",
+        "threshold": 3,
+        "effect": "heal",
+        "value": 15,
+        "once": false,
+        "_note": "Flame Burst: heal 15 HP every 3 stacks"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Flame Saber",
+    "description": "Dranzer ignites its blade with phoenix fire and unleashes a three-hit blazing slash — cutting through defenses and leaving the enemy burning in its wake.",
+    "hits": 3,
+    "damage_per_hit": 41,
+    "total_damage": 123,
+    "ignore_def_pct": 0.3,
+    "burn_damage": 20,
+    "burn_turns": 2,
+    "flavour_texts": [
+      "🔥 **Flame Saber** — Dranzer ignites with phoenix fire!",
+      "🔥 **Strike 2** — the blazing blade cuts deeper!",
+      "💥 **Strike 3** — FLAME SABER — PHOENIX INFERNO — YOU'RE BURNING!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dranzer Flame",
+      "trigger": "passive",
+      "description": "Dranzer builds flame heat each turn. Every 3 turns, it releases a Flame Burst — dealing 25 true damage to the enemy and healing 15 HP. While heat is building, Dranzer gains +10 ATK passively.",
+      "passive_atk_bonus": 10,
+      "flame_burst_interval": 3,
+      "flame_burst_true_dmg": 25,
+      "flame_burst_heal": 15,
+      "chain": [
+        {
+          "condition": "stack_threshold",
+          "threshold": 3,
+          "effect": "true_damage",
+          "value": 25,
+          "once": false,
+          "_note": "Flame Burst: 25 true damage every 3 stacks"
+        },
+        {
+          "condition": "stack_threshold",
+          "threshold": 3,
+          "effect": "heal",
+          "value": 15,
+          "once": false,
+          "_note": "Flame Burst: heal 15 HP every 3 stacks"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 112,
+    "attack": 105,
+    "defense": 95,
+    "stamina": 100
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 41,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

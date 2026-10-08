@@ -1,0 +1,69 @@
+{
+  "id": "BB031",
+  "name": "Curse Satan",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513084758953951254/BBSK_Curse_Satan_Hurricane_Universe_1D_Beyblade.webp?ex=6a26717e&is=6a251ffe&hm=6bf8e7ee116f81b27983339099b917bd05e93355c88ff3dd1c9e11ad07e6069f",
+  "description": "A cursed demon blade wreathed in hellfire. Curse Satan corrupts the battlefield itself, poisoning the opponent's stamina and sapping their will to fight while growing stronger with each passing round.",
+  "burst_height": "Mid",
+  "type": "Defense",
+  "stats": {
+    "attack": 70,
+    "defense": 120,
+    "stamina": 105,
+    "special": 105,
+    "hp": 120
+  },
+  "ability": {
+    "name": "Hellfire Corruption",
+    "trigger": "on_special",
+    "description": "Curse Satan calls down a pillar of hellfire: silence the enemy for 1 turn, apply a Corruption DoT (25 dmg for 4 turns), reduce enemy's ATK by 30 for 3 turns, and grant a 60 HP shield. The corruption cannot be cleansed.",
+    "satan_silence_turns": 1,
+    "satan_corruption_dmg": 25,
+    "satan_corruption_turns": 4,
+    "satan_atk_debuff": 30,
+    "satan_atk_debuff_turns": 3,
+    "satan_shield": 60,
+    "silence_turns": 1
+  },
+  "special_move": {
+    "name": "Hellfire Stomp",
+    "description": "Curse Satan slams down with the weight of a demon god — a single devastating impact that corrupts everything it touches!",
+    "hits": 1,
+    "damage_per_hit": 105,
+    "total_damage": 105,
+    "flavour_texts": [
+      "😈 **Hellfire Stomp** — the demon's heel falls and the arena cracks under the cursed weight!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Hellfire Corruption",
+      "trigger": "on_special",
+      "description": "Curse Satan calls down a pillar of hellfire: silence the enemy for 1 turn, apply a Corruption DoT (25 dmg for 4 turns), reduce enemy's ATK by 30 for 3 turns, and grant a 60 HP shield. The corruption cannot be cleansed.",
+      "satan_silence_turns": 1,
+      "satan_corruption_dmg": 25,
+      "satan_corruption_turns": 4,
+      "satan_atk_debuff": 30,
+      "satan_atk_debuff_turns": 3,
+      "satan_shield": 60,
+      "silence_turns": 1
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 120,
+    "attack": 70,
+    "defense": 120,
+    "stamina": 105
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 29,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

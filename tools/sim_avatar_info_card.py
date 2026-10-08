@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 """Targeted ;ainfo render and Discord attachment checks; no live Discord needed."""
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import copy
 import json
 from pathlib import Path
@@ -15,7 +23,7 @@ from utils import avatar_info_card as C
 from cogs.avatar.avatar_shop import AvatarShop, AvatarSkillsView
 from discord.ext.commands.view import StringView
 
-CARDS = json.loads((Path(__file__).resolve().parents[1] / 'cogs/avatar/avatar_data.json').read_text())['avatars']
+CARDS = json.loads(authored_open('avatar').getvalue())['avatars']
 YUKI = CARDS[0]
 
 class CardTests(unittest.TestCase):

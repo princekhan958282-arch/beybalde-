@@ -1,0 +1,57 @@
+{
+  "id": "avatar_r005",
+  "name": "Yotsuha",
+  "rarity": "Rare",
+  "type": "stamina",
+  "price": 0,
+  "description": "Mitsuha's spirited little sister. Quick on her feet with reliable stamina and stability.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012679513342125/b65308d5dc9a54fbe60536f0d81caeab.jpg?ex=6a4348f1&is=6a41f771&hm=e6fe22c3b04b503c47677efe726b7266576953e8c6a9a18aca6565c78f76de6f&",
+  "bonuses": {
+    "attack_flat": 3,
+    "attack_percent": 0,
+    "defence_flat": 4,
+    "defence_percent": 0,
+    "stamina_flat": 10,
+    "stamina_percent": 0.06,
+    "stability_flat": 7,
+    "stability_percent": 0.05,
+    "charge_flat": 4,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0.1,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.05,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.03
+  },
+  "skills": [
+    {
+      "name": "Bright Spirit",
+      "description": "Stamina increased by 16%.",
+      "bonuses": {
+        "stamina_percent": 0.16
+      }
+    },
+    {
+      "name": "Sure Footing",
+      "description": "Stability increased by 14%.",
+      "bonuses": {
+        "stability_percent": 0.14
+      }
+    },
+    {
+      "name": "Light Step",
+      "description": "Dodge chance increased by 12%.",
+      "bonuses": {
+        "dodge_chance": 0.12
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 17
+}

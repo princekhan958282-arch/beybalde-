@@ -1,0 +1,123 @@
+{
+  "id": "BB013",
+  "name": "Dark Strike Valkyrie",
+  "rarity": "Mythic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511667833489068052/file_00000000784072088ceecd47619bdb0e.png?ex=6a2149e0&is=6a1ff860&hm=4a6287e0ff28923e8ea457dfb4fb5f4203413f1d0d9ec49c61b42d85c8e91f2a&",
+  "description": "A twisted, shadow-forged variant of the legendary warrior. Draped in obsidian metal, its high-frequency impact edges tear through defense arrays, growing exponentially more violent as darkness consumes its health pool.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 112,
+    "defense": 38,
+    "stamina": 60,
+    "special": 125,
+    "hp": 92
+  },
+  "ability": {
+    "name": "Shadow Shredder",
+    "trigger": "on_attack_win",
+    "description": "Winning an Attack phase crushes the foe's armor, imposing a -25 Defense penalty for 2 turns. Features a crisis chain: when dropped below 40% HP, grants +35 Attack power and guarantees critical hits for the rest of the phase loop.",
+    "enemy_defense_reduction": 25,
+    "duration_turns": 2,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "ignore_def",
+        "duration": 2,
+        "once": false,
+        "_note": "Represents -25 enemy Defense for duration_turns"
+      },
+      {
+        "condition": "hp_below",
+        "threshold": 0.4,
+        "effect": "attack_boost",
+        "value": 35,
+        "duration": 3,
+        "once": true
+      }
+    ],
+    "rules": [
+      {
+        "when": "on_attack_win",
+        "do": [
+          {
+            "op": "enemy_debuff",
+            "stat": "defense",
+            "amount": 25,
+            "turns": 2
+          }
+        ],
+        "_name": "Shadow Shredder"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Umbral Decimation",
+    "description": "Descends into a pitch-black overhead dive, executing three hyper-velocity contact explosions!",
+    "hits": 3,
+    "damage_per_hit": 45,
+    "total_damage": 135,
+    "flavour_texts": [
+      "🖤 **Umbral Decimation** — Darkness envelopes the stadium floor!",
+      "💥 **Strike 2** — The shadow wings shatter the enemy's alignment!",
+      "⚡ **Strike 3** — DARK ECLIPSE SLASH!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Shadow Shredder",
+      "trigger": "on_attack_win",
+      "description": "Winning an Attack phase crushes the foe's armor, imposing a -25 Defense penalty for 2 turns. Features a crisis chain: when dropped below 40% HP, grants +35 Attack power and guarantees critical hits for the rest of the phase loop.",
+      "enemy_defense_reduction": 25,
+      "duration_turns": 2,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "ignore_def",
+          "duration": 2,
+          "once": false,
+          "_note": "Represents -25 enemy Defense for duration_turns"
+        },
+        {
+          "condition": "hp_below",
+          "threshold": 0.4,
+          "effect": "attack_boost",
+          "value": 35,
+          "duration": 3,
+          "once": true
+        }
+      ],
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "enemy_debuff",
+              "stat": "defense",
+              "amount": 25,
+              "turns": 2
+            }
+          ],
+          "_name": "Shadow Shredder"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 92,
+    "attack": 112,
+    "defense": 38,
+    "stamina": 60
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 12,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "id": "BB062",
+  "name": "Dragoon Fantom",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060816003301517/Dragoon_F_.G.V.webp?ex=6a333f69&is=6a31ede9&hm=ba15a1827dd3a892c051cd63f9edb869375a3e2bf735aeb72457a3368631d19a&",
+  "description": "Four dragon heads create powerful smash attacks, and its left-spin design delivers aggressive hits. Built for high recoil and explosive knockouts, Dragoon Fantom is one of the most iconic attack Beyblades.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 119,
+    "defense": 54,
+    "stamina": 59,
+    "special": 100,
+    "hp": 87
+  },
+  "ability": {
+    "name": "Dragon Smash",
+    "trigger": "passive",
+    "description": "Four dragon heads create powerful smash attacks. Left-spin design helps deliver aggressive hits. Built for high recoil and explosive knockouts.",
+    "passive_atk_bonus": 14,
+    "knockout_chance_bonus": 0.15,
+    "smash_dmg_amp_pct": 0.18
+  },
+  "special_move": {
+    "name": "Phantom Hurricane",
+    "description": "Dragoon creates a massive wind tornado that overwhelms opponents — one of Tyson's most famous attacks.",
+    "hits": 2,
+    "damage_per_hit": 65,
+    "total_damage": 130,
+    "flavour_texts": [
+      "🌪️ **Phantom Hurricane** — Dragoon conjures a wind tornado!",
+      "🌪️ **Hurricane Strike** — the tornado overwhelms the opponent!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dragon Smash",
+      "trigger": "passive",
+      "description": "Four dragon heads create powerful smash attacks. Left-spin design helps deliver aggressive hits. Built for high recoil and explosive knockouts.",
+      "passive_atk_bonus": 14,
+      "knockout_chance_bonus": 0.15,
+      "smash_dmg_amp_pct": 0.18
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 87,
+    "attack": 119,
+    "defense": 54,
+    "stamina": 59
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 60,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

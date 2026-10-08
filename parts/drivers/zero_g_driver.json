@@ -1,0 +1,20 @@
+{
+  "name": "Zero-G Driver",
+  "type": "driver",
+  "price": 1700,
+  "stat": "stamina",
+  "bonus": 28,
+  "desc": "Ultra-low contact tip — floats in battle.",
+  "penalty_stat": "defense",
+  "penalty": 22,
+  "id": "zero_g_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 0,
+    "defense": -22,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "_registry_order": 13
+}

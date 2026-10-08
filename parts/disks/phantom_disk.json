@@ -1,0 +1,20 @@
+{
+  "name": "Phantom Disk",
+  "type": "disk",
+  "price": 2000,
+  "stat": "stamina",
+  "bonus": 30,
+  "desc": "Hollow-core disk — ghostly spin endurance.",
+  "penalty_stat": "attack",
+  "penalty": 25,
+  "id": "phantom_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": -25,
+    "defense": 0,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "_registry_order": 31
+}

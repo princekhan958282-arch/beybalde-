@@ -1,0 +1,82 @@
+{
+  "id": "BB105",
+  "name": "Omni Odax",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1539685778701942864/file_00000000520082118b419ba031502e76.png?ex=6a87379f&is=6a85e61f&hm=f6e30595ea524af6eae33fb515fb663ce84944156ad473f994d9f93588303b93&",
+  "description": "It does not swing on instinct — it swings on the beat. Omni Odax reads the tempo of a fight and locks onto it, every landed strike setting the next one a fraction earlier. Fall into its rhythm and the drop comes before you have finished counting.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "stats": {
+    "attack": 108,
+    "defense": 60,
+    "stamina": 78,
+    "special": 98,
+    "hp": 98
+  },
+  "abilities": [
+    {
+      "name": "Sound of Battle",
+      "trigger": "on_attack_win",
+      "description": "Omni Odax keeps time with the fight. Every Attack win sets a **Beat**: **+7 Attack** that stays for the rest of the battle, up to **4**, and one beat banked for the drop.\n**Blast Beat** spends every banked beat at once — **+15 damage each**, so a Special fired on a full bar lands **60** above its printed damage. The bank empties; the Attack the beats bought does not.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 7,
+              "max": 4,
+              "name": "odax_tempo"
+            },
+            {
+              "op": "add_counter",
+              "name": "blast_beat",
+              "amount": 1,
+              "max": 4
+            }
+          ]
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "consume_counter",
+              "name": "blast_beat",
+              "damage_per_stack": 15
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Blast Beat",
+    "description": "Omni Odax's signature move. It synchronises with the rhythm of the battle itself and answers on the downbeat — three strikes on the count, and every beat banked so far lands with them.",
+    "hits": 3,
+    "damage_per_hit": 40,
+    "total_damage": 120,
+    "flavour_texts": [
+      "🥁 **Blast Beat** — Omni Odax finds the tempo of the fight!",
+      "🎵 **Beat 2** — the strikes fall on the count!",
+      "💥 **BLAST BEAT** — the drop lands, and every banked beat with it!"
+    ]
+  },
+  "main_frame": {
+    "hp": 98,
+    "attack": 108,
+    "defense": 60,
+    "stamina": 78
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 104,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

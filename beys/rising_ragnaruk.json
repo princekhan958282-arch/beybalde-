@@ -1,0 +1,93 @@
+{
+  "id": "BB081",
+  "name": "Rising Ragnaruk",
+  "rarity": "Rare",
+  "type": "Stamina",
+  "spin_direction": "right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537063768641769513/Beyblade_Ragnaruk.webp?ex=6a7dadaf&is=6a7c5c2f&hm=34878829e4e89a3a81aff8407ed9c4e0b97e62ae95bbd64b9c615befb63a8a59&",
+  "description": "A heavyweight that wins by refusing to stop. Ragnaruk converts every exchange it survives into more spin, grinding opponents down long after a faster blade would have burned out.",
+  "stats": {
+    "attack": 62,
+    "defense": 74,
+    "stamina": 98,
+    "special": 74,
+    "hp": 108
+  },
+  "ability": {
+    "name": "Centrifugal Force",
+    "trigger": "on_stamina_win",
+    "description": "Every Stamina exchange Ragnaruk wins feeds its rotation — recovering 10 HP and packing on +5 Defence, stacking up to 4 times. The longer the battle runs, the harder it is to move.",
+    "rules": [
+      {
+        "when": "on_stamina_win",
+        "do": [
+          {
+            "op": "heal",
+            "value": 10
+          },
+          {
+            "op": "stacking_buff",
+            "stat": "defense",
+            "per_stack": 5,
+            "max": 4,
+            "name": "centrifugal"
+          }
+        ],
+        "_name": "Centrifugal Force"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Roktavor Zone",
+    "description": "Ragnaruk plants itself and floods the stadium floor — the zone drags the opponent's spin away and feeds it back.",
+    "hits": 1,
+    "damage_per_hit": 78,
+    "total_damage": 78,
+    "flavour_texts": [
+      "🌀 **Roktavor Zone** — the stadium belongs to Ragnaruk!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Centrifugal Force",
+      "trigger": "on_stamina_win",
+      "description": "Every Stamina exchange Ragnaruk wins feeds its rotation — recovering 10 HP and packing on +5 Defence, stacking up to 4 times. The longer the battle runs, the harder it is to move.",
+      "rules": [
+        {
+          "when": "on_stamina_win",
+          "do": [
+            {
+              "op": "heal",
+              "value": 10
+            },
+            {
+              "op": "stacking_buff",
+              "stat": "defense",
+              "per_stack": 5,
+              "max": 4,
+              "name": "centrifugal"
+            }
+          ],
+          "_name": "Centrifugal Force"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 108,
+    "attack": 62,
+    "defense": 74,
+    "stamina": 98
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 80,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

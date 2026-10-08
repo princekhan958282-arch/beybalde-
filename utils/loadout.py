@@ -47,7 +47,7 @@ _AVATAR_STAT_MAP = {
 }
 
 
-def part_bonuses(profile: dict) -> dict[str, int]:
+def part_bonuses(profile: dict, blade: Optional[dict] = None) -> dict[str, int]:
     """Net stat DELTAS from the player's EQUIPPED parts.
 
     Reads `equipped_parts` (the active loadout), not `parts` (everything they
@@ -62,6 +62,16 @@ def part_bonuses(profile: dict) -> dict[str, int]:
     you were looking at — and a player who equipped a matched pair could see a
     stat that did not move at all and conclude the part did nothing.
     """
+    from utils.character_registry import REGISTRY
+    if blade and "main_frame" in blade and isinstance(profile.get("inventory"), list):
+        from utils.bey_components import assemble
+        _assembled, delta = assemble(profile, blade)
+        # Keep existing Ring accessories as modifiers to the frame.
+        from cogs.economy.shop import get_part_stat_deltas
+        rings = [name for name in profile.get("equipped_parts") or [] if not REGISTRY.part(name)]
+        for stat, value in get_part_stat_deltas(rings).items():
+            delta[stat] = delta.get(stat, 0) + value
+        return delta
     equipped = profile.get("equipped_parts") or []
     if not equipped:
         return {}
@@ -166,7 +176,7 @@ async def effective_blade(user_id: int, profile: Optional[dict] = None,
         # as "is this a normal, ownable bey".
         level, base = bey_level_and_stats(profile, blade)
 
-    parts = part_bonuses(profile) if include_parts else {}
+    parts = part_bonuses(profile, blade) if include_parts else {}
     av = (await avatar_bonuses(user_id)) if include_avatar else None
 
     stats: dict[str, float] = {}
@@ -196,7 +206,12 @@ async def effective_blade(user_id: int, profile: Optional[dict] = None,
                            "parts": round(p), "avatar": round(a),
                            "total": round(total)}
 
-    out = dict(blade)
+    from copy import deepcopy
+    out = deepcopy(blade)
+    if include_parts and "main_frame" in blade:
+        from utils.bey_components import assemble
+        assembled, _ = assemble(profile, blade)
+        out["component_snapshot"] = assembled["component_snapshot"]
     out["stats"] = stats
     out["level"] = level
     breakdown["_level"] = level

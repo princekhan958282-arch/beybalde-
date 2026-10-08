@@ -1,0 +1,106 @@
+{
+  "id": "BB014",
+  "name": "Hollow Deathscyther",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511667808688148561/747-7477050_transparent-beyblade-clipart-free-beyblade-burst-daigo-bey.png?ex=6a2149db&is=6a1ff85b&hm=aab1a5b87825eda6be78f83819d57520fc2e6cf4a5568adcb247c77a7f2fd332&",
+  "description": "A grim harbinger of the stadium. Hollow Deathscyther utilizes a heavily off-center, asymmetrical single-scythe design visible in 14037.png to deliver unbalance-inducing strikes that destabilize the opponent's spin axis with surgical precision.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 102,
+    "defense": 75,
+    "stamina": 80,
+    "special": 110,
+    "hp": 99
+  },
+  "ability": {
+    "name": "Soul Hunt",
+    "trigger": "on_attack_win",
+    "description": "Each Attack win steals 0.5 Stamina from the enemy and heals 25 HP. Every 3 successful hunts: +25 ATK for 3 turns and apply 2 Burn stacks (15 dmg/stack/turn for 3 turns). If the stamina steal empties the enemy's stamina pool, Hollow Deathscyther executes them for 45 true damage.",
+    "heal_per_drain": 25,
+    "streak_threshold": 3,
+    "streak_attack_boost": 25,
+    "streak_attack_duration": 3,
+    "streak_burn_stacks": 2,
+    "streak_burn_dmg": 15,
+    "streak_burn_duration": 3,
+    "stamina_steal": 0.5,
+    "scythe_execute_true_dmg": 45,
+    "chain": [
+      {
+        "condition": "always",
+        "effect": "heal_pct",
+        "value": 0.0214,
+        "once": false
+      },
+      {
+        "condition": "always",
+        "effect": "activate_mode",
+        "value": 25,
+        "duration": 3,
+        "once": false,
+        "_note": "streak_attack_boost every 3 hunts"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Grim Quake",
+    "description": "Channels all rotational weight into a singular, devastating off-center slash that shatters the opponent's spin axis!",
+    "hits": 2,
+    "damage_per_hit": 55,
+    "total_damage": 110,
+    "flavour_texts": [
+      "💀 **Quake 1** — The scythe tilts the stadium!",
+      "💀 **Quake 2** — GRIM QUAKE — AXIS BREAK!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Soul Hunt",
+      "trigger": "on_attack_win",
+      "description": "Each Attack win steals 0.5 Stamina from the enemy and heals 25 HP. Every 3 successful hunts: +25 ATK for 3 turns and apply 2 Burn stacks (15 dmg/stack/turn for 3 turns). If the stamina steal empties the enemy's stamina pool, Hollow Deathscyther executes them for 45 true damage.",
+      "heal_per_drain": 25,
+      "streak_threshold": 3,
+      "streak_attack_boost": 25,
+      "streak_attack_duration": 3,
+      "streak_burn_stacks": 2,
+      "streak_burn_dmg": 15,
+      "streak_burn_duration": 3,
+      "stamina_steal": 0.5,
+      "scythe_execute_true_dmg": 45,
+      "chain": [
+        {
+          "condition": "always",
+          "effect": "heal_pct",
+          "value": 0.0214,
+          "once": false
+        },
+        {
+          "condition": "always",
+          "effect": "activate_mode",
+          "value": 25,
+          "duration": 3,
+          "once": false,
+          "_note": "streak_attack_boost every 3 hunts"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 99,
+    "attack": 102,
+    "defense": 75,
+    "stamina": 80
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 13,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

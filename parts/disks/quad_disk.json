@@ -1,0 +1,18 @@
+{
+  "name": "Quad Disk",
+  "type": "disk",
+  "price": 800,
+  "stat": "attack",
+  "bonus": 11,
+  "desc": "Four-prong disk — rotational attack power.",
+  "id": "quad_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 11,
+    "defense": 0,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 21
+}

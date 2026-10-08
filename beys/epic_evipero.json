@@ -1,0 +1,61 @@
+{
+  "id": "BB061",
+  "name": "Epic Evipero",
+  "rarity": "Common",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060765269000294/E2_he_hasbro.webp?ex=6a333f5d&is=6a31eddd&hm=0519424a3a153404071e0043022a7fe321fc2ae41d6018c3782519f6f3dbee64&",
+  "description": "Epic Evipero E2's Heavy disc adds significant weight for improved stability and defense. Its round layer is designed to absorb attacks and survive hits rather than deliver strong offense.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 48,
+    "defense": 88,
+    "stamina": 74,
+    "special": 65,
+    "hp": 101
+  },
+  "ability": {
+    "name": "Evil Barrier",
+    "trigger": "passive",
+    "description": "The Heavy disc adds a lot of weight, improving stability and defense. The round layer helps absorb attacks. Designed to survive hits rather than deliver strong attacks.",
+    "passive_dmg_reduction": 12,
+    "burst_resistance_pct": 0.15
+  },
+  "special_move": {
+    "name": "Evil Eye Stare",
+    "description": "Epic Evipero E2 uses its defensive shape to withstand attacks and stare down the opponent.",
+    "hits": 1,
+    "damage_per_hit": 55,
+    "total_damage": 55,
+    "block_pct": 0.3,
+    "block_turns": 1,
+    "flavour_texts": [
+      "👁️ **Evil Eye Stare** — Epic Evipero E2 locks its gaze and holds firm!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Evil Barrier",
+      "trigger": "passive",
+      "description": "The Heavy disc adds a lot of weight, improving stability and defense. The round layer helps absorb attacks. Designed to survive hits rather than deliver strong attacks.",
+      "passive_dmg_reduction": 12,
+      "burst_resistance_pct": 0.15
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 101,
+    "attack": 48,
+    "defense": 88,
+    "stamina": 74
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 59,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

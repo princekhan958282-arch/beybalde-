@@ -14,6 +14,14 @@ live database actually contains, and the pieces that can silently no-op
 
 Run:  python3 tools/sim_profile_card.py [--write DIR]
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import io
 import json
 import os
@@ -40,7 +48,7 @@ import utils.profile_card as PC                               # noqa: E402
 from utils.profile_card import render_profile_card            # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(os.path.join(ROOT, "data", "beyblades.json"), encoding="utf-8") as fh:
+with authored_open('bey', encoding="utf-8") as fh:
     _doc = json.load(fh)
 BLADES = _doc["beyblades"] if isinstance(_doc, dict) and "beyblades" in _doc else _doc
 if isinstance(BLADES, dict):

@@ -1,0 +1,61 @@
+{
+  "id": "BB067",
+  "name": "Thermal Pisces",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060954776043570/ThermalPisces.webp?ex=6a333f8a&is=6a31ee0a&hm=0d1515bddce54bf41496a33b4ae299873643d926a98f0a56929ab9aa3c3f3fa9&",
+  "description": "Famous in the anime for creating illusions and confusing opponents, Thermal Pisces focuses on stamina and survival rather than brute force.",
+  "burst_height": "Low",
+  "type": "Stamina",
+  "stats": {
+    "attack": 60,
+    "defense": 69,
+    "stamina": 101,
+    "special": 80,
+    "hp": 120
+  },
+  "ability": {
+    "name": "Distortion Illusion",
+    "trigger": "passive",
+    "description": "Thermal Pisces is famous in the anime for creating illusions and confusing opponents. It focuses on stamina and survival rather than brute force.",
+    "evasion_chance": 0.2,
+    "stamina_drain_reduction_pct": 0.15
+  },
+  "special_move": {
+    "name": "Distortion Drive",
+    "description": "Thermal Pisces creates illusions that confuse the opponent and make their attacks miss.",
+    "hits": 1,
+    "damage_per_hit": 65,
+    "total_damage": 65,
+    "evasion_buff_turns": 2,
+    "evasion_buff_pct": 0.3,
+    "flavour_texts": [
+      "🌌 **Distortion Drive** — Thermal Pisces vanishes into illusions — attacks miss!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Distortion Illusion",
+      "trigger": "passive",
+      "description": "Thermal Pisces is famous in the anime for creating illusions and confusing opponents. It focuses on stamina and survival rather than brute force.",
+      "evasion_chance": 0.2,
+      "stamina_drain_reduction_pct": 0.15
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 120,
+    "attack": 60,
+    "defense": 69,
+    "stamina": 101
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 65,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

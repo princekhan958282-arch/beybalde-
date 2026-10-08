@@ -1,0 +1,59 @@
+{
+  "id": "BB053",
+  "name": "Prime Apocalypse",
+  "rarity": "Mythic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1515586340987600998/1781414280171.png?ex=6a2f8b45&is=6a2e39c5&hm=0a4ddebfd8bd0d40f236ef7360b530b5fb551aa5505aa551490f34ace362f71c&",
+  "description": "Famous for its Infinite Lock System, Prime Apocalypse is extremely difficult to burst because its lock mechanism stays protected until its sword-like weak point is hit at the correct moment — widely considered one of the hardest Burst Beys to burst.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 130,
+    "defense": 80,
+    "stamina": 100,
+    "special": 115,
+    "hp": 118
+  },
+  "ability": {
+    "name": "Infinite Lock",
+    "trigger": "passive",
+    "description": "Prime Apocalypse's lock mechanism stays protected until its sword-like weak point is hit at the correct moment, making it extremely difficult to burst.",
+    "burst_resistance_pct": 0.35,
+    "weak_point_hit_chance": 0.1
+  },
+  "special_move": {
+    "name": "Omega Blast",
+    "description": "Prime Apocalypse uses its giant sword blade to deliver a devastating smash attack.",
+    "hits": 1,
+    "damage_per_hit": 135,
+    "total_damage": 135,
+    "flavour_texts": [
+      "⚔️ **Omega Blast** — Prime Apocalypse swings its giant sword blade — DEVASTATING SMASH!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Infinite Lock",
+      "trigger": "passive",
+      "description": "Prime Apocalypse's lock mechanism stays protected until its sword-like weak point is hit at the correct moment, making it extremely difficult to burst.",
+      "burst_resistance_pct": 0.35,
+      "weak_point_hit_chance": 0.1
+    }
+  ],
+  "spin_direction": "Dual",
+  "main_frame": {
+    "hp": 118,
+    "attack": 130,
+    "defense": 80,
+    "stamina": 100
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 51,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

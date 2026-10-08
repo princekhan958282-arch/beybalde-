@@ -1,0 +1,20 @@
+{
+  "name": "Valkyrie Rush Driver",
+  "type": "driver",
+  "price": 1800,
+  "stat": "attack",
+  "bonus": 30,
+  "desc": "Pure aggression — you rush or you lose.",
+  "penalty_stat": "stamina",
+  "penalty": 25,
+  "id": "valkyrie_rush_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": 30,
+    "defense": 0,
+    "stamina": -25
+  },
+  "compatibility": {},
+  "_registry_order": 12
+}

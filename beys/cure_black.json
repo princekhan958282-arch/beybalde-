@@ -1,0 +1,71 @@
+{
+  "id": "BB124",
+  "name": "Cure Black",
+  "rarity": "Epic",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1552923890563682434/image0.jpg?ex=6ab76093&is=6ab60f13&hm=71fd3451181c4e2a40a0cfef4319fd5f357da22ea697fc504eb44e85b8be9e81&",
+  "description": "An Epic support Bey that strengthens teammates' attack in boss battles.",
+  "stats": {
+    "attack": 125,
+    "defense": 87,
+    "stamina": 80,
+    "special": 115,
+    "hp": 105
+  },
+  "special_move": {
+    "name": "Black Cure",
+    "hits": 1,
+    "damage_per_hit": 115,
+    "total_damage": 115,
+    "description": "A focused dark-heart strike that pierces part of the opponent's guard and restores Cure Black after it lands.",
+    "flavour_texts": [
+      "🖤 **Black Cure** — the dark heart strikes back!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dark Heart Support",
+      "trigger": "passive",
+      "description": "In co-op boss battles, living Cure Black grants other teammates +30% Attack. Ends when Cure Black is defeated; duplicate auras do not stack. No team buff in solo or PvP. Black Cure restores 8 HP and ignores 8% DEF.",
+      "boss_support": {
+        "stat": "attack",
+        "percent": 30
+      },
+      "rules": [
+        {
+          "when": "on_special",
+          "cooldown": 4,
+          "do": [
+            {
+              "op": "ignore_defense_pct",
+              "value": 8
+            },
+            {
+              "op": "heal",
+              "value": 8
+            }
+          ],
+          "_name": "Black Cure"
+        }
+      ]
+    }
+  ],
+  "main_frame": {
+    "hp": 105,
+    "attack": 125,
+    "defense": 87,
+    "stamina": 80
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 124,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "id": "avatar_s107",
+  "name": "Valt Aoi",
+  "rarity": "Blader",
+  "type": "attack",
+  "price": 0,
+  "description": "The school's ace. Fast, direct, and completely out of patience.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1540054697916899408/daa275cccdcb45c472b3f334dd6d5275.jpg",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "stats_always_on": true,
+  "school_league_bey": "Victory Valkyrie",
+  "theme": "Aggression",
+  "skills": [
+    {
+      "name": "Valkyrie Strike",
+      "description": "Winning an Attack matchup adds 20% crit chance for the round.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "crit_chance",
+              "value": 20,
+              "turns": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Brave Sword",
+      "description": "Each consecutive Attack win adds 14 damage, stacking to four.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "stat": "attack",
+              "value": 14,
+              "max": 4,
+              "name": "brave_sword"
+            }
+          ]
+        },
+        {
+          "when": "on_attack_loss",
+          "do": [
+            {
+              "op": "reset_counter",
+              "name": "brave_sword"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Victory Evolution",
+      "description": "Behind on Victory Points: +18 to all stats, every round.",
+      "rules": [
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "behind_on_points",
+              "value": 1
+            }
+          ],
+          "do": [
+            {
+              "op": "buff_all",
+              "value": 18,
+              "turns": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 52,
+    "attack_percent": 0.25,
+    "defence_flat": 28,
+    "defence_percent": 0,
+    "stamina_flat": 35,
+    "stamina_percent": 0,
+    "stability_flat": 30,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 120,
+    "hp_percent": 0
+  },
+  "generation": null,
+  "_registry_order": 43
+}

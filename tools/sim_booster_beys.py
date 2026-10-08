@@ -15,6 +15,14 @@ were missed. Both are checked, in both modes.
 
 Run:  python3 tools/sim_booster_beys.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import asyncio
 import json
 import os
@@ -36,8 +44,7 @@ def check(label, cond, detail=""):
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB = json.load(open(os.path.join(ROOT, "data", "beyblades.json"),
-                    encoding="utf-8"))
+DB = json.load(authored_open('bey', encoding="utf-8"))
 
 UPGRADES = {"Victory Valkyrie X": "Victory Valkyrie",
             "Storm Spriggan X": "Storm Spriggan"}

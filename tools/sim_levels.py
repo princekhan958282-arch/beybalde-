@@ -17,6 +17,14 @@ Exits non-zero if any check fails.
 
 from __future__ import annotations
 
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
+
 import json
 import os
 import sys
@@ -44,7 +52,7 @@ def check(label: str, ok: bool, detail: str = "") -> None:
 
 def roster() -> dict:
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    with open(os.path.join(here, "data", "beyblades.json")) as f:
+    with authored_open('bey') as f:
         return json.load(f)
 
 

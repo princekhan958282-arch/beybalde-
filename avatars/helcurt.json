@@ -1,0 +1,67 @@
+{
+  "id": "avatar_mlbb003",
+  "name": "Helcurt",
+  "rarity": "MLBB",
+  "type": "attack",
+  "price": 0,
+  "description": "The Shadow Ranger. Helcurt fights in a dark of his own making — you do not see the strike, only the result.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1536106136330051654/26c9271508d4948a378bd50b71993194.jpg?ex=6a7a31d2&is=6a78e052&hm=b770b3eecba8407a16d400092625420a055f727bd52d2db31d0b9a4f782bc453&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "skills": [
+    {
+      "name": "Shadow Transition",
+      "description": "Crit chance +30%, and 5% of hits are avoided entirely.",
+      "bonuses": {
+        "crit_percent": 0.3,
+        "dodge_chance": 0.05
+      }
+    },
+    {
+      "name": "Nightfall Arrival",
+      "description": "Defence ignored — 55% to 80% of the opponent's Defence is pierced for the first 3 rounds.",
+      "bonuses": {
+        "defence_break_min": 0.55,
+        "defence_break_max": 0.8,
+        "defence_break_rounds": 3
+      }
+    },
+    {
+      "name": "Deadly Stinger",
+      "description": "Attack increased by 96, and by a further 20%.",
+      "bonuses": {
+        "attack_flat": 96,
+        "attack_percent": 0.2
+      }
+    }
+  ],
+  "bonuses": {
+    "attack_flat": 96,
+    "attack_percent": 0.2,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 0,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0.3,
+    "dodge_chance": 0.05,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.15,
+    "defence_break_min": 0.55,
+    "defence_break_max": 0.8,
+    "defence_break_rounds": 3
+  },
+  "generation": null,
+  "_registry_order": 34
+}

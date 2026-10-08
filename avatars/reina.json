@@ -1,0 +1,57 @@
+{
+  "id": "avatar_e005",
+  "name": "Reina",
+  "rarity": "Epic",
+  "type": "defense",
+  "price": 0,
+  "description": "Proud and fierce. Enhances defence and counter instincts with sharp stability under pressure.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012687994224680/a34c62b614e364126a147fe312b3b45a.jpg?ex=6a4348f3&is=6a41f773&hm=d5b96183ccec6c98baada0c09f51cb2f4a72e176792ed9fcd105c2f76eae7c84&",
+  "bonuses": {
+    "attack_flat": 5,
+    "attack_percent": 0.05,
+    "defence_flat": 12,
+    "defence_percent": 0.1,
+    "stamina_flat": 6,
+    "stamina_percent": 0,
+    "stability_flat": 10,
+    "stability_percent": 0.08,
+    "charge_flat": 5,
+    "charge_percent": 0,
+    "special_move_flat": 0,
+    "special_move_percent": 0,
+    "crit_percent": 0,
+    "dodge_chance": 0.05,
+    "counter_chance": 0.14,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0.1,
+    "resistance_status_chance": 0.15,
+    "hp_flat": 0,
+    "hp_percent": 0.06
+  },
+  "skills": [
+    {
+      "name": "Royal Guard",
+      "description": "Defence increased by 22%.",
+      "bonuses": {
+        "defence_percent": 0.22
+      }
+    },
+    {
+      "name": "Retaliation",
+      "description": "Counter chance increased by 20%.",
+      "bonuses": {
+        "counter_chance": 0.2
+      }
+    },
+    {
+      "name": "Iron Poise",
+      "description": "Stability increased by 18%.",
+      "bonuses": {
+        "stability_percent": 0.18
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 18
+}

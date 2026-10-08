@@ -1,0 +1,63 @@
+{
+  "id": "BB030",
+  "name": "Jet Wyvern",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513084747029676072/BBSK-Jet_Wyvern_Around_Just_1D_Beyblade.webp?ex=6a26717b&is=6a251ffb&hm=673811d6110631e15368e32adaa1aba509e83a9e5cfef9283f3f905e3248df02&",
+  "description": "A supersonic defense dragon that uses speed to repel all attacks. Jet Wyvern's afterburner legs generate a wind barrier that drains the enemy's stamina on every collision.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 55,
+    "defense": 108,
+    "stamina": 88,
+    "special": 100,
+    "hp": 115
+  },
+  "ability": {
+    "name": "Afterburn Blitz",
+    "trigger": "on_special",
+    "description": "Jet Wyvern launches a 4-hit supersonic barrage. Each hit has a 50% chance to apply Afterburn to the enemy: they lose 1.5 stamina per Afterburn stack (max 3 stacks total across all hits). After the barrage, Jet Wyvern ignores defense on its next normal Attack.",
+    "wyvern_hit_afterburn_chance": 0.5,
+    "wyvern_afterburn_stamina_drain": 1.5,
+    "wyvern_afterburn_max_stacks": 3,
+    "wyvern_post_pierce_turns": 1
+  },
+  "special_move": {
+    "name": "Jet Sonic Fang",
+    "description": "Jet Wyvern breaks the sound barrier — four razor-wing strikes so fast the opponent cannot mount a defense!",
+    "hits": 4,
+    "damage_per_hit": 28.75,
+    "total_damage": 112,
+    "flavour_texts": [
+      "🦢 **Jet Sonic Fang** — four sonic blasts from the wings of the supersonic wyvern!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Afterburn Blitz",
+      "trigger": "on_special",
+      "description": "Jet Wyvern launches a 4-hit supersonic barrage. Each hit has a 50% chance to apply Afterburn to the enemy: they lose 1.5 stamina per Afterburn stack (max 3 stacks total across all hits). After the barrage, Jet Wyvern ignores defense on its next normal Attack.",
+      "wyvern_hit_afterburn_chance": 0.5,
+      "wyvern_afterburn_stamina_drain": 1.5,
+      "wyvern_afterburn_max_stacks": 3,
+      "wyvern_post_pierce_turns": 1
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 115,
+    "attack": 55,
+    "defense": 108,
+    "stamina": 88
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 28,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

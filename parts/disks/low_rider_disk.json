@@ -1,0 +1,20 @@
+{
+  "name": "Low Rider Disk",
+  "type": "disk",
+  "price": 1000,
+  "stat": "stamina",
+  "bonus": 18,
+  "desc": "Low-profile center — friction-free stamina.",
+  "penalty_stat": "attack",
+  "penalty": 10,
+  "id": "low_rider_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": -10,
+    "defense": 0,
+    "stamina": 18
+  },
+  "compatibility": {},
+  "_registry_order": 27
+}

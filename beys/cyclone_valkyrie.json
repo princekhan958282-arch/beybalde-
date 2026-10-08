@@ -1,0 +1,91 @@
+{
+  "id": "BB038",
+  "name": "Cyclone Valkyrie",
+  "rarity": "Epic",
+  "booster_exclusive": true,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1513733448093798570/file_000000000a88720ba3aa74e882e22c3e.png?ex=6a28cda1&is=6a277c21&hm=5c49e732d874d9916b022fcaaff4c2ae1259b72c44fd0f2d0b69f0e4b404236b&",
+  "description": "A Valkyrie reborn in cyclone fury. Cyclone Valkyrie spins so fast it generates a localized storm — the faster it moves, the more devastating its strikes become, turning speed itself into a weapon.",
+  "burst_height": "High",
+  "type": "Attack",
+  "stats": {
+    "attack": 110,
+    "defense": 45,
+    "stamina": 88,
+    "special": 125,
+    "hp": 97
+  },
+  "ability": {
+    "name": "Cyclone Rush",
+    "trigger": "on_attack_win",
+    "description": "Each Attack win builds Cyclone stacks (+10 ATK, max 5). At 3 stacks, gains Cyclone Mode for 2 turns — all attacks hit twice and the first hit ignores defense. At 5 stacks, releases a Cyclone Burst: 55 true damage and stacks reset.",
+    "stack_atk": 10,
+    "max_stacks": 5,
+    "cyclone_mode_threshold": 3,
+    "cyclone_mode_turns": 2,
+    "burst_threshold": 5,
+    "burst_true_dmg": 55,
+    "chain": [
+      {
+        "condition": "stack_threshold",
+        "threshold": 5,
+        "effect": "true_damage",
+        "value": 55,
+        "once": false,
+        "_note": "Cyclone Burst: 55 true damage at 5 stacks"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Cyclone Storm Strike",
+    "description": "Valkyrie becomes a living cyclone — four lightning-fast strikes that devastate everything in the storm's path!",
+    "hits": 4,
+    "damage_per_hit": 31,
+    "total_damage": 124,
+    "flavour_texts": [
+      "🌀 **Cyclone Storm Strike** — the storm begins!",
+      "⚡ **Strike 2** — winds tear across the stadium!",
+      "💨 **Strike 3** — the cyclone intensifies!",
+      "💥 **Strike 4** — CYCLONE STORM STRIKE — EYE OF THE HURRICANE!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Cyclone Rush",
+      "trigger": "on_attack_win",
+      "description": "Each Attack win builds Cyclone stacks (+10 ATK, max 5). At 3 stacks, gains Cyclone Mode for 2 turns — all attacks hit twice and the first hit ignores defense. At 5 stacks, releases a Cyclone Burst: 55 true damage and stacks reset.",
+      "stack_atk": 10,
+      "max_stacks": 5,
+      "cyclone_mode_threshold": 3,
+      "cyclone_mode_turns": 2,
+      "burst_threshold": 5,
+      "burst_true_dmg": 55,
+      "chain": [
+        {
+          "condition": "stack_threshold",
+          "threshold": 5,
+          "effect": "true_damage",
+          "value": 55,
+          "once": false,
+          "_note": "Cyclone Burst: 55 true damage at 5 stacks"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 97,
+    "attack": 110,
+    "defense": 45,
+    "stamina": 88
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 35,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

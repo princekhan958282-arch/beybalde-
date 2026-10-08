@@ -1,0 +1,20 @@
+{
+  "name": "Titan Disk",
+  "type": "disk",
+  "price": 1900,
+  "stat": "defense",
+  "bonus": 30,
+  "desc": "Legendary weight — near-impenetrable block.",
+  "penalty_stat": "stamina",
+  "penalty": 22,
+  "id": "titan_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 0,
+    "defense": 30,
+    "stamina": -22
+  },
+  "compatibility": {},
+  "_registry_order": 30
+}

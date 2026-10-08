@@ -43,7 +43,7 @@ import discord
 from discord.ext import commands
 
 from utils.database import (
-    get_user, update_user, beyblade_ref,
+    get_user, update_user, beyblade_ref, mutate_user,
     get_avatar_inventory, get_equipped_avatar, set_equipped_avatar,
 )
 from utils.embeds import RARITY_EMOJIS, rarity_colour
@@ -92,8 +92,8 @@ def _avatar_lookup() -> dict[str, dict]:
     global _avatar_cache
     if _avatar_cache is None:
         try:
-            with open(_AVATAR_PATH, encoding="utf-8") as f:
-                raw = json.load(f)
+            from utils.character_registry import load_avatars
+            raw = load_avatars()
             _avatar_cache = {a["id"]: a for a in raw.get("avatars", [])}
         except Exception:
             _avatar_cache = {}
@@ -159,20 +159,27 @@ class InventoryView(discord.ui.View):
         # on the event loop, every time this panel opens. Nothing below writes
         # to `blade`; it is read for display and handed to the info card,
         # which also only reads.
-        for nm in prof.get("inventory", []):
+        from utils.bey_components import reconcile, assemble
+        reconcile(prof)
+        for slot, nm in enumerate(prof.get("inventory", [])):
             name  = nm.get("name") if isinstance(nm, dict) else nm
             blade = (custom if custom and str(name).lower() == str(custom.get("name", "")).lower()
                      else beyblade_ref(str(name))) or {}
+            instance = prof["bey_instances"][slot]
+            display_blade = blade
+            if "main_frame" in blade:
+                display_blade, _ = assemble(dict(prof, active_bey_instance=instance["instance_id"], active_beyblade=str(name)), blade)
             beys.append({
                 "kind": "bey", "name": str(name),
+                "instance_id": instance["instance_id"], "inventory_slot": slot + 1,
                 "rarity": blade.get("rarity", "?"),
                 "type": str(blade.get("type", "")).lower(),
-                "stats": blade.get("stats", {}),
+                "stats": display_blade.get("stats", {}),
                 "hp": blade_hp_stat(blade),
                 "max_hp": max_hp_for_blade(blade),
                 "blade": blade,                 # full doc — feeds the info card
                 "image": blade.get("image_url"),
-                "equipped": str(name).lower() == active,
+                "equipped": str(name).lower() == active and instance["instance_id"] == prof.get("active_bey_instance"),
             })
 
         # Boss copies are rolled INSTANCES, not entries in beyblades.json, so
@@ -459,6 +466,7 @@ class InventoryView(discord.ui.View):
                     # 400 as the empty value, one field over.
                     label=f"{self.page * per + i + 1}. "
                           f"{_trunc(str(it['name']), 80) or '?'}",
+                    description=(f"Inventory slot #{it['inventory_slot']}" if it.get("inventory_slot") else None),
                     value=str(i),
                     emoji="✅" if it.get("equipped") else None)
                 for i, it in enumerate(items[:MAX_SELECT_OPTIONS])
@@ -660,7 +668,8 @@ class InventoryView(discord.ui.View):
         if not old:
             return None
         for it in self._cache.get(old["kind"], []):
-            if it["name"] == old["name"]:
+            if (it.get("instance_id") == old.get("instance_id") if old.get("instance_id")
+                    else it["name"] == old["name"]):
                 return it
         return None
 
@@ -703,20 +712,22 @@ class InventoryView(discord.ui.View):
         if not (it and self.can_edit):
             return await self._refresh(interaction)
         if it["kind"] == "bey":
-            prof = await get_user(self.owner.id)
-            prof["active_beyblade"] = it["name"]
-            # Clearing the copy pointer is what actually swaps back to a
-            # database blade — leaving it set would keep the copy equipped
-            # while the panel showed the bey's name.
-            prof["active_copy"] = None
-            await update_user(self.owner.id, prof)
+            from utils.bey_components import select_instance, EquipmentError
+            try:
+                await mutate_user(self.owner.id, lambda prof: select_instance(prof, it["instance_id"]))
+            except EquipmentError as exc:
+                return await interaction.response.send_message(str(exc), ephemeral=True)
         elif it["kind"] == "copy":
             from cogs.battle.boss import boss_copy as _bc
             await _bc.equip(self.owner.id, it["id"])
         elif it["kind"] == "avatar":
             await set_equipped_avatar(self.owner.id, it.get("id"))
         else:
-            await self._toggle_part(it["name"])
+            from utils.bey_components import EquipmentError
+            try:
+                await self._toggle_part(it["name"])
+            except EquipmentError as exc:
+                return await interaction.response.send_message(str(exc), ephemeral=True)
         await self._load_cache()
         self.detail = self._find_refreshed(it)
         await self._refresh(interaction)
@@ -745,6 +756,14 @@ class InventoryView(discord.ui.View):
     async def _toggle_part(self, part_name: str) -> None:
         """Equip a part (replacing any same-type part) or unequip if already on."""
         prof     = await get_user(self.owner.id)
+        from utils.character_registry import REGISTRY
+        if REGISTRY.part(part_name) and REGISTRY.find_bey(prof.get("active_beyblade", "")):
+            from utils.bey_components import equip
+            def toggle(current):
+                remove = part_name in current.get("equipped_parts", [])
+                return equip(current, part_name, remove=remove)
+            await mutate_user(self.owner.id, toggle)
+            return
         equipped = prof.get("equipped_parts", [])
         cat      = _part_lookup(part_name) or {}
         ptype    = cat.get("type")
@@ -762,7 +781,11 @@ class InventoryView(discord.ui.View):
         idx   = int(interaction.data["values"][0])
         owned = self._cache.get("part", [])
         if 0 <= idx < len(owned):
-            await self._toggle_part(owned[idx]["name"])
+            from utils.bey_components import EquipmentError
+            try:
+                await self._toggle_part(owned[idx]["name"])
+            except EquipmentError as exc:
+                return await interaction.response.send_message(str(exc), ephemeral=True)
             await self._load_cache()
         await self._refresh(interaction)
 

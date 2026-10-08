@@ -9,6 +9,14 @@ worst possible outcome, and it is invisible without a test like this one.
 
 Run:  python3 tools/sim_avatar.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import asyncio
 import json
 import os
@@ -35,7 +43,7 @@ from cogs.avatar.avatar_utils import validate_avatar_data, VALID_TYPES  # noqa: 
 
 DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                     "cogs", "avatar", "avatar_data.json")
-CARDS = json.load(open(DATA, encoding="utf-8"))["avatars"]
+CARDS = json.load(authored_open('avatar', encoding="utf-8"))["avatars"]
 
 print("\n── 1. every authored card migrated ──────────────────────────────")
 # Not pinned: every new avatar would otherwise fail this suite for existing.
@@ -355,8 +363,7 @@ ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 from cogs.avatar import avatar_skills as ASK                       # noqa: E402
 from cogs.avatar.avatar_engine import AvatarBonuses as _AB         # noqa: E402
 
-_CARDS = _json.load(open(_os.path.join(
-    ROOT, "cogs", "avatar", "avatar_data.json"), encoding="utf-8"))["avatars"]
+_CARDS = _json.load(authored_open('avatar', encoding="utf-8"))["avatars"]
 
 
 def _want(card):

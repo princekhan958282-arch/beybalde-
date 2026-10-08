@@ -1,0 +1,20 @@
+{
+  "name": "Omega Driver",
+  "type": "driver",
+  "price": 2200,
+  "stat": "stamina",
+  "bonus": 35,
+  "desc": "Bearing + rubber hybrid — incredible stamina sacrifice.",
+  "penalty_stat": "attack",
+  "penalty": 30,
+  "id": "omega_driver",
+  "category": "driver",
+  "stats": {
+    "hp": 0,
+    "attack": -30,
+    "defense": 0,
+    "stamina": 35
+  },
+  "compatibility": {},
+  "_registry_order": 16
+}

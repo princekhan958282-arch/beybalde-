@@ -5,14 +5,22 @@ Written as a script rather than by hand-editing a 98-entry JSON file so the
 insertion is reviewable and re-runnable: it refuses to clobber an existing
 entry, and it derives the next BB id instead of hard-coding one.
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import json
 import os
 import sys
 
 ROOT = "/home/user/beybalde-"
-PATH = os.path.join(ROOT, "data", "beyblades.json")
+PATH = os.path.join(ROOT, "beys")
 
-with open(PATH, encoding="utf-8") as fh:
+with authored_open('bey', encoding="utf-8") as fh:
     doc = json.load(fh)
 
 nums = [int(b["id"][2:]) for b in doc.values()
@@ -293,7 +301,7 @@ if clash:
     sys.exit(f"refusing to overwrite existing blades: {clash}")
 
 doc.update(NEW)
-with open(PATH, "w", encoding="utf-8") as fh:
+with authored_open('bey', "w", encoding="utf-8") as fh:
     json.dump(doc, fh, indent=2, ensure_ascii=False)
     fh.write("\n")
 

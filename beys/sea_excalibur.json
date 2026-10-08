@@ -1,0 +1,77 @@
+{
+  "id": "BB076",
+  "name": "Sea Excalibur",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516471824047931443/1781625179390.png?ex=6a336cb1&is=6a321b31&hm=ddc5a20cffb328632a1cb55cdc29986aa6c406beb1f4e105ec4ea9e893026109&",
+  "description": "When Sea Excalibur loses 50% of its spin power, its icy armor shatters to reveal the sacred sword core. Attack power surges, movement turns berserk, and at critically low spin, Absolute Zero Awakening doubles attack damage for a potential comeback knockout.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 114,
+    "defense": 74,
+    "stamina": 69,
+    "special": 105,
+    "hp": 99
+  },
+  "ability": {
+    "name": "Frozen Last Stand",
+    "trigger": "on_low_hp",
+    "description": "When Sea Excalibur loses 50% of its spin power, the icy armor shatters and exposes the sacred sword core. Attack power increases by 40%, every hit gains Frost Break knockback, and movement enters Berserk Knight Mode. At critically low spin, Absolute Zero Awakening doubles attack damage with a chance for a comeback knockout.",
+    "threshold_pct": 0.5,
+    "atk_amp_on_threshold": 0.4,
+    "frost_break_bonus": 15,
+    "critical_low_atk_amp": 1,
+    "comeback_ko_chance": 0.2
+  },
+  "special_move": {
+    "name": "Glacial Slash",
+    "description": "A freezing sword strike that slows the opponent's rotation.",
+    "hits": 1,
+    "damage_per_hit": 110,
+    "total_damage": 110,
+    "stamina_drain_on_hit": 15,
+    "flavour_texts": [
+      "❄️ **Glacial Slash** — Sea Excalibur strikes with a freezing blade — opponent's spin slows!"
+    ]
+  },
+  "special_move_2": {
+    "name": "Absolute Zero Breaker",
+    "description": "Activated only in low HP mode — Sea Excalibur unleashes all remaining power into one devastating strike.",
+    "hits": 1,
+    "damage_per_hit": 180,
+    "total_damage": 180,
+    "requires_low_hp": true,
+    "flavour_texts": [
+      "🌨️ **Absolute Zero Breaker** — the crystal blades glow cyan — FINAL STRIKE!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Frozen Last Stand",
+      "trigger": "on_low_hp",
+      "description": "When Sea Excalibur loses 50% of its spin power, the icy armor shatters and exposes the sacred sword core. Attack power increases by 40%, every hit gains Frost Break knockback, and movement enters Berserk Knight Mode. At critically low spin, Absolute Zero Awakening doubles attack damage with a chance for a comeback knockout.",
+      "threshold_pct": 0.5,
+      "atk_amp_on_threshold": 0.4,
+      "frost_break_bonus": 15,
+      "critical_low_atk_amp": 1,
+      "comeback_ko_chance": 0.2
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 99,
+    "attack": 114,
+    "defense": 74,
+    "stamina": 69
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 74,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

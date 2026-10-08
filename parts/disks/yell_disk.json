@@ -1,0 +1,20 @@
+{
+  "name": "Yell Disk",
+  "type": "disk",
+  "price": 1000,
+  "stat": "attack",
+  "bonus": 18,
+  "desc": "Asymmetric disk — generates burst momentum.",
+  "penalty_stat": "stamina",
+  "penalty": 10,
+  "id": "yell_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": 18,
+    "defense": 0,
+    "stamina": -10
+  },
+  "compatibility": {},
+  "_registry_order": 23
+}

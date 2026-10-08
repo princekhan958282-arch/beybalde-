@@ -1,0 +1,61 @@
+{
+  "id": "BB065",
+  "name": "Baldur Bumper",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516060904762900562/LayerBaldur.webp?ex=6a333f7e&is=6a31edfe&hm=809349965a3eec726d40d45e80785f036eb17b676a52f10e25661b8819bb4320&",
+  "description": "The Baldur layer features shield-like protrusions that help absorb attacks, while the Bite driver's hard rubber ball tip gives strong resistance against knockouts. Excellent stability and defense, but only average stamina.",
+  "burst_height": "Low",
+  "type": "Defense",
+  "stats": {
+    "attack": 47,
+    "defense": 98,
+    "stamina": 88,
+    "special": 75,
+    "hp": 111
+  },
+  "ability": {
+    "name": "Divine Shield",
+    "trigger": "passive",
+    "description": "The Baldur layer has a defensive shape with shield-like protrusions that help absorb attacks. The Bite driver uses a hard rubber ball tip, giving strong resistance against knockouts. Excellent stability and defense, but only average stamina.",
+    "passive_dmg_reduction": 14,
+    "knockout_resistance_pct": 0.2
+  },
+  "special_move": {
+    "name": "Light Barrier",
+    "description": "Baldur Bumper Bite creates a defensive wall against incoming attacks.",
+    "hits": 1,
+    "damage_per_hit": 50,
+    "total_damage": 50,
+    "block_pct": 0.4,
+    "block_turns": 2,
+    "flavour_texts": [
+      "☀️ **Light Barrier** — Baldur raises an impenetrable defensive wall!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Divine Shield",
+      "trigger": "passive",
+      "description": "The Baldur layer has a defensive shape with shield-like protrusions that help absorb attacks. The Bite driver uses a hard rubber ball tip, giving strong resistance against knockouts. Excellent stability and defense, but only average stamina.",
+      "passive_dmg_reduction": 14,
+      "knockout_resistance_pct": 0.2
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 111,
+    "attack": 47,
+    "defense": 98,
+    "stamina": 88
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 63,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

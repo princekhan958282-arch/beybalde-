@@ -31,6 +31,14 @@ shape of the bug above.
 
 Run:  python3 tools/sim_multihit_nerf.py
 """
+
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
 import os
 import sys
 import types as _t
@@ -318,8 +326,7 @@ check("no log line still claims every hit is doubled",
       "every hit doubled" not in avc_src
       and "every hit doubled" not in story_src)
 
-card = open(os.path.join(ROOT, "cogs", "avatar", "avatar_data.json"),
-            encoding="utf-8").read()
+card = authored_open('avatar', encoding="utf-8").read()
 check("no card description promises a doubling either",
       "strike is doubled" not in card)
 

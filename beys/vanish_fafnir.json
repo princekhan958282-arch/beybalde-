@@ -1,0 +1,195 @@
+{
+  "id": "BB008",
+  "name": "Vanish Fafnir",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1510866010041880647/Beyblade_Burst_Dynamite_Battle_-_Vanish_Fafnir_Tapered_Kick-3_28Low_Mode29.webp?ex=6a1e5f1f&is=6a1d0d9f&hm=75b64e2a26ce3cd96ab536c0fc52e2437735f66d3d9b7db55a7db37b8833b093&",
+  "description": "The invisible dragon. Vanish Fafnir spin-steals stamina from Beys that turn against it, and grinds down the ones that turn with it.",
+  "burst_height": "Low",
+  "type": "Stamina",
+  "stats": {
+    "attack": 81,
+    "defense": 102,
+    "stamina": 120,
+    "special": 105,
+    "hp": 126
+  },
+  "ability": {
+    "name": "Spin Absorb",
+    "trigger": "passive",
+    "description": "Vanish Fafnir spins LEFT. Against RIGHT-spin Beys the rotations clash, so it spin-steals 2 Stamina every phase (4 against Stamina types) and takes full damage. Against LEFT-spin Beys the rotations match — no steal at all, but Fafnir takes 15 less damage and loses 6 stability every phase.",
+    "rules": [
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "enemy_spin_is",
+            "value": "Right"
+          }
+        ],
+        "do": [
+          {
+            "op": "drain_stamina",
+            "value": 2
+          }
+        ],
+        "_name": "Spin Absorb"
+      },
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "enemy_spin_is",
+            "value": "Right"
+          },
+          {
+            "cond": "enemy_type_is",
+            "value": "Stamina"
+          }
+        ],
+        "do": [
+          {
+            "op": "drain_stamina",
+            "value": 2
+          }
+        ],
+        "_name": "Spin Absorb"
+      },
+      {
+        "when": "on_take_damage",
+        "if": [
+          {
+            "cond": "enemy_spin_is",
+            "value": "Left"
+          }
+        ],
+        "do": [
+          {
+            "op": "reduce_damage_flat",
+            "value": 15
+          }
+        ],
+        "_name": "Spin Absorb"
+      },
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "enemy_spin_is",
+            "value": "Left"
+          }
+        ],
+        "do": [
+          {
+            "op": "lose_stability",
+            "value": 6
+          }
+        ],
+        "_name": "Spin Absorb"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Vanishing Maw",
+    "description": "Fafnir opens its jaws and devours the opponent's spin energy entirely!",
+    "hits": 1,
+    "damage_per_hit": 110,
+    "total_damage": 110,
+    "flavour_texts": [
+      "🌀 **VANISHING MAW** — The spin is consumed — DEVOURED!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Spin Absorb",
+      "trigger": "passive",
+      "description": "Vanish Fafnir spins LEFT. Against RIGHT-spin Beys the rotations clash, so it spin-steals 2 Stamina every phase (4 against Stamina types) and takes full damage. Against LEFT-spin Beys the rotations match — no steal at all, but Fafnir takes 15 less damage and loses 6 stability every phase.",
+      "rules": [
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "enemy_spin_is",
+              "value": "Right"
+            }
+          ],
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 2
+            }
+          ],
+          "_name": "Spin Absorb"
+        },
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "enemy_spin_is",
+              "value": "Right"
+            },
+            {
+              "cond": "enemy_type_is",
+              "value": "Stamina"
+            }
+          ],
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 2
+            }
+          ],
+          "_name": "Spin Absorb"
+        },
+        {
+          "when": "on_take_damage",
+          "if": [
+            {
+              "cond": "enemy_spin_is",
+              "value": "Left"
+            }
+          ],
+          "do": [
+            {
+              "op": "reduce_damage_flat",
+              "value": 15
+            }
+          ],
+          "_name": "Spin Absorb"
+        },
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "enemy_spin_is",
+              "value": "Left"
+            }
+          ],
+          "do": [
+            {
+              "op": "lose_stability",
+              "value": 6
+            }
+          ],
+          "_name": "Spin Absorb"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Left",
+  "main_frame": {
+    "hp": 126,
+    "attack": 81,
+    "defense": 102,
+    "stamina": 120
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 7,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

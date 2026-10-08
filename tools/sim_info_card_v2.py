@@ -2,6 +2,14 @@
 """Smoke checks for the premium V2 info-card + instant legacy rollback."""
 from __future__ import annotations
 
+def authored_open(*args, **kwargs):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from utils.character_registry import authored_open as open_registry
+    return open_registry(*args, **kwargs)
+
+
 import asyncio
 import io
 import json
@@ -16,7 +24,7 @@ from utils import info_card_legacy as LEGACY  # noqa: E402
 from utils import info_card_v2 as V2  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB = json.load(open(os.path.join(ROOT, "data", "beyblades.json"), encoding="utf-8"))
+DB = json.load(authored_open('bey', encoding="utf-8"))
 
 PASS = FAIL = 0
 

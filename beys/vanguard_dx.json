@@ -1,0 +1,235 @@
+{
+  "id": "BB012",
+  "name": "Vanguard DX",
+  "rarity": "Legendary",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1511667817072562267/jYFE1FOcSYuCaWBbHZnKSA.webp?ex=6a2149dd&is=6a1ff85d&hm=d43ba3b66e3c406a1bcf419d034a55971068d43aa7b24b89e6be88fc465fdfb7&",
+  "description": "The sovereign apex of Balance. Vanguard DX commands the stadium with unbreakable crimson resilience and aggressive metallic wing structures, shifting configurations dynamically to utterly disrupt any battle strategy.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 104,
+    "defense": 70,
+    "stamina": 106,
+    "special": 115,
+    "hp": 109
+  },
+  "ability": {
+    "name": "Vanguard Overdrive",
+    "trigger": "on_special",
+    "description": "After using Vanguard Crux Strike, adapts to the foe. If facing an Attack type, creates a 45 HP shield. Against other types, gains +25 Attack for 3 turns. Links into a health threshold chain below 50% HP for defense pierce and true damage.",
+    "defense_counter_buff": 45,
+    "attack_counter_buff": 25,
+    "chain": [
+      {
+        "condition": "hp_below",
+        "threshold": 0.5,
+        "effect": "ignore_def",
+        "duration": 2,
+        "once": true
+      },
+      {
+        "condition": "hp_below",
+        "threshold": 0.3,
+        "effect": "true_damage",
+        "duration": 1,
+        "once": true
+      }
+    ],
+    "rules": [
+      {
+        "when": "on_special",
+        "if": [
+          {
+            "cond": "enemy_type_is",
+            "value": "Attack"
+          }
+        ],
+        "do": [
+          {
+            "op": "shield",
+            "value": 45
+          }
+        ],
+        "_name": "Vanguard Overdrive"
+      },
+      {
+        "when": "on_special",
+        "if": [
+          {
+            "cond": "enemy_type_is",
+            "value": "Defense"
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "attack",
+            "amount": 25,
+            "turns": 3
+          }
+        ],
+        "_name": "Vanguard Overdrive"
+      },
+      {
+        "when": "on_special",
+        "if": [
+          {
+            "cond": "enemy_type_is",
+            "value": "Stamina"
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "attack",
+            "amount": 25,
+            "turns": 3
+          }
+        ],
+        "_name": "Vanguard Overdrive"
+      },
+      {
+        "when": "on_special",
+        "if": [
+          {
+            "cond": "enemy_type_is",
+            "value": "Balance"
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "attack",
+            "amount": 25,
+            "turns": 3
+          }
+        ],
+        "_name": "Vanguard Overdrive"
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Vanguard Crux Strike",
+    "description": "Vanguard DX shifts its internal chassis balance, unleashing a devastating dual-hemisphere cross slash!",
+    "hits": 2,
+    "damage_per_hit": 85,
+    "total_damage": 170,
+    "flavour_texts": [
+      "💥 **Vanguard Crux Strike** — An unbreakable cross slash detonates through the center map!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Vanguard Overdrive",
+      "trigger": "on_special",
+      "description": "After using Vanguard Crux Strike, adapts to the foe. If facing an Attack type, creates a 45 HP shield. Against other types, gains +25 Attack for 3 turns. Links into a health threshold chain below 50% HP for defense pierce and true damage.",
+      "defense_counter_buff": 45,
+      "attack_counter_buff": 25,
+      "chain": [
+        {
+          "condition": "hp_below",
+          "threshold": 0.5,
+          "effect": "ignore_def",
+          "duration": 2,
+          "once": true
+        },
+        {
+          "condition": "hp_below",
+          "threshold": 0.3,
+          "effect": "true_damage",
+          "duration": 1,
+          "once": true
+        }
+      ],
+      "rules": [
+        {
+          "when": "on_special",
+          "if": [
+            {
+              "cond": "enemy_type_is",
+              "value": "Attack"
+            }
+          ],
+          "do": [
+            {
+              "op": "shield",
+              "value": 45
+            }
+          ],
+          "_name": "Vanguard Overdrive"
+        },
+        {
+          "when": "on_special",
+          "if": [
+            {
+              "cond": "enemy_type_is",
+              "value": "Defense"
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "amount": 25,
+              "turns": 3
+            }
+          ],
+          "_name": "Vanguard Overdrive"
+        },
+        {
+          "when": "on_special",
+          "if": [
+            {
+              "cond": "enemy_type_is",
+              "value": "Stamina"
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "amount": 25,
+              "turns": 3
+            }
+          ],
+          "_name": "Vanguard Overdrive"
+        },
+        {
+          "when": "on_special",
+          "if": [
+            {
+              "cond": "enemy_type_is",
+              "value": "Balance"
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "amount": 25,
+              "turns": 3
+            }
+          ],
+          "_name": "Vanguard Overdrive"
+        }
+      ]
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 109,
+    "attack": 104,
+    "defense": 70,
+    "stamina": 106
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 11,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

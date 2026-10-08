@@ -1,0 +1,61 @@
+{
+  "id": "BB048",
+  "name": "Bahamut Blitz",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1515573932529549442/BahamutBlitz_BK1-50I.webp?ex=6a2f7fb7&is=6a2e2e37&hm=7774042892c7971c2ebd1be6512e35ad36012a68391a95b60023b349740771d8&",
+  "description": "The design features dragon fire forming the letter 'B,' paying homage to the Bahamut line from Beyblade Burst. Its Ignition bit's eight protrusions and sixteen gears enhance dynamic movement, while the BK blade and 1-50 ratchet deliver powerful smash-attack potential.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 100,
+    "defense": 70,
+    "stamina": 50,
+    "special": 95,
+    "hp": 101
+  },
+  "ability": {
+    "name": "Ignition Drive",
+    "trigger": "passive",
+    "description": "The Ignition bit's eight protrusions and sixteen gears enhance dynamic movement, granting bonus speed and a chance to land an extra hit during attacks.",
+    "passive_atk_bonus": 8,
+    "extra_hit_chance": 0.15
+  },
+  "special_move": {
+    "name": "Critical Damage Strike",
+    "description": "Bahamut Blitz leverages the BK blade's weight and the Ignition bit's speed for a high-impact critical strike strategy.",
+    "hits": 1,
+    "damage_per_hit": 120,
+    "total_damage": 120,
+    "crit_chance": 0.3,
+    "crit_bonus": 25,
+    "flavour_texts": [
+      "🔥 **Critical Damage Strike** — Bahamut Blitz roars with dragon fire!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Ignition Drive",
+      "trigger": "passive",
+      "description": "The Ignition bit's eight protrusions and sixteen gears enhance dynamic movement, granting bonus speed and a chance to land an extra hit during attacks.",
+      "passive_atk_bonus": 8,
+      "extra_hit_chance": 0.15
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 101,
+    "attack": 100,
+    "defense": 70,
+    "stamina": 50
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 46,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "Heavy Disk",
+  "type": "disk",
+  "price": 1100,
+  "stat": "defense",
+  "bonus": 20,
+  "desc": "Dense metal disk — outstanding defense weight.",
+  "penalty_stat": "attack",
+  "penalty": 14,
+  "id": "heavy_disk",
+  "category": "disk",
+  "stats": {
+    "hp": 0,
+    "attack": -14,
+    "defense": 20,
+    "stamina": 0
+  },
+  "compatibility": {},
+  "_registry_order": 25
+}

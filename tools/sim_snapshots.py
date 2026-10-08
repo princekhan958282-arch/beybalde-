@@ -74,6 +74,8 @@ AVATARS = os.path.join(DATA, "avatar_inventory.json")
 def seed(uid, **fields):
     prof = DB._default_profile(str(uid))
     prof.update(fields)
+    from utils.bey_components import reconcile
+    reconcile(prof)
     STORE.put_one(str(uid), prof)
     return prof
 

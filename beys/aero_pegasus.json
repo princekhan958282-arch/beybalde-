@@ -1,0 +1,61 @@
+{
+  "id": "BB071",
+  "name": "Aero Pegasus",
+  "rarity": "Rare",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1516061032118882364/AeroPegasus_3-70A.webp?ex=6a333f9d&is=6a31ee1d&hm=b9865dda94fbad25b013b03216de55d83a14561c40d6f91c250a1602871de3cd&",
+  "description": "One of the heaviest and strongest attack blades in Beyblade X. Aerodynamic openings help maintain speed and attack pressure, allowing it to perform devastating Xtreme Dash attacks while still having surprisingly good stamina.",
+  "burst_height": "Mid",
+  "type": "Attack",
+  "stats": {
+    "attack": 104,
+    "defense": 96,
+    "stamina": 91,
+    "special": 95,
+    "hp": 120
+  },
+  "ability": {
+    "name": "Aero Strike",
+    "trigger": "passive",
+    "description": "One of the heaviest and strongest attack blades in Beyblade X. Aerodynamic openings help maintain speed and attack pressure. Can perform devastating Xtreme Dash attacks while still having surprisingly good stamina.",
+    "passive_atk_bonus": 12,
+    "stamina_drain_reduction_pct": 0.1,
+    "smash_dmg_amp_pct": 0.15
+  },
+  "special_move": {
+    "name": "Aero Break",
+    "description": "Aero Pegasus launches forward with explosive smash attacks.",
+    "hits": 1,
+    "damage_per_hit": 125,
+    "total_damage": 125,
+    "flavour_texts": [
+      "🐎 **Aero Break** — Aero Pegasus launches forward with an explosive smash!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Aero Strike",
+      "trigger": "passive",
+      "description": "One of the heaviest and strongest attack blades in Beyblade X. Aerodynamic openings help maintain speed and attack pressure. Can perform devastating Xtreme Dash attacks while still having surprisingly good stamina.",
+      "passive_atk_bonus": 12,
+      "stamina_drain_reduction_pct": 0.1,
+      "smash_dmg_amp_pct": 0.15
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 120,
+    "attack": 104,
+    "defense": 96,
+    "stamina": 91
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 69,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

@@ -1,0 +1,175 @@
+{
+  "id": "BB088",
+  "name": "Ultimate Valkyrie",
+  "rarity": "Ultimate",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "High",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1537151067119427594/1786554299801.png?ex=6a7dfefd&is=6a7cad7d&hm=691e6d6cbdc6728e5f6a104e43719939724adefeff80b71d6a03521f7f40d90b&",
+  "description": "The Valkyrie line taken as far as it goes. Every gram of it is pointed forward — 165 Attack over a 40 Defence, a blade that has no answer to being hit and does not intend to need one. Swung unmastered it burns through its own spin to do it.",
+  "stats": {
+    "attack": 165,
+    "defense": 40,
+    "stamina": 117,
+    "special": 165,
+    "hp": 134
+  },
+  "ability": {
+    "name": "Ultimate Blade",
+    "trigger": "on_attack_hit",
+    "description": "Pure offence. Every Attack that lands hits for +13%, every hit of the Special for +10%, and the crit rate is raised by 15%. Until Ultimate Valkyrie is mastered, Attack and Special each drain 35% more stamina. At bey level 100 the surcharge is removed. Its Special ignores Defense for that turn.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "bonus_damage_pct",
+            "value": 13
+          }
+        ],
+        "_name": "Ultimate Blade"
+      },
+      {
+        "when": "on_hit",
+        "do": [
+          {
+            "op": "bonus_damage_pct",
+            "value": 10
+          }
+        ],
+        "_name": "Ultimate Blade",
+        "_note": "on_hit is the per-Special-hit trigger; on_attack_hit is the normal-attack one. They are disjoint, so this does not stack with the rule above on a single swing."
+      },
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "crit_chance",
+            "value": 15
+          }
+        ],
+        "_name": "Ultimate Blade"
+      },
+      {
+        "when": "setup",
+        "if": [
+          {
+            "cond": "bey_level_below",
+            "value": 100
+          }
+        ],
+        "do": [
+          {
+            "op": "stamina_cost_increase",
+            "value": 35,
+            "moves": [
+              "attack",
+              "special"
+            ]
+          }
+        ],
+        "_name": "Ultimate Blade — unmastered",
+        "_note": "The drawback, and ONLY the drawback, is gated on level. At 100 this rule stops firing and the offence rules above are untouched."
+      }
+    ]
+  },
+  "special_move": {
+    "name": "Ultimate V",
+    "description": "Five cuts along the same line, carved into the shape of a V. The guard is not gone through — it is gone past.",
+    "hits": 5,
+    "damage_per_hit": 37,
+    "total_damage": 185,
+    "flavour_texts": [
+      "⚡ **ULTIMATE V** — five cuts down the same line!",
+      "🗡️ The V closes — there is nothing left to guard with!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Ultimate Blade",
+      "trigger": "on_attack_hit",
+      "description": "Pure offence. Every Attack that lands hits for +13%, every hit of the Special for +10%, and the crit rate is raised by 15%. Until Ultimate Valkyrie is mastered, Attack and Special each drain 35% more stamina. At bey level 100 the surcharge is removed. Its Special ignores Defense for that turn.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 13
+            }
+          ],
+          "_name": "Ultimate Blade"
+        },
+        {
+          "when": "on_hit",
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 10
+            }
+          ],
+          "_name": "Ultimate Blade",
+          "_note": "on_hit is the per-Special-hit trigger; on_attack_hit is the normal-attack one. They are disjoint, so this does not stack with the rule above on a single swing."
+        },
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "crit_chance",
+              "value": 15
+            }
+          ],
+          "_name": "Ultimate Blade"
+        },
+        {
+          "when": "setup",
+          "if": [
+            {
+              "cond": "bey_level_below",
+              "value": 100
+            }
+          ],
+          "do": [
+            {
+              "op": "stamina_cost_increase",
+              "value": 35,
+              "moves": [
+                "attack",
+                "special"
+              ]
+            }
+          ],
+          "_name": "Ultimate Blade — unmastered",
+          "_note": "The drawback, and ONLY the drawback, is gated on level. At 100 this rule stops firing and the offence rules above are untouched."
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "ignore_defense",
+              "turns": 1
+            }
+          ],
+          "_name": "Ultimate V"
+        }
+      ]
+    }
+  ],
+  "hidden_drop_one_in": 10000000,
+  "main_frame": {
+    "hp": 134,
+    "attack": 165,
+    "defense": 40,
+    "stamina": 117
+  },
+  "default_parts": {
+    "disk": null,
+    "driver": null
+  },
+  "generation": null,
+  "_registry_order": 87,
+  "component_migration": {
+    "strategy": "legacy_unsplit_frame",
+    "stock_components_verified": false
+  }
+}

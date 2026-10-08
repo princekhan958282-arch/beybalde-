@@ -1,0 +1,57 @@
+{
+  "id": "avatar_l003",
+  "name": "Zero Two",
+  "rarity": "Legendary",
+  "type": "attack",
+  "price": 0,
+  "description": "The partner-seeking Darling. Relentless multi-hit assault with surging charge and special move power.",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520321159369982055/Cute-Zero-Two-Background.png",
+  "bonuses": {
+    "attack_flat": 10,
+    "attack_percent": 0.12,
+    "defence_flat": 0,
+    "defence_percent": 0,
+    "stamina_flat": 0,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 12,
+    "charge_percent": 0.12,
+    "special_move_flat": 18,
+    "special_move_percent": 0.18,
+    "crit_percent": 0.1,
+    "dodge_chance": 0.08,
+    "counter_chance": 0,
+    "multi_hit_power_double": true,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 0,
+    "hp_percent": 0.08
+  },
+  "skills": [
+    {
+      "name": "Partner Sync",
+      "description": "Attack increased by 24%.",
+      "bonuses": {
+        "attack_percent": 0.24
+      }
+    },
+    {
+      "name": "Strelizia Rush",
+      "description": "Charge increased by 25%.",
+      "bonuses": {
+        "charge_percent": 0.25
+      }
+    },
+    {
+      "name": "Darling's Resolve",
+      "description": "Special Move damage increased by 32%.",
+      "bonuses": {
+        "special_move_percent": 0.32
+      }
+    }
+  ],
+  "generation": null,
+  "_registry_order": 9
+}
