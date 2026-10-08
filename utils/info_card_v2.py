@@ -30,12 +30,15 @@ log = logging.getLogger(__name__)
 CARD_ENABLED = True
 IMAGE_FORMAT = "jpg"
 IMAGE_QUALITY = 90
+last_engine = "none"
+last_render_error = ""
 W = 900
 PAD = 34
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _FONT_CANDIDATES = (
     os.path.join(_PROJECT_ROOT, "assets", "font.ttf"),
+    os.path.join(_PROJECT_ROOT, "assets", "ui", "beycbot_font.ttf"),
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 )
@@ -59,6 +62,7 @@ def _font(size: int, bold: bool = True):
     if not bold:
         paths = [
             os.path.join(_PROJECT_ROOT, "assets", "font.ttf"),
+            os.path.join(_PROJECT_ROOT, "assets", "ui", "beycbot_font.ttf"),
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         ]
@@ -257,7 +261,7 @@ def _ability_blocks(blade: dict, draw, width: int) -> tuple[list[tuple[dict, lis
     for ab in abilities:
         desc = _wrap(draw, str(ab.get("description", "")), desc_font, width - 40, max_lines)
         chip = legacy._chip_for(ab)
-        h = 22 + name_font.size + 12 + 28 + 12 + len(desc) * 24 + 20
+        h = 22 + getattr(name_font, "size", 25) + 12 + 28 + 12 + len(desc) * 24 + 20
         out.append((ab, desc, chip, h))
         total += h + 14
     if not out:
@@ -285,7 +289,9 @@ def render_info_card_pillow(blade: dict, parts: Optional[dict] = None) -> Option
     try:
         return _render(blade or {}, parts or {})
     except Exception as exc:
-        log.warning("V2 info card failed for %r: %s", (blade or {}).get("name"), exc)
+        global last_render_error
+        last_render_error = f"{type(exc).__name__}: {exc}"
+        log.warning("V2 info card failed for %r: %s", (blade or {}).get("name"), exc, exc_info=True)
         return None
 
 
@@ -547,6 +553,8 @@ def _render(blade: dict, parts: dict) -> io.BytesIO:
 
 async def render_info_card(blade: dict, parts: Optional[dict] = None) -> Optional[io.BytesIO]:
     """Render V2 off the event loop; fall back to the exact legacy renderer."""
+    global last_engine, last_render_error
+    last_engine, last_render_error = "none", ""
     if not CARD_ENABLED:
         return None
     blade = blade or {}
@@ -554,17 +562,24 @@ async def render_info_card(blade: dict, parts: Optional[dict] = None) -> Optiona
     key = _cache_key(blade, parts)
     cached = _CARD_CACHE.get(key)
     if cached is not None:
+        last_engine = "v2/cache"
         return _named(cached)
 
     try:
         buf = await asyncio.to_thread(render_info_card_pillow, blade, parts)
     except Exception as exc:
-        log.warning("V2 worker failed for %r: %s", blade.get("name"), exc)
+        last_render_error = f"{type(exc).__name__}: {exc}"
+        log.warning("V2 worker failed for %r: %s", blade.get("name"), exc, exc_info=True)
         buf = None
 
     if buf is None:
-        return await legacy.render_info_card(blade, parts=parts)
+        if not last_render_error:
+            last_render_error = "V2 renderer returned no image"
+        fallback = await legacy.render_info_card(blade, parts=parts)
+        last_engine = f"legacy/{legacy.last_engine}"
+        return fallback
 
+    last_engine = "v2/pillow"
     data = buf.getvalue()
     if len(_CARD_CACHE) >= _CARD_CACHE_MAX:
         _CARD_CACHE.pop(next(iter(_CARD_CACHE)))

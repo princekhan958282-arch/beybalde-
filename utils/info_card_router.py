@@ -18,6 +18,8 @@ from . import info_card_v2 as v2
 from . import info_card_shop as shop_card
 
 CARD_ENABLED = True
+last_engine = "none"
+last_render_error = ""
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _CONFIG = os.path.join(_ROOT, "data", "config.json")
@@ -40,15 +42,22 @@ def using_v2() -> bool:
 
 
 async def render_info_card(blade: dict, parts: Optional[dict] = None, info_theme: str = "default"):
+    global last_engine, last_render_error
+    last_engine, last_render_error = "none", ""
     if not CARD_ENABLED:
         return None
     if str(info_theme).lower() == "beycbot_2ability":
         custom = await asyncio.to_thread(shop_card.render, blade)
         if custom is not None:
+            last_engine = "beycbot/pillow"
             return custom
     if using_v2():
-        return await v2.render_info_card(blade, parts=parts)
-    return await legacy.render_info_card(blade, parts=parts)
+        result = await v2.render_info_card(blade, parts=parts)
+        last_engine, last_render_error = v2.last_engine, v2.last_render_error
+        return result
+    result = await legacy.render_info_card(blade, parts=parts)
+    last_engine = f"legacy/{legacy.last_engine}"
+    return result
 
 
 def clear_cache() -> None:

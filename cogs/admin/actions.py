@@ -1910,7 +1910,9 @@ async def _carddebug(ctx: ActionCtx) -> Result:
     buf = await info_card.render_info_card(blade)
     dt = (time.time() - t0) * 1000
 
-    lines = [f"**engine:** `{info_card.last_engine}` · {dt:.0f} ms",
+    selected = info_card.selected_version() if hasattr(info_card, "selected_version") else "compatibility"
+    lines = [f"**renderer:** `{info_card.__name__}` · **selected:** `{selected}`",
+             f"**engine:** `{info_card.last_engine}` · {dt:.0f} ms",
              f"**python:** `{platform.python_version()}` · **free /tmp:** "
              f"`{shutil.disk_usage('/tmp').free // 2 ** 20} MB`"]
     # find_spec rather than `import playwright`: this only needs to know
@@ -1920,6 +1922,9 @@ async def _carddebug(ctx: ActionCtx) -> Result:
     lines.append("**playwright pkg:** installed"
                  if importlib.util.find_spec("playwright")
                  else "**playwright pkg:** ❌ NOT INSTALLED")
+    render_error = getattr(info_card, "last_render_error", "")
+    if render_error:
+        lines.append(f"**V2 fallback error:**\n```\n{render_error[:600]}\n```")
     if info_card.last_playwright_error:
         err = info_card.last_playwright_error[:600]
         lines.append(f"**playwright error:**\n```\n{err}\n```")
@@ -1927,7 +1932,7 @@ async def _carddebug(ctx: ActionCtx) -> Result:
         return Result.fail("❌ Both engines failed.\n" + "\n".join(lines))
     import discord
     return Result(message="\n".join(lines),
-                  file=discord.File(buf, filename="carddebug.png"))
+                  file=discord.File(buf, filename=info_card.card_filename(buf, blade["name"])))
 
 
 @register("errors", "Recent errors", "the last exceptions the bot swallowed",
