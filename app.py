@@ -295,6 +295,22 @@ class BeybladeBot(commands.Bot):
         except Exception as exc:                         # noqa: BLE001
             logger.debug(f"activity tracker not restored: {exc}")
 
+        # Validate authored character and component catalogs before gameplay cogs
+        # import them. A malformed JSON definition must not leave the bot online
+        # with partially loaded battle/shop/avatar systems.
+        from utils.character_registry import REGISTRY, load_parts
+        try:
+            beys = REGISTRY.load("bey")
+            avatars = REGISTRY.load("avatar")
+            parts = load_parts()  # also checks cross-category part ID collisions
+            logger.info(
+                "🧩 Character registry ready: %d Beyblades, %d Avatars, %d parts",
+                len(beys), len(avatars), len(parts),
+            )
+        except (ValueError, KeyError, OSError, TypeError) as exc:
+            logger.critical("❌ Character registry validation failed: %s", exc, exc_info=True)
+            raise RuntimeError("Character registry invalid; refusing partial startup") from exc
+
         for cog_path in COGS:
             try:
                 await self.load_extension(cog_path)
