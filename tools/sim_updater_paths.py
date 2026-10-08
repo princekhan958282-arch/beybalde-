@@ -98,6 +98,15 @@ print("\n── 4. every exempted file must be read-only at runtime ────
 # rather than trusted, because the cost of being wrong is lost player data.
 WRITE_MARKERS = ("_atomic_write_json", "json.dump", "put_one", ".write(")
 for rel in U.DATA_CONTENT:
+    if rel == "data/beyblades.json":
+        check("the retired monolith is absent from the checkout",
+              not os.path.exists(os.path.join(ROOT, rel)))
+        from utils.character_registry import REGISTRY
+        check("all four flat definition folders ship through the updater",
+              all(not U._is_protected(p) and p.endswith(U.ALLOWED_SUFFIXES)
+                  for p in ("beys/dranzer.json", "avatars/valt_aoi.json",
+                            "parts/disks/nexus_disk.json", "parts/drivers/atomic_driver.json")))
+        continue
     const = None
     dbsrc = open(os.path.join(ROOT, "utils", "database.py"), encoding="utf-8").read()
     for line in dbsrc.splitlines():
