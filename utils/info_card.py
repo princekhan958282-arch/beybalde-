@@ -1051,7 +1051,10 @@ async def render_info_card(blade: dict, parts: Optional[dict] = None,
     except Exception:
         log.warning("info-card selector unavailable; using compatibility renderer", exc_info=True)
     else:
-        return await router.render_info_card(blade, parts=parts, info_theme=info_theme)
+        global last_engine, last_render_error
+        result = await router.render_info_card(blade, parts=parts, info_theme=info_theme)
+        last_engine, last_render_error = router.last_engine, router.last_render_error
+        return result
 
     if str(info_theme).lower() == "beycbot_2ability":
         try:
