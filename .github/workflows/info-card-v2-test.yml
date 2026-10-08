@@ -7,6 +7,8 @@ on:
   pull_request:
     paths:
       - 'utils/info_card_v2.py'
+      - 'utils/info_card_parts.py'
+      - 'tools/test_info_component_parts.py'
       - 'utils/info_card_router.py'
       - 'utils/info_card_legacy.py'
       - 'utils/info_card_pillow_legacy.py'
@@ -26,10 +28,12 @@ jobs:
           python-version: '3.12'
 
       - name: Install test dependency
-        run: python -m pip install --upgrade pillow
+        run: python -m pip install --upgrade pillow 'discord.py>=2.6' python-dotenv
 
       - name: Run V2 smoke checks
-        run: python tools/sim_info_card_v2.py
+        run: |
+          python tools/sim_info_card_v2.py
+          python -m unittest tools.test_info_component_parts
 
       - name: Render Unlock Unicorn exact Discord card
         run: |

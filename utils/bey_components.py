@@ -247,7 +247,8 @@ def assemble(profile: dict, blade: dict) -> tuple[dict, dict]:
     entry = active_instance(profile, blade)
     result["component_snapshot"] = {"instance_id": entry["instance_id"] if entry else None,
         "main_frame": frame, "parts": copy.deepcopy(entry["parts"] if entry else blade["default_parts"]),
-        "part_stats": contribution, "legacy_frame_modifiers": modifiers}
+        "part_stats": contribution, "legacy_frame_modifiers": modifiers,
+        "part_names": {slot: (definition_for(profile, entry["parts"][slot]) if entry else REGISTRY.part(blade["default_parts"][slot]))["name"] for slot in ("disk", "driver")}}
     return result, delta
 
 

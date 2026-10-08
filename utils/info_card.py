@@ -358,22 +358,9 @@ def _stat_total(blade: dict) -> int:
 
 
 def _parts_slots(blade: dict, parts: Optional[dict]) -> list[dict]:
-    """The BLADE / RATCHET / BIT strip.
+    from .info_card_parts import parts_slots
+    return parts_slots(blade, parts)
 
-    `parts` is an optional {"ratchet": name, "bit": name} from the viewer's
-    equipped loadout. Empty slots show a dash — never a blank box.
-    """
-    parts = parts or {}
-    return [
-        {"slot": "BLADE",   "value": blade.get("name", "—")},
-        {"slot": "RATCHET", "value": parts.get("ratchet") or "—"},
-        {"slot": "BIT",     "value": parts.get("bit") or "—"},
-    ]
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  HTML template
-# ══════════════════════════════════════════════════════════════════════════════
 
 def build_html(blade: dict, parts: Optional[dict] = None) -> str:
     """Render the card to a standalone HTML string (also handy for debugging —

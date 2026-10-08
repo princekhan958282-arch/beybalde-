@@ -719,13 +719,15 @@ class InventoryView(discord.ui.View):
                                         ephemeral=True)
 
     def _card_parts(self) -> dict:
-        """Owner's equipped disk/driver mapped onto the card's Ratchet/Bit slots."""
-        by_type: dict[str, str] = {}
-        for p in self._cache.get("part", []):
-            if p.get("equipped"):
-                by_type[p.get("ptype")] = p["name"]
-        return {"ratchet": by_type.get("disk") or by_type.get("ring"),
-                "bit":     by_type.get("driver")}
+        """Show the selected copy's build, even when another copy is active."""
+        by_type = {}
+        selected = (self.detail or {}).get("instance_id")
+        for part in self._cache.get("part", []):
+            if part.get("equipped_on") == selected and selected:
+                by_type[part.get("ptype")] = part["name"]
+            elif not selected and part.get("equipped"):
+                by_type[part.get("ptype")] = part["name"]
+        return {"disk": by_type.get("disk"), "driver": by_type.get("driver")}
 
     # ── Equip actions ─────────────────────────────────────────────────────────
 
