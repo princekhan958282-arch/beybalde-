@@ -112,7 +112,7 @@ def nth_hit_bonus(session, key: str, total_attack: float) -> tuple[int, list[str
 # ── Special / ultimate ───────────────────────────────────────────────────────
 
 def apply_ult_bonus(session, key: str, damage: int,
-                    total_attack: float) -> tuple[int, list[str]]:
+                    total_attack: float, *, first_hit: bool = True) -> tuple[int, list[str]]:
     """special_move_percent, plus the attacker's ATK stat when the avatar adds it."""
     av = _av(session, key)
     if av is None:
@@ -120,11 +120,12 @@ def apply_ult_bonus(session, key: str, damage: int,
     logs: list[str] = []
     out = damage
     if av.special_move_percent or av.special_move_flat:
-        boosted = int(round(av.apply_special_move_bonus(out)))
+        boosted = int(round(av.apply_special_move_bonus(out) if first_hit
+                            else out * (1 + av.special_move_percent)))
         if boosted != out:
             logs.append(f"  🌟 **Avatar** — Special damage {out} → {boosted}!")
             out = boosted
-    if av.ult_adds_attack_stat and total_attack > 0:
+    if first_hit and av.ult_adds_attack_stat and total_attack > 0:
         add = int(round(total_attack))
         out += add
         logs.append(f"  💠 **Avatar** — full Attack stat added: +{add}!")

@@ -1831,6 +1831,10 @@ class AbilityEngine:
     ) -> tuple[int, int, list[str]]:
         """Route one move through the full generic trigger pipeline."""
         logs: list[str] = []
+        # Zero-base Specials (e.g. Xeno) generate their damage in the DSL.
+        # AttackManager could not apply avatar bonuses to that future damage.
+        avatar_generated_special = (move == MOVE_SPECIAL
+            and bool((mover_blade.get('special_move') or {}).get('non_damage')))
 
         if move == MOVE_SPECIAL and is_first_hit:
             for _, rule in self._rules_for(mover_blade, mover_key):
@@ -1936,6 +1940,15 @@ class AbilityEngine:
                 dmg_dealt, dmg_taken = self._fire("on_mirror", mover_key,
                                                   other_key, mover_blade, move,
                                                   matchup, dmg_dealt, dmg_taken, logs)
+
+            if avatar_generated_special and dmg_dealt > 0:
+                from cogs.battle import avatar_combat
+                from cogs.battle.purification import effective_stats
+                attack = effective_stats(self.session, mover_key).get('attack', 0)
+                dmg_dealt, avatar_logs = avatar_combat.apply_ult_bonus(
+                    self.session, mover_key, dmg_dealt, attack,
+                    first_hit=is_first_hit)
+                logs.extend(avatar_logs)
 
             # engine-side ability crit (crit_chance / crit_damage ops)
             p = self.crit_chance_bonus.get(mover_key, 0.0)
