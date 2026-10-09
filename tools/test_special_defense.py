@@ -68,6 +68,33 @@ class SpecialDefenseTests(unittest.IsolatedAsyncioTestCase):
         s = await self.build(damage=10,min_hit_damage=100)
         self.assertEqual(self.resolve(s)[0],40)
 
+    async def test_minimum_hit_does_not_restore_shield_absorbed_damage(self):
+        for shield, expected in ((20,20),(40,0),(100,0)):
+            with self.subTest(shield=shield):
+                s = await self.build(damage=100,min_hit_damage=100)
+                s.status.shield_hp['102'] = shield
+                self.assertEqual(self.resolve(s)[0],expected)
+
+    async def test_minimum_hit_does_not_break_invulnerability(self):
+        s = await self.build(damage=100,min_hit_damage=100)
+        s.status.invulnerable_turns['102'] = 2
+        self.assertEqual(self.resolve(s)[0],0)
+
+    async def test_multi_hit_floor_consumes_shield_without_recreating_damage(self):
+        s = await self.build(hits=3,damage=10,min_hit_damage=100)
+        s.status.shield_hp['102'] = 60
+        self.assertEqual(self.resolve(s)[0],60)
+        self.assertEqual(s.status.shield_hp.get('102',0),0)
+
+    async def test_minimum_hit_does_not_override_evasion(self):
+        s = await self.build(damage=100,min_hit_damage=100)
+        with patch.object(s.ability.damage_filter,'_step3b_evasion',return_value=(True,['EVADED'])):
+            self.assertEqual(self.resolve(s)[0],0)
+
+    async def test_zero_damage_special_is_not_turned_into_a_hit(self):
+        s = await self.build(damage=0,min_hit_damage=100,non_damage=True)
+        self.assertEqual(self.resolve(s)[0],0)
+
     async def test_generated_damage_is_guarded_but_direct_true_damage_bypasses(self):
         s = await self.build(abilities=[{'name':'Special payload', 'rules':[
             {'when':'on_special','do':[{'op':'bonus_damage','value':100},

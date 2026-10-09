@@ -1846,6 +1846,7 @@ class AbilityEngine:
         cumulative_dmg: int = 0,
         is_last_hit: bool = True,
         avatar_special_pending: bool = False,
+        minimum_hit_damage: int = 0,
     ) -> tuple[int, int, list[str]]:
         """Route one move through the full generic trigger pipeline."""
         logs: list[str] = []
@@ -1994,6 +1995,10 @@ class AbilityEngine:
                 logs.append(f"🎯 **CRITICAL!** — damage ×{mult:g}!")
 
         from cogs.battle.special_guard import guarded, reduce_special
+        # A hit floor belongs before guard and shields. Applying it after
+        # mitigation would restore absorbed damage or defeat invulnerability.
+        if move == MOVE_SPECIAL and dmg_dealt > 0 and minimum_hit_damage > 0:
+            dmg_dealt = max(dmg_dealt, minimum_hit_damage)
         if guarded(self.session, mover_key, other_key, move):
             dmg_dealt = reduce_special(self.session, mover_key, other_key, move, dmg_dealt)
             if is_first_hit:
