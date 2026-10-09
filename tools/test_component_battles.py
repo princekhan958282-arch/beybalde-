@@ -167,6 +167,14 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(s.hp['701'], expected)
         self.assertEqual(displayed, expected)
 
+    async def test_owned_card_does_not_apply_level_and_parts_twice(self):
+        from utils import bey_levels as BL
+        from utils.loadout import effective_blade, battle_pool
+        await DB.mutate_user(701, lambda p:p.update(bey_progress={'Dranzer':{'xp':BL.xp_for_level(30),'ivs':{}}}))
+        card, _, _ = await effective_blade(701, blade=self.raw)
+        session = await self.pvp()
+        self.assertEqual(await battle_pool(701, card), session.max_hp_per_player['701'])
+
 
 class HpConversionTests(unittest.TestCase):
     def test_conversion_has_no_type_band_clamp_or_base_hp(self):

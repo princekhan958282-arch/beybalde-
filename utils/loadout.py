@@ -288,7 +288,16 @@ async def battle_pool(user_id, blade: Optional[dict]) -> int:
     from utils.database import get_user
     from cogs.battle.type_gimmicks import passive_stat_multiplier
     profile = await get_user(int(user_id))
-    effective, _, av = await effective_blade(int(user_id), profile=profile, blade=blade,
+    # Owned cards pass an effective blade, whose HP already includes growth
+    # and replacement components. Resolve official cards from their authored
+    # definition before applying the current loadout once. Rolled copies keep
+    # their supplied stats and skip progression/components below.
+    if blade and blade.get('level') and not profile.get('active_copy'):
+        from utils.character_registry import REGISTRY
+        canonical = REGISTRY.find_bey(blade.get('id') or blade.get('name', ''))
+        if canonical:
+            blade = canonical
+    effective, _, _ = await effective_blade(int(user_id), profile=profile, blade=blade,
                                             include_avatar=False, include_parts=not bool(profile.get('active_copy')))
     pool = max_hp_for_blade(effective)
     av = await avatar_bonuses(int(user_id))
