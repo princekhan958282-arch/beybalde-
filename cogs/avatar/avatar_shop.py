@@ -394,18 +394,18 @@ class AvatarShop(commands.Cog, name="Avatar"):
         await update_user(player_id, profile)
 
     async def _add_coins(self, player_id: int, amount: int) -> None:
-        from utils.database import get_user, update_user
-        profile = await get_user(player_id)
-        profile["coins"] = profile.get("coins", 0) + amount
-        await update_user(player_id, profile)
+        from utils.database import mutate_user
+        def add(profile):
+            profile['coins'] = int(profile.get('coins', 0)) + amount
+        await mutate_user(player_id, add)
 
     def _player_owns(self, player_id: int, avatar_id: str) -> bool:
         from utils.database import player_owns_avatar
         return player_owns_avatar(player_id, avatar_id)
 
-    def _add_to_inventory(self, player_id: int, avatar_id: str) -> None:
+    def _add_to_inventory(self, player_id: int, avatar_id: str) -> bool:
         from utils.database import add_avatar_to_inventory
-        add_avatar_to_inventory(player_id, avatar_id)
+        return add_avatar_to_inventory(player_id, avatar_id)
 
     def _get_owned_avatar_ids(self, player_id: int) -> list[str]:
         from utils.database import get_avatar_inventory
@@ -469,7 +469,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
         Returns (result_line, refund_amount).
         """
         emoji = RARITY_EMOJI.get(avatar["rarity"], "⚪")
-        already_owned = self._player_owns(player_id, avatar["id"])
+        already_owned = not self._add_to_inventory(player_id, avatar["id"])
 
         if already_owned:
             rate = DUPE_REFUND_RATE.get(avatar["rarity"], 0.10)
@@ -478,11 +478,10 @@ class AvatarShop(commands.Cog, name="Avatar"):
                 await self._add_coins(player_id, refund)
             return (
                 f"{emoji} **{avatar['name']}** *({avatar['rarity']})* — "
-                + (f"**Duplicate!** +{refund:,} coins refunded" if refund else "**Duplicate!** No refund."),
+                + (f"**Duplicate!** +1 feeding copy · +{refund:,} coins refunded" if refund else "**Duplicate!** +1 feeding copy · No refund."),
                 refund,
             )
         else:
-            self._add_to_inventory(player_id, avatar["id"])
             return (
                 f"{emoji} **{avatar['name']}** *({avatar['rarity']})*  ✨ **NEW!**",
                 0,
@@ -816,15 +815,17 @@ class AvatarShop(commands.Cog, name="Avatar"):
         except Exception:
             # The established embed still works if Pillow/artwork is missing.
             log.exception("Avatar info card attachment failed; using existing embed")
-        if card is not None:
-            # A direct attachment uses Discord's full image viewer instead of
-            # shrinking the landscape card beneath a duplicate text embed.
-            await ctx.send(
-                file=card,
-                view=AvatarSkillsView(avatar, active_slot=active_slot,
-                                      skill_levels=skill_lvls, details_embed=embed),
-            )
-        elif avatar.get("skills"):
+        from .avatar_progression_ui import ProgressionView, progression_embed
+        if owned:
+            prof = await get_user(ctx.author.id)
+            view = ProgressionView(ctx.author.id, avatar, prof)
+            msg = await ctx.send(embed=progression_embed(prof, avatar), view=view,
+                                 **({'file': card} if card is not None else {}))
+            view.message = msg
+        elif card is not None:
+            await ctx.send(file=card, view=AvatarSkillsView(
+                avatar, active_slot=active_slot, skill_levels=skill_lvls, details_embed=embed))
+        elif avatar.get('skills'):
             await ctx.send(embed=embed, view=AvatarSkillsView(
                 avatar, active_slot=active_slot, skill_levels=skill_lvls))
         else:

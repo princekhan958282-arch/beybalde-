@@ -134,6 +134,13 @@ class OriginalGeneration:
             st.last_skill = slot
             logs.append(f'⚡ **{card["name"]}: {name}** — {COSTS[slot - 1]} energy!')
             self.activate(key, card['character'], slot, logs)
+            from cogs.avatar import avatar_config as C
+            levels = card.get('_skill_levels', [])
+            steps = levels[slot - 1] - 1 if slot <= len(levels) else 0
+            if steps:
+                self.put(key, 'skill_empower', C.EMPOWER_ROUNDS,
+                         attack=C.EMPOWER_PERCENT_STEP * steps,
+                         defense=C.EMPOWER_PERCENT_STEP * steps)
         # Snapshot conditional stat and pierce modifiers before either side attacks.
         for key, st in self.states.items():
             other = self.enemy(key)
@@ -232,7 +239,8 @@ class OriginalGeneration:
 
     def stat_multiplier(self, key, stat):
         e = self.effect(key, 'technique_stats')
-        return 1 + (e.get(stat, 0) if e else 0)
+        empower = self.effect(key, 'skill_empower')
+        return 1 + (e.get(stat, 0) if e else 0) + (empower.get(stat, 0) if empower else 0)
 
     def pierce(self, key):
         return self.action_pierce.get(key, 0)

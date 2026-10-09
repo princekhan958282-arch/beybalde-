@@ -43,6 +43,7 @@ jobs:
           python tools/test_avatar_battle_connection.py
           python tools/test_original_generation.py
           python tools/test_avatar_roster.py
+          python -m unittest tools.test_avatar_progression
           python tools/test_draciel.py
           python -m unittest tools.test_boss_flow
       - name: Character info cards and effective-stat compatibility

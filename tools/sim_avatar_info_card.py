@@ -145,7 +145,8 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
             await AvatarShop.avatar_info.callback(fake, ctx, query='Yuki')
         kwargs = ctx.send.call_args.kwargs
         self.assertEqual(kwargs['file'].filename, 'ainfo.jpg')
-        self.assertNotIn('embed', kwargs)
+        self.assertIn('embed', kwargs)
+        self.assertTrue(any(getattr(child, 'label', '') == 'Level Up' for child in kwargs['view'].children))
         self.assertTrue(any(child.label == 'Details' for child in kwargs['view'].children))
         self.assertIsInstance(kwargs['view'], AvatarSkillsView)
         self.assertTrue(any(child.label == 'Skills' for child in kwargs['view'].children))

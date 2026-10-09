@@ -87,6 +87,9 @@ class ConfirmUpgrade(discord.ui.View):
     @discord.ui.button(label="Confirm", style=discord.ButtonStyle.success, emoji="🪙")
     async def confirm(self, interaction: discord.Interaction,
                       _button: discord.ui.Button) -> None:
+        if getattr(self, '_handled', False):
+            return await interaction.response.send_message('This upgrade was already handled.', ephemeral=True)
+        self._handled = True
         avatar_id = self.avatar["id"]
 
         # Rule 2 + 3: the balance is re-read under the lock, and the deduction

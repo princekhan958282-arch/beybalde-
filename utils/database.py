@@ -326,6 +326,7 @@ def _get_user_sync(user_id: int) -> dict:
             prof = _default_profile(uid)
             from .bey_components import reconcile
             reconcile(prof)
+            _migrate_avatar_profile(prof, user_id)
             USER_STORE.put_one(uid, prof)
             return copy.deepcopy(prof)
 
@@ -359,6 +360,7 @@ def _get_user_sync(user_id: int) -> dict:
 
         from .bey_components import reconcile
         previous = copy.deepcopy(prof)
+        _migrate_avatar_profile(prof, user_id)
         reconcile(prof)
         changed = changed or previous != prof
         if changed:
@@ -390,6 +392,15 @@ def _update_user_sync(user_id: int, profile: dict, touch: bool = True) -> None:
     busy game.
     """
     with _users_lock:
+        # Avatar ownership/progression only changes through locked mutations.
+        # An old battle/profile snapshot must not revive a lost card or copies.
+        current = USER_STORE.get_one(str(user_id))
+        if current and 'avatar_inventory' in current:
+            for key in ('avatar_inventory', 'avatar_copies', 'avatar'):
+                if key in current:
+                    profile[key] = copy.deepcopy(current[key])
+            if profile.get('equipped_avatar') not in current['avatar_inventory']:
+                profile['equipped_avatar'] = None
         from .bey_components import reconcile
         reconcile(profile)
         USER_STORE.put_one(str(user_id), profile, touch=touch)
@@ -428,6 +439,7 @@ def _mutate_user_sync(user_id: int, fn, touch: bool = True):
             prof = _default_profile(uid)
         from .bey_components import reconcile
         reconcile(prof)
+        _migrate_avatar_profile(prof, user_id)
         result = fn(prof)
         reconcile(prof)
         USER_STORE.put_one(uid, prof, touch=touch)
@@ -888,28 +900,25 @@ def _save_avatar_file(data: dict) -> None:
     _atomic_write_json(AVATARS_PATH, data)
 
 
+def _migrate_avatar_profile(profile, user_id):
+    from cogs.avatar.avatar_collection import migrate
+    legacy = ()
+    if 'avatar_inventory' not in profile:
+        with _avatar_lock:
+            legacy = _load_avatar_file().get(str(user_id), [])
+    migrate(profile, legacy)
+
+
 def get_avatar_inventory(user_id: int) -> list[str]:
-    """Return list of avatar IDs owned by this user."""
-    with _avatar_lock:
-        data = _load_avatar_file()
-    return data.get(str(user_id), [])
+    with _users_lock:
+        profile = USER_STORE.get_one(str(user_id)) or _default_profile(str(user_id))
+        _migrate_avatar_profile(profile, user_id)
+        return list(profile['avatar_inventory'])
 
 
 def add_avatar_to_inventory(user_id: int, avatar_id: str) -> bool:
-    """
-    Add an avatar to the user's collection.
-    Returns True if added, False if already owned (duplicate).
-    """
-    with _avatar_lock:
-        data = _load_avatar_file()
-        uid  = str(user_id)
-        owned = data.get(uid, [])
-        if avatar_id in owned:
-            return False
-        owned.append(avatar_id)
-        data[uid] = owned
-        _save_avatar_file(data)
-    return True
+    from cogs.avatar.avatar_collection import grant
+    return _mutate_user_sync(user_id, lambda p: grant(p, avatar_id))
 
 
 def player_owns_avatar(user_id: int, avatar_id: str) -> bool:
@@ -927,6 +936,9 @@ def _set_equipped_avatar_sync(user_id: int, avatar_id: Optional[str]) -> None:
     with _users_lock:
         uid     = str(user_id)
         profile = USER_STORE.get_one(uid) or _default_profile(uid)
+        _migrate_avatar_profile(profile, user_id)
+        if avatar_id is not None and avatar_id not in profile['avatar_inventory']:
+            raise ValueError("You no longer own this avatar.")
         profile["equipped_avatar"] = avatar_id
         USER_STORE.put_one(uid, profile)
 

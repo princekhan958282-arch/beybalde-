@@ -404,9 +404,11 @@ class AvatarEngine:
         try:
             from . import avatar_levels as AL
             level = await self.card_level(player_id, avatar_id)
-            if level <= 1:
-                return {"attack": 0, "defense": 0, "stamina": 0}
-            return AL.card_stat_bonus(avatar.get("type", "balance"), level)
+            from .avatar_collection import stat_bonus
+            from utils.database import get_user
+            gain = AL.card_stat_bonus(avatar.get("type", "balance"), level)
+            star_gain = stat_bonus(await get_user(player_id), avatar)
+            return {s: n + star_gain[s] for s, n in gain.items()}
         except Exception:                                # noqa: BLE001
             return {"attack": 0, "defense": 0, "stamina": 0}
 
@@ -421,7 +423,14 @@ class AvatarEngine:
             from utils.database import get_user
             from . import avatar_skills as AS
             prof = await get_user(player_id)
-            return AS.bonuses_for(avatar, AS.active_slot(prof, avatar))
+            from .avatar_scaling import scaled_card, selected_stats
+            card = scaled_card(prof, avatar)
+            slot = AS.active_slot(prof, card)
+            block = AS.bonuses_for(card, slot)
+            for stat, gain in selected_stats(card, slot).items():
+                key = 'defence_flat' if stat == 'defense' else stat + '_flat'
+                block[key] = block.get(key, 0) + gain
+            return block
         except Exception:                                # noqa: BLE001
             return avatar.get("bonuses") or {}
 

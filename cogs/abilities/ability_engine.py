@@ -321,7 +321,7 @@ class AbilityEngine:
                 return []
             slot = (getattr(self.session, "avatar_skill_slots", None)
                     or {}).get(key)
-            cache_key = f"@avatar:{card.get('id', '?')}#{slot}"
+            cache_key = f"@avatar:{card.get('id', '?')}#{slot}#{card.get('_skill_levels', [])}"
             if cache_key not in self._compiled:
                 live = skills if slot is None else [
                     skills[slot - 1]] if 1 <= slot <= len(skills) else []

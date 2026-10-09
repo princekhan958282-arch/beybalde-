@@ -191,10 +191,6 @@ def quote_card(profile: dict, avatar_id: str, levels: int = 1) -> dict:
 def quote_skill(profile: dict, avatar_id: str, slug: str,
                 levels: int = 1) -> dict:
     """What a skill upgrade would cost, including why it is blocked."""
-    if avatar_id.startswith("avatar_og_"):
-        return {"from": 1, "to": 1, "levels": 0, "cost": 0, "cap": 1,
-                "blocked": "Original Generation skills have fixed effects; upgrade the avatar card for stat growth.",
-                "coins": int(profile.get("coins", 0) or 0)}
     now = skill_level(profile, avatar_id, slug)
     cap = AL.max_skill_level_for(card_level(profile, avatar_id))
     want = max(1, min(cap, now + max(1, int(levels or 1))))
@@ -220,6 +216,9 @@ def apply_card_purchase(profile: dict, avatar_id: str, levels: int = 1) -> dict:
     Call this INSIDE `database.mutate_user` so the balance is re-read under the
     lock rather than trusted from whatever a confirm card showed 60 seconds ago.
     """
+    if 'avatar_inventory' in profile:
+        from .avatar_collection import require_owned
+        require_owned(profile, avatar_id)
     q = quote_card(profile, avatar_id, levels)
     if q["maxed"]:
         raise PurchaseError(f"Already at the maximum, Lv{AL.MAX_CARD_LEVEL}.")
@@ -240,6 +239,9 @@ def apply_card_purchase(profile: dict, avatar_id: str, levels: int = 1) -> dict:
 
 def apply_skill_purchase(profile: dict, avatar_id: str, slug: str,
                          levels: int = 1) -> dict:
+    if 'avatar_inventory' in profile:
+        from .avatar_collection import require_owned
+        require_owned(profile, avatar_id)
     q = quote_skill(profile, avatar_id, slug, levels)
     if q["blocked"]:
         raise PurchaseError(q["blocked"])
@@ -261,6 +263,9 @@ def apply_skill_purchase(profile: dict, avatar_id: str, slug: str,
 
 def apply_reset(profile: dict, avatar_id: str) -> dict:
     """Drop a card to Lv1, all skills to Lv1, refund 70% of the real spend."""
+    if 'avatar_inventory' in profile:
+        from .avatar_collection import require_owned
+        require_owned(profile, avatar_id)
     spent = total_spent(profile, avatar_id)
     refund = AL.refund_for(spent)
     entry = _ensure(profile, avatar_id)
