@@ -23,8 +23,7 @@ from discord.ext import commands
 
 from utils import bey_levels as BL
 from utils.database import (
-    add_avatar_to_inventory, claim_once, get_user, grant_xp, release_claim,
-    update_user,
+    get_user, grant_xp, update_user,
 )
 
 from . import story_data as SD
@@ -387,19 +386,17 @@ class StoryCog(commands.Cog, name="Story Mode"):
         that ordering leaves — marked, then the grant raises — is closed by
         releasing the claim.
         """
-        if not claim_once(user_id, SD.K_AVATAR_CLAIM):
-            return None
-        card_id = random.choice(SD.LEAGUE_AVATARS)
-        try:
-            add_avatar_to_inventory(user_id, card_id)
-        except Exception:                                # noqa: BLE001
-            release_claim(user_id, SD.K_AVATAR_CLAIM)
-            raise
-        try:
-            from cogs.avatar.avatar_engine import avatar_engine
-            return avatar_engine.get_avatar(card_id) or {"id": card_id}
-        except Exception:                                # noqa: BLE001
-            return {"id": card_id}
+        from utils.database import _mutate_user_sync
+        from cogs.avatar.avatar_rewards import enqueue
+        from cogs.avatar.avatar_engine import avatar_engine
+        def award(profile):
+            if profile.get(SD.K_AVATAR_CLAIM):
+                return None
+            card_id = random.choice(SD.LEAGUE_AVATARS)
+            enqueue(profile, card_id, reward_id='story:school-league')
+            profile[SD.K_AVATAR_CLAIM] = True
+            return avatar_engine.get_avatar(card_id)
+        return _mutate_user_sync(user_id, award)
 
     async def _finish(self, channel, player, match: LeagueMatch, won: bool,
                       difficulty: str, copy) -> None:

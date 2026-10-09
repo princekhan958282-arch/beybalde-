@@ -35,8 +35,8 @@ Pack guarantees (slot 1 = EXACT rarity guaranteed, slot 2 = random from pool):
   MLBB      — both slots guaranteed MLBB                — 15,000,000 coins
 
 Duplicate handling:
-  If a pulled avatar is already owned, the player receives a coin refund
-  equal to a percentage of the pack price based on the avatar's rarity.
+  Every pull gets a durable Keep/Sell decision. Keep adds a spare copy when
+  already owned, with no refund. Sell pays the existing pack/rarity value.
 """
 
 from __future__ import annotations
@@ -45,17 +45,16 @@ import random
 import asyncio
 import logging
 import time
-from typing import Any, Optional
+from typing import Optional
 
 log = logging.getLogger(__name__)
 
 import discord
 from discord.ext import commands
 
-from .avatar_engine import avatar_engine, AvatarBonuses
+from .avatar_engine import avatar_engine
 from .avatar_utils import (
     build_avatar_embed,
-    format_price,
     is_renderable_image,
     rarity_sort_key,
     RARITY_EMOJI,
@@ -464,28 +463,12 @@ class AvatarShop(commands.Cog, name="Avatar"):
         avatar: dict,
         pack_price: int,
     ) -> tuple[str, int]:
-        """
-        Grant avatar or refund on dupe.
-        Returns (result_line, refund_amount).
-        """
-        emoji = RARITY_EMOJI.get(avatar["rarity"], "⚪")
-        already_owned = not self._add_to_inventory(player_id, avatar["id"])
-
-        if already_owned:
-            rate = DUPE_REFUND_RATE.get(avatar["rarity"], 0.10)
-            refund = int(pack_price * rate)
-            if refund:
-                await self._add_coins(player_id, refund)
-            return (
-                f"{emoji} **{avatar['name']}** *({avatar['rarity']})* — "
-                + (f"**Duplicate!** +1 feeding copy · +{refund:,} coins refunded" if refund else "**Duplicate!** +1 feeding copy · No refund."),
-                refund,
-            )
-        else:
-            return (
-                f"{emoji} **{avatar['name']}** *({avatar['rarity']})*  ✨ **NEW!**",
-                0,
-            )
+        """Queue an independent decision; Keeping never refunds duplicates."""
+        from utils.database import mutate_user
+        from .avatar_rewards import enqueue
+        value = int(pack_price * DUPE_REFUND_RATE.get(avatar['rarity'], .10))
+        await mutate_user(player_id, lambda p: enqueue(p, avatar['id'], sell_value=value))
+        return f"**{avatar['name']}** — Keep/Sell decision pending (`;avatarrewards`).", 0
 
     # ── Commands ──────────────────────────────────────────────────────────────
 
@@ -549,7 +532,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
             description=(
                 "Slot 1 is the **guaranteed** pull. Slot 2, where a pack has "
                 "one, is random from the pool.\n"
-                "Duplicate refunds depend on the pack. Original Generation has no refund.\n\n"
+                "Keep stores a feeding copy without a refund. Sell pays the displayed value.\n\n"
                 "Use `;buypack <pack>` to open one."
             ),
             color=0x3498DB,
@@ -608,7 +591,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
                     f"**Pulls:** {pulls}\n"
                     f"**Guarantee:** {guarantee}\n"
                     f"**Pool:** {', '.join(pool)}\n"
-                    f"**Dupe refund:** {refund} per duplicate\n"
+                    f"**Manual sell value:** {refund} per avatar\n"
                     + ("**Price:** 50,000 first purchase; 100,000 thereafter\n**Purchase cooldown:** 48 hours\n" if pack_key == "original" else "")
                     + f"{last_line}"
                 ),
@@ -682,65 +665,50 @@ class AvatarShop(commands.Cog, name="Avatar"):
             )
             return
 
-        # Deduct immediately
-        await self._deduct_coins(player_id, price)
-
-        pool      = PACK_POOL[pack]
+        pool = PACK_POOL[pack]
         guarantee = PACK_GUARANTEE[pack]
         rarity_map = self._build_rarity_map(pool)
+        pulls = [_pull_from_pool(pack, pool, rarity_map, exact_rarity=guarantee)]
+        if PACK_PULLS.get(pack, 2) > 1:
+            pulls.append(_pull_from_pool(pack, pool, rarity_map, exact_rarity=None))
+        pulls = [av for av in pulls if av is not None]
+        if not pulls:
+            return await ctx.send('No avatars are available. Nothing was charged.')
 
-        # Slot 1 — exact guaranteed rarity (or random if common)
-        slot1 = _pull_from_pool(pack, pool, rarity_map, exact_rarity=guarantee)
-        # Slot 2 — fully random from pool, for the packs that pull twice
-        slot2 = (_pull_from_pool(pack, pool, rarity_map, exact_rarity=None)
-                 if PACK_PULLS.get(pack, 2) > 1 else None)
-
-        if not slot1 and not slot2:
-            # Shouldn't happen but refund gracefully
-            await self._add_coins(player_id, price)
-            await ctx.send(
-                "❌ No avatars are available in this pack's pool right now. "
-                "You have been fully refunded."
-            )
-            return
-
-        lines: list[str] = []
-        total_refund = 0
-
-        slot1_label = f"🎯 Guaranteed {guarantee}" if guarantee else "🎲 Random Pull"
-        for i, (avatar, label) in enumerate([
-            (slot1, slot1_label),
-            (slot2, "🎲 Random Pull"),
-        ], start=1):
-            if avatar is None:
-                lines.append(f"{label}: *(no avatar available)*")
-                continue
-            result_line, refund = await self._resolve_pull(player_id, avatar, price)
-            lines.append(f"**{label}:** {result_line}")
-            total_refund += refund
-
-        remaining = await self._get_player_coins(player_id)
-
-        if pack == "original":
-            from utils.database import mutate_user
-            bought_at = time.time()
-            await mutate_user(player_id, lambda profile: profile.__setitem__(
-                "original_generation_pack_bought_at", bought_at))
-
-        embed = discord.Embed(
-            title=f"{PACK_EMOJI[pack]} {PACK_DISPLAY[pack]} Opened!",
-            description="\n".join(lines),
-            color=0x9B59B6,
-        )
-
-        footer_parts = [f"Remaining balance: {remaining:,} coins"]
-        if total_refund:
-            footer_parts.append(f"Total dupe refund: +{total_refund:,} coins")
-        if pack == "original":
-            footer_parts.append("No duplicate refunds • Next purchase in 48 hours")
-        embed.set_footer(text=" • ".join(footer_parts))
-
-        await ctx.send(embed=embed)
+        from utils.database import mutate_user
+        from .avatar_rewards import enqueue, present
+        from .avatar_progress import PurchaseError
+        purchase_id = str(ctx.message.id)
+        def purchase(profile):
+            # Retry of the same command cannot pay for or create rewards twice.
+            ids = [f'pack:{purchase_id}:{i}' for i in range(len(pulls))]
+            existing = profile.get('avatar_rewards', {})
+            if all(rid in existing for rid in ids):
+                return [dict(existing[rid]) for rid in ids]
+            cost = original_pack_price(profile) if pack == 'original' else PACK_PRICE[pack]
+            if pack == 'original' and time.time() < original_pack_ready_at(profile):
+                raise PurchaseError('Original Generation has a 48-hour purchase cooldown.')
+            if gate and not gate[0](profile):
+                raise PurchaseError(gate[1](profile))
+            if int(profile.get('coins', 0)) < cost:
+                raise PurchaseError(f'This pack costs {cost:,} Beycoins.')
+            profile['coins'] = int(profile.get('coins', 0)) - cost
+            if pack == 'original':
+                profile['original_generation_pack_bought_at'] = time.time()
+            return [enqueue(profile, av['id'], reward_id=rid, channel_id=ctx.channel.id,
+                sell_value=int(cost * DUPE_REFUND_RATE.get(av['rarity'], .10)))
+                for rid, av in zip(ids, pulls)]
+        try:
+            rewards = await mutate_user(player_id, purchase)
+        except PurchaseError as exc:
+            return await ctx.send(str(exc))
+        await ctx.send(f"{PACK_DISPLAY[pack]} opened! Choose Keep or Sell for each avatar.")
+        for reward in rewards:
+            if reward['state'] == 'pending':
+                try:
+                    await present(self.bot, player_id, reward, ctx.channel)
+                except Exception:
+                    log.exception('Pack decision delivery failed; reward worker will recover it')
 
     @commands.command(name="avatarinfo", aliases=["ainfo"])
     async def avatar_info(self, ctx: commands.Context, *, query: Optional[str] = None) -> None:
@@ -811,7 +779,8 @@ class AvatarShop(commands.Cog, name="Avatar"):
             render_avatar["image"] = await resolve_avatar_image_url(self.bot, avatar.get("image"))
             buf = await asyncio.to_thread(
                 render_avatar_info_card, render_avatar, owned=owned, equipped=equipped,
-                level=lvl, skill_levels=skill_lvls, active_skill_slot=active_slot, stars=stars)
+                level=lvl, skill_levels=skill_lvls, active_skill_slot=active_slot, stars=stars,
+                feeding_progress=AC.stages(prof, avatar['id']) if owned else 0)
             if buf is not None:
                 card = discord.File(buf, filename="ainfo.jpg")
         except Exception:
@@ -821,7 +790,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
         if owned:
             prof = await get_user(ctx.author.id)
             view = ProgressionView(ctx.author.id, avatar, prof, bot=self.bot)
-            msg = await ctx.send(embed=None if card is not None else progression_embed(prof, avatar), view=view,
+            msg = await ctx.send(embed=progression_embed(prof, avatar), view=view,
                                  **({'file': card} if card is not None else {}))
             view.message = msg
         elif card is not None:

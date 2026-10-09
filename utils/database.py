@@ -18,7 +18,6 @@ import json
 import logging
 import os
 import threading
-import time
 from typing import Optional
 
 # Re-exported so `from utils.database import MAX_LEVEL` keeps working.
@@ -287,9 +286,9 @@ def all_user_ids() -> list[int]:
 def save_users(data: dict) -> None:
     """Bulk-persist a registry dict. Upserts only — it never deletes rows."""
     from .bey_components import reconcile
-    for profile in data.values():
+    for uid, profile in data.items():
         reconcile(profile)
-    USER_STORE.save_all(data)
+        _update_user_sync(int(uid), profile, touch=False)
 
 
 def _default_profile(user_id: str) -> dict:
@@ -319,54 +318,52 @@ def _get_user_sync(user_id: int) -> dict:
     Migrates old profiles that are missing xp/level fields.
     """
     with _users_lock:
-        uid  = str(user_id)
-        prof = USER_STORE.get_one(uid)
+        uid = str(user_id)
+        def prepare(prof):
 
-        if prof is None:
-            prof = _default_profile(uid)
-            from .bey_components import reconcile
-            reconcile(prof)
-            _migrate_avatar_profile(prof, user_id)
-            USER_STORE.put_one(uid, prof)
-            return copy.deepcopy(prof)
+            if not prof:
+                prof = _default_profile(uid)
+                from .bey_components import reconcile
+                reconcile(prof)
+                _migrate_avatar_profile(prof, user_id)
+                return prof, copy.deepcopy(prof)
 
-        changed = False
-        for field, default in [
-            ("xp",              0),
-            ("coins",           0),
-            ("rank_score",      0),
-            ("parts",           []),
-            ("last_daily",      None),
-            ("equipped_avatar", None),   # Avatar system migration
-            ("win_streak",      0),
-            ("best_streak",     0),
-            ("quests",          {}),
-        ]:
-            if field not in prof:
-                prof[field] = default
+            changed = False
+            for field, default in [
+                ("xp",              0),
+                ("coins",           0),
+                ("rank_score",      0),
+                ("parts",           []),
+                ("last_daily",      None),
+                ("equipped_avatar", None),   # Avatar system migration
+                ("win_streak",      0),
+                ("best_streak",     0),
+                ("quests",          {}),
+            ]:
+                if field not in prof:
+                    prof[field] = default
+                    changed = True
+
+            # Level is DERIVED from xp — it is never an independent value.
+            # Recalculating only when the key was missing left profiles whose
+            # xp was written by a path that didn't call grant_xp (imports,
+            # admin grants, migrations) permanently desynced: the profile card
+            # computes level from xp and showed L34 while get_stat_multiplier
+            # read the stored L0 and gave them no level bonus in battle.
+            # Self-heal on every read so both sides always agree.
+            _true_level = level_from_xp(prof.get("xp", 0))
+            if prof.get("level") != _true_level:
+                prof["level"] = _true_level
                 changed = True
 
-        # Level is DERIVED from xp — it is never an independent value.
-        # Recalculating only when the key was missing left profiles whose
-        # xp was written by a path that didn't call grant_xp (imports,
-        # admin grants, migrations) permanently desynced: the profile card
-        # computes level from xp and showed L34 while get_stat_multiplier
-        # read the stored L0 and gave them no level bonus in battle.
-        # Self-heal on every read so both sides always agree.
-        _true_level = level_from_xp(prof.get("xp", 0))
-        if prof.get("level") != _true_level:
-            prof["level"] = _true_level
-            changed = True
+            from .bey_components import reconcile
+            previous = copy.deepcopy(prof)
+            _migrate_avatar_profile(prof, user_id)
+            reconcile(prof)
+            changed = changed or previous != prof
 
-        from .bey_components import reconcile
-        previous = copy.deepcopy(prof)
-        _migrate_avatar_profile(prof, user_id)
-        reconcile(prof)
-        changed = changed or previous != prof
-        if changed:
-            USER_STORE.put_one(uid, prof, touch=False)
-
-        return copy.deepcopy(prof)
+            return prof if changed else None, copy.deepcopy(prof)
+        return USER_STORE.mutate_one(uid, prepare, touch=False)
 
 
 async def get_user(user_id: int) -> dict:
@@ -392,18 +389,19 @@ def _update_user_sync(user_id: int, profile: dict, touch: bool = True) -> None:
     busy game.
     """
     with _users_lock:
-        # Avatar ownership/progression only changes through locked mutations.
-        # An old battle/profile snapshot must not revive a lost card or copies.
-        current = USER_STORE.get_one(str(user_id))
-        if current and 'avatar_inventory' in current:
-            for key in ('avatar_inventory', 'avatar_copies', 'avatar'):
-                if key in current:
-                    profile[key] = copy.deepcopy(current[key])
-            if profile.get('equipped_avatar') not in current['avatar_inventory']:
-                profile['equipped_avatar'] = None
-        from .bey_components import reconcile
-        reconcile(profile)
-        USER_STORE.put_one(str(user_id), profile, touch=touch)
+        def save(current):
+            if current and 'avatar_inventory' in current:
+                if profile.get('avatar_revision', 0) != current.get('avatar_revision', 0):
+                    raise ValueError('Stale avatar profile; reload before saving.')
+                for key in ('avatar_inventory', 'avatar_copies', 'avatar', 'avatar_rewards', 'avatar_revision'):
+                    if key in current:
+                        profile[key] = copy.deepcopy(current[key])
+                if profile.get('equipped_avatar') not in current['avatar_inventory']:
+                    profile['equipped_avatar'] = None
+            from .bey_components import reconcile
+            reconcile(profile)
+            return profile, None
+        USER_STORE.mutate_one(str(user_id), save, touch=touch)
 
 
 async def update_user(user_id: int, profile: dict, touch: bool = True) -> None:
@@ -434,16 +432,20 @@ def _mutate_user_sync(user_id: int, fn, touch: bool = True):
     """
     with _users_lock:
         uid = str(user_id)
-        prof = USER_STORE.get_one(uid)
-        if prof is None:
-            prof = _default_profile(uid)
-        from .bey_components import reconcile
-        reconcile(prof)
-        _migrate_avatar_profile(prof, user_id)
-        result = fn(prof)
-        reconcile(prof)
-        USER_STORE.put_one(uid, prof, touch=touch)
-        return result
+        def apply(prof):
+            prof = prof or _default_profile(uid)
+            from .bey_components import reconcile
+            reconcile(prof)
+            _migrate_avatar_profile(prof, user_id)
+            before = copy.deepcopy({key: prof.get(key) for key in
+                ('avatar_inventory', 'avatar_copies', 'avatar', 'avatar_rewards')})
+            result = fn(prof)
+            after = {key: prof.get(key) for key in before}
+            if before != after:
+                prof['avatar_revision'] = int(prof.get('avatar_revision', 0)) + 1
+            reconcile(prof)
+            return prof, result
+        return USER_STORE.mutate_one(uid, apply, touch=touch)
 
 
 async def mutate_user(user_id: int, fn, touch: bool = True):
@@ -917,8 +919,17 @@ def get_avatar_inventory(user_id: int) -> list[str]:
 
 
 def add_avatar_to_inventory(user_id: int, avatar_id: str) -> bool:
-    from cogs.avatar.avatar_collection import grant
-    return _mutate_user_sync(user_id, lambda p: grant(p, avatar_id))
+    """Compatibility reward entry point; never grants or sells automatically.
+
+    The reward worker presents the decision. Internal Keep calls AC.grant.
+    Return whether this is a first-time reward, as legacy callers expect.
+    """
+    from cogs.avatar.avatar_rewards import enqueue
+    def award(p):
+        first = avatar_id not in p['avatar_inventory']
+        enqueue(p, avatar_id)
+        return first
+    return _mutate_user_sync(user_id, award)
 
 
 def player_owns_avatar(user_id: int, avatar_id: str) -> bool:
@@ -933,14 +944,11 @@ async def get_equipped_avatar(user_id: int) -> Optional[str]:
 
 
 def _set_equipped_avatar_sync(user_id: int, avatar_id: Optional[str]) -> None:
-    with _users_lock:
-        uid     = str(user_id)
-        profile = USER_STORE.get_one(uid) or _default_profile(uid)
-        _migrate_avatar_profile(profile, user_id)
+    def equip(profile):
         if avatar_id is not None and avatar_id not in profile['avatar_inventory']:
             raise ValueError("You no longer own this avatar.")
-        profile["equipped_avatar"] = avatar_id
-        USER_STORE.put_one(uid, profile)
+        profile['equipped_avatar'] = avatar_id
+    _mutate_user_sync(user_id, equip)
 
 
 async def set_equipped_avatar(user_id: int, avatar_id: Optional[str]) -> None:

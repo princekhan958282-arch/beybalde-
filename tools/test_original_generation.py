@@ -67,9 +67,9 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
     async def test_no_persistent_energy_spent_and_all_stats(self):
         s=await self.build()
         self.assertEqual(s.original_generation.states['101'].energy,0)
-        self.assertEqual(s.avatar_bonuses['101'].attack_flat,25)
-        self.assertEqual(s.avatar_bonuses['101'].stamina_flat,15)
-        self.assertEqual(s.avatar_bonuses['101'].defence_flat,5)
+        self.assertEqual(s.avatar_bonuses['101'].attack_flat,34)
+        self.assertEqual(s.avatar_bonuses['101'].stamina_flat,18)
+        self.assertEqual(s.avatar_bonuses['101'].defence_flat,8)
         self.assertEqual(s.avatar_bonuses['101'].hp_flat,15)
         self.assertEqual(AS.energy(await H.DB.get_user(101)),0)
         self.assertEqual(AS.active_slot({},s.avatar_cards['101']),0)
@@ -90,15 +90,18 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         shop._add_coins=AsyncMock()
         shop._player_owns=Mock(return_value=True)
         shop._add_to_inventory=Mock(return_value=False)
-        ctx=SimpleNamespace(author=SimpleNamespace(id=101),send=AsyncMock())
+        ctx=SimpleNamespace(author=SimpleNamespace(id=101),send=AsyncMock(), message=SimpleNamespace(id=200), channel=SimpleNamespace(id=300))
         with patch('utils.database.get_user',AsyncMock(return_value=profile)), \
              patch('utils.database.mutate_user',side_effect=mutate), \
+             patch('cogs.avatar.avatar_rewards.present', AsyncMock()), \
              patch('cogs.avatar.avatar_shop.time.time',return_value=200000):
             await AvatarShop.buy_pack.callback(shop,ctx,'og')
         self.assertEqual(profile['coins'],950000)
         self.assertEqual(profile['original_generation_pack_bought_at'],200000)
         shop._add_coins.assert_not_awaited()
-        self.assertIn('No refund',ctx.send.call_args.kwargs['embed'].description)
+        self.assertEqual(len(profile['avatar_rewards']), 1)
+        self.assertEqual(next(iter(profile['avatar_rewards'].values()))['sell_value'], 0)
+        self.assertNotIn('avatar_inventory', profile)
         restarted=AvatarShop(None)
         restarted._deduct_coins=AsyncMock()
         with patch('utils.database.get_user',AsyncMock(return_value=profile)), \
@@ -106,8 +109,10 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
             await AvatarShop.buy_pack.callback(restarted,ctx,'original_generation')
         restarted._deduct_coins.assert_not_awaited()
         self.assertIn('cooldown',ctx.send.call_args.args[0])
+        ctx.message.id = 201
         with patch('utils.database.get_user',AsyncMock(return_value=profile)), \
              patch('utils.database.mutate_user',side_effect=mutate), \
+             patch('cogs.avatar.avatar_rewards.present', AsyncMock()), \
              patch('cogs.avatar.avatar_shop.time.time',return_value=200000+ORIGINAL_PACK_COOLDOWN):
             await AvatarShop.buy_pack.callback(shop,ctx,'original')
         self.assertEqual(profile['coins'],850000)
@@ -117,15 +122,18 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
              patch('cogs.avatar.avatar_shop.time.time',return_value=1000000):
             await AvatarShop.buy_pack.callback(shop,ctx,'original')
         self.assertNotIn('original_generation_pack_bought_at',profile)
-        self.assertEqual(shop._deduct_coins.await_count,2)
+        self.assertNotIn('avatar_rewards', profile)
         with patch('utils.database.get_user',AsyncMock(return_value=profile)):
             await AvatarShop.avatar_packs.callback(shop,ctx)
         field=next(f for f in ctx.send.call_args.kwargs['embed'].fields if 'Original Generation' in f.name)
         self.assertIn('0%',field.value)
         self.assertIn('48 hours',field.value)
-        _,refund=await shop._resolve_pull(101,{'id':'common_test','name':'Common Test','rarity':'Common'},75000)
-        self.assertEqual(refund,7500)
-        shop._add_coins.assert_awaited_once_with(101,7500)
+        common = next(c for c in avatar_engine.get_all_avatars() if c['rarity'] == 'Common')
+        with patch('utils.database.mutate_user', side_effect=mutate):
+            _,refund = await shop._resolve_pull(101, common, 75000)
+        self.assertEqual(refund, 0)
+        self.assertEqual(next(iter(profile['avatar_rewards'].values()))['sell_value'], 7500)
+        shop._add_coins.assert_not_awaited()
 
     async def test_selection_cooldown_and_ultimate(self):
         s=await self.build();og=s.original_generation

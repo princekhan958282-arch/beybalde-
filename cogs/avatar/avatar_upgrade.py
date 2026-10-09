@@ -472,7 +472,7 @@ class AvatarUpgrade(commands.Cog, name="Avatar Upgrade"):
                       for k, v in AL.card_stat_bonus(t, 5).items())
             for t in AL.TYPES)
         e.add_field(name="What a maxed card is worth", value=growth, inline=False)
-        e.set_footer(text=f"A card at Lv1 gives no level bonus — only its own "
+        e.set_footer(text=f"A card at Lv1 includes 15 allocated points plus its "
                           f"printed stats. Full card incl. skills: "
                           f"{AL.full_card_cost():,}")
         await ctx.send(embed=e)

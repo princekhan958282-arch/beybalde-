@@ -18,7 +18,6 @@ No Beyblade logic lives here. No battle state is modified here.
 
 from __future__ import annotations
 
-import json
 import os
 import random
 from dataclasses import dataclass
@@ -28,8 +27,6 @@ from .avatar_utils import validate_avatar_data
 
 # JSON-based database helpers (Beybot uses flat-file storage, not SQL)
 from utils.database import (
-    get_avatar_inventory,
-    add_avatar_to_inventory,
     player_owns_avatar,
     get_equipped_avatar,
     set_equipped_avatar,
@@ -394,7 +391,7 @@ class AvatarEngine:
             return 1
 
     async def _level_bonus(self, player_id: int, avatar_id: str,
-                     avatar: dict) -> dict:
+                     avatar: dict, profile=None) -> dict:
         """Flat stat lines from the card's level. Zero for an unlevelled card.
 
         Swallows everything: a missing progress block, an unreadable profile or
@@ -403,16 +400,18 @@ class AvatarEngine:
         """
         try:
             from . import avatar_levels as AL
-            level = await self.card_level(player_id, avatar_id)
+            from . import avatar_progress as AP
             from .avatar_collection import stat_bonus
             from utils.database import get_user
+            prof = profile if profile is not None else await get_user(player_id)
+            level = AP.card_level(prof, avatar_id)
             gain = AL.card_stat_bonus(avatar.get("type", "balance"), level)
-            star_gain = stat_bonus(await get_user(player_id), avatar)
+            star_gain = stat_bonus(prof, avatar)
             return {s: n + star_gain[s] for s, n in gain.items()}
         except Exception:                                # noqa: BLE001
             return {"attack": 0, "defense": 0, "stamina": 0}
 
-    async def _active_bonuses(self, player_id: int, avatar: dict) -> dict:
+    async def _active_bonuses(self, player_id: int, avatar: dict, profile=None) -> dict:
         """The card's bonus block, narrowed to the skill in play.
 
         Swallows everything and falls back to the whole block: if the skill
@@ -422,7 +421,7 @@ class AvatarEngine:
         try:
             from utils.database import get_user
             from . import avatar_skills as AS
-            prof = await get_user(player_id)
+            prof = profile if profile is not None else await get_user(player_id)
             from .avatar_scaling import scaled_card, selected_stats
             card = scaled_card(prof, avatar)
             slot = AS.active_slot(prof, card)
@@ -450,8 +449,8 @@ class AvatarEngine:
         avatar bonuses that applied in PvP but not in boss fights and not on
         either card, because four callers each did their own resolution.
 
-        A level-1 card adds exactly zero, so this changes nothing for a player
-        who has not spent coins.
+        Level 1 includes its first 15-point allocation. Star and level
+        bonuses are derived once from this same profile snapshot.
 
         SIGNATURE SKILLS are filtered here for the same reason. A card with a
         `skills` block now contributes only the ONE skill the player committed
@@ -464,16 +463,16 @@ class AvatarEngine:
         were bought with coins and belong to the card, not to a skill, so they
         apply even when the player is out of energy for a skill entirely.
         """
-        avatar_id = await self.get_equipped_avatar_id(player_id)
-        if not avatar_id:
+        from utils.database import get_user
+        profile = await get_user(player_id)
+        avatar_id = profile.get('equipped_avatar')
+        if not avatar_id or ('avatar_inventory' in profile and avatar_id not in profile['avatar_inventory']):
             return NULL_BONUSES
-
         avatar = self.get_avatar(avatar_id)
         if not avatar:
             return NULL_BONUSES
-
-        b = await self._active_bonuses(player_id, avatar)
-        level_bonus = await self._level_bonus(player_id, avatar_id, avatar)
+        b = await self._active_bonuses(player_id, avatar, profile)
+        level_bonus = await self._level_bonus(player_id, avatar_id, avatar, profile)
         return self.bonuses_from_block(b, level_bonus)
 
     def bonuses_from_block(self, block: Optional[dict],

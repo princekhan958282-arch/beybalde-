@@ -120,12 +120,12 @@ def permanent_bonuses(avatar, owned=False, equipped=False, level=1, stars=1):
         gain = AL.card_stat_bonus(avatar.get('type'), level)
         for stat, key in [('attack','attack_flat'),('defense','defence_flat'),('stamina','stamina_flat')]:
             out[key] = (_number(out.get(key)) + gain[stat]
-                        + C.STAR_STAT_GAIN[stat] * (max(1, min(C.MAX_STARS, int(stars))) - 1))
+                        + C.star_stat_total(stars))
     return out
 
 
 def render_avatar_info_card(avatar, *, owned=False, equipped=False, level=1,
-                            skill_levels=None, active_skill_slot=0, stars=1):
+                            skill_levels=None, active_skill_slot=0, stars=1, feeding_progress=0):
     """JPEG buffer or None. All network/image work belongs on a worker thread."""
     global _FRAME
     try:
@@ -174,13 +174,13 @@ def render_avatar_info_card(avatar, *, owned=False, equipped=False, level=1,
         if owned or equipped:
             rating = max(1, min(C.MAX_STARS, int(stars)))
             for i in range(rating):
-                cx, cy = 1184 + i * 38, 116
-                points = [(cx + (16 if j % 2 == 0 else 7) * math.cos(-math.pi/2 + j*math.pi/5),
-                           cy + (16 if j % 2 == 0 else 7) * math.sin(-math.pi/2 + j*math.pi/5))
+                cx, cy = 1180 + (i % 8) * 34, 104 + (i // 8) * 32
+                points = [(cx + (13 if j % 2 == 0 else 6) * math.cos(-math.pi/2 + j*math.pi/5),
+                           cy + (13 if j % 2 == 0 else 6) * math.sin(-math.pi/2 + j*math.pi/5))
                           for j in range(10)]
                 draw.polygon(points, fill=gold)
         state = 'EQUIPPED' if equipped else 'OWNED' if owned else 'NOT OWNED'
-        text(state,(1230,137,210),18,gold)
+        text(state,(1230,169,210),18,gold)
         lvl = AL.clamp_level(level)
         text(str(avatar.get('rarity') or 'Common').upper(),(680,217,160),23,cyan)
         text(str(avatar.get('type') or 'Balance').upper(),(986,217,174),23,cyan)
@@ -203,9 +203,25 @@ def render_avatar_info_card(avatar, *, owned=False, equipped=False, level=1,
         summary = format_bonuses_summary(extra)
         if not any(extra.values()):
             summary = 'Permanent bonuses shown above'
-        paragraph(summary,(621,460,818),2,23)
-        if skills:
-            text('Select one signature skill',(621,515,815),19,dim)
+        if owned or equipped:
+            allocation = AL.card_stat_bonus(avatar.get('type'), lvl)
+            text(f'Star bonus: +{C.star_stat_total(stars)} each ATK / DEF / STM',(621,460,818),23)
+            text(f"Card Lv{lvl}: +{allocation['attack']} ATK / +{allocation['defense']} DEF / +{allocation['stamina']} STM",(621,488,818),23)
+            target = max(1, min(C.MAX_STARS, int(stars))) + 1
+            if target > C.MAX_STARS:
+                line = 'MAX 15 stars'
+            elif target not in C.STAR_SUCCESS:
+                line = f'Next {target} stars: success rate pending approval - LOCKED'
+            else:
+                line = f'Feed: {feeding_progress}/{C.STAR_COPY_COST[target]} - Next {target} stars: {C.STAR_SUCCESS[target]:.0%}'
+                if target > C.SAFE_STARS:
+                    line += ' - Failure destroys avatar'
+            text(line,(621,515,815),19,gold)
+        else:
+            paragraph(summary,(621,460,818),2,23)
+            if skills:
+                text('Use Avatar Skill during battle' if avatar.get('active_battle_skills')
+                     else 'Select one signature skill',(621,515,815),19,dim)
         levels = skill_levels if isinstance(skill_levels,dict) else {}
         for i,y in enumerate([644,699,754]):
             if i<len(skills):

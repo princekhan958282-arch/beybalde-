@@ -42,20 +42,20 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(s.skill_commit["101"]["slot"], 1)
         self.assertEqual(s.avatar_bonuses["101"].attack_percent, .30)
         self.assertEqual(s.avatar_bonuses["101"].crit_percent, 0)
-        self.assertEqual(effective_stats(s, "101")["attack"], 130 * passive_stat_multiplier("Balance", "attack"))
+        self.assertEqual(effective_stats(s, "101")["attack"], (100 + 5) * 1.30 * passive_stat_multiplier("Balance", "attack"))
 
     async def test_exhausted_energy_removes_bonus_skill(self):
         s = await self.build("avatar_x002", slot=1, energy=0, ranked=True)
         self.assertFalse(s.skill_commit["101"]["afforded"])
         self.assertEqual(s.avatar_bonuses["101"].attack_percent, 0)
-        self.assertEqual(effective_stats(s, "101")["attack"], 100 * passive_stat_multiplier("Balance", "attack"))
+        self.assertEqual(effective_stats(s, "101")["attack"], (100 + 5) * passive_stat_multiplier("Balance", "attack"))
 
     async def test_exhausted_energy_removes_rule_skills(self):
         s = await self.build("avatar_s107", energy=0, ranked=True)
         self.assertEqual(s.avatar_skill_slots["101"], 0)
         self.assertEqual(s.ability._avatar_rules_for("101"), [])
         # The card's permanent statline is retained.
-        self.assertEqual(s.avatar_bonuses["101"].attack_flat, 52)
+        self.assertEqual(s.avatar_bonuses["101"].attack_flat, 61)
 
     async def test_rule_skill_changes_actual_damage(self):
         s = await self.build("avatar_s107", slot=1)
@@ -155,7 +155,8 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
                 if aid:
                     self.assertTrue(any('full Attack stat added' in line for line in logs))
             self.assertGreater(damages[1], damages[0], (stacks, damages))
-            self.assertEqual(damages[1], round(round(damages[0] * 2.11) + attacks[1]))
+            # Generated damage rounds before avatar amplification.
+            self.assertAlmostEqual(damages[1], round(round(damages[0] * attacks[1] / attacks[0] * 2.11) + attacks[1]), delta=1)
 
     async def test_reported_1456_damage_is_not_unchanged(self):
         results = []

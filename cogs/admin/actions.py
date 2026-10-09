@@ -540,7 +540,7 @@ async def _giveavatar(ctx: ActionCtx) -> Result:
     than guessing — handing the wrong Exclusive to somebody has no undo.
     """
     from cogs.avatar import avatar_engine
-    from utils.database import add_avatar_to_inventory, player_owns_avatar
+    from utils.database import mutate_user
 
     q = (ctx.text or "").strip().strip('"').strip("'")
     cards = avatar_engine.get_all_avatars()
@@ -556,14 +556,14 @@ async def _giveavatar(ctx: ActionCtx) -> Result:
         return Result.fail(f"❌ **{q}** matches {len(hits)} avatars: {shown}{more}\n"
                            f"Use the full name or the id.")
     av = hits[0]
-    if player_owns_avatar(ctx.target_id, av["id"]):
-        return Result(message=f"ℹ️ {ctx.target_mention()} already owns **{av['name']}**.")
-    add_avatar_to_inventory(ctx.target_id, av["id"])
+    from cogs.avatar.avatar_rewards import enqueue
+    await mutate_user(ctx.target_id, lambda p: enqueue(p, av['id'],
+        channel_id=getattr(ctx.channel, 'id', None)))
     log.info("[admin] %s granted avatar %s (%s) to %s",
              ctx.invoker_id, av["id"], av["name"], ctx.target_id)
     return Result(message=f"✅ Gave **{av['name']}** *({av['rarity']})* to "
                           f"{ctx.target_mention()}.\n"
-                          f"They equip it with `;equipavatar {av['id']}`.")
+                          f"Keep/Sell decision pending (`;avatarrewards`).")
 
 
 @register("addpart", "Give a part", "add a part to a player's collection",

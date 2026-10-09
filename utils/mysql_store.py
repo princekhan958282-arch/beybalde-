@@ -370,6 +370,28 @@ class MySQLStore:
                         self._row(uid, profile,
                                   seen=time.time() if touch else None))
 
+    def mutate_one(self, uid: str, fn, touch: bool = True):
+        """InnoDB row lock covers both decision and currency payout."""
+        self.ensure_ready()
+        conn = self._conn()
+        conn.begin()
+        try:
+            with conn.cursor() as cur:
+                # Establish missing row before locking it. Never overwrite a
+                # profile another worker created while this transaction waits.
+                cur.execute("INSERT INTO users (user_id, data) VALUES (%s,%s) ON DUPLICATE KEY UPDATE user_id=VALUES(user_id)",
+                            (uid, '{}'))
+                cur.execute("SELECT data FROM users WHERE user_id=%s FOR UPDATE", (uid,))
+                row = cur.fetchone()
+            profile, result = fn(json.loads(row['data']))
+            if profile is not None:
+                self.put_one(uid, profile, touch=touch)
+            conn.commit()
+            return result
+        except Exception:
+            conn.rollback()
+            raise
+
     def put_many(self, profiles: dict[str, dict], touch: bool = True) -> None:
         """Write several profiles in one MySQL transaction."""
         self.ensure_ready()

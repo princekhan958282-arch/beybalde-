@@ -62,7 +62,7 @@ class SpecialPipelineTests(unittest.IsolatedAsyncioTestCase):
         _, amplified, logs = self.resolve(boosted)
         stat = boosted.battle_stats['101']['attack']
         # The passive 50 is independent even when fired on a Special turn.
-        self.assertEqual(direct, 150 + round(stat))
+        self.assertEqual(direct, 150 + round(plain.battle_stats['101']['attack']))
         self.assertEqual(amplified, 50 + 211 + round(round(stat) * 2.11))
         self.assertEqual(sum('Special true damage' in l for l in logs), 2)
 
@@ -74,7 +74,7 @@ class SpecialPipelineTests(unittest.IsolatedAsyncioTestCase):
             raw, _, _ = self.resolve(plain)
             damage, _, logs = self.resolve(boosted)
             if name == 'Xeno Xcalius':
-                self.assertEqual(damage, raw * 3)
+                self.assertEqual(damage, round(raw * effective_stats(boosted, '101')['attack'] / effective_stats(plain, '101')['attack']) * 3)
                 # Its once-per-battle rule cannot replay an old extra-hit payload.
                 self.assertEqual(self.resolve(boosted)[0], 0)
             else:

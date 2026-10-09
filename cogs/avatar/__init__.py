@@ -21,3 +21,5 @@ async def setup(bot) -> None:
     avatar_engine.load()
     await bot.add_cog(AvatarShop(bot))
     await bot.add_cog(AvatarUpgrade(bot))
+    from .avatar_rewards import AvatarRewards
+    await bot.add_cog(AvatarRewards(bot))
