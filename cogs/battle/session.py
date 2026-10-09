@@ -297,6 +297,9 @@ class BattleSession:
                 blade["component_snapshot"] = effective["component_snapshot"]
             avatar_id = await _AE.get_equipped_avatar_id(int(pid))
             avatar    = _AE.get_avatar(avatar_id or "") if avatar_id else None
+            if avatar:
+                from cogs.avatar.avatar_scaling import scaled_card
+                avatar = scaled_card(profile, avatar)
             stat_mult = await get_stat_multiplier(pid, blade.get("name"))
 
             skill_commit: dict = {}

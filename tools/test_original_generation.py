@@ -16,9 +16,13 @@ from cogs.battle.original_generation_ui import SkillPicker
 
 
 class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
-    async def build(self, character='tyson', enemy=None):
+    async def build(self, character='tyson', enemy=None, skill_level=1):
         avatar_engine.load()
-        H.seed_profile(101, equipped_avatar='avatar_og_'+character, avatar_energy=0)
+        from cogs.avatar import avatar_progress as AP
+        aid = 'avatar_og_' + character
+        progress = {'cards': {aid: {'level': 5 if skill_level > 1 else 1,
+            'skills': {AP.slugify(s['name']): skill_level for s in avatar_engine.get_avatar(aid)['skills']}}}}
+        H.seed_profile(101, equipped_avatar=aid, avatar_energy=0, avatar=progress)
         H.seed_profile(102, equipped_avatar='avatar_og_'+enemy if enemy else None)
         blade = dict(name='Test Bey', type='Balance', stats=dict(attack=200, defense=100, stamina=300, hp=2000, special=100),
                      abilities=[], special_move=dict(name='Test Special', damage=120))
@@ -85,7 +89,7 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         shop._deduct_coins=AsyncMock(side_effect=deduct)
         shop._add_coins=AsyncMock()
         shop._player_owns=Mock(return_value=True)
-        shop._add_to_inventory=Mock()
+        shop._add_to_inventory=Mock(return_value=False)
         ctx=SimpleNamespace(author=SimpleNamespace(id=101),send=AsyncMock())
         with patch('utils.database.get_user',AsyncMock(return_value=profile)), \
              patch('utils.database.mutate_user',side_effect=mutate), \
@@ -278,6 +282,16 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(og.cost('102','defense',2),2)
         s.round=7;self.assertEqual(og.cost('102','attack',2),2)
 
+    async def test_every_interactive_skill_level_empowers_and_expires(self):
+        from cogs.avatar import avatar_config as C
+        for ch in ('tyson', 'kai', 'ray', 'max', 'mariah', 'daichi', 'lee', 'gary', 'kevin'):
+            for slot in (1, 2, 3):
+                s = await self.build(ch, skill_level=10)
+                og, logs = self.activate(s, slot, move='special' if ch == 'tyson' and slot == 3 else 'attack')
+                self.assertAlmostEqual(og.stat_multiplier('101', 'defense'), 1 + C.EMPOWER_PERCENT_STEP * 9)
+                s.round += C.EMPOWER_ROUNDS
+                self.assertIsNone(og.effect('101', 'skill_empower'))
+
     async def test_every_skill_through_real_round(self):
         for ch in ('tyson','kai','ray','max','mariah','daichi','lee','gary','kevin'):
             for slot in (1,2,3):
@@ -415,14 +429,14 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         s.round=3;s.moves={'101':'attack','102':'attack'};og.begin_round([])
         self.assertEqual(s.avatar_bonuses['102'].attack_percent,.3)
 
-    def test_fixed_skill_upgrades_do_not_charge_coins(self):
-        from cogs.avatar.avatar_progress import quote_skill,apply_skill_purchase,PurchaseError
-        p={'coins':1000000}
-        q=quote_skill(p,'avatar_og_tyson','galaxy-turbo-twister')
-        self.assertEqual(q['cost'],0)
-        self.assertTrue(q['blocked'])
-        with self.assertRaises(PurchaseError):apply_skill_purchase(p,'avatar_og_tyson','galaxy-turbo-twister')
-        self.assertEqual(p['coins'],1000000)
+    def test_original_skill_upgrade_charges_and_records_level(self):
+        from cogs.avatar.avatar_progress import quote_skill, apply_skill_purchase, skill_level
+        p = {'coins': 1000000}
+        q = quote_skill(p, 'avatar_og_tyson', 'galaxy-turbo-twister')
+        self.assertFalse(q['blocked'])
+        apply_skill_purchase(p, 'avatar_og_tyson', 'galaxy-turbo-twister')
+        self.assertEqual(p['coins'], 1000000 - q['cost'])
+        self.assertEqual(skill_level(p, 'avatar_og_tyson', 'galaxy-turbo-twister'), 2)
 
 
 if __name__=='__main__':

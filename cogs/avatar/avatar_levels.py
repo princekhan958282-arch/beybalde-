@@ -39,38 +39,9 @@ import math
 TYPES = ("attack", "defense", "stamina", "balance")
 STATS = ("attack", "defense", "stamina")
 
-MAX_CARD_LEVEL = 5
-MAX_SKILL_LEVEL = 10
-
-# Flat stat added PER LEVEL ABOVE 1, by card type.
-#
-# Lv5 totals (4 growth steps): attack card +48/+20/+24, defence +20/+48/+24,
-# stamina +24/+24/+48, balance +32/+32/+32. Balance trades a lower ceiling in
-# its best stat for having no dead stat, which is what makes it worth picking.
-GROWTH: dict[str, dict[str, int]] = {
-    "attack":  {"attack": 12, "defense":  5, "stamina":  6},
-    "defense": {"attack":  5, "defense": 12, "stamina":  6},
-    "stamina": {"attack":  6, "defense":  6, "stamina": 12},
-    "balance": {"attack":  8, "defense":  8, "stamina":  8},
-}
-
-# ── Cost curves ──────────────────────────────────────────────────────────────
-#
-# One tenth of the spec's figures, fitted to the economy as it actually is
-# rather than as the spec assumed. Measured across 3,356 registered players:
-# median balance 0, p90 0, p99 111k, and 41.35M coins in existence in total.
-# The spec's 120,000 first skill upgrade was more than ~94% of the playerbase
-# had ever held, and its 16.84M full build was 41% of every coin in the game.
-#
-# At these numbers a full card is 1,684,000 — roughly five days of clearing both
-# daily bosses (70k Drakos + 250k Nemesis), or a long stretch of ordinary play.
-CARD_LEVEL_COSTS: tuple[int, ...] = (23_000, 40_000, 70_000, 123_000)   # 1→2 … 4→5
-
-SKILL_COST_BASE = 12_000
-SKILL_COST_RATIO = 1.35
-
-# Effect magnitude multiplier per skill level, from the spec: Lv10 = ×1.72.
-SKILL_MAGNITUDE_STEP = 0.08
+from .avatar_config import (MAX_CARD_LEVEL, MAX_SKILL_LEVEL, GROWTH,
+    CARD_LEVEL_COSTS, SKILL_COST_BASE, SKILL_COST_RATIO, SKILL_MAGNITUDE_STEP,
+    SKILL_COST_ROUNDING, RESET_REFUND, SKILL_CAP_PER_CARD_LEVEL)
 
 
 def growth_for(avatar_type: str) -> dict[str, int]:
@@ -103,7 +74,7 @@ def max_skill_level_for(card_level) -> int:
     Lv1 caps skills at 2, Lv5 unlocks 10. This is what stops two independent
     grinds and forces card investment before skill investment.
     """
-    return max(1, min(MAX_SKILL_LEVEL, clamp_level(card_level) * 2))
+    return max(1, min(MAX_SKILL_LEVEL, clamp_level(card_level) * SKILL_CAP_PER_CARD_LEVEL))
 
 
 def card_level_cost(from_level, to_level=None) -> int:
@@ -132,7 +103,7 @@ def skill_level_cost(from_level, to_level=None) -> int:
         raw = SKILL_COST_BASE * (SKILL_COST_RATIO ** (lvl - 1))
         # Rounded to the nearest 500 so the shop shows readable numbers instead
         # of 12000 / 16200 / 21870 / 29524.
-        total += int(round(raw / 500.0) * 500)
+        total += int(round(raw / SKILL_COST_ROUNDING) * SKILL_COST_ROUNDING)
     return total
 
 
@@ -148,7 +119,7 @@ def full_card_cost() -> int:
             + 3 * skill_level_cost(1, MAX_SKILL_LEVEL))
 
 
-def refund_for(spent: int, fraction: float = 0.70) -> int:
+def refund_for(spent: int, fraction: float = RESET_REFUND) -> int:
     """70% of coins ACTUALLY spent, per the spec's §2.5 reset rule.
 
     Takes the real recorded spend rather than recomputing from the cost table.

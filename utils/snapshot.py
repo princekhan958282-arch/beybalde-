@@ -5,11 +5,11 @@ Why this exists
 ---------------
 "Back up the profiles" sounds like one table. It is not. Player data on this
 install is spread across the user store AND several JSON side files, and the
-one people reach for first — the `users` table — does not contain avatars:
+one people reach for first — the `users` table — historically did not contain avatar ownership:
 
     users table   beys, bey_progress, parts, coins, ranked, story,
                   community XP and level                 (SQLite or MySQL)
-    avatar_inventory.json   which avatars a player OWNS  <- not in the profile
+    avatar_inventory.json   legacy ownership, imported into profiles on first use
     casino_wallets.json     casino balances
     clans.json / clan_wars.json
     backup_codes.json       the recovery codes in cogs/codes/backup.py
@@ -42,6 +42,7 @@ and cost a restore its completeness.
 
 from __future__ import annotations
 
+import copy
 import gzip
 import json
 import logging
@@ -79,7 +80,7 @@ SECTIONS: dict[str, tuple[str, ...]] = {
     "beys": ("inventory", "bey_progress", "active_beyblade", "boss_copies",
              "active_copy", "equipped_parts", "parts", "mastery",
              "bey_instances", "active_bey_instance", "component_equipment_version", "part_instances", "marketplace_listings"),
-    "avatars": ("equipped_avatar",),        # plus the avatars side file
+    "avatars": ("equipped_avatar", "avatar_inventory", "avatar_copies", "avatar", "avatar_skill", "avatar_energy", "avatar_energy_ts"),        # plus the avatars side file
     "community": ("community_xp", "com_level", "com_day", "com_last_msg",
                   "com_recent_hashes"),
     "economy": ("coins", "last_daily"),     # plus the casino side file
@@ -171,12 +172,14 @@ def describe(snap: dict) -> dict:
     beys = sum(len(p.get("inventory") or []) for p in profiles.values()
                if isinstance(p, dict))
     owned = 0
-    if isinstance(avatars, dict):
-        for entry in avatars.values():
-            if isinstance(entry, list):
-                owned += len(entry)
-            elif isinstance(entry, dict):
-                owned += len(entry.get("avatars") or [])
+    ids = set(profiles) | (set(avatars) if isinstance(avatars, dict) else set())
+    for uid in ids:
+        profile = profiles.get(uid) or {}
+        if 'avatar_inventory' in profile:
+            owned += len(profile['avatar_inventory'])
+        else:
+            entry = avatars.get(uid, []) if isinstance(avatars, dict) else []
+            owned += len(entry if isinstance(entry, list) else entry.get('avatars', []))
     levelled = sum(1 for p in profiles.values()
                    if isinstance(p, dict) and int(p.get("com_level") or 0) > 0)
     return {
@@ -313,7 +316,10 @@ async def restore(snap: dict, sections: Iterable[str] = (ALL,)) -> dict:
         if not isinstance(saved, dict):
             continue
         if whole:
-            await update_user(uid, saved, touch=False)
+            def replace(profile, saved=saved):
+                profile.clear()
+                profile.update(copy.deepcopy(saved))
+            await mutate_user(uid, replace, touch=False)
             touched += 1
             continue
 
@@ -329,8 +335,12 @@ async def restore(snap: dict, sections: Iterable[str] = (ALL,)) -> dict:
                             "part_instances", "marketplace_listings"):
                     if key not in saved:
                         profile.pop(key, None)
+            if 'avatars' in wanted and 'avatar_inventory' not in saved:
+                # Legacy backups carry ownership in the side file restored below.
+                for key in ('avatar_inventory', 'avatar_copies', 'avatar'):
+                    profile.pop(key, None)
             for key in present:
-                profile[key] = saved[key]
+                profile[key] = copy.deepcopy(saved[key])
 
         await mutate_user(uid, _apply, touch=False)
         touched += 1

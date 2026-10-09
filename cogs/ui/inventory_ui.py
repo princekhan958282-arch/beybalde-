@@ -218,10 +218,12 @@ class InventoryView(discord.ui.View):
 
         eq_av   = await get_equipped_avatar(self.target.id)
         avatars = []
+        from cogs.avatar import avatar_collection as AC, avatar_progress as AP
         for aid in get_avatar_inventory(self.target.id):
             av = _avatar_lookup().get(aid, {})
             avatars.append({
-                "kind": "avatar", "name": av.get("name", aid), "id": aid,
+                "kind": "avatar", "name": f"{av.get('name', aid)} · {AC.stars(prof, aid)}★ · Lv{AP.card_level(prof, aid)}", "id": aid,
+                "spare_copies": AC.spare_copies(prof, aid), "stages": AC.stages(prof, aid),
                 "rarity": av.get("rarity", "?"), "image": av.get("image"),
                 "bonuses": av.get("bonuses", {}), "equipped": aid == eq_av,
             })
@@ -346,7 +348,7 @@ class InventoryView(discord.ui.View):
                    f"({lo}-{hi}) · `#{it['id']}`"
                    + ("  ✨" if it.get("awakening") else ""))
         elif it["kind"] == "avatar":
-            sub = f"{RARITY_EMOJIS.get(it['rarity'], '')} {it['rarity']}"
+            sub = f"{RARITY_EMOJIS.get(it['rarity'], '')} {it['rarity']} · {it.get('spare_copies', 0)} spare copies"
         else:
             sub = (" ".join(f"`{s[:3].upper()} {v:+}`" for s,v in it["stats"].items()) if it.get("stats") else f"`+{it['bonus']} {str(it.get('stat'))[:3].upper()}`")
             for _stat, _amt in (it.get("penalties") or {}).items():

@@ -542,6 +542,9 @@ async def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
     if av is not None:
         f.stability = f.max_stability = max(0, av.apply_stability_bonus(f.max_stability))
     card=avatar_engine.get_avatar(profile.get("equipped_avatar") or "") or {}
+    if card:
+        from cogs.avatar.avatar_scaling import scaled_card
+        card = scaled_card(profile, card)
     f.avatar_card=card
     from cogs.avatar import avatar_skills as AS
     f.avatar_skill_slot = AS.active_slot(profile, card)
