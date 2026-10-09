@@ -873,7 +873,9 @@ class AttackManager:
             # only applied when a hit was going to land at all — `non_damage`
             # Specials (0 by design) never set this field.
             if _min_hit_dmg > 0 and hit_dmg < _min_hit_dmg:
-                hit_dmg = _min_hit_dmg
+                from .special_guard import reduce_special
+                hit_dmg = max(hit_dmg, reduce_special(
+                    self.session, mkey, okey, MOVE_SPECIAL, _min_hit_dmg))
 
             # Gauge — defender gains from taking damage; attacker does NOT gain
             # gauge from their own Special move (they just consumed the full

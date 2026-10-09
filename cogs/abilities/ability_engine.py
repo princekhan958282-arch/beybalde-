@@ -1993,6 +1993,12 @@ class AbilityEngine:
                 self.last_hit_was_crit = True
                 logs.append(f"🎯 **CRITICAL!** — damage ×{mult:g}!")
 
+        from cogs.battle.special_guard import guarded, reduce_special
+        if guarded(self.session, mover_key, other_key, move):
+            dmg_dealt = reduce_special(self.session, mover_key, other_key, move, dmg_dealt)
+            if is_first_hit:
+                logs.append('🛡️ **Defense vs Special** — incoming Special damage reduced by **60%**!')
+
         if engine is not None:
             # Offensive effects have completed; type crit precedes defenses.
             forced = self.guaranteed_crit_turns.get(mover_key, 0)
