@@ -815,6 +815,13 @@ class AttackManager:
             if rider_log:
                 logs.append(rider_log)
             hit_base = math.ceil((base_for_hit + rider) * mult)
+            if (_sm_block.get('non_damage') and hit_n >= _authored
+                    and hit_base <= 0):
+                # A DSL-created Special has no printed hit damage. Its avatar
+                # filler hits reuse the raw on_special payload; normal per-hit
+                # procs, crits and defenses still resolve independently below.
+                hit_base = getattr(ab_eng, 'generated_special_damage', {}).get(mkey, 0)
+
             # Per-hit proc (on_hit abilities — Reckless Fury etc.)
             hit_base, proc_logs = self.session.ability.process_hit_proc(
                 mkey, mblade, okey, hit_base

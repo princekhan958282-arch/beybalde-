@@ -196,7 +196,7 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def test_other_rule_generated_special_is_boosted(self):
         outcomes = []
         for aid in (None, 'avatar_x003'):
-            s = await self.build(aid, slot=3, blade=H.get_beyblade('Astral Valkyrie Starbreaker'))
+            s = await self.build(aid, slot=3, blade=H.get_beyblade('Astral Valkyrie — Starbreaker'))
             damage, _ = s.attack_manager._resolve_special(
                 '101', '102', 'special', s.blades['101'], s.blades['102'], [])
             outcomes.append(damage)

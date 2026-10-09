@@ -13,6 +13,7 @@ from utils.character_registry import load_beys
 
 class SpecialPipelineTests(unittest.IsolatedAsyncioTestCase):
     async def build(self, blade, aid=None):
+        self.assertIsNotNone(blade)
         avatar_engine.load()
         H.seed_profile(101, equipped_avatar=aid, avatar_skill={aid: 3}, avatar_energy=100)
         H.seed_profile(102)
@@ -64,6 +65,23 @@ class SpecialPipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(direct, 150 + round(stat))
         self.assertEqual(amplified, 50 + 211 + round(round(stat) * 2.11))
         self.assertEqual(sum('Special true damage' in l for l in logs), 2)
+
+    async def test_eudora_extra_hits_copy_generated_special_payload(self):
+        for name in ('Xeno Xcalius', 'Astral Valkyrie — Starbreaker', 'Drakoryn'):
+            blade = H.get_beyblade(name)
+            plain = await self.build(blade)
+            boosted = await self.build(blade, 'avatar_mlbb004')
+            raw, _, _ = self.resolve(plain)
+            damage, _, logs = self.resolve(boosted)
+            if name == 'Xeno Xcalius':
+                self.assertEqual(damage, raw * 3)
+                # Its once-per-battle rule cannot replay an old extra-hit payload.
+                self.assertEqual(self.resolve(boosted)[0], 0)
+            else:
+                self.assertGreater(damage, raw)
+            self.assertTrue(any('3-hit barrage' in l for l in logs))
+        support = await self.build(H.get_beyblade('Deep Caynox'), 'avatar_mlbb004')
+        self.assertEqual(self.resolve(support)[0], 0)
 
     async def test_entire_roster_specials_have_no_missing_avatar_amplification(self):
         blades = list(load_beys().values())

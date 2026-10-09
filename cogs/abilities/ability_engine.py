@@ -1847,6 +1847,11 @@ class AbilityEngine:
     ) -> tuple[int, int, list[str]]:
         """Route one move through the full generic trigger pipeline."""
         logs: list[str] = []
+        if move == MOVE_SPECIAL and is_first_hit:
+            generated = getattr(self, 'generated_special_damage', None)
+            if generated is None:
+                generated = self.generated_special_damage = {}
+            generated[mover_key] = 0
         # Standard Specials defer their avatar bonus until all offensive
         # damage additions have completed. Direct zero-base DSL callers also
         # retain the generated-Special path introduced for Xeno.
@@ -1946,9 +1951,16 @@ class AbilityEngine:
                                                   other_key, mover_blade, move,
                                                   matchup, dmg_dealt, dmg_taken, logs)
             if move == MOVE_SPECIAL and is_first_hit:
+                before_special = dmg_dealt
                 dmg_dealt, dmg_taken = self._fire("on_special", mover_key,
                                                   other_key, mover_blade, move,
                                                   matchup, dmg_dealt, dmg_taken, logs)
+                # Added avatar hits need the generated strike's raw payload,
+                # not its zero authored seed or its already-mitigated result.
+                generated = getattr(self, 'generated_special_damage', None)
+                if generated is None:
+                    generated = self.generated_special_damage = {}
+                generated[mover_key] = max(0, dmg_dealt - before_special)
                 # consume any primed one-shot bonus
                 primed = self.primed_bonus.pop(mover_key, 0)
                 if primed:
