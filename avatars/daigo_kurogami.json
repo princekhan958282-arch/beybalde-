@@ -80,7 +80,7 @@
               "value": 3
             },
             {
-              "op": "guaranteed_crit",
+              "op": "prime_crit",
               "value": 1
             }
           ]

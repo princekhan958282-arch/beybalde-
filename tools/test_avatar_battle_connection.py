@@ -155,14 +155,16 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
                 target = AI.Fighter("Boss", 100000, 100000, 100, 100, 100,
                                     special_atk_pct=3.9)
                 baseline.gauge = 150
-                base_report = AI.resolve(target.clone(), baseline,
-                                         "charge", "special")
+                with patch('cogs.battle.type_gimmicks.random.random', return_value=.99):
+                    base_report = AI.resolve(target.clone(), baseline.clone(),
+                                             "charge", "special")
                 raw = AI._raw_damage(baseline, True)
                 expected = round(raw * 2.11) + round(boosted.eff_attack)
                 self.assertEqual(AI._raw_damage(boosted, True), expected)
                 boosted.gauge = 150
                 before = target.hp
-                report = AI.resolve(target, boosted, "charge", "special")
+                with patch('cogs.battle.type_gimmicks.random.random', return_value=.99):
+                    report = AI.resolve(target, boosted, "charge", "special")
                 self.assertEqual(before - target.hp, report["dmg_to_a"])
                 self.assertEqual(report["dmg_to_a"],
                                  int(expected * AI.PLAYER_SPECIAL_VS_BOSS))

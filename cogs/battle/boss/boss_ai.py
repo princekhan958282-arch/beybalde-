@@ -209,6 +209,12 @@ class Fighter:
     combat_round: int = 0
     avatar_card: dict = field(default_factory=dict)
     avatar_bonuses: object = None
+    avatar_bonus_state: dict = field(default_factory=dict)
+    avatar_rule_state: dict = field(default_factory=dict)
+    avatar_rule_stats: dict = field(default_factory=dict)
+    avatar_skill_slot: Optional[int] = 0
+    avatar_rule_pierce: int = 0
+    special_hits: int = 1
     avatar_combat_state: dict = field(default_factory=dict)
     avatar_stat_multipliers: dict = field(default_factory=dict)
     incoming_reduction: float = 0
@@ -251,7 +257,7 @@ class Fighter:
 
     @property
     def eff_stamina(self):
-        return self.stamina_stat * self.stat_factor("stamina")
+        return (self.stamina_stat + self.avatar_rule_stats.get('stamina', 0)) * self.stat_factor("stamina")
 
     def stat_factor(self, stat):
         from ..draciel import stat_multiplier
@@ -318,6 +324,12 @@ class Fighter:
                        combat_round=self.combat_round,
                        avatar_card=copy.deepcopy(self.avatar_card),
                        avatar_bonuses=copy.deepcopy(self.avatar_bonuses),
+                       avatar_bonus_state=copy.deepcopy(self.avatar_bonus_state),
+                       avatar_rule_state=copy.deepcopy(self.avatar_rule_state),
+                       avatar_rule_stats=dict(self.avatar_rule_stats),
+                       avatar_skill_slot=self.avatar_skill_slot,
+                       avatar_rule_pierce=self.avatar_rule_pierce,
+                       special_hits=self.special_hits,
                        avatar_combat_state=copy.deepcopy(self.avatar_combat_state),
                        avatar_stat_multipliers=dict(self.avatar_stat_multipliers),
                        incoming_reduction=self.incoming_reduction,
@@ -331,15 +343,17 @@ class Fighter:
     # ── Stance-adjusted stats (plain fighters are unaffected) ────────────────
     @property
     def eff_attack(self) -> float:
+        base = self.attack + self.avatar_rule_stats.get('attack', 0)
         if not self.state:
-            return self.attack * self.stat_factor("attack")
-        return (self.attack + self.state.attack_bonus()) * self.state.stat_multiplier() * self.stat_factor("attack")
+            return base * self.stat_factor("attack")
+        return (base + self.state.attack_bonus()) * self.state.stat_multiplier() * self.stat_factor("attack")
 
     @property
     def eff_defense(self) -> float:
+        base = self.defense + self.avatar_rule_stats.get('defense', 0)
         if not self.state:
-            return self.defense * self.stat_factor("defense")
-        return (self.defense + self.state.defense_bonus()) * self.state.stat_multiplier() * self.stat_factor("defense")
+            return base * self.stat_factor("defense")
+        return (base + self.state.defense_bonus()) * self.state.stat_multiplier() * self.stat_factor("defense")
 
 
 # Blade type had NO mechanical effect in boss fights — only raw stats mattered,
@@ -389,11 +403,20 @@ CRIT_DAMAGE_BONUS = 0.55
 
 def _raw_damage(src: Fighter, special: bool = False,
                 vs_boss: bool = False, dst: Optional[Fighter] = None,
-                logs: Optional[list] = None) -> float:
+                logs: Optional[list] = None, simulate=False) -> float:
     base = src.eff_attack * DMG_SCALE * src.dmg_mult
     if not special:
         pierce = src.state.pierce() if src.state else 0
         defense = dst.eff_defense * (1 - pierce) if dst else 50
+        if src.avatar_rule_pierce > 0:
+            defense = 0
+        av = src.avatar_bonuses
+        if av is not None and av.defence_break_rounds > src.combat_round:
+            fraction = ((av.defence_break_min + av.defence_break_max) / 2
+                        if simulate else av.roll_defence_break(src.combat_round + 1))
+            defense *= max(0, 1 - fraction)
+            if fraction > 0 and logs is not None:
+                logs.append(f'🗡️ **Avatar** — Guard Breaker shreds {fraction:.0%} DEF!')
         return base_damage(src.level, src.move_power, src.eff_attack, defense) * src.dmg_mult
     if src.special_damage is not None:
         out = src.special_damage * src.dmg_mult
@@ -407,11 +430,16 @@ def _raw_damage(src: Fighter, special: bool = False,
         out = base * SPECIAL_MULT * max(1.0, src.special_mult)
     if src.avatar_bonuses is not None and out > 0:
         from types import SimpleNamespace
-        from ..avatar_combat import apply_ult_bonus
+        from ..avatar_combat import apply_ult_bonus, multi_hit_shape
+        context = SimpleNamespace(avatar_bonuses={'src': src.avatar_bonuses})
+        native_hits = max(1, src.special_hits)
+        hits, per_hit, hit_logs = multi_hit_shape(context, 'src', native_hits, out / native_hits)
+        out = hits * per_hit
         out, bonus_logs = apply_ult_bonus(
-            SimpleNamespace(avatar_bonuses={'src': src.avatar_bonuses}),
+            context,
             'src', out, src.eff_attack)
         if logs is not None:
+            logs.extend(hit_logs)
             logs.extend(bonus_logs)
     if vs_boss:
         out *= PLAYER_SPECIAL_VS_BOSS
@@ -421,9 +449,9 @@ def _raw_damage(src: Fighter, special: bool = False,
 def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False) -> dict:
     """Apply one exchange. Mutates both fighters. Returns a small report.
 
-    Deterministic on purpose — the AI searches over this exact function, so
-    randomness lives in move *selection*, not in resolution. That keeps the
-    search honest and makes the fight feel fair rather than swingy.
+    Live avatar effects roll their authored chances. AI search sets simulate
+    to use expected bonus values and deterministic rule gates on cloned
+    snapshots, leaving the real fighter's resources and skill state untouched.
     """
     log = {"dmg_to_a": 0.0, "dmg_to_b": 0.0, "heal_a": 0.0, "heal_b": 0.0,
            "note_a": "", "note_b": ""}
@@ -436,6 +464,9 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     engine.start_round()
     from .gimmick_adapter import prepare
     ability_logs = []
+    from .avatar_bonus_adapter import BonusBridge
+    bonus_bridge = BonusBridge({'a': a, 'b': b}, {'a': move_a, 'b': move_b},
+                               simulate=simulate)
     fire_controls = prepare(engine, a, b, {'a': move_a, 'b': move_b}, ability_logs, simulate=simulate)
     ability_logs.extend(engine.begin_round({"a": move_a, "b": move_b}, started=True))
     log["gimmicks"] = ability_logs
@@ -460,6 +491,12 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             base_cost = avatar_bridge.cost(key,move,base_cost)
         fighter.sp = spend_resource(fighter.sp, base_cost)
 
+    from .avatar_rule_adapter import project as project_avatar_rules
+    rule_bridge = project_avatar_rules({'a': a, 'b': b},
+                                      {'a': move_a, 'b': move_b}, simulate=simulate)
+    if rule_bridge:
+        rule_bridge.begin()
+
     def offence(src, dst, move, other_move, tag):
         if move not in (MOVE_ATTACK, MOVE_SPECIAL):
             return 0.0
@@ -477,7 +514,11 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             avatar_bridge.og.preprocess(tag,other,{'defense':dst.eff_defense})
         dmg = _raw_damage(src, special,
                           vs_boss=getattr(dst, "special_atk_pct", None) is not None,
-                          dst=dst, logs=ability_logs)
+                          dst=dst, logs=ability_logs, simulate=simulate)
+        dmg = bonus_bridge.offensive(tag, move, dmg,
+                                     engine.critical_applies(tag, move))
+        if rule_bridge:
+            dmg = rule_bridge.offensive(tag, move, dmg)
 
         if avatar_bridge and not special:
             pierce=avatar_bridge.og.pierce(tag)
@@ -486,7 +527,7 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             pass
         elif other_move == MOVE_DEFENSE:
             soak = DEFENSE_SOAK * (1 + dst.eff_defense / 200.0)
-            if special and src.special_ignores_defense:
+            if (special and src.special_ignores_defense) or src.avatar_rule_pierce > 0:
                 soak = 0
             if special:
                 soak *= (1 - SPECIAL_PIERCE)
@@ -529,6 +570,8 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         if avatar_bridge:
             dmg = avatar_bridge.offensive(tag,other,move,dmg)
             dmg = avatar_bridge.defensive(tag,other,move,dmg)
+        if rule_bridge:
+            dmg = rule_bridge.defensive(other, tag, move, dmg)
         dmg = engine.critical(tag, move, dmg, [])
         if draciel_bridge:
             dmg = draciel_bridge.runtime.outgoing(tag, move, dmg)
@@ -587,10 +630,12 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     # Defensive effects precede the shared type reduction/counter stage.
     dmg_b = engine.mitigate('a', 'b', move_a, dmg_b,
                            true_damage=move_a == MOVE_SPECIAL and a.special_true_damage,
-                           bypass_reduction=move_a == MOVE_SPECIAL and a.special_ignores_defense)
+                           bypass_reduction=a.avatar_rule_pierce > 0 or
+                           move_a == MOVE_SPECIAL and a.special_ignores_defense)
     dmg_a = engine.mitigate('b', 'a', move_b, dmg_a,
                            true_damage=move_b == MOVE_SPECIAL and b.special_true_damage,
-                           bypass_reduction=move_b == MOVE_SPECIAL and b.special_ignores_defense)
+                           bypass_reduction=b.avatar_rule_pierce > 0 or
+                           move_b == MOVE_SPECIAL and b.special_ignores_defense)
     if draciel_bridge:
         dmg_b = draciel_bridge.runtime.mitigate('a', 'b', move_a, dmg_b, ability_logs,
             true_damage=move_a == MOVE_SPECIAL and a.special_true_damage)
@@ -632,6 +677,16 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         return min(max(0, src.max_hp - src.hp), hp_damage(heal))
 
     # Final HP rounding and capped actual damage, before terminal counter.
+    dmg_a, counter_b = bonus_bridge.incoming('a', 'b', dmg_a)
+    dmg_b, counter_a = bonus_bridge.incoming('b', 'a', dmg_b)
+    # Mirror the PvP avatar layer: counter riders precede lethal protection.
+    from ..combat_rules import damage_hp
+    if counter_a and not engine.returns_damage('b', 'a', move_b):
+        a.hp, _ = damage_hp(a.hp, counter_a)
+    if counter_b and not engine.returns_damage('a', 'b', move_a):
+        b.hp, _ = damage_hp(b.hp, counter_b)
+    dmg_a = bonus_bridge.lethal('a', dmg_a)
+    dmg_b = bonus_bridge.lethal('b', dmg_b)
     dmg_a, dmg_b = hp_damage(dmg_a), hp_damage(dmg_b)
     from ..combat_rules import damage_hp, recover_hp, recover_resource
     a.hp, actual_a = damage_hp(a.hp, dmg_a)
@@ -678,9 +733,17 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         if mv == MOVE_SPECIAL:
             f.gauge = 0.0
         elif not frozen:
-            f.gauge = min(SPECIAL_GAUGE_MAX, f.gauge + GAUGE_PER[mv] * gmult)
+            gain = GAUGE_PER[mv] * gmult
+            key = 'a' if f is a else 'b'
+            if mv == MOVE_CHARGE:
+                gain = bonus_bridge.charge(key, gain)
+            f.gauge = min(SPECIAL_GAUGE_MAX, f.gauge + gain)
         if took > 0 and not frozen:
             f.gauge = min(SPECIAL_GAUGE_MAX, f.gauge + GAUGE_PER_DMG_TAKEN * gmult)
+        key = 'a' if f is a else 'b'
+        dealt = dmg_b if key == 'a' else dmg_a
+        if bonus_bridge.crit_refunds[key] and dealt > 0 and not frozen:
+            f.gauge = min(SPECIAL_GAUGE_MAX, f.gauge + bonus_bridge.crit_refunds[key])
 
         # Law of Retribution banks what it suffers.
         if f.state and took > 0:
@@ -710,6 +773,11 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
                 f.heal_streak = max(0, f.heal_streak - HEAL_STREAK_RECOVERY)
 
     # Twin Crowns flips after the exchange; Ascension checks the new HP.
+    bonus_bridge.finish()
+    ability_logs.extend(bonus_bridge.logs)
+    if rule_bridge:
+        rule_bridge.end()
+        ability_logs.extend(rule_bridge.logs)
     if avatar_bridge:
         avatar_bridge.end({'a':move_a,'b':move_b},actual_a,actual_b)
         ability_logs.extend(avatar_bridge.logs)

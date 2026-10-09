@@ -18,11 +18,21 @@
       "description": "A successful Defense cuts incoming damage by 22%.",
       "rules": [
         {
-          "when": "on_defense_win",
+          "when": "on_defend",
           "do": [
             {
               "op": "reduce_damage_pct",
               "value": 22
+            }
+          ],
+          "if": [
+            {
+              "cond": "my_move_is",
+              "value": "defense"
+            },
+            {
+              "cond": "incoming_move_is",
+              "value": "attack"
             }
           ]
         }
