@@ -875,16 +875,18 @@ class ShopCog(commands.Cog, name="Shop"):
         profile  = await get_user(ctx.author.id)
         from utils.bey_components import owned_parts
         items = owned_parts(profile)
+        holders = {e['instance_id']: e['name'] for e in profile.get('bey_instances', [])}
         rows = [f"**{p['name']}** · `{p['instance_id']}`\n"
                 f"HP {p['stats']['hp']} / ATK {p['stats']['attack']} / DEF {p['stats']['defense']} / STM {p['stats']['stamina']} · "
-                + ("equipped" if p["equipped_on"] else "available") for p in items]
+                + (f"equipped on **{holders[p['equipped_on']]}** (`{p['equipped_on']}`)"
+                   if p["equipped_on"] else "available") for p in items]
         rows += [f"**{n}** (Ring)" for n in profile.get("parts", []) if not REGISTRY.part(n)]
         if not rows:
             return await ctx.send("You do not own any parts yet.")
         pages = []
         for start in range(0, len(rows), 8):
             embed = discord.Embed(title=f"⚙️ {ctx.author.display_name}'s Parts",
-                description="`;equippart <name or physical ID>` to replace a slot.\n\n" + "\n".join(rows[start:start+8]),
+                description="`;equippart <name or physical ID>` to replace a slot or swap with another Bey.\n\n" + "\n".join(rows[start:start+8]),
                 color=discord.Color.teal())
             embed.set_footer(text=f"Owned: {len(rows)} · Page {start // 8 + 1}/{(len(rows)+7)//8}")
             pages.append(embed)
@@ -897,7 +899,9 @@ class ShopCog(commands.Cog, name="Shop"):
         help=(
             "Equip a part onto your active Beyblade.\n"
             "One part per slot (Ring / Disk / Driver).\n"
-            "Equipping a new part in the same slot auto-replaces the old one.\n\n"
+            "Equipping a spare returns the old part to inventory.\n"
+            "A part equipped on another Bey swaps their parts if both are compatible.\n"
+            "Use a physical part ID from ;myparts to choose an exact copy.\n\n"
             "Example: ;equippart Destroy Driver"
         ),
         brief="Equip a part ✅",
@@ -912,7 +916,16 @@ class ShopCog(commands.Cog, name="Shop"):
                 result = await mutate_user(ctx.author.id, lambda p: equip(p, part_name))
             except EquipmentError as exc:
                 return await ctx.send(f"❌ {exc}")
-            return await ctx.send(f"✅ **{result['part']}** equipped on your active Bey copy. Previous {modular_part['category']} replaced.")
+            if result['unchanged']:
+                return await ctx.send(f"✅ **{result['part']}** is already equipped on your active Bey copy.")
+            if result['swapped_with']:
+                return await ctx.send(
+                    f"🔄 **{result['part']}** equipped on your active Bey copy. "
+                    f"**{result['previous_part']}** moved to **{result['swapped_with']}** "
+                    f"(`{result['swapped_instance_id']}`).")
+            return await ctx.send(
+                f"✅ **{result['part']}** equipped on your active Bey copy. "
+                f"**{result['previous_part']}** returned to your parts inventory.")
         owned   = profile.get("parts", [])
         catalog = _parts_by_name()
 

@@ -170,11 +170,14 @@ class EquipmentTests(unittest.TestCase):
         equip(self.profile, 'Destroy Driver')
         first, second = self.profile['bey_instances']
         select_instance(self.profile, second['instance_id'])
-        with self.assertRaisesRegex(EquipmentError, 'another Bey copy'):
-            equip(self.profile, 'Destroy Driver')
+        previous = second['parts']['driver']
+        result = equip(self.profile, 'Destroy Driver')
+        self.assertEqual(result['swapped_instance_id'], first['instance_id'])
+        self.assertEqual(first['parts']['driver'], previous)
         equip(self.profile, 'Atomic Driver')
         self.assertNotEqual(first['parts'], second['parts'])
         select_instance(self.profile, first['instance_id'])
+        equip(self.profile, 'Destroy Driver')
         self.assertIn('Destroy Driver', self.profile['equipped_parts'])
         self.assertEqual(assemble(self.profile, self.blade)[1]['attack'], 10 - REGISTRY.part(self.blade['default_parts']['driver'])['stats']['attack'])
         select_instance(self.profile, second['instance_id'])
