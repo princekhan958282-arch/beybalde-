@@ -50,6 +50,27 @@ class CardTests(unittest.TestCase):
         passive = {**YUKI, 'skills': []}  # Compatibility with cards without skills
         self.assertEqual(C.permanent_bonuses(passive), passive['bonuses'])
 
+    def test_stars_draw_to_right_of_name_and_add_owned_stats(self):
+        original = ImageDraw.ImageDraw.polygon
+        points = []
+        def record(draw, xy, *args, **kwargs):
+            points.append(xy)
+            return original(draw, xy, *args, **kwargs)
+        with patch.object(C, '_art', return_value=None), patch.object(ImageDraw.ImageDraw, 'polygon', record):
+            for rating in range(1, 8):
+                points.clear()
+                self.assertIsNotNone(C.render_avatar_info_card(YUKI, owned=True, stars=rating))
+                self.assertEqual(len(points), rating)
+                self.assertTrue(all(1160 < x < 1440 and 90 < y < 137 for star in points for x, y in star))
+            points.clear()
+            C.render_avatar_info_card(YUKI, stars=7)
+            self.assertEqual(points, [])
+        base = C.permanent_bonuses(YUKI, owned=True, level=3)
+        starred = C.permanent_bonuses(YUKI, owned=True, level=3, stars=4)
+        for key in ('attack_flat', 'defence_flat', 'stamina_flat'):
+            self.assertEqual(starred[key] - base[key], 9)
+        self.assertEqual(C.permanent_bonuses(YUKI, stars=7), C.permanent_bonuses(YUKI))
+
     def test_school_blader_always_on_stats_match_engine(self):
         from cogs.avatar import avatar_skills as AS
         from cogs.avatar.avatar_utils import build_avatar_embed
