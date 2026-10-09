@@ -14,7 +14,7 @@ import urllib.request
 from PIL import Image, ImageDraw, ImageOps
 from utils.image_generator import _font, _text_w
 from cogs.avatar.avatar_utils import is_renderable_image, format_bonuses_summary
-from cogs.avatar import avatar_levels as AL, avatar_skills as AS
+from cogs.avatar import avatar_levels as AL, avatar_skills as AS, avatar_config as C
 from cogs.avatar.avatar_progress import slugify
 
 log = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ def _number(value):
         return 0
 
 
-def permanent_bonuses(avatar, owned=False, equipped=False, level=1):
+def permanent_bonuses(avatar, owned=False, equipped=False, level=1, stars=1):
     """Match compact avatar info: signature effects are conditional, not passive."""
     raw = avatar.get('bonuses')
     out = dict(raw) if isinstance(raw, dict) else {}
@@ -119,12 +119,13 @@ def permanent_bonuses(avatar, owned=False, equipped=False, level=1):
     if owned or equipped:
         gain = AL.card_stat_bonus(avatar.get('type'), level)
         for stat, key in [('attack','attack_flat'),('defense','defence_flat'),('stamina','stamina_flat')]:
-            out[key] = _number(out.get(key)) + gain[stat]
+            out[key] = (_number(out.get(key)) + gain[stat]
+                        + C.STAR_STAT_GAIN[stat] * (max(1, min(C.MAX_STARS, int(stars))) - 1))
     return out
 
 
 def render_avatar_info_card(avatar, *, owned=False, equipped=False, level=1,
-                            skill_levels=None, active_skill_slot=0):
+                            skill_levels=None, active_skill_slot=0, stars=1):
     """JPEG buffer or None. All network/image work belongs on a worker thread."""
     global _FRAME
     try:
@@ -168,14 +169,23 @@ def render_avatar_info_card(avatar, *, owned=False, equipped=False, level=1,
         else:
             text((str(avatar.get('name') or '?'))[0].upper(), (239,300,130),120,cyan)
             text('ART UNAVAILABLE',(145,625,310),20,dim)
-        text(avatar.get('name') or 'Avatar',(624,88,810),52)
+        # Reserve the right of the name for stars; polygons avoid missing font glyphs.
+        text(avatar.get('name') or 'Avatar',(624,88,530),52)
+        if owned or equipped:
+            rating = max(1, min(C.MAX_STARS, int(stars)))
+            for i in range(rating):
+                cx, cy = 1184 + i * 38, 116
+                points = [(cx + (16 if j % 2 == 0 else 7) * math.cos(-math.pi/2 + j*math.pi/5),
+                           cy + (16 if j % 2 == 0 else 7) * math.sin(-math.pi/2 + j*math.pi/5))
+                          for j in range(10)]
+                draw.polygon(points, fill=gold)
         state = 'EQUIPPED' if equipped else 'OWNED' if owned else 'NOT OWNED'
         text(state,(1230,137,210),18,gold)
         lvl = AL.clamp_level(level)
         text(str(avatar.get('rarity') or 'Common').upper(),(680,217,160),23,cyan)
         text(str(avatar.get('type') or 'Balance').upper(),(986,217,174),23,cyan)
         text(str(lvl) if owned or equipped else '—',(1310,217,140),23,cyan)
-        bonuses = permanent_bonuses(avatar,owned,equipped,lvl)
+        bonuses = permanent_bonuses(avatar,owned,equipped,lvl,stars)
         for x, key in [(680,'attack'),(912,'defence'),(1140,'stamina'),(1370,'hp')]:
             flat, pct = _number(bonuses.get(key+'_flat')), _number(bonuses.get(key+'_percent'))
             parts = ([f'{flat:+g}'] if flat else []) + ([f'{pct*100:+g}%'] if pct else [])

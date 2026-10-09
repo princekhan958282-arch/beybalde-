@@ -223,6 +223,66 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         self.parent.configure(self.profile)
         self.assertTrue(self.parent.feed_stage.disabled)
 
+    async def test_level_skill_and_feed_buttons_save_and_refresh(self):
+        self.interaction.response.defer = AsyncMock()
+        async def mutate(uid, fn):
+            return fn(self.profile)
+        with patch('cogs.avatar.avatar_progression_ui.get_user', AsyncMock(return_value=self.profile)), \
+             patch('cogs.avatar.avatar_progression_ui.mutate_user', side_effect=mutate):
+            await self.parent.level_up.callback(self.interaction)
+            self.assertEqual(AP.card_level(self.profile, AID), 2)
+            self.parent.slot = 2
+            await self.parent.skill_up.callback(self.interaction)
+            slug = AP.slugify(self.card['skills'][1]['name'])
+            self.assertEqual(AP.skill_level(self.profile, AID, slug), 2)
+            AP._ensure(self.profile, AID)['stages'] = 0
+            await self.parent.feed_stage.callback(self.interaction)
+            self.assertEqual(AC.stages(self.profile, AID), 1)
+        self.assertEqual(self.parent.refresh_message.await_count, 3)
+        self.assertFalse(self.parent.busy)
+
+    async def test_star_button_opens_confirmation_and_details_skills_work(self):
+        self.interaction.original_response = AsyncMock()
+        with patch('cogs.avatar.avatar_progression_ui.get_user', AsyncMock(return_value=self.profile)):
+            await self.parent.star_up.callback(self.interaction)
+        self.assertIsInstance(self.interaction.response.send_message.call_args.kwargs['view'], StarConfirm)
+        await self.parent.show_details.callback(self.interaction)
+        self.assertEqual(self.interaction.response.send_message.call_args.kwargs['embed'], self.parent.details_embed)
+        await self.parent.show_skills.callback(self.interaction)
+        self.assertEqual(len(self.interaction.response.send_message.call_args.kwargs['embed'].fields), 3)
+
+    async def test_refresh_replaces_image_with_current_progress_and_clears_after_loss(self):
+        from cogs.avatar.avatar_progression_ui import SkillSelect
+        import io
+        view = ProgressionView(101, self.card, self.profile)
+        view.message = SimpleNamespace(edit=AsyncMock())
+        AP._ensure(self.profile, AID).update(level=3, stars=4)
+        with patch('cogs.avatar.avatar_progression_ui.get_user', AsyncMock(return_value=self.profile)), \
+             patch('utils.avatar_info_card.resolve_avatar_image_url', AsyncMock(return_value=None)), \
+             patch('utils.avatar_info_card.render_avatar_info_card', return_value=io.BytesIO(b'image')) as render:
+            await view.refresh_message()
+            self.assertEqual(render.call_args.kwargs['stars'], 4)
+            self.assertEqual(render.call_args.kwargs['level'], 3)
+            self.assertEqual(view.message.edit.call_args.kwargs['attachments'][0].filename, 'ainfo.jpg')
+            select = next(c for c in view.children if isinstance(c, SkillSelect))
+            select._values = ['3']
+            self.interaction.response.defer = AsyncMock()
+            await select.callback(self.interaction)
+            self.assertEqual(view.slot, 3)
+            self.profile['avatar_inventory'].remove(AID)
+            await view.refresh_message()
+            self.assertEqual(view.message.edit.call_args.kwargs['attachments'], [])
+            self.assertTrue(view.level_up.disabled)
+
+    async def test_failed_profile_read_releases_busy_guard_and_timeout_disables_all(self):
+        self.interaction.response.defer = AsyncMock()
+        with patch('cogs.avatar.avatar_progression_ui.get_user', AsyncMock(side_effect=RuntimeError('db unavailable'))):
+            with self.assertRaises(RuntimeError):
+                await self.parent.level_up.callback(self.interaction)
+        self.assertFalse(self.parent.busy)
+        await self.parent.on_timeout()
+        self.assertTrue(all(c.disabled for c in self.parent.children))
+
     async def test_bonus_and_rule_scaling_preserves_gates_and_shared_data(self):
         card = avatar_engine.get_avatar('avatar_s103')
         before = copy.deepcopy(card)

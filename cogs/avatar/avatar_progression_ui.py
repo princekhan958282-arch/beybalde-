@@ -6,7 +6,7 @@ import random
 import discord
 from utils.database import get_user, mutate_user
 from . import avatar_config as C, avatar_progress as AP, avatar_levels as AL
-from . import avatar_collection as AC
+from . import avatar_collection as AC, avatar_skills as AS
 from .avatar_shop import AvatarSkillsView
 from .avatar_utils import build_avatar_embed
 
@@ -154,19 +154,19 @@ class SkillSelect(discord.ui.Select):
 
     async def callback(self, interaction):
         self.view.slot = int(self.values[0])
-        p = await get_user(self.view.owner)
-        self.view.configure(p)
-        await interaction.response.edit_message(embed=progression_embed(p, self.view.card, self.view.slot), view=self.view)
+        await interaction.response.defer()
+        await self.view.refresh_message()
 
 
 class ProgressionView(AvatarSkillsView):
     interaction_check = OwnedView.interaction_check
     close = OwnedView.close
 
-    def __init__(self, owner, card, profile):
+    def __init__(self, owner, card, profile, *, bot=None):
         super().__init__(card, timeout=C.PROFILE_TIMEOUT, details_embed=build_avatar_embed(
             card, owned=True, level=AP.card_level(profile, card['id'])))
         self.owner, self.message, self.closed, self.busy = owner, None, False, False
+        self.bot = bot
         self.card, self.slot = card, 1
         if card.get('skills'):
             self.add_item(SkillSelect(card, self.slot))
@@ -175,8 +175,11 @@ class ProgressionView(AvatarSkillsView):
     def configure(self, profile):
         aid = self.card['id']
         self.skill_levels = AP.card_entry(profile, aid).get('skills', {})
+        self.active_slot = AS.chosen_slot(profile, aid) if self.card.get('skills') else 0
         self.details_embed = build_avatar_embed(self.card, owned=True,
-            level=AP.card_level(profile, aid), skill_levels=self.skill_levels)
+            equipped=profile.get('equipped_avatar') == aid,
+            level=AP.card_level(profile, aid), skill_levels=self.skill_levels,
+            active_skill_slot=self.active_slot)
         owned = aid in profile.get('avatar_inventory', [])
         q = AP.quote_card(profile, aid)
         self.level_up.disabled = not owned or q['maxed'] or q['coins'] < q['cost']
@@ -206,12 +209,33 @@ class ProgressionView(AvatarSkillsView):
             owned = self.card['id'] in p.get('avatar_inventory', [])
             e = progression_embed(p, self.card, self.slot) if owned else discord.Embed(
                 title='Avatar lost', description='This avatar is no longer in your inventory.', colour=0xED4245)
-            await self.message.edit(embed=e, view=self)
+            attachments = []
+            if owned:
+                try:
+                    from utils.avatar_info_card import render_avatar_info_card, resolve_avatar_image_url
+                    card = dict(self.card)
+                    card['image'] = await resolve_avatar_image_url(self.bot, card.get('image'))
+                    buf = await asyncio.to_thread(render_avatar_info_card, card, owned=True,
+                        equipped=p.get('equipped_avatar') == card['id'],
+                        level=AP.card_level(p, card['id']), stars=AC.stars(p, card['id']),
+                        skill_levels=self.skill_levels, active_skill_slot=self.active_slot)
+                    if buf is not None:
+                        attachments.append(discord.File(buf, filename='ainfo.jpg'))
+                except Exception:
+                    log.exception('Avatar card refresh failed; using progression embed')
+            await self.message.edit(embed=e, view=self, attachments=attachments)
 
     async def purchase(self, interaction, kind):
         if self.busy:
             return await interaction.response.send_message('An upgrade is already in progress.', ephemeral=True)
         self.busy = True
+        try:
+            await self._purchase(interaction, kind)
+        finally:
+            self.busy = False
+
+    async def _purchase(self, interaction, kind):
+        await interaction.response.defer(ephemeral=True)
         aid, slot = self.card['id'], self.slot
         p = await get_user(self.owner)
         expected = (AP.card_level(p, aid) if kind == 'card' else
@@ -226,13 +250,11 @@ class ProgressionView(AvatarSkillsView):
             if AP.skill_level(profile, aid, slug) != expected:
                 raise AP.PurchaseError('Skill level changed. Refresh the view.')
             return AP.apply_skill_purchase(profile, aid, slug)
-        try:
-            await self.apply(interaction, apply)
-        finally:
-            self.busy = False
+        await self.apply(interaction, apply, deferred=True)
 
-    async def apply(self, interaction, fn):
-        await interaction.response.defer(ephemeral=True)
+    async def apply(self, interaction, fn, *, deferred=False):
+        if not deferred:
+            await interaction.response.defer(ephemeral=True)
         try:
             async with user_lock(self.owner):
                 await mutate_user(self.owner, fn)
@@ -271,9 +293,10 @@ class ProgressionView(AvatarSkillsView):
         if self.busy:
             return await interaction.response.send_message('An upgrade is already in progress.', ephemeral=True)
         self.busy = True
-        p = await get_user(self.owner)
-        expected = AC.stages(p, self.card['id'])
         try:
-            await self.apply(interaction, lambda p: AC.feed(p, self.card['id'], expected))
+            await interaction.response.defer(ephemeral=True)
+            p = await get_user(self.owner)
+            expected = AC.stages(p, self.card['id'])
+            await self.apply(interaction, lambda p: AC.feed(p, self.card['id'], expected), deferred=True)
         finally:
             self.busy = False
