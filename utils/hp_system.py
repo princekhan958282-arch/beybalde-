@@ -8,27 +8,27 @@ Design
 ------
 * ``stats.hp`` lives in ``data/beyblades.json`` alongside attack/defense/
   stamina/special.  It is authored data — balance it by hand there.
-* Each **type owns an HP band** (see ``TYPE_HP_BAND``). The band is the balance
-  lever: widen it to make a type's blades differ more from each other, shift it
-  to make the whole type tankier or squishier. Every read path clamps into the
-  owning type's band, so no blade can ever drift outside its class.
+* Type bands provide defaults for missing HP and the display bar scale.
+  Authored and equipped HP are read directly, including level and part gains.
 * If a blade is missing ``stats.hp`` (new entry, hand-added JSON, mod data),
   ``derive_hp_stat()`` computes a value from its stats and maps it into its
   type's band, so nothing crashes and no blade fights at 0 HP.
-* Battle max HP is **additive**: ``BASE_HP + hp_stat`` (then avatar HP boosts
-  stack on top inside BattleSession). 80 gives 680 HP, 139 gives 739 HP.
+* PvP and Story max HP is ``hp_stat * 15``, with no fixed base pool.
+  Avatar HP boosts and existing type passives apply after conversion.
 
 Every existing damage number, heal amount and % threshold in the engine stays
 valid — only the size of the pool changes.
 """
 from __future__ import annotations
 
-from cogs.core.constants import BASE_HP
+import math
+
+HP_PER_STAT = 15
 
 # ── Global hard limits (nothing may ever escape these) ───────────────────────
 HP_STAT_MIN      = 80
 HP_STAT_MAX      = 150
-HP_STAT_BASELINE = 100      # hp == 100 → exactly BASE_HP in battle
+HP_STAT_BASELINE = 100      # missing blade fallback: 1500 battle HP
 
 # ── Per-type HP bands ────────────────────────────────────────────────────────
 # (floor, ceiling) for each type. This is the primary balance dial.
@@ -111,22 +111,25 @@ def derive_hp_stat(blade: dict) -> int:
 
 
 def blade_hp_stat(blade: dict | None) -> int:
-    """The displayed HP stat for a blade, always inside its type band.
-    Never raises."""
+    """Read authored/effective HP without discarding level or part gains."""
     if not blade:
         return HP_STAT_BASELINE
     raw = (blade.get("stats", {}) or {}).get("hp")
     if raw is None:
         return derive_hp_stat(blade)
-    return clamp_hp_stat(raw, blade.get("type"))
+    try:
+        value = float(raw)
+        if math.isfinite(value):
+            return max(0, int(round(value)))
+    except (TypeError, ValueError, OverflowError):
+        pass
+    return derive_hp_stat(blade)
 
 
-def max_hp_for_blade(blade: dict | None, base: int = BASE_HP) -> int:
-    """Battle HP pool = BASE_HP + the blade's HP stat.
+def max_hp_for_blade(blade: dict | None) -> int:
+    """Convert HP stat to PvP/Story battle HP: 100 → 1500, 139 → 2085.
 
-        80 → 680      100 → 700      130 → 730      139 → 739
-
-    Avatar HP bonuses are NOT applied here — BattleSession stacks them on top
-    of this value, so the order is always: base + bey HP → avatar boost → max.
+    Avatar HP boosts and type passives are applied by the battle session.
+    A depleted/invalid loadout cannot start with less than one battle HP.
     """
-    return max(1, int(base) + blade_hp_stat(blade))
+    return max(1, blade_hp_stat(blade) * HP_PER_STAT)

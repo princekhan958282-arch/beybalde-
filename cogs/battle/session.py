@@ -26,7 +26,7 @@ import discord
 from discord.ext import commands
 
 from .constants import (
-    BASE_HP, BATTLE_TIMEOUT, SPECIAL_GAUGE_MAX,
+    BATTLE_TIMEOUT, SPECIAL_GAUGE_MAX,
     MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_SPECIAL, MOVE_CHARGE,
     MOVE_LABELS,
     COINS_WIN, COINS_LOSS,
@@ -288,11 +288,11 @@ class BattleSession:
 
             profile   = await get_user(pid)
             # Resolve HP, Special and equipment from the same profile snapshot.
-            from utils.loadout import effective_blade, part_bonuses, hp_adjustment
+            from utils.loadout import effective_blade, part_bonuses
             effective, breakdown, _ = await effective_blade(pid, profile=profile, blade=blade, include_avatar=False,
                                                            include_parts=not bool(profile.get("active_copy")))
             hp_bd = breakdown.get("hp") or {}
-            hp_gain = hp_adjustment(hp_bd)
+            hp_gain = int(hp_bd.get('level', 0)) + int(hp_bd.get('parts', 0))
             if effective.get("component_snapshot"):
                 blade["component_snapshot"] = effective["component_snapshot"]
             avatar_id = await _AE.get_equipped_avatar_id(int(pid))
@@ -321,6 +321,7 @@ class BattleSession:
             prefetch[key] = {
                 "profile":           profile,
                 "hp_gain":           hp_gain,
+                "hp_pool":           max_hp_for_blade(effective),
                 "avatar_id":         avatar_id,
                 "avatar_card":       avatar or {},
                 "bonuses":           bonuses,
@@ -397,11 +398,8 @@ class BattleSession:
         self.ranked  = bool(ranked)
 
         # ── Per-blade HP pools ────────────────────────────────────────────────
-        # Max HP builds in four additive layers, in this order:
-        #   1. BASE_HP           (global floor)
-        #   2. + blade HP stat   (80–139, from beyblades.json)
-        #   3. + bey LEVEL gain  (see _level_hp_gain)
-        #   4. + avatar HP boost (flat + %, applied just below)
+        # Convert the resolved HP stat (including level and parts) at 15:1,
+        # then apply avatar HP boosts and existing type passives.
         # Every % threshold / heal / damage number downstream stays valid
         # because only the pool size changes.
         # Every profile read below is routed around the NPC. `get_user` on an
@@ -409,13 +407,13 @@ class BattleSession:
         # single unguarded read would put a junk player in the registry — and
         # then in the population count, the funnel and the audit reports.
         self.hp = {
-            str(p1.id): max_hp_for_blade(blade1) + self._hp_gain(p1.id, blade1),
-            str(p2.id): max_hp_for_blade(blade2) + self._hp_gain(p2.id, blade2),
+            str(p1.id): self._hp_pool(p1.id, blade1),
+            str(p2.id): self._hp_pool(p2.id, blade2),
         }
         # Insurance alias: any code that reads session.max_hp (e.g. win_system)
         # resolves to a real number instead of raising AttributeError. Prefer
         # max_hp_per_player — this is only the fallback.
-        self.max_hp  = BASE_HP
+        self.max_hp  = max(self.hp.values())
 
         # ── Avatar skill commitment (BEFORE bonuses are read) ─────────────────
         # Charging energy has to happen first: get_battle_bonuses resolves the
@@ -509,6 +507,7 @@ class BattleSession:
             self.hp[key] = math.floor(self.hp[key] * passive_stat_multiplier(self.blades[key].get("type"), "hp"))
             self.max_hp_per_player[key] = self.hp[key]
         self.base_max_hp = dict(self.max_hp_per_player)
+        self.max_hp = max(self.max_hp_per_player.values())
         self._morph_hp_factor = {key: 1.0 for key in self.hp}
 
         # ── Effective SPECIAL stat (levelled + parts + avatar) ────────────────
@@ -718,12 +717,22 @@ class BattleSession:
         return copy.deepcopy(cached) if cached is not None else {}
 
     def _hp_gain(self, player_id, blade: Optional[dict]) -> int:
-        """Levelled HP on top of the type-band-clamped printed stat."""
+        """Legacy HP stat adjustment; NPC blades already carry levelled HP."""
         if self._is_npc(player_id):
             # Supplied rather than derived: the opponent's level is the
             # League's to decide, not a profile's to remember.
             return int(getattr(self.npc_controller, "hp_gain", 0) or 0)
         return int(self._prefetch.get(str(player_id), {}).get("hp_gain", 0) or 0)
+
+    def _hp_pool(self, player_id, blade: Optional[dict]) -> int:
+        if self._is_npc(player_id):
+            return max_hp_for_blade(blade)
+        cached = self._prefetch.get(str(player_id), {})
+        if 'hp_pool' in cached:
+            return int(cached['hp_pool'])
+        adjusted = copy.deepcopy(blade or {})
+        adjusted.setdefault('stats', {})['hp'] = blade_hp_stat(blade) + self._hp_gain(player_id, blade)
+        return max_hp_for_blade(adjusted)
 
     def _avatar_card_for(self, player_id) -> dict:
         """The avatar card this side is wearing, or {}.
@@ -812,7 +821,7 @@ class BattleSession:
         ab     = self.ability
 
         # ── Visual bar helpers ────────────────────────────────────────────────
-        def hp_visual(current: int, maximum: int = BASE_HP, length: int = 8) -> str:
+        def hp_visual(current: int, maximum: int, length: int = 8) -> str:
             """Segmented HP bar using block chars: full=█  half=▓  empty=░"""
             pct    = max(0.0, current / maximum)
             filled = round(pct * length)
@@ -889,7 +898,7 @@ class BattleSession:
             stab_now = self.stability_manager.stability.get(key, 100)
             stab_max = self.type_mods[key].stability_start
 
-            _max_hp   = self.max_hp_per_player.get(key, BASE_HP)
+            _max_hp   = self.max_hp_per_player.get(key, self.max_hp)
             hp_pct    = int(round((hp_now / _max_hp) * 100))
             # Short bars (length=5) + compact numbers — no /MAX denominator
             hp_line   = f"`{hp_visual(hp_now, _max_hp, length=5)}` **{hp_now}** `{hp_pct}%`"

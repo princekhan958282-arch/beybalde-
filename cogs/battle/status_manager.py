@@ -80,7 +80,6 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, Any
 
-from .constants import BASE_HP
 
 if TYPE_CHECKING:
     from .session import BattleSession

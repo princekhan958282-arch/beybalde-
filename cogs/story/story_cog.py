@@ -48,10 +48,9 @@ LEAGUE_BEY_XP = {SD.NORMAL: 220, SD.NIGHTMARE: 550}
 def _opponent_blade(name: str) -> Optional[tuple[dict, int]]:
     """The League's copy of a blade, at `SD.OPPONENT_LEVEL`.
 
-    Returns `(blade, hp_gain)`. The HP gain is handed to the session separately
-    because `max_hp_for_blade` clamps the printed HP stat back into the blade's
-    type band — right for a printed stat, and it would otherwise throw away
-    every point of the levelling this function just did.
+    Returns `(blade, hp_gain)` for the controller's existing interface.
+    BattleSession converts the levelled blade's HP directly at 15:1 and does
+    not add this gain a second time.
     """
     from utils.database import get_beyblade
     base = get_beyblade(name)

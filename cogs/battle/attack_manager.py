@@ -56,7 +56,6 @@ import random
 from typing import TYPE_CHECKING, Any
 
 from .constants import (
-    BASE_HP,
     MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_SPECIAL, MOVE_CHARGE,
     MOVE_LABELS,
     SPECIAL_GAUGE_MAX,

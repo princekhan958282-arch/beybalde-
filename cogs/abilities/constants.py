@@ -14,7 +14,6 @@ continue to work without modification.
 
 from cogs.core.constants import *  # noqa: F401, F403
 from cogs.core.constants import (
-    BASE_HP,
     WINNING_BONUS_MULT,
     LOSING_PENALTY_MULT,
     MIRROR_CHIP_DAMAGE,
