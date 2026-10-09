@@ -221,6 +221,7 @@ class ProgressionView(AvatarSkillsView):
                         skill_levels=self.skill_levels, active_skill_slot=self.active_slot)
                     if buf is not None:
                         attachments.append(discord.File(buf, filename='ainfo.jpg'))
+                        e = None  # Clear the text embed when the visual card is available.
                 except Exception:
                     log.exception('Avatar card refresh failed; using progression embed')
             await self.message.edit(embed=e, view=self, attachments=attachments)

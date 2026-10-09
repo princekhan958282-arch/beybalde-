@@ -264,6 +264,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(render.call_args.kwargs['stars'], 4)
             self.assertEqual(render.call_args.kwargs['level'], 3)
             self.assertEqual(view.message.edit.call_args.kwargs['attachments'][0].filename, 'ainfo.jpg')
+            self.assertIsNone(view.message.edit.call_args.kwargs['embed'])
             select = next(c for c in view.children if isinstance(c, SkillSelect))
             select._values = ['3']
             self.interaction.response.defer = AsyncMock()
