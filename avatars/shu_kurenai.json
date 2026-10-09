@@ -27,10 +27,6 @@
           ],
           "do": [
             {
-              "op": "reduce_damage_pct",
-              "value": 18
-            },
-            {
               "op": "gain_stability",
               "value": 8
             }
@@ -65,6 +61,21 @@
               "value": 1
             }
           ]
+        },
+        {
+          "when": "on_defend",
+          "if": [
+            {
+              "cond": "enemy_most_used_move_is",
+              "value": "attack"
+            }
+          ],
+          "do": [
+            {
+              "op": "reduce_damage_pct",
+              "value": 18
+            }
+          ]
         }
       ]
     },
@@ -76,7 +87,7 @@
           "when": "on_defense_win",
           "do": [
             {
-              "op": "prime_bonus",
+              "op": "prime_hit_bonus",
               "value": 26
             }
           ]
@@ -85,7 +96,7 @@
           "when": "on_stamina_win",
           "do": [
             {
-              "op": "prime_bonus",
+              "op": "prime_hit_bonus",
               "value": 26
             }
           ]
@@ -102,10 +113,6 @@
             {
               "op": "gain_stability",
               "value": 18
-            },
-            {
-              "op": "reduce_damage_pct",
-              "value": 20
             }
           ]
         },
@@ -115,7 +122,37 @@
             {
               "op": "gain_stability",
               "value": 18
+            }
+          ]
+        },
+        {
+          "when": "on_defend",
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.5
+            }
+          ],
+          "do": [
+            {
+              "op": "reduce_damage_pct",
+              "value": 20
+            }
+          ]
+        },
+        {
+          "when": "on_defend",
+          "if": [
+            {
+              "cond": "stamina_below_pct",
+              "value": 0.35
             },
+            {
+              "cond": "hp_above_pct",
+              "value": 0.5
+            }
+          ],
+          "do": [
             {
               "op": "reduce_damage_pct",
               "value": 20

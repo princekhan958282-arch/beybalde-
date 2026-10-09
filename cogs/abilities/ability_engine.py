@@ -138,6 +138,8 @@ class AbilityEngine:
         self.once_fired: set[tuple[str, int]]       = set()  # (key, rule_id)
         self.modes:      dict[str, str]             = {}   # key -> mode name
         self.primed_bonus: dict[str, int]           = {}   # one-shot dmg bonus
+        self.primed_hit_bonus: dict[str, int]       = {}   # next Attack or Special
+        self.primed_crit: dict[str, int]            = {}   # crit armed for a later Attack
         self.revive_pool:  dict[str, int]           = {}   # key -> revive HP
         self.revive_pool_pct: dict[str, float]      = {}   # key -> % of max HP
         self.special_pierce_pct: dict[str, float]   = {}   # key -> one-shot % DEF pierce for the next Special hit
@@ -889,6 +891,9 @@ class AbilityEngine:
             elif kind == "prime_bonus":
                 self.primed_bonus[key] = self.primed_bonus.get(key, 0) + int(val)
                 logs.append(f"🔆 **{ab_name}** — next Special primed (+{int(val)})!")
+            elif kind == "prime_hit_bonus":
+                self.primed_hit_bonus[key] = self.primed_hit_bonus.get(key, 0) + int(val)
+                logs.append(f"🔆 **{ab_name}** — next Attack or Special primed (+{int(val)})!")
 
             # ── incoming damage / defense ────────────────────────────────────
             elif kind == "reduce_damage_pct":
@@ -1329,6 +1334,9 @@ class AbilityEngine:
                 self.guaranteed_crit_turns[key] = max(
                     self.guaranteed_crit_turns.get(key, 0), int(op.get("turns", val or 1)))
                 logs.append(f"🎯 **{ab_name}** — guaranteed CRIT!")
+            elif kind == "prime_crit":
+                self.primed_crit[key] = max(self.primed_crit.get(key, 0), int(val or 1))
+                logs.append(f"🎯 **{ab_name}** — next Attack armed for a CRIT!")
 
             # ── control ──────────────────────────────────────────────────────
             elif kind == "silence":
@@ -1856,6 +1864,16 @@ class AbilityEngine:
         evaded = dmg_dealt == 0 and any("EVADED" in l or "vanished" in l for l in f_logs)
 
         if not mover_silenced and not evaded:
+            if is_first_hit and move == MOVE_ATTACK and dmg_dealt > 0:
+                armed = self.primed_crit.pop(mover_key, 0)
+                if armed:
+                    self.guaranteed_crit_turns[mover_key] = max(
+                        self.guaranteed_crit_turns.get(mover_key, 0), armed)
+            if is_first_hit and move in (MOVE_ATTACK, MOVE_SPECIAL) and dmg_dealt > 0:
+                primed_hit = self.primed_hit_bonus.pop(mover_key, 0)
+                if primed_hit:
+                    dmg_dealt += primed_hit
+                    logs.append(f"🔆 Primed response released — +{primed_hit} damage!")
             # Mover offensive triggers
             dmg_dealt, dmg_taken = self._fire("passive", mover_key, other_key,
                                               mover_blade, move, matchup,

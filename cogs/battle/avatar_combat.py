@@ -189,6 +189,21 @@ def absorb_incoming(session, defender: str, attacker: str,
                             f"for {counter}!")
                 return damage, counter, logs
 
+    # Counter-only skills also answer an ordinary Defense-button block.
+    # They need neither a dodge skill nor a separate resistance skill active.
+    moves = getattr(session, "moves", {})
+    special = (getattr(session, "blades", {}).get(attacker, {}).get("special_move") or {})
+    bypass = moves.get(attacker) == "special" and (
+        special.get("true_damage") or special.get("ignores_defense"))
+    bypass = bypass or bool(getattr(session, '_damage_bypass', {}).get(attacker))
+    status = getattr(session, 'status', None)
+    if status is not None:
+        bypass = bypass or status.get_duration('ignore_defense_turns', attacker) > 0
+    if (moves.get(defender) == "defense" and not bypass
+            and av.resistance_damage_percent <= 0 and av.roll_counter()):
+        counter = max(1, int(round(damage * 0.5)))
+        logs.append(f"  ↩️ **Avatar** — blocked, and answers back for {counter}!")
+        return damage, counter, logs
     return damage, 0, logs
 
 
@@ -208,7 +223,7 @@ def multi_hit_shape(session, key: str, hits: int,
                     per_hit: int) -> tuple[int, int, list[str]]:
     """Apply the avatar's multi-hit modifiers to a Special's shape."""
     av = _av(session, key)
-    if av is None or hits <= 1:
+    if av is None or hits < 1:
         return hits, per_hit, []
     logs: list[str] = []
     if av.multi_hit_extra_hits:
@@ -217,7 +232,7 @@ def multi_hit_shape(session, key: str, hits: int,
         logs.append(f"  ➕ **Avatar** — +{hits - before} bonus hit"
                     f"{'s' if hits - before != 1 else ''} "
                     f"({before} → {hits} hits)!")
-    if av.multi_hit_power_double:
+    if av.multi_hit_power_double and hits > 1:
         per_hit = int(round(av.apply_multi_hit_damage(per_hit)))
         pct = int(round((av.apply_multi_hit_damage(1.0) - 1.0) * 100))
         logs.append(f"  ✳️ **Avatar** — every hit +{pct}% ({per_hit} each)!")

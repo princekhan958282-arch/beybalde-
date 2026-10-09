@@ -1,0 +1,35 @@
+{
+  "reason": "PR #212: reviewed School League skill trigger, stack cleanup and next-hit timing corrections. Original migration hashes remain unchanged.",
+  "avatars": {
+    "avatar_s101": {
+      "name": "Rantaro Kiyama",
+      "migration_sha256": "e022d3ef25d82c0275d9be6428f9c3cdbd4ae3d7bcdec0dffc83f85ce5077363",
+      "sha256": "c76021d9b7e94f1cf163a37fb102deaab9c077ce852525913d5db6eea09aca08"
+    },
+    "avatar_s102": {
+      "name": "Ken Midori",
+      "migration_sha256": "23ec57d64ffba8902b98a998273b545a4640179b9a79efee0d0c9409e9c99de2",
+      "sha256": "780d53847ca5cec904bdd85a542892d34d535e9ee389f90879d8478922f15dda"
+    },
+    "avatar_s103": {
+      "name": "Daigo Kurogami",
+      "migration_sha256": "f1be6cbfe249dbbebb63612737ca07e81b7741a8cb45f268f8f5797be2378d10",
+      "sha256": "cbf8dcbc01a44531adbff296969c9ec9888638f3a0e32422fccfabee40b6b8d4"
+    },
+    "avatar_s105": {
+      "name": "Wakiya Murasaki",
+      "migration_sha256": "56ca59eff0e0df567b9215e739fd70de839fa18f3b229eb6879607f3b6e9c042",
+      "sha256": "b61eeaebe261824b9a7f304f684b5760c3c62d2fa69c54c8d98c731615945880"
+    },
+    "avatar_s107": {
+      "name": "Valt Aoi",
+      "migration_sha256": "528ecdb5111992782ce8384b367096f65e829b5ae0327dd1578f3495fd10249c",
+      "sha256": "6733045369eeea37aef648d4c8a344ea9b28bfa794fa6760197610feca428126"
+    },
+    "avatar_s108": {
+      "name": "Shu Kurenai",
+      "migration_sha256": "bf441e120f628fb4216134aee06028538409bc0d65e42d0a272f53b5282c3c52",
+      "sha256": "9f999b5b4d87c5f29694bfbd72bdd7a856ba47b8bec5ad3bd9354b624f5304aa"
+    }
+  }
+}

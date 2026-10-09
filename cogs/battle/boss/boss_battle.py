@@ -536,9 +536,15 @@ async def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
                     level=_bey_level)
     from cogs.avatar.avatar_engine import avatar_engine
     f.avatar_bonuses = av
+    f.special_hits = max(1, int(((blade or {}).get('special_move') or {}).get('hits', 1) or 1))
+    f.special_true_damage = bool(((blade or {}).get('special_move') or {}).get('true_damage'))
+    f.special_ignores_defense = bool(((blade or {}).get('special_move') or {}).get('ignores_defense'))
+    if av is not None:
+        f.stability = f.max_stability = max(0, av.apply_stability_bonus(f.max_stability))
     card=avatar_engine.get_avatar(profile.get("equipped_avatar") or "") or {}
-    if card.get("active_battle_skills"):
-        f.avatar_card=card
+    f.avatar_card=card
+    from cogs.avatar import avatar_skills as AS
+    f.avatar_skill_slot = AS.active_slot(profile, card)
     return f, (blade or {})
 
 
@@ -897,7 +903,14 @@ class BossFight:
         if effects.get("strip"):
             self.foe.gauge = 0.0
         if effects.get("freeze"):
-            st.freeze_turns = effects["freeze"]
+            from types import SimpleNamespace
+            from cogs.battle.avatar_combat import resist_status
+            resisted, resistance_logs = resist_status(
+                SimpleNamespace(avatar_bonuses={'b': self.foe.avatar_bonuses}),
+                'b', 'freeze')
+            report.setdefault('gimmicks', []).extend(resistance_logs)
+            if not resisted:
+                st.freeze_turns = effects["freeze"]
 
         self.boss.gauge = 0.0
         if spec["ultimate"]:

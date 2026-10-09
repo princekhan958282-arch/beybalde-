@@ -56,7 +56,18 @@
             {
               "op": "gain_stability",
               "value": 15
-            },
+            }
+          ]
+        },
+        {
+          "when": "on_defend",
+          "if": [
+            {
+              "cond": "stamina_below_pct",
+              "value": 0.35
+            }
+          ],
+          "do": [
             {
               "op": "reduce_damage_pct",
               "value": 18

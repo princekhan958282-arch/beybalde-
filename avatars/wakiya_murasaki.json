@@ -21,7 +21,7 @@
           "when": "on_defense_win",
           "do": [
             {
-              "op": "prime_bonus",
+              "op": "prime_hit_bonus",
               "value": 30
             }
           ]
