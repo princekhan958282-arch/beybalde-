@@ -19,7 +19,7 @@ from cogs.battle.type_gimmicks import passive_stat_multiplier
 
 class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def build(self, aid=None, slot=1, energy=100, locked=None,
-                    ranked=False):
+                    ranked=False, blade=None):
         avatar_engine.load()
         self.p1 = H.FakePlayer(101, "Avatar player")
         self.p2 = H.FakePlayer(102, "Opponent")
@@ -29,7 +29,7 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
             profile[AS.K_LOCKED] = locked
         H.seed_profile(101, **profile)
         H.seed_profile(102)
-        blade = {"name": "Connection test", "type": "Balance",
+        blade = copy.deepcopy(blade) if blade is not None else {"name": "Connection test", "type": "Balance",
                  "stats": {"attack": 100, "defense": 100,
                            "stamina": 100, "special": 100, "hp": 100},
                  "abilities": []}
@@ -138,6 +138,69 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
         damage, _ = s.attack_manager._resolve_special(
             "101", "102", "special", s.blades["101"], s.blades["102"], [])
         self.assertEqual(damage, round(211 + effective_stats(s, "101")["attack"]))
+
+    async def test_xeno_generated_special_receives_dyrroth_bonus(self):
+        for stacks in (0, 3):
+            damages = []
+            attacks = []
+            for aid in (None, 'avatar_x003'):
+                s = await self.build(aid, slot=3, blade=H.get_beyblade('Xeno Xcalius'))
+                s.type_gimmicks.rng = lambda: .99
+                s.moves = {'101': 'special', '102': 'charge'}
+                s.ability.counters[('101', 'xeno_stack')] = stacks
+                damage, logs = s.attack_manager._resolve_special(
+                    '101', '102', 'special', s.blades['101'], s.blades['102'], [])
+                damages.append(damage)
+                attacks.append(effective_stats(s, '101')['attack'])
+                if aid:
+                    self.assertTrue(any('full Attack stat added' in line for line in logs))
+            self.assertGreater(damages[1], damages[0], (stacks, damages))
+            self.assertEqual(damages[1], round(round(damages[0] * 2.11) + attacks[1]))
+
+    async def test_reported_1456_damage_is_not_unchanged(self):
+        results = []
+        for aid in (None, 'avatar_x003'):
+            s = await self.build(aid, slot=3, blade=H.get_beyblade('Xeno Xcalius'))
+            # Calibrated fixture: Xeno's 200% ATK DSL yields 1456 damage.
+            s.battle_stats['101']['attack'] = 728
+            live = {key: effective_stats(s, key) for key in s.blades}
+            live['101']['attack'] = 728
+            s.effective_stats_for = lambda key: live[key]
+            damage, _ = s.attack_manager._resolve_special(
+                '101', '102', 'special', s.blades['101'], s.blades['102'], [])
+            results.append(damage)
+        self.assertEqual(results, [1456, 3800])
+
+    async def test_generated_special_rider_once_across_hits(self):
+        s = await self.build('avatar_x003', slot=3)
+        blade = s.blades['101']
+        blade['special_move'] = {'non_damage': True, 'hits': 2, 'damage_per_hit': 0}
+        blade['abilities'] = [{'name': 'Generated hits', 'rules': [
+            {'when': 'passive', 'do': [{'op': 'bonus_damage', 'value': 100}]}]}]
+        blade['name'] = 'Generated Special fixture'
+        s.ability._compiled.clear()
+        s.avatar_bonuses['101'].special_move_flat = 10
+        damage, logs = s.attack_manager._resolve_special(
+            '101', '102', 'special', blade, s.blades['102'], [])
+        self.assertEqual(damage, round(110 * 2.11) + round(100 * 2.11) +
+                         round(effective_stats(s, '101')['attack']))
+        self.assertEqual(sum('full Attack stat added' in l for l in logs), 1)
+
+    async def test_support_only_special_remains_zero_damage(self):
+        s = await self.build('avatar_x003', slot=3, blade=H.get_beyblade('Deep Caynox'))
+        damage, logs = s.attack_manager._resolve_special(
+            '101', '102', 'special', s.blades['101'], s.blades['102'], [])
+        self.assertEqual(damage, 0)
+        self.assertFalse(any('full Attack stat added' in l for l in logs))
+
+    async def test_other_rule_generated_special_is_boosted(self):
+        outcomes = []
+        for aid in (None, 'avatar_x003'):
+            s = await self.build(aid, slot=3, blade=H.get_beyblade('Astral Valkyrie Starbreaker'))
+            damage, _ = s.attack_manager._resolve_special(
+                '101', '102', 'special', s.blades['101'], s.blades['102'], [])
+            outcomes.append(damage)
+        self.assertGreater(outcomes[1], outcomes[0])
 
     async def test_dyrroth_special_bonus_reaches_boss_hp_and_ai(self):
         from cogs.battle.boss import boss_battle as BB, boss_ai as AI
