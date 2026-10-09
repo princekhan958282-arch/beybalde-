@@ -199,7 +199,8 @@ def resolve_special(blade: dict,
             damage = math.ceil(float(formula.get("base", 0)) + sum(
                 float(formula.get(stat, 0)) * stats.get(stat, 0)
                 for stat in ("attack", "defense", "stamina")))
-            return 1, max(0, damage), sm.get("flavour_texts") or [sm.get("name", "Special")], bool(sm.get("ignores_defense"))
+            hits = max(1, int(sm.get('hits', 1)))
+            return hits, max(0, damage), sm.get("flavour_texts") or [sm.get("name", "Special")], bool(sm.get("ignores_defense"))
         # A Special that deals no damage at all.
         #
         # Every other path in this function floors the per-hit damage at 1 —

@@ -1,0 +1,75 @@
+{
+  "id": "BB138",
+  "name": "Dranzer MS",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558073702506037308/1791543425273.png?ex=6aca1cb6&is=6ac8cb36&hm=668ffc9468967711b35ddc0667b3c88cec305a33d54b9a3bd44b2ff4c9292cb6&",
+  "description": "Dranzer MS: a Balance phoenix with two unique abilities and one Special.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 105,
+    "defense": 95,
+    "stamina": 100,
+    "special": 125,
+    "hp": 112
+  },
+  "ability": {
+    "name": "Metal Phoenix Edge",
+    "description": "Successful Attacks ignore 10% enemy DEF. Deals additional damage equal to 8% ATK.",
+    "rules": [],
+    "runtime": "dranzer"
+  },
+  "special_move": {
+    "name": "Metal Phoenix Ascension",
+    "description": "Base damage: 175 + 75% ATK. Ignores 20% enemy DEF. Gains 1% additional damage for every 2% maximum HP missing. Maximum additional damage bonus: 35%. Cooldown: 5 rounds.",
+    "hits": 1,
+    "damage_formula": {
+      "base": 175,
+      "attack": 0.75
+    },
+    "pierce_defense_pct": 20,
+    "cooldown": 5,
+    "flavour_texts": [
+      "Metal Phoenix Ascension!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Metal Phoenix Edge",
+      "description": "Successful Attacks ignore 10% enemy DEF. Deals additional damage equal to 8% ATK.",
+      "rules": [],
+      "runtime": "dranzer"
+    },
+    {
+      "name": "Final Phoenix Spirit",
+      "description": "For every 20% maximum HP lost, gain: 5% ATK. 4% DEF. Maximum bonus: 20% ATK and 16% DEF. Bonuses are recalculated based on current HP.",
+      "rules": [],
+      "runtime": "dranzer"
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 50,
+    "attack": 47,
+    "defense": 43,
+    "stamina": 45
+  },
+  "default_parts": {
+    "disk": "BB138_default_disk",
+    "driver": "BB138_default_driver"
+  },
+  "generation": null,
+  "_registry_order": 138,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "dranzer_kit": "MS",
+  "booster_exclusive": false,
+  "special_requires": {
+    "cooldown_name": "dranzer_special",
+    "label": "Metal Phoenix Ascension",
+    "emoji": "🔥"
+  }
+}

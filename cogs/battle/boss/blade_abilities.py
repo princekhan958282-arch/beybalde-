@@ -198,6 +198,10 @@ class BladeKit:
     # ── Parsing ──────────────────────────────────────────────────────────────
     def _parse(self) -> None:
         for ability in (self.blade.get("abilities") or []):
+            from ..dranzer import version as phoenix_version
+            if ability.get('runtime') == 'dranzer' and phoenix_version(self.blade):
+                self.applied.append(ability.get('name', self.name))
+                continue
             # The shared Draciel runtime executes these kits in boss_ai.resolve.
             from ..draciel import version
             if ability.get('runtime') == 'draciel' and version(self.blade):

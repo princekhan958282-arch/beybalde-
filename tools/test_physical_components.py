@@ -40,12 +40,12 @@ def invariant(test, p):
 
 
 class PhysicalTests(unittest.TestCase):
-    def test_all_132_totals_rounding_prices_and_acquisitions(self):
+    def test_all_stock_totals_rounding_prices_and_acquisitions(self):
         beys = load_beys()
-        self.assertEqual(len(beys), 132)
+        self.assertEqual(len(beys), 139)
         default = [p for p in load_parts() if p.get('source') == 'beyblade_default']
-        self.assertEqual(len(default), 264)
-        self.assertEqual(len({p['name'] for p in default}), 264)
+        self.assertEqual(len(default), len(beys) * 2)
+        self.assertEqual(len({p['name'] for p in default}), len(beys) * 2)
         self.assertEqual(len(PARTS_CATALOG), 51)
         for blade in beys.values():
             with self.subTest(blade=blade['id']):

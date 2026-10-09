@@ -182,9 +182,27 @@ def project(session, key: str, okey: str) -> ai.Fighter:
     # those once before the projected Fighter reapplies its cloned runtime.
     draciel_attack = draciel.stat_multiplier(key, 'attack') if draciel else 1
     draciel_defense = draciel.stat_multiplier(key, 'defense') if draciel else 1
+    phoenix = getattr(getattr(session, 'ability', None), 'dranzer', None)
+    phoenix_state = deepcopy(phoenix.states.get(key, {})) if phoenix else {}
+    if phoenix and (phoenix.owned(key) or phoenix_state.get('transfers') or phoenix_state.get('shred_until', -1) >= session.round):
+        phoenix_state['_source_key'] = key
+        phoenix_state['statuses'] = {
+            attr: deepcopy(getattr(session.status, attr).get(key, [] if attr == 'active_buffs' else 0))
+            for attr in ('silenced_turns', 'burn_stacks', 'burn_duration', 'burn_dmg', 'ability_2_disabled')}
+    else:
+        phoenix_state = {}
+    if phoenix_state: phoenix_state['clock'] = session.round
+    base_stats = effective_stats(session, key, include_dranzer=False)
+    def base_cost(move):
+        cost = sm.cost_for(key, move)
+        if phoenix and phoenix.enabled(key) and phoenix.owned(key) == 'GT':
+            stacks = phoenix_state.get('turbo', 0) if phoenix_state.get('turbo_until', -1) >= session.round else 0
+            cost = cost / (1 - .05 * stacks) - (1 if phoenix.secondary(key) and stacks == 3 and move == 'attack' else 0)
+        return cost - cost_surcharge(draciel_state, session.round, move)
     return ai.Fighter(
         ability_blade=deepcopy(blade),
         draciel_state=draciel_state,
+        dranzer_state=phoenix_state,
         combat_round=session.round - 1,
         special_damage=formula_damage,
         bey_type=blade.get("type", ""), level=stats.get("level", 1),
@@ -194,12 +212,12 @@ def project(session, key: str, okey: str) -> ai.Fighter:
         morph_hp_factor=morph_factor,
         base_max_hp=float(session.max_hp_per_player.get(key, 1)) / morph_factor,
         gimmick_controls=gimmicks.export_controls(key) if gimmicks else [],
-        move_costs={move: sm.cost_for(key, move) - cost_surcharge(draciel_state, session.round, move) for move in ai.ALL_MOVES},
+        move_costs={move: base_cost(move) for move in ai.ALL_MOVES},
         name=str(name),
         hp=float(session.hp.get(key, 0)),
         max_hp=float(session.max_hp_per_player.get(key, 1) or 1),
-        attack=float(stats.get("attack", 0)) / morph_factor / draciel_attack,
-        defense=float(stats.get("defense", 0)) / morph_factor / draciel_defense,
+        attack=float(base_stats.get("attack", 0)) / morph_factor / draciel_attack,
+        defense=float(base_stats.get("defense", 0)) / morph_factor / draciel_defense,
         stamina_stat=float(stats.get("stamina", 0)) / morph_factor,
         sp=float(sm.stamina.get(key, 0.0)),
         sp_max=sp_max,

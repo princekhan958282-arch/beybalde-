@@ -1,0 +1,75 @@
+{
+  "id": "BB134",
+  "name": "Dranzer F",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558065031516782662/1791541795040.png?ex=6aca14a2&is=6ac8c322&hm=fc0069b3bd76bee2a0b6b678013b9c2128038098bd6160f7eed74aaccccb1a80&",
+  "description": "Dranzer F: a Balance phoenix with two unique abilities and one Special.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 105,
+    "defense": 95,
+    "stamina": 100,
+    "special": 125,
+    "hp": 112
+  },
+  "ability": {
+    "name": "Flame Wing",
+    "description": "Every successful Attack applies Phoenix Burn. Phoenix Burn deals damage equal to 12% ATK at the end of each round. Burn lasts 2 rounds. Maximum 2 stacks.",
+    "rules": [],
+    "runtime": "dranzer"
+  },
+  "special_move": {
+    "name": "Blazing Phoenix Strike",
+    "description": "Base damage: 115 + 55% ATK. Immediately triggers one damage tick from every active Phoenix Burn stack. Applies 1 additional Phoenix Burn stack. Cooldown: 3 rounds.",
+    "hits": 1,
+    "damage_formula": {
+      "base": 115,
+      "attack": 0.55
+    },
+    "pierce_defense_pct": 0,
+    "cooldown": 3,
+    "flavour_texts": [
+      "Blazing Phoenix Strike!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Flame Wing",
+      "description": "Every successful Attack applies Phoenix Burn. Phoenix Burn deals damage equal to 12% ATK at the end of each round. Burn lasts 2 rounds. Maximum 2 stacks.",
+      "rules": [],
+      "runtime": "dranzer"
+    },
+    {
+      "name": "Fire Resistance",
+      "description": "Reduces incoming Special damage by 15%. Restores 2 stamina when triggered. Cooldown: 3 rounds.",
+      "rules": [],
+      "runtime": "dranzer"
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 50,
+    "attack": 47,
+    "defense": 43,
+    "stamina": 45
+  },
+  "default_parts": {
+    "disk": "BB134_default_disk",
+    "driver": "BB134_default_driver"
+  },
+  "generation": null,
+  "_registry_order": 134,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "dranzer_kit": "F",
+  "booster_exclusive": false,
+  "special_requires": {
+    "cooldown_name": "dranzer_special",
+    "label": "Blazing Phoenix Strike",
+    "emoji": "🔥"
+  }
+}

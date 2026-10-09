@@ -285,9 +285,8 @@ class ExtendedEffects:
         logs.extend(self.engine._check_revive(other, s.blades[other], damage, okey=key))
         damage, lines = av.guard_lethal(s, other, damage)
         logs.extend(lines)
-        actual = min(s.hp[other], max(0, damage))
-        s.hp[other] = max(0, s.hp[other] - actual)
-        s.hp[key] = max(0, s.hp[key] - counter)
+        actual = self.engine.dranzer.terminal(other, damage, logs)
+        self.engine.dranzer.terminal(key, counter, logs)
         logs.append(f'🔮 **{label}** — {actual} secondary damage.')
 
     def transfer(self, key, other, cfg, label, logs):

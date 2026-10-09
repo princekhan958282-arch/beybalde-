@@ -409,7 +409,11 @@ class OriginalGeneration:
         if av: damage = av.apply_damage_resistance(damage)
         damage, lethal_logs = avatar_combat.guard_lethal(self.s, other, math.floor(damage))
         logs.extend(lethal_logs)
-        self.s.hp[other], actual = damage_hp(self.s.hp[other], damage)
+        phoenix = getattr(getattr(self.s, 'ability', None), 'dranzer', None)
+        if phoenix:
+            actual = phoenix.terminal(other, damage, logs)
+        else:
+            self.s.hp[other], actual = damage_hp(self.s.hp[other], damage)
         logs.append(f'🌪️ **{label}** — {actual} damage' + (' (CRITICAL ×2)!' if critical else '!'))
 
     def end_round(self, logs):

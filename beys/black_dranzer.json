@@ -1,0 +1,75 @@
+{
+  "id": "BB133",
+  "name": "Black Dranzer",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558065010498994276/1791541800344.png?ex=6aca149d&is=6ac8c31d&hm=b589190248d42fa4bc0f8794fcee5eac14f8c12c185934a1bd8470d95ea0d6f7&",
+  "description": "Black Dranzer: a Balance phoenix with two unique abilities and one Special.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 105,
+    "defense": 95,
+    "stamina": 100,
+    "special": 125,
+    "hp": 112
+  },
+  "ability": {
+    "name": "Dark Absorption",
+    "description": "Every successful damaging move heals Black Dranzer for 20% of actual HP damage inflicted. Steals 4% of the opponent's current ATK and DEF. Stolen stats increase Black Dranzer's ATK and DEF and reduce the opponent's stats by the same amount. Stat stealing lasts 3 rounds. Maximum active stolen stat reduction: 16% per stat. Stat stealing cannot trigger from reflected damage or damage-over-time effects.",
+    "rules": [],
+    "runtime": "dranzer"
+  },
+  "special_move": {
+    "name": "Abyssal Phoenix Devourer",
+    "description": "Base damage: 190 + 80% ATK. Consumes all stored Dark Energy. Adds bonus damage equal to 100% of consumed Dark Energy. Ignores 20% enemy DEF. Restores HP equal to 30% of actual damage inflicted by the Special. Cooldown: 5 rounds.",
+    "hits": 1,
+    "damage_formula": {
+      "base": 190,
+      "attack": 0.8
+    },
+    "pierce_defense_pct": 20,
+    "cooldown": 5,
+    "flavour_texts": [
+      "Abyssal Phoenix Devourer!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dark Absorption",
+      "description": "Every successful damaging move heals Black Dranzer for 20% of actual HP damage inflicted. Steals 4% of the opponent's current ATK and DEF. Stolen stats increase Black Dranzer's ATK and DEF and reduce the opponent's stats by the same amount. Stat stealing lasts 3 rounds. Maximum active stolen stat reduction: 16% per stat. Stat stealing cannot trigger from reflected damage or damage-over-time effects.",
+      "rules": [],
+      "runtime": "dranzer"
+    },
+    {
+      "name": "Forbidden Phoenix",
+      "description": "Whenever Black Dranzer receives damage, absorb 15% of final incoming damage into Dark Energy instead of losing that HP. Maximum Dark Energy storage: 35% of Black Dranzer's maximum HP. Dark Energy remains stored until consumed by the Special. Absorption cannot trigger recursively.",
+      "rules": [],
+      "runtime": "dranzer"
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 50,
+    "attack": 47,
+    "defense": 43,
+    "stamina": 45
+  },
+  "default_parts": {
+    "disk": "BB133_default_disk",
+    "driver": "BB133_default_driver"
+  },
+  "generation": null,
+  "_registry_order": 133,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "dranzer_kit": "Black",
+  "booster_exclusive": true,
+  "special_requires": {
+    "cooldown_name": "dranzer_special",
+    "label": "Abyssal Phoenix Devourer",
+    "emoji": "🔥"
+  }
+}

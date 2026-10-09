@@ -224,6 +224,7 @@ class Fighter:
     outgoing_flat: float = 0
     reflected_flat: float = 0
     draciel_state: dict = field(default_factory=dict)
+    dranzer_state: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.hp_pretyped and not self.stats_pretyped:
@@ -249,7 +250,22 @@ class Fighter:
         else:
             from ..combat_rules import type_stamina_cost
             base = type_stamina_cost(self.bey_type, STAMINA_COST[move])
-        return base + cost_surcharge(self.draciel_state, self.draciel_round, move)
+        from ..dranzer import stamina_cost
+        return stamina_cost(self.ability_blade, self.dranzer_state, self.phoenix_round, move,
+                            base + cost_surcharge(self.draciel_state, self.draciel_round, move),
+                            not self.dranzer_state.get('statuses', {}).get('silenced_turns', 0),
+                            not self.dranzer_state.get('statuses', {}).get('ability_2_disabled', False))
+
+    @property
+    def phoenix_round(self):
+        return self.dranzer_state.get('clock', self.combat_round + 1)
+
+    def phoenix_stat(self, stat, value):
+        from ..dranzer import adjust_stat
+        return adjust_stat(self.ability_blade, self.dranzer_state, self.phoenix_round,
+                           stat, self.hp, self.max_hp, value,
+                           not self.dranzer_state.get('statuses', {}).get('silenced_turns', 0),
+                           not self.dranzer_state.get('statuses', {}).get('ability_2_disabled', False))
 
     @property
     def draciel_round(self):
@@ -279,6 +295,8 @@ class Fighter:
         if move == MOVE_SPECIAL and self.gauge < SPECIAL_GAUGE_MAX:
             return False
         if move == MOVE_SPECIAL and self.draciel_state.get('special_ready', 0) > self.draciel_round:
+            return False
+        if move == MOVE_SPECIAL and self.dranzer_state.get('special_ready', 0) > self.phoenix_round:
             return False
         return self.sp >= self.cost_for(move)
 
@@ -338,22 +356,23 @@ class Fighter:
                        special_outgoing_amp=self.special_outgoing_amp,
                        outgoing_flat=self.outgoing_flat,
                        reflected_flat=self.reflected_flat,
-                       draciel_state=copy.deepcopy(self.draciel_state))
+                       draciel_state=copy.deepcopy(self.draciel_state),
+                       dranzer_state=copy.deepcopy(self.dranzer_state))
 
     # ── Stance-adjusted stats (plain fighters are unaffected) ────────────────
     @property
     def eff_attack(self) -> float:
         base = self.attack + self.avatar_rule_stats.get('attack', 0)
         if not self.state:
-            return base * self.stat_factor("attack")
-        return (base + self.state.attack_bonus()) * self.state.stat_multiplier() * self.stat_factor("attack")
+            return self.phoenix_stat('attack', base * self.stat_factor("attack"))
+        return self.phoenix_stat('attack', (base + self.state.attack_bonus()) * self.state.stat_multiplier() * self.stat_factor("attack"))
 
     @property
     def eff_defense(self) -> float:
         base = self.defense + self.avatar_rule_stats.get('defense', 0)
         if not self.state:
-            return base * self.stat_factor("defense")
-        return (base + self.state.defense_bonus()) * self.state.stat_multiplier() * self.stat_factor("defense")
+            return self.phoenix_stat('defense', base * self.stat_factor("defense"))
+        return self.phoenix_stat('defense', (base + self.state.defense_bonus()) * self.state.stat_multiplier() * self.stat_factor("defense"))
 
 
 # Blade type had NO mechanical effect in boss fights — only raw stats mattered,
@@ -403,11 +422,13 @@ CRIT_DAMAGE_BONUS = 0.55
 
 def _raw_damage(src: Fighter, special: bool = False,
                 vs_boss: bool = False, dst: Optional[Fighter] = None,
-                logs: Optional[list] = None, simulate=False) -> float:
+                logs: Optional[list] = None, simulate=False, phoenix_damage=None) -> float:
     base = src.eff_attack * DMG_SCALE * src.dmg_mult
     if not special:
         pierce = src.state.pierce() if src.state else 0
         defense = dst.eff_defense * (1 - pierce) if dst else 50
+        from ..dranzer import version as phoenix_version
+        if phoenix_version(src.ability_blade) == 'MS': defense *= .90
         if src.avatar_rule_pierce > 0:
             defense = 0
         av = src.avatar_bonuses
@@ -418,7 +439,9 @@ def _raw_damage(src: Fighter, special: bool = False,
             if fraction > 0 and logs is not None:
                 logs.append(f'🗡️ **Avatar** — Guard Breaker shreds {fraction:.0%} DEF!')
         return base_damage(src.level, src.move_power, src.eff_attack, defense) * src.dmg_mult
-    if src.special_damage is not None:
+    if phoenix_damage is not None:
+        out = phoenix_damage * src.dmg_mult
+    elif src.special_damage is not None:
         out = src.special_damage * src.dmg_mult
     # Bosses replace the formula outright with a flat percentage of attack.
     elif src.special_atk_pct is not None:
@@ -481,6 +504,10 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     draciel_bridge = project_draciel(a, b, engine, {'a':move_a, 'b':move_b}, avatar_bridge)
     if draciel_bridge:
         draciel_bridge.runtime.begin({'a':move_a, 'b':move_b}, ability_logs)
+    from .dranzer_adapter import project as project_phoenix
+    phoenix_bridge = project_phoenix(a, b, engine, avatar_bridge)
+    if phoenix_bridge:
+        phoenix_bridge.runtime.begin({'a':move_a, 'b':move_b}, ability_logs)
     for key, fighter, move in (("a", a, move_a), ("b", b, move_b)):
         fighter.morph_rounds = engine.states[key].adaptive_morph_rounds
         fighter.morph_stat_factor = engine.stat_multiplier(key)
@@ -492,15 +519,28 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         fighter.sp = spend_resource(fighter.sp, base_cost)
 
     from .avatar_rule_adapter import project as project_avatar_rules
+    if phoenix_bridge: phoenix_bridge.sync()
     rule_bridge = project_avatar_rules({'a': a, 'b': b},
                                       {'a': move_a, 'b': move_b}, simulate=simulate)
     if rule_bridge:
         rule_bridge.begin()
 
-    def offence(src, dst, move, other_move, tag):
+    def offence(src, dst, move, other_move, tag, phoenix_hit=None):
         if move not in (MOVE_ATTACK, MOVE_SPECIAL):
             return 0.0
         special = move == MOVE_SPECIAL
+        phoenix = phoenix_bridge.runtime if phoenix_bridge else None
+        if special and phoenix and phoenix.owned(tag) and phoenix_hit is None:
+            other = 'b' if tag == 'a' else 'a'
+            parts = []
+            for hit in range(phoenix.special_hits(tag)):
+                damage = offence(src, dst, move, other_move, tag, phoenix_hit=hit)
+                if engine.nullifies(tag, other, move, true_damage=src.special_true_damage): damage = 0
+                if phoenix.s.status.is_invulnerable(other) and not src.special_true_damage: damage = 0
+                parts.append(damage)
+                phoenix.special_landed(tag, other, hit, damage)
+            phoenix_bridge.parts[tag] = parts
+            return sum(parts)
         if special and (src.ability_blade or {}).get('draciel_kit'):
             return 0.0  # these Specials open a defensive field at round start
         # NOT `dst.is_boss` — Story opponents set that too, and cutting their
@@ -514,7 +554,14 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             avatar_bridge.og.preprocess(tag,other,{'defense':dst.eff_defense})
         dmg = _raw_damage(src, special,
                           vs_boss=getattr(dst, "special_atk_pct", None) is not None,
-                          dst=dst, logs=ability_logs, simulate=simulate)
+                          dst=dst, logs=ability_logs, simulate=simulate,
+                          phoenix_damage=(phoenix.special_damage(tag, 'b' if tag == 'a' else 'a', phoenix_hit)
+                                          if special and phoenix and phoenix.owned(tag) else None))
+        if phoenix:
+            other = 'b' if tag == 'a' else 'a'
+            if move == MOVE_ATTACK and phoenix.enabled(tag):
+                dmg = phoenix.attack_bonus(tag, dmg)
+            dmg = phoenix.outgoing(tag, move, dmg)
         dmg = bonus_bridge.offensive(tag, move, dmg,
                                      engine.critical_applies(tag, move))
         if rule_bridge:
@@ -582,6 +629,11 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         if not (special and (src.special_true_damage or src.special_ignores_defense)):
             dmg = max(0, dmg * (1 - min(.95, max(0, dst.incoming_reduction)))
                       - max(0, dst.incoming_flat_reduction))
+        if phoenix:
+            dmg = phoenix.mitigate('b' if tag == 'a' else 'a', move, dmg, ability_logs)
+            # Fire Resistance restores live stamina; later syncs retain it.
+            for key, fighter in phoenix_bridge.fighters.items():
+                fighter.sp = max(fighter.sp, phoenix.s.stamina_manager.stamina[key])
         return max(0, dmg)
 
     dmg_b = offence(a, b, move_a, move_b, "a")
@@ -594,6 +646,8 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     def barrier(src_key, dst, damage):
         split = bool(avatar_bridge and src_key in avatar_bridge.split_keys)
         parts = [damage]
+        if phoenix_bridge and src_key in phoenix_bridge.parts:
+            parts = phoenix_bridge.parts[src_key]
         if split:
             whole = hp_damage(damage)
             quotient,remainder=divmod(whole,3)
@@ -605,6 +659,8 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
                 part,broke=dst.state.absorb(part)
                 shattered |= bool(broke)
             resolved.append(part)
+        if phoenix_bridge and src_key in phoenix_bridge.parts:
+            phoenix_bridge.parts[src_key] = resolved
         if split and all(part > 0 for part in resolved):
             actor=a if src_key=='a' else b
             actor.sp=min(actor.sp_max,actor.sp+.4)
@@ -643,23 +699,30 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             true_damage=move_b == MOVE_SPECIAL and b.special_true_damage)
 
     # Riposte: a successful block punishes the attacker.
+    terminal_damage = {'a': 0, 'b': 0}
     if move_a == MOVE_DEFENSE and move_b in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("b", "a", move_b):
         # dmg_mult belongs here too. The type bonus was only reaching attacks
         # and Specials via _raw_damage, so an Attack blade's riposte — a real
         # damage source at 0.55 of its attack stat — was still unbuffed and the
         # blade got noticeably less than the advertised 40% overall.
-        dmg_b += a.eff_attack * DMG_SCALE * RIPOSTE_RATIO * a.dmg_mult
+        counter = a.eff_attack * DMG_SCALE * RIPOSTE_RATIO * a.dmg_mult
+        if phoenix_bridge: terminal_damage['b'] += counter
+        else: dmg_b += counter
         log["note_a"] = "riposte"
     if move_b == MOVE_DEFENSE and move_a in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("a", "b", move_a):
-        dmg_a += b.eff_attack * DMG_SCALE * RIPOSTE_RATIO * b.dmg_mult
+        counter = b.eff_attack * DMG_SCALE * RIPOSTE_RATIO * b.dmg_mult
+        if phoenix_bridge: terminal_damage['a'] += counter
+        else: dmg_a += counter
         log["note_b"] = "riposte"
 
     # Judgement stance reflects a slice of whatever connected.
     if a.state and a.state.reflect() and move_b in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("b", "a", move_b):
-        dmg_b += a.state.reflect()
+        if phoenix_bridge: terminal_damage['b'] += a.state.reflect()
+        else: dmg_b += a.state.reflect()
         log["note_a"] = "reflected"
     if b.state and b.state.reflect() and move_a in (MOVE_ATTACK, MOVE_SPECIAL) and not engine.returns_damage("a", "b", move_a):
-        dmg_a += b.state.reflect()
+        if phoenix_bridge: terminal_damage['a'] += b.state.reflect()
+        else: dmg_a += b.state.reflect()
         log["note_b"] = "reflected"
 
     def healing(src, own_move, other_move):
@@ -681,28 +744,40 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
     dmg_b, counter_a = bonus_bridge.incoming('b', 'a', dmg_b)
     # Mirror the PvP avatar layer: counter riders precede lethal protection.
     from ..combat_rules import damage_hp
+    def final_damage(key, amount, already_final=False):
+        fighter = a if key == 'a' else b
+        if phoenix_bridge: return phoenix_bridge.terminal(key, amount, ability_logs)
+        fighter.hp, actual = damage_hp(fighter.hp, amount, already_final=already_final)
+        return actual
     if counter_a and not engine.returns_damage('b', 'a', move_b):
-        a.hp, _ = damage_hp(a.hp, counter_a)
+        final_damage('a', counter_a)
     if counter_b and not engine.returns_damage('a', 'b', move_a):
-        b.hp, _ = damage_hp(b.hp, counter_b)
+        final_damage('b', counter_b)
     dmg_a = bonus_bridge.lethal('a', dmg_a)
     dmg_b = bonus_bridge.lethal('b', dmg_b)
     dmg_a, dmg_b = hp_damage(dmg_a), hp_damage(dmg_b)
     from ..combat_rules import damage_hp, recover_hp, recover_resource
-    a.hp, actual_a = damage_hp(a.hp, dmg_a)
-    b.hp, actual_b = damage_hp(b.hp, dmg_b)
+    if phoenix_bridge:
+        actual_a = phoenix_bridge.commit('a', dmg_a, ability_logs, phoenix_bridge.parts.get('b'))
+        actual_b = phoenix_bridge.commit('b', dmg_b, ability_logs, phoenix_bridge.parts.get('a'))
+    else:
+        a.hp, actual_a = damage_hp(a.hp, dmg_a)
+        b.hp, actual_b = damage_hp(b.hp, dmg_b)
     if engine.returns_damage("a", "b", move_a):
-        a.hp, _ = damage_hp(a.hp, actual_b, already_final=True)
+        final_damage('a', actual_b, already_final=True)
         log["kinetic_return_a"] = actual_b
     if engine.returns_damage("b", "a", move_b):
-        b.hp, _ = damage_hp(b.hp, actual_a, already_final=True)
+        final_damage('b', actual_a, already_final=True)
         log["kinetic_return_b"] = actual_a
     if actual_a > 0 and a.reflected_flat and not engine.returns_damage('b', 'a', move_b):
-        b.hp, reflected = damage_hp(b.hp, a.reflected_flat)
+        reflected = final_damage('b', a.reflected_flat)
         log['ability_reflect_a'] = reflected
     if actual_b > 0 and b.reflected_flat and not engine.returns_damage('a', 'b', move_a):
-        a.hp, reflected = damage_hp(a.hp, b.reflected_flat)
+        reflected = final_damage('a', b.reflected_flat)
         log['ability_reflect_b'] = reflected
+    if phoenix_bridge:
+        for key, amount in terminal_damage.items():
+            if amount: final_damage(key, amount)
     # Recovery uses HP after direct and returned damage, just like live PvP.
     # A fighter knocked out by this exchange cannot recover resources.
     heal_a = healing(a, move_a, move_b)
@@ -783,6 +858,8 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
         ability_logs.extend(avatar_bridge.logs)
     if draciel_bridge:
         draciel_bridge.end({'a':move_a,'b':move_b},actual_a,actual_b,ability_logs)
+    if phoenix_bridge:
+        phoenix_bridge.end({'a':move_a,'b':move_b},actual_a,actual_b,ability_logs)
 
     for f in (a, b):
         if not f.state:

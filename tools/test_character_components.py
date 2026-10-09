@@ -22,6 +22,8 @@ from cogs.economy.shop import PARTS_CATALOG, PurchaseError, apply_part_purchase,
 BASELINE = json.loads((ROOT / 'docs/component_migration_baseline.json').read_text())
 
 SKILL_CORRECTIONS = json.loads((ROOT / 'docs/avatar_skill_regression_baseline.json').read_text())['avatars']
+DRANZER_ADDITIONS = {f'BB{132+i}': name for i, name in enumerate(
+    ('Dranzer G', 'Black Dranzer', 'Dranzer F', 'Dranzer V', 'Dranzer V2', 'Dranzer GT', 'Dranzer MS'))}
 
 def digest(document):
     return hashlib.sha256(json.dumps(document, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
@@ -35,8 +37,12 @@ class MigrationTests(unittest.TestCase):
     def test_every_record_and_every_original_field_is_preserved(self):
         for kind, entries in (('bey', load_beys().values()), ('avatar', load_avatars()['avatars'])):
             baseline = BASELINE['beys' if kind == 'bey' else 'avatars']
-            self.assertEqual({v['id'] for v in entries}, set(baseline))
+            additions = DRANZER_ADDITIONS if kind == 'bey' else {}
+            self.assertEqual({v['id'] for v in entries}, set(baseline) | set(additions))
             for value in entries:
+                if value['id'] in additions:
+                    self.assertEqual(value['name'], additions[value['id']])
+                    continue  # New kits have dedicated behavioral/stock-data coverage in test_dranzer.
                 expected = baseline[value['id']]
                 # Includes complete abilities, transformations, skills, images,
                 # shop metadata, cooldowns and every other original field.
@@ -48,7 +54,7 @@ class MigrationTests(unittest.TestCase):
                         self.assertEqual(correction['name'], value['name'])
                         expected_hash = correction['sha256']
                     self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
-        for folder, number in (('beys', 132), ('avatars', 54), ('parts/disks', 150), ('parts/drivers', 149)):
+        for folder, number in (('beys', 139), ('avatars', 54), ('parts/disks', 157), ('parts/drivers', 156)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
         for folder in ('beys', 'avatars'):
             self.assertFalse(any(p.is_dir() for p in (ROOT / folder).iterdir()))

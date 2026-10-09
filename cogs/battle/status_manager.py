@@ -432,7 +432,11 @@ class StatusManager:
 
         if stacks > 0 and duration > 0 and dmg_ps > 0:
             total = stacks * dmg_ps
-            self.session.hp[key] = max(0, self.session.hp[key] - total)
+            phoenix = getattr(getattr(self.session, 'ability', None), 'dranzer', None)
+            if phoenix:
+                phoenix.terminal(key, total, logs)
+            else:
+                self.session.hp[key] = max(0, self.session.hp[key] - total)
             self.burn_duration[key] = duration - 1
             blade_name = blade.get("name", key)
             logs.append(
