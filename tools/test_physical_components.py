@@ -109,16 +109,66 @@ class PhysicalTests(unittest.TestCase):
         self.assertEqual(ids(p), original)
         self.assertEqual(assemble(p, DB.get_beyblade('Dranzer'))[0]['stats'], DB.get_beyblade('Dranzer')['stats'])
 
-    def test_default_part_cannot_be_equipped_twice_or_removed_without_replacement(self):
+    def test_equipped_parts_swap_without_duplication_or_empty_slots(self):
         p = profile('Dranzer', 'Dranzer')
         reconcile(p)
         first, second = p['bey_instances']
         disk = first['parts']['disk']
+        other_disk = second['parts']['disk']
+        drivers = [e['parts']['driver'] for e in (first, second)]
+        original = ids(p)
         with self.assertRaisesRegex(EquipmentError, 'always'):
             equip(p, disk, remove=True)
         select_instance(p, second['instance_id'])
-        with self.assertRaisesRegex(EquipmentError, 'another Bey copy'):
-            equip(p, disk)
+        result = equip(p, disk)
+        self.assertEqual(result['swapped_instance_id'], first['instance_id'])
+        self.assertEqual(first['parts']['disk'], other_disk)
+        self.assertEqual(second['parts']['disk'], disk)
+        self.assertEqual([e['parts']['driver'] for e in (first, second)], drivers)
+        self.assertEqual(ids(p), original)
+        before = copy.deepcopy(p)
+        self.assertTrue(equip(p, disk)['unchanged'])
+        self.assertEqual(p, before)
+        invariant(self, p)
+
+    def test_name_equip_swaps_attached_part_and_spare_equip_releases_old_part(self):
+        p = profile('Dranzer', 'Draciel F')
+        p['parts'] = ['Destroy Driver']
+        reconcile(p)
+        first, second = p['bey_instances']
+        equip(p, 'Destroy Driver')
+        select_instance(p, second['instance_id'])
+        old_driver = second['parts']['driver']
+        result = equip(p, 'Destroy Driver')
+        self.assertEqual(first['parts']['driver'], old_driver)
+        self.assertEqual(result['swapped_instance_id'], first['instance_id'])
+        before = copy.deepcopy(p)
+        with self.assertRaisesRegex(EquipmentError, 'stock part is equipped'):
+            equip(p, 'Destroy Driver', remove=True)
+        self.assertEqual(p, before)
+        result = equip(p, second['bundled_parts']['driver'])
+        self.assertEqual(result['swapped_instance_id'], first['instance_id'])
+        select_instance(p, first['instance_id'])
+        result = equip(p, first['bundled_parts']['driver'])
+        self.assertIsNone(result['swapped_with'])
+        self.assertIsNone(next(i for i in owned_parts(p) if i['instance_id'] == result['previous'])['equipped_on'])
+        invariant(self, p)
+
+    def test_swap_rejects_reverse_incompatibility_without_changing_slots(self):
+        p = profile('Dranzer', 'Draciel F')
+        reconcile(p)
+        first, second = p['bey_instances']
+        before = copy.deepcopy(p)
+        real_compatible = __import__('utils.bey_components', fromlist=['compatible']).compatible
+        def limited(part, blade):
+            return blade['name'] != second['name'] and real_compatible(part, blade)
+        with patch('utils.bey_components.compatible', side_effect=limited):
+            # Reconciliation needs the existing loadout accepted; restrict only
+            # the reverse validation after it has finished.
+            with patch('utils.bey_components.reconcile'):
+                with self.assertRaisesRegex(EquipmentError, 'Cannot swap'):
+                    equip(p, second['parts']['disk'])
+        self.assertEqual(p, before)
         invariant(self, p)
 
     def test_version_one_migrates_purchased_configuration_and_progress(self):

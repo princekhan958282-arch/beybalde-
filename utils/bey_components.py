@@ -203,12 +203,24 @@ def equip(profile: dict, part_name: str, *, remove: bool = False) -> dict:
     replacement = definition_for(profile, ident)
     if not compatible(replacement, blade):
         raise EquipmentError("This part is incompatible with the equipped Main Frame.")
-    if any(e is not entry and ident in e["parts"].values() for e in profile["bey_instances"]):
-        raise EquipmentError("This owned part is equipped on another Bey copy. Select a replacement there first.")
+    donor = next((e for e in profile["bey_instances"]
+                  if e is not entry and ident in e["parts"].values()), None)
+    previous_part = definition_for(profile, previous)
+    if donor:
+        if remove:
+            raise EquipmentError("Your stock part is equipped on another Bey copy. Equip a replacement or swap it back first.")
+        donor_blade = REGISTRY.find_bey(donor["name"])
+        if (not donor_blade or donor["parts"].get(slot) != ident
+                or not compatible(previous_part, donor_blade)):
+            raise EquipmentError("Cannot swap: your current part is incompatible with the other Bey's Main Frame.")
+        donor["parts"][slot] = previous
     entry["parts"][slot] = ident
     reconcile(profile)
     return {"part": replacement["name"], "previous": previous, "part_instance_id": ident,
-            "instance_id": entry["instance_id"]}
+            "instance_id": entry["instance_id"], "previous_part": previous_part["name"],
+            "unchanged": previous == ident,
+            "swapped_with": donor["name"] if donor else None,
+            "swapped_instance_id": donor["instance_id"] if donor else None}
 
 
 def part_stats(profile: dict, blade: dict) -> dict:

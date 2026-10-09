@@ -106,8 +106,14 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len({i['instance_id'] for i in view._cache['bey']}), 2)
         second = view._cache['bey'][1]
         await DB.mutate_user(701, lambda p: select_instance(p, second['instance_id']))
-        with self.assertRaisesRegex(ValueError, 'another Bey copy'):
-            await view._toggle_part('Destroy Driver')
+        before = await DB.get_user(701)
+        first_driver = before['bey_instances'][0]['parts']['driver']
+        second_driver = before['bey_instances'][1]['parts']['driver']
+        await view._toggle_part('Destroy Driver')
+        after = await DB.get_user(701)
+        self.assertEqual(after['bey_instances'][0]['parts']['driver'], second_driver)
+        self.assertEqual(after['bey_instances'][1]['parts']['driver'], first_driver)
+        self.assertEqual(after['part_instances'], before['part_instances'])
         await view._toggle_part('Atomic Driver')
         await view._load_cache()
         self.assertFalse(view._cache['bey'][0]['equipped'])
