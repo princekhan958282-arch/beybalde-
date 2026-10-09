@@ -821,7 +821,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
         if owned:
             prof = await get_user(ctx.author.id)
             view = ProgressionView(ctx.author.id, avatar, prof, bot=self.bot)
-            msg = await ctx.send(embed=progression_embed(prof, avatar), view=view,
+            msg = await ctx.send(embed=None if card is not None else progression_embed(prof, avatar), view=view,
                                  **({'file': card} if card is not None else {}))
             view.message = msg
         elif card is not None:
