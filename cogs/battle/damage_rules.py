@@ -16,7 +16,7 @@ from .constants import (
     COUNTER, MIRROR_CHIP_DAMAGE, WINNING_BONUS_MULT, LOSING_PENALTY_MULT,
     ATTACK_VS_STAMINA_MULT, NORMAL_ATTACK_DAMAGE_SCALE,
     ATTACK_CLASH_DEF_CONVERSION, ATTACK_CLASH_MULT,
-    BASE_HP, SPECIAL_FALLBACK_HP_FRACTION,
+    SPECIAL_FALLBACK_HP_FRACTION,
 )
 
 # ── Defense tuning knobs ──────────────────────────────────────────────────────
@@ -252,11 +252,9 @@ def resolve_special(blade: dict,
         ignores_defense = bool(sm.get("ignores_defense", False))
         return hits, per_hit, flavour, ignores_defense
 
-    # Fallback for a blade with no special_move data. Scaled FROM BASE_HP
-    # rather than hardcoded: it used to be a flat 360, which was 60% of the
-    # old 600 HP bar and became 9% of the 4000 one — a blade with missing
-    # special data silently lost its Special the moment HP was rescaled.
-    fallback = max(5, math.ceil(BASE_HP * SPECIAL_FALLBACK_HP_FRACTION * scale))
+    # Blades without authored Specials use their own converted HP pool.
+    from utils.hp_system import max_hp_for_blade
+    fallback = max(5, math.ceil(max_hp_for_blade(blade) * SPECIAL_FALLBACK_HP_FRACTION * scale))
     return 1, fallback, [f"🌟 Special move deals **{fallback} damage**!"], False
 
 

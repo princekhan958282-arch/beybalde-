@@ -265,26 +265,18 @@ def hp_adjustment(breakdown: dict) -> int:
 
 
 async def level_hp_gain(user_id, blade: Optional[dict]) -> int:
-    """Extra HP a bey has earned from its level, above the printed pool.
+    """Level/part adjustment in battle HP units, with each stat worth 15 HP.
 
-    `hp_system.max_hp_for_blade` runs the HP stat through `blade_hp_stat`,
-    which CLAMPS it into the blade's type band (80-139). That clamp is right
-    for a printed stat — it keeps the roster in class — but it throws away
-    every point of levelled HP, so the gain has to be added back on top.
-
-    Lives here, and not in `battle/session.py` where it was written, because
-    the display side needs the same number: `;info` printed the clamped pool
-    as "battle pool" while the bey actually fought with this added on, so a
-    level-100 card understated its own HP by hundreds. One function, one
-    answer, both surfaces.
-
-    Never raises: a missing profile must not stop a battle starting, nor break
-    a card.
+    Avatar HP boosts are handled after conversion, separately from stat gains.
+    Kept for display callers; the session snapshots its effective pool directly.
     """
     try:
-        _eff, breakdown, _av = await effective_blade(int(user_id), blade=blade)
-        hp_bd = (breakdown or {}).get("hp") or {}
-        return hp_adjustment(hp_bd)
+        from utils.hp_system import max_hp_for_blade
+        from utils.database import get_user
+        profile = await get_user(int(user_id))
+        effective, _, _ = await effective_blade(int(user_id), profile=profile, blade=blade,
+                                               include_avatar=False, include_parts=not bool(profile.get('active_copy')))
+        return max_hp_for_blade(effective) - max_hp_for_blade(blade)
     except Exception:                                    # noqa: BLE001
         return 0
 
@@ -292,4 +284,14 @@ async def level_hp_gain(user_id, blade: Optional[dict]) -> int:
 async def battle_pool(user_id, blade: Optional[dict]) -> int:
     """The HP this bey really fights with. What a card should print."""
     from utils.hp_system import max_hp_for_blade
-    return max_hp_for_blade(blade) + await level_hp_gain(user_id, blade)
+    import math
+    from utils.database import get_user
+    from cogs.battle.type_gimmicks import passive_stat_multiplier
+    profile = await get_user(int(user_id))
+    effective, _, av = await effective_blade(int(user_id), profile=profile, blade=blade,
+                                            include_avatar=False, include_parts=not bool(profile.get('active_copy')))
+    pool = max_hp_for_blade(effective)
+    av = await avatar_bonuses(int(user_id))
+    if av is not None:
+        pool = int(av.apply_hp_bonus(pool))
+    return max(1, math.floor(pool * passive_stat_multiplier(effective.get('type'), 'hp')))

@@ -6,20 +6,8 @@ stamina costs, and counter relationships.
 """
 
 # ── HP & Damage Knobs ─────────────────────────────────────────────────────────
-# Starting HP for a battle. History: 600 -> 4000 -> 2000.
-#
-# 4000 made a PvP bar far too deep to chew through. Measured over 400 random
-# blade pairings, average damage lands around 21 a turn, which is ~189 turns to
-# clear a 4000 bar and ~94 to clear this one. Real play is quicker than a random
-# policy, but the ratio holds: at 4000 the fight outlasted anybody's patience.
-#
-# Everything expressed as a FRACTION of BASE_HP — percentage heals, the Special
-# fallback (SPECIAL_FALLBACK_HP_FRACTION), chain heals — rescales with this
-# automatically, which is why they are all written as fractions. The two things
-# that do NOT are MIRROR_CHIP_DAMAGE below (a flat 32, so it now bites twice as
-# hard relative to the bar) and boss_battle.BASE_PLAYER_HP, which is a
-# deliberately separate pool and stays at 4000.
-BASE_HP              = 2000
+# PvP and Story derive HP from the equipped stat at 15:1 (utils.hp_system).
+# Percentage healing uses each fighter's maximum; Boss HP is independent.
 WINNING_BONUS_MULT   = 1.5
 LOSING_PENALTY_MULT  = 0.5
 MIRROR_CHIP_DAMAGE   = 32     # still used by the Defense/Stamina mirrors
@@ -33,7 +21,7 @@ ATTACK_CLASH_DEF_CONVERSION = 0.20
 ATTACK_CLASH_MULT           = 1.0
 
 # What a Special is worth when a blade has no special_move data at all, as a
-# fraction of BASE_HP. Kept as a fraction so rescaling HP can't quietly turn
+# fraction of the blade's converted HP pool. Kept as a fraction so rescaling HP can't quietly turn
 # the fallback into a rounding error.
 SPECIAL_FALLBACK_HP_FRACTION = 0.60
 BATTLE_TIMEOUT       = 300   # seconds per round before forfeit

@@ -31,7 +31,6 @@ import math
 import random
 from . import button_profile
 from .constants import (
-    BASE_HP,
     MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_SPECIAL, MOVE_CHARGE,
     SPECIAL_GAUGE_MAX,
     STAMINA_COST_MAX, STAMINA_COST_MIN, STAMINA_COST_STAT_WEIGHT,
@@ -336,7 +335,8 @@ class StaminaManager:
         session = getattr(self, "purification_session", None)
         if session is not None:
             heal = heal_amount(session, key, heal)
-        cap = BASE_HP if max_hp is None else max_hp
+        from utils.hp_system import max_hp_for_blade
+        cap = max_hp_for_blade(blade) if max_hp is None else max_hp
         hp[key], actual = recover_hp(hp[key], cap, heal)
         return [f"⚡ **{blade['name']}** recovers **{actual} HP** and **+{recovery:g} Battle Stamina**!"]
 

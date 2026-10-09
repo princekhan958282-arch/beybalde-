@@ -53,7 +53,7 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING
 
-from .constants import BASE_HP
+from utils.hp_system import max_hp_for_blade
 
 if TYPE_CHECKING:
     from .session import BattleSession
@@ -153,7 +153,8 @@ class ChainHandler:
             return logs
 
         hp_value = max(0, s.hp.get(key, 0))
-        hp_ratio = hp_value / BASE_HP if BASE_HP else 1.0
+        maximum = s.max_hp_per_player.get(key, max_hp_for_blade(blade))
+        hp_ratio = hp_value / max(1, maximum)
 
         # ── First ability name for log labels ─────────────────────────────────
         abilities = blade.get("abilities")
@@ -252,8 +253,9 @@ class ChainHandler:
 
         elif effect == "heal_pct":
             from .purification import heal_amount
-            heal = heal_amount(s, key, math.ceil(BASE_HP * value))
-            s.hp[key] = min(BASE_HP, s.hp.get(key, 0) + heal)
+            maximum = s.max_hp_per_player.get(key, max_hp_for_blade(blade))
+            heal = heal_amount(s, key, math.ceil(maximum * value))
+            s.hp[key] = min(maximum, s.hp.get(key, 0) + heal)
             logs.append(f"  ⛓️ **{ab_name} Chain** — Chain heal: +**{heal} HP**!")
 
         elif effect in ("activate_mode", "attack_boost"):

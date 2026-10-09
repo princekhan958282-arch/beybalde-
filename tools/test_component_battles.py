@@ -83,7 +83,7 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         from utils.hp_system import max_hp_for_blade
         import math
         passive = passive_stat_multiplier(self.raw['type'], 'hp')
-        self.assertEqual(boosted.hp['701'], math.floor((max_hp_for_blade(self.raw) + 13) * passive))
+        self.assertEqual(boosted.hp['701'], math.floor((max_hp_for_blade(self.raw) + 13 * 15) * passive))
         mult = await DB.get_stat_multiplier(701, self.raw['name'])
         self.assertEqual(boss_boosted.hp, math.floor((BB.BASE_PLAYER_HP + 13) * mult * passive))
         self.assertEqual(boss_base.hp, math.floor((BB.BASE_PLAYER_HP - stock_hp) * mult * passive))
@@ -130,5 +130,77 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('equipped', ctx.send.call_args.args[0])
         await ShopCog.unequippart.callback(shop,ctx,part_name='Atomic Driver')
         self.assertEqual(set((await DB.get_user(701))['equipped_parts']), {'Nexus Disk', REGISTRY.part(self.raw['default_parts']['driver'])['name']})
+
+    async def test_level_and_parts_hp_convert_once_without_a_base_pool(self):
+        from utils import bey_levels as BL
+        from utils.loadout import effective_blade
+        import math
+        await DB.mutate_user(701, lambda p:p.update(bey_progress={'Dranzer':{'xp':BL.xp_for_level(30),'ivs':{}}}))
+        effective, _, _ = await effective_blade(701, blade=self.raw, include_avatar=False)
+        s = await self.pvp()
+        expected = math.floor(effective['stats']['hp'] * 15 * passive_stat_multiplier(self.raw['type'], 'hp'))
+        self.assertEqual(s.hp['701'], expected)
+        self.assertEqual(s.max_hp_per_player['701'], expected)
+
+    async def test_story_npc_levelled_hp_is_not_added_twice(self):
+        from utils.hp_system import max_hp_for_blade
+        import math
+        player, _ = await player_blade(701)
+        npc_blade, gain = H.levelled('Draciel F')
+        self.assertGreater(gain, 0)
+        s, _, npc, _ = await H.build_session(self.p1, player, npc_blade, gain, 'elite', spend_energy=False)
+        pool = int(s.avatar_bonuses[str(npc.id)].apply_hp_bonus(max_hp_for_blade(npc_blade)))
+        expected = math.floor(pool * passive_stat_multiplier(npc_blade['type'], 'hp'))
+        self.assertEqual(s.hp[str(npc.id)], expected)
+
+    async def test_avatar_hp_applies_once_after_conversion_and_card_matches(self):
+        from cogs.avatar import avatar_engine, AvatarBonuses
+        from utils.loadout import battle_pool, effective_blade
+        import math
+        bonus = AvatarBonuses(hp_flat=50, hp_percent=0.10)
+        effective, _, _ = await effective_blade(701, blade=self.raw, include_avatar=False)
+        with patch.object(avatar_engine, 'get_battle_bonuses', new=AsyncMock(return_value=bonus)):
+            s = await self.pvp()
+            displayed = await battle_pool(701, self.raw)
+        expected = math.floor(int((effective['stats']['hp'] * 15 + 50) * 1.10)
+                              * passive_stat_multiplier(self.raw['type'], 'hp'))
+        self.assertEqual(s.hp['701'], expected)
+        self.assertEqual(displayed, expected)
+
+
+class HpConversionTests(unittest.TestCase):
+    def test_conversion_has_no_type_band_clamp_or_base_hp(self):
+        from utils.hp_system import max_hp_for_blade
+        for stat in (1, 80, 100, 139, 500):
+            with self.subTest(hp=stat):
+                self.assertEqual(max_hp_for_blade({'type':'Attack', 'stats':{'hp':stat}}), stat * 15)
+
+    def test_missing_invalid_and_zero_hp_are_safe(self):
+        from utils.hp_system import max_hp_for_blade
+        self.assertEqual(max_hp_for_blade(None), 1500)
+        self.assertEqual(max_hp_for_blade({'stats':{'hp':0}}), 1)
+        for invalid in ('bad', float('nan'), float('inf')):
+            self.assertGreater(max_hp_for_blade({'stats':{'hp':invalid}}), 0)
+
+    def test_missing_special_scales_with_blades_hp_pool(self):
+        from cogs.battle.damage_rules import resolve_special
+        self.assertEqual(resolve_special({'stats':{'hp':100}})[1], 900)
+        self.assertEqual(resolve_special({'stats':{'hp':200}})[1], 1800)
+
+    def test_chain_healing_uses_fighters_actual_maximum(self):
+        from cogs.battle.chain_handler import ChainHandler
+        from cogs.battle.status_manager import StatusManager
+        for maximum in (750, 6000):
+            blade = {'name':'Test', 'stats':{'hp':maximum//15}}
+            session = SimpleNamespace(hp={'a':maximum-10, 'b':100},
+                                      max_hp_per_player={'a':maximum})
+            session.status = StatusManager(session)
+            # The chain's shared healing adapter does not need a battle engine
+            # to verify the percentage and cap calculation.
+            with patch('cogs.battle.purification.heal_amount', side_effect=lambda s,k,n:n):
+                chain = ChainHandler(session)
+                chain._apply_effect({'effect':'heal_pct','value':0.1},'a','b',blade,'Test',0)
+            self.assertEqual(session.hp['a'], maximum)
+
 
 if __name__=='__main__': unittest.main()

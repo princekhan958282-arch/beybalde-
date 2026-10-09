@@ -134,13 +134,7 @@ def _stat_line(label: str, emoji: str, value: int,
 
 
 async def _battle_pool(blade: dict, user_id=None) -> int:
-    """The pool this bey really fights with, for whoever owns it.
-
-    `max_hp_for_blade` clamps the HP stat back into the type band, which drops
-    every point of levelled HP — but the battle adds that gain back on
-    (`loadout.level_hp_gain`). Printing the clamped figure understated a
-    level-100 bey's pool by hundreds on its own card.
-    """
+    """Converted HP pool, including the owner's level and equipped parts."""
     if user_id is None:
         return max_hp_for_blade(blade)
     try:
