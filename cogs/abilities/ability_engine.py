@@ -742,6 +742,19 @@ class AbilityEngine:
         except (TypeError, ValueError):                  # noqa: BLE001
             return val
 
+    def _special_true_damage(self, rule, move, key, damage, logs):
+        # Only damage authored on the owner's Special is amplified here.
+        # Counters/DoTs remain independent; flat and full-ATK riders belong to
+        # the returned Special hit and must not be paid again per direct op.
+        if move == MOVE_SPECIAL and rule.get('when') == 'on_special':
+            avatar = (getattr(self.session, 'avatar_bonuses', {}) or {}).get(key)
+            percent = float(getattr(avatar, 'special_move_percent', 0))
+            boosted = int(round(damage * (1 + percent)))
+            if boosted != damage:
+                logs.append(f"🌟 **Avatar** — Special true damage {damage} → {boosted}!")
+            return boosted
+        return damage
+
     def _run_ops(self, rule: dict, ab_name: str, key: str, okey: str,
                  move: str, dmg_dealt: int, dmg_taken: int,
                  logs: list[str], matchup: str = "") -> tuple[int, int]:
@@ -821,8 +834,9 @@ class AbilityEngine:
                 m = float(val)
                 self.crit_damage_mult[key] = m if m > 1 else 1.5 + m
             elif kind == "true_damage":
-                self.session.hp[okey] = self.session.hp.get(okey, 0) - int(val)
-                logs.append(f"💥 **{ab_name}** — {int(val)} TRUE damage!")
+                amount = self._special_true_damage(rule, move, key, int(val), logs)
+                self.session.hp[okey] = self.session.hp.get(okey, 0) - amount
+                logs.append(f"💥 **{ab_name}** — {amount} TRUE damage!")
             elif kind == "true_damage_stat_pct":
                 # Like true_damage, but scaled off the WIELDER'S OWN stat
                 # instead of a flat printed number — and, like true_damage,
@@ -847,6 +861,7 @@ class AbilityEngine:
                         base = ((self.session.blades.get(key) or {})
                                 .get("stats") or {}).get(stat, 0)
                     amt = max(0, int(round(float(base) * scale)))
+                    amt = self._special_true_damage(rule, move, key, amt, logs)
                     if amt > 0:
                         self.session.hp[okey] = self.session.hp.get(okey, 0) - amt
                         logs.append(f"💥 **{ab_name}** — {amt} TRUE damage "
@@ -1828,13 +1843,16 @@ class AbilityEngine:
         is_first_hit: bool = True,
         cumulative_dmg: int = 0,
         is_last_hit: bool = True,
+        avatar_special_pending: bool = False,
     ) -> tuple[int, int, list[str]]:
         """Route one move through the full generic trigger pipeline."""
         logs: list[str] = []
-        # Zero-base Specials (e.g. Xeno) generate their damage in the DSL.
-        # AttackManager could not apply avatar bonuses to that future damage.
-        avatar_generated_special = (move == MOVE_SPECIAL
-            and bool((mover_blade.get('special_move') or {}).get('non_damage')))
+        # Standard Specials defer their avatar bonus until all offensive
+        # damage additions have completed. Direct zero-base DSL callers also
+        # retain the generated-Special path introduced for Xeno.
+        avatar_generated_special = (move == MOVE_SPECIAL and (
+            avatar_special_pending or
+            bool((mover_blade.get('special_move') or {}).get('non_damage'))))
 
         if move == MOVE_SPECIAL and is_first_hit:
             for _, rule in self._rules_for(mover_blade, mover_key):

@@ -719,14 +719,6 @@ class AttackManager:
         # double-counting damage that was already deducted from hp.
         self_managed = mblade.get("name", "") in SELF_MANAGED_HITS
 
-        # Avatar Special bonuses are applied once to the finished total rather
-        # than per hit, so a 5-hit Special isn't multiplied five times over.
-        _ult_atk = 0
-        try:
-            _ult_atk = _live_stats.get("attack", 0)
-        except Exception:
-            _ult_atk = mblade.get("stats", {}).get("attack", 0)
-
         # Per-hit damage, in order. A `damage_per_hit` LIST was being averaged
         # by resolve_special, so "110 then 70" became 90/90 and the authored
         # shape of a front-loaded Special never reached the stadium. A scalar
@@ -823,13 +815,6 @@ class AttackManager:
             if rider_log:
                 logs.append(rider_log)
             hit_base = math.ceil((base_for_hit + rider) * mult)
-            av = getattr(self.session, "avatar_bonuses", {}).get(mkey)
-            if av is not None and hit_base > 0:
-                percent = float(getattr(av, "special_move_percent", 0))
-                flat = float(getattr(av, "special_move_flat", 0)) if hit_n == 0 else 0
-                rider = _ult_atk if hit_n == 0 and getattr(av, "ult_adds_attack_stat", False) else 0
-                hit_base = (hit_base + flat) * (1 + percent) + rider
-
             # Per-hit proc (on_hit abilities — Reckless Fury etc.)
             hit_base, proc_logs = self.session.ability.process_hit_proc(
                 mkey, mblade, okey, hit_base
@@ -847,6 +832,7 @@ class AttackManager:
                 is_first_hit=is_first,
                 cumulative_dmg=total_dmg,
                 is_last_hit=is_last,
+                avatar_special_pending=True,
             )
 
             # Passive flat damage reduction (Dead Phoenix / Undying Blaze)
