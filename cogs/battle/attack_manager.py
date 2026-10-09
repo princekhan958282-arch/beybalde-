@@ -859,23 +859,13 @@ class AttackManager:
                 cumulative_dmg=total_dmg,
                 is_last_hit=is_last,
                 avatar_special_pending=True,
+                minimum_hit_damage=_min_hit_dmg,
             )
 
             # Passive flat damage reduction (Dead Phoenix / Undying Blaze)
             # Skipped if the Special explicitly ignores defense
             if not ignores_def and not getattr(self.session, "type_gimmicks", None):
                 hit_dmg, logs = self._apply_passive_reduction(okey, oblade, hit_dmg, logs)
-
-            # Authored per-hit floor (`special_move.min_hit_damage`) — nothing
-            # guarantees a Special can't be reduced to 0 by passive reduction
-            # or type mitigation, and "cannot deal less than 1" is sometimes
-            # part of the design rather than an incidental floor. Opt-in and
-            # only applied when a hit was going to land at all — `non_damage`
-            # Specials (0 by design) never set this field.
-            if _min_hit_dmg > 0 and hit_dmg < _min_hit_dmg:
-                from .special_guard import reduce_special
-                hit_dmg = max(hit_dmg, reduce_special(
-                    self.session, mkey, okey, MOVE_SPECIAL, _min_hit_dmg))
 
             # Gauge — defender gains from taking damage; attacker does NOT gain
             # gauge from their own Special move (they just consumed the full
