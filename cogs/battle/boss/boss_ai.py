@@ -208,6 +208,7 @@ class Fighter:
     ability_blade: Optional[dict] = None
     combat_round: int = 0
     avatar_card: dict = field(default_factory=dict)
+    avatar_bonuses: object = None
     avatar_combat_state: dict = field(default_factory=dict)
     avatar_stat_multipliers: dict = field(default_factory=dict)
     incoming_reduction: float = 0
@@ -316,6 +317,7 @@ class Fighter:
                        ability_blade=copy.deepcopy(self.ability_blade),
                        combat_round=self.combat_round,
                        avatar_card=copy.deepcopy(self.avatar_card),
+                       avatar_bonuses=copy.deepcopy(self.avatar_bonuses),
                        avatar_combat_state=copy.deepcopy(self.avatar_combat_state),
                        avatar_stat_multipliers=dict(self.avatar_stat_multipliers),
                        incoming_reduction=self.incoming_reduction,
@@ -386,21 +388,31 @@ CRIT_DAMAGE_BONUS = 0.55
 
 
 def _raw_damage(src: Fighter, special: bool = False,
-                vs_boss: bool = False, dst: Optional[Fighter] = None) -> float:
+                vs_boss: bool = False, dst: Optional[Fighter] = None,
+                logs: Optional[list] = None) -> float:
     base = src.eff_attack * DMG_SCALE * src.dmg_mult
     if not special:
         pierce = src.state.pierce() if src.state else 0
         defense = dst.eff_defense * (1 - pierce) if dst else 50
         return base_damage(src.level, src.move_power, src.eff_attack, defense) * src.dmg_mult
     if src.special_damage is not None:
-        return src.special_damage * src.dmg_mult * (PLAYER_SPECIAL_VS_BOSS if vs_boss else 1.0)
+        out = src.special_damage * src.dmg_mult
     # Bosses replace the formula outright with a flat percentage of attack.
-    if src.special_atk_pct is not None:
-        return src.eff_attack * src.special_atk_pct * src.dmg_mult
+    elif src.special_atk_pct is not None:
+        out = src.eff_attack * src.special_atk_pct * src.dmg_mult
     # special_mult is the wielder's `special` stat relative to its printed
     # value, so a levelled bey's Special grows. Applied on this branch only —
     # ordinary attacks must not inherit it.
-    out = base * SPECIAL_MULT * max(1.0, src.special_mult)
+    else:
+        out = base * SPECIAL_MULT * max(1.0, src.special_mult)
+    if src.avatar_bonuses is not None and out > 0:
+        from types import SimpleNamespace
+        from ..avatar_combat import apply_ult_bonus
+        out, bonus_logs = apply_ult_bonus(
+            SimpleNamespace(avatar_bonuses={'src': src.avatar_bonuses}),
+            'src', out, src.eff_attack)
+        if logs is not None:
+            logs.extend(bonus_logs)
     if vs_boss:
         out *= PLAYER_SPECIAL_VS_BOSS
     return out
@@ -464,7 +476,8 @@ def resolve(a: Fighter, b: Fighter, move_a: str, move_b: str, *, simulate=False)
             other = 'b' if tag == 'a' else 'a'
             avatar_bridge.og.preprocess(tag,other,{'defense':dst.eff_defense})
         dmg = _raw_damage(src, special,
-                          vs_boss=getattr(dst, "special_atk_pct", None) is not None, dst=dst)
+                          vs_boss=getattr(dst, "special_atk_pct", None) is not None,
+                          dst=dst, logs=ability_logs)
 
         if avatar_bridge and not special:
             pierce=avatar_bridge.og.pierce(tag)

@@ -311,8 +311,9 @@ class BattleSession:
             # become 0 when this round exhausts the match's energy budget.
             bonuses = await _AE.get_battle_bonuses(pid)
             eff_spec = int(effective.get("stats", {}).get("special", 0))
-            if bonuses:
-                eff_spec = int(bonuses.apply_special_move_bonus(eff_spec))
+            # Only level/parts scale the authored Special stat here. Avatar
+            # damage bonuses are applied before hit mitigation by AttackManager.
+            # Folding them into this stat too multiplies them a second time.
 
             prefetch[key] = {
                 "profile":           profile,

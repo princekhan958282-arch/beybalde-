@@ -120,6 +120,79 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
         s.stamina_manager.add_gauge("101", "charge")
         self.assertEqual(s.stamina_manager.gauge["101"], 50)
 
+    async def test_dyrroth_special_bonus_applied_once_in_pvp(self):
+        s = await self.build("avatar_x003", slot=3)
+        # Use an authored two-hit Special to catch both double scaling and
+        # adding the full Attack rider on every hit.
+        s.blades["101"]["special_move"] = {"hits": 2, "damage_per_hit": 100,
+                                             "ignores_defense": True}
+        damage, _ = s.attack_manager._resolve_special(
+            "101", "102", "special", s.blades["101"], s.blades["102"], [])
+        atk = effective_stats(s, "101")["attack"]
+        self.assertEqual(damage, round(2 * 211 + atk))
+
+    async def test_dyrroth_formula_special_bonus_in_pvp(self):
+        s = await self.build("avatar_x003", slot=3)
+        s.blades["101"]["special_move"] = {
+            "damage_formula": {"base": 100}, "ignores_defense": True}
+        damage, _ = s.attack_manager._resolve_special(
+            "101", "102", "special", s.blades["101"], s.blades["102"], [])
+        self.assertEqual(damage, round(211 + effective_stats(s, "101")["attack"]))
+
+    async def test_dyrroth_special_bonus_reaches_boss_hp_and_ai(self):
+        from cogs.battle.boss import boss_battle as BB, boss_ai as AI
+        for special_stat in (0, 100):
+            with self.subTest(special_stat=special_stat):
+                s = await self.build("avatar_x003", slot=3)
+                blade = copy.deepcopy(s.blades["101"])
+                blade["stats"]["special"] = special_stat
+                with patch.object(BB.bcopy, "equipped_blade",
+                                  return_value=(blade, None)):
+                    boosted, _ = await BB._player_fighter(101)
+                baseline = boosted.clone()
+                baseline.avatar_bonuses = None
+                baseline.special_mult = 1
+                target = AI.Fighter("Boss", 100000, 100000, 100, 100, 100,
+                                    special_atk_pct=3.9)
+                baseline.gauge = 150
+                base_report = AI.resolve(target.clone(), baseline,
+                                         "charge", "special")
+                raw = AI._raw_damage(baseline, True)
+                expected = round(raw * 2.11) + round(boosted.eff_attack)
+                self.assertEqual(AI._raw_damage(boosted, True), expected)
+                boosted.gauge = 150
+                before = target.hp
+                report = AI.resolve(target, boosted, "charge", "special")
+                self.assertEqual(before - target.hp, report["dmg_to_a"])
+                self.assertEqual(report["dmg_to_a"],
+                                 int(expected * AI.PLAYER_SPECIAL_VS_BOSS))
+                self.assertGreater(report["dmg_to_a"], base_report["dmg_to_a"])
+                self.assertTrue(any("full Attack stat added" in line
+                                    for line in report["gimmicks"]))
+                clone = baseline.clone()
+                clone.avatar_bonuses = copy.deepcopy(boosted.avatar_bonuses)
+                self.assertEqual(AI._raw_damage(clone, True), expected)
+
+    async def test_boss_other_skill_does_not_grant_dyrroth_ultimate(self):
+        from cogs.battle.boss import boss_battle as BB, boss_ai as AI
+        s = await self.build("avatar_x003", slot=1)
+        with patch.object(BB.bcopy, "equipped_blade",
+                          return_value=(s.blades["101"], None)):
+            fighter, _ = await BB._player_fighter(101)
+        plain = fighter.clone()
+        plain.avatar_bonuses = None
+        self.assertEqual(AI._raw_damage(fighter, True), AI._raw_damage(plain, True))
+
+    async def test_boss_authored_special_uses_bonus_once(self):
+        from cogs.battle.boss import boss_ai as AI
+        s = await self.build("avatar_x003", slot=3)
+        fighter = AI.Fighter("Player", 10000, 10000, 100, 100, 100,
+                             special_damage=1456,
+                             avatar_bonuses=s.avatar_bonuses["101"])
+        self.assertEqual(AI._raw_damage(fighter, True), round(1456 * 2.11) + 100)
+        self.assertEqual(AI._raw_damage(fighter.clone(), True),
+                         AI._raw_damage(fighter, True))
+
 
 if __name__ == "__main__":
     unittest.main()
