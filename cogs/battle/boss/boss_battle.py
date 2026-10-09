@@ -513,6 +513,9 @@ async def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
     # _breakdown carries both the printed and the levelled value already.
     _spc = (_breakdown or {}).get("special") or {}
     _spc_base, _spc_total = float(_spc.get("base", 0) or 0), float(_spc.get("total", 0) or 0)
+    # Avatar Special bonuses affect damage directly in boss_ai, including
+    # blades without a printed Special stat. Keep level/parts scaling separate.
+    _spc_total -= float(_spc.get("avatar", 0) or 0)
     special_mult = max(1.0, _spc_total / _spc_base) if _spc_base > 0 and _spc_total > 0 else 1.0
 
     # Stamina bar derived from the stamina stat, matching PvP, instead of a
@@ -532,6 +535,7 @@ async def _player_fighter(user_id: int) -> tuple[ai.Fighter, dict]:
                     bey_type=(blade or {}).get("type", ""),
                     level=_bey_level)
     from cogs.avatar.avatar_engine import avatar_engine
+    f.avatar_bonuses = av
     card=avatar_engine.get_avatar(profile.get("equipped_avatar") or "") or {}
     if card.get("active_battle_skills"):
         f.avatar_card=card
