@@ -59,7 +59,7 @@ Avatar-changing transactions advance a revision. Generic stale profile saves are
 
 Tests cover every configured tier and allocation, success boundaries, destruction, cancellation/timeout, same-category material selection, persistence, concurrent independent SQLite connections, stale confirmations/saves, all progression buttons, renders, rewards, recovery and real PvP/Story/Boss snapshots. Original Generation tests cover unique abilities and temporary skill-level empowerment.
 
-CI provisions an isolated MySQL 8 service and runs the same transaction tests through `AVATAR_V4_TEST_MYSQL_URL`. Without that test-only URL, four live MySQL tests skip; mocked MySQL row-lock/commit/rollback checks still run. No production credentials or live Discord login are required. Live Discord interactions and the CI MySQL result must be checked before rollout.
+CI provisions an isolated MySQL 8 service and runs the same transaction tests through `AVATAR_V4_TEST_MYSQL_URL`. Without that test-only URL, five live MySQL tests skip; mocked MySQL row-lock/commit/rollback checks still run. No production credentials or live Discord login are required. Live Discord interactions and the CI MySQL result must be checked before rollout.
 
 ## Remaining balance decisions
 

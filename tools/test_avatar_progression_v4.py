@@ -219,6 +219,19 @@ class TransactionTests(unittest.TestCase):
             self.assertEqual(p['coins'],10)
             self.assertEqual(p['avatar_rewards']['one']['state'],'sell')
 
+    def test_explicit_restore_cannot_roll_back_revision_token(self):
+        with patch.object(DB,'USER_STORE',self.store):
+            for index in range(3):
+                DB._mutate_user_sync(101,lambda p:enqueue(p,AID,reward_id=f'r{index}'))
+            old=DB._get_user_sync(101)
+            old['avatar_revision']=0
+            def restore(p):
+                p.clear()
+                p.update(copy.deepcopy(old))
+                p['avatar_copies'][AID]=2
+            DB._mutate_user_sync(101,restore)
+            self.assertEqual(DB._get_user_sync(101)['avatar_revision'],4)
+
     def test_mysql_transaction_contract_row_lock_commit_and_rollback(self):
         from utils.mysql_store import MySQLStore
         store=MySQLStore.__new__(MySQLStore)

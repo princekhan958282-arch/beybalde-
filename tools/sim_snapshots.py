@@ -119,8 +119,12 @@ async def main() -> int:
     after = STORE.load_all()
     check(f"the restore reports {out['profiles']} profiles",
           out["profiles"] == 50, out)
-    same = sum(1 for uid in before if after.get(uid) == before[uid])
-    check("every profile is identical to before the wipe", same == 50,
+    # Restore is an explicit avatar write. Its monotonic concurrency token
+    # must advance; all backed-up player data must remain identical.
+    comparable = {uid: {k: v for k, v in profile.items() if k != 'avatar_revision'}
+                  for uid, profile in after.items()}
+    same = sum(1 for uid in before if comparable.get(uid) == before[uid])
+    check("every profile's player data is identical to before the wipe", same == 50,
           f"{same}/50")
 
     # ── 2. avatars — the check the naive version fails ──────────────────────

@@ -437,12 +437,13 @@ def _mutate_user_sync(user_id: int, fn, touch: bool = True):
             from .bey_components import reconcile
             reconcile(prof)
             _migrate_avatar_profile(prof, user_id)
+            before_revision = int(prof.get('avatar_revision', 0))
             before = copy.deepcopy({key: prof.get(key) for key in
                 ('avatar_inventory', 'avatar_copies', 'avatar', 'avatar_rewards')})
             result = fn(prof)
             after = {key: prof.get(key) for key in before}
             if before != after:
-                prof['avatar_revision'] = int(prof.get('avatar_revision', 0)) + 1
+                prof['avatar_revision'] = before_revision + 1
             reconcile(prof)
             return prof, result
         return USER_STORE.mutate_one(uid, apply, touch=touch)

@@ -42,7 +42,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install test dependencies
-        run: python -m pip install 'discord.py>=2.6' python-dotenv pillow playwright PyMySQL==1.1.1
+        run: python -m pip install 'discord.py>=2.6' python-dotenv pillow playwright 'PyMySQL[rsa]==1.1.1'
       - name: Migration, equipment and SQLite restart
         run: |
           python -m unittest tools.test_character_components
