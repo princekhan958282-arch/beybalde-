@@ -5,6 +5,7 @@ import time
 
 import discord
 from discord.ext import commands
+from utils.buildinfo import VERSION
 
 
 class PingCog(commands.Cog):
@@ -24,6 +25,7 @@ class PingCog(commands.Cog):
         embed = discord.Embed(title="🏓 Pong!", color=discord.Color.green())
         embed.add_field(name="Discord WebSocket", value=f"{websocket_ms:.0f} ms", inline=True)
         embed.add_field(name="Message / API", value=f"{api_ms:.0f} ms", inline=True)
+        embed.add_field(name="BEYCBOT Version", value=VERSION, inline=True)
         embed.set_footer(text="Message/API includes the bot → Discord request round trip.")
         await message.edit(content=None, embed=embed)
 
