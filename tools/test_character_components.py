@@ -21,6 +21,8 @@ from cogs.economy.shop import PARTS_CATALOG, PurchaseError, apply_part_purchase,
 
 BASELINE = json.loads((ROOT / 'docs/component_migration_baseline.json').read_text())
 
+SKILL_CORRECTIONS = json.loads((ROOT / 'docs/avatar_skill_regression_baseline.json').read_text())['avatars']
+
 def digest(document):
     return hashlib.sha256(json.dumps(document, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
 
@@ -38,13 +40,24 @@ class MigrationTests(unittest.TestCase):
                 expected = baseline[value['id']]
                 # Includes complete abilities, transformations, skills, images,
                 # shop metadata, cooldowns and every other original field.
-                self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected['sha256'])
+                with self.subTest(kind=kind, id=value['id'], name=value['name']):
+                    correction = SKILL_CORRECTIONS.get(value['id']) if kind == 'avatar' else None
+                    expected_hash = expected['sha256']
+                    if correction:
+                        self.assertEqual(correction['migration_sha256'], expected_hash)
+                        self.assertEqual(correction['name'], value['name'])
+                        expected_hash = correction['sha256']
+                    self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
         for folder, number in (('beys', 132), ('avatars', 54), ('parts/disks', 150), ('parts/drivers', 149)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
         for folder in ('beys', 'avatars'):
             self.assertFalse(any(p.is_dir() for p in (ROOT / folder).iterdir()))
         self.assertFalse((ROOT / 'data/beyblades.json').exists())
         self.assertFalse((ROOT / 'cogs/avatar/avatar_data.json').exists())
+
+    def test_skill_corrections_reference_existing_avatar_records(self):
+        self.assertTrue(SKILL_CORRECTIONS)
+        self.assertLessEqual(set(SKILL_CORRECTIONS), set(BASELINE['avatars']))
 
     def test_parts_preserve_verified_prices_and_tradeoffs(self):
         catalog = {p['name']: p for p in PARTS_CATALOG}

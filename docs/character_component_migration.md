@@ -8,7 +8,10 @@ This follow-up starts from `dc33f6529b025f68cf00a37a0ee57c5b41c92486`
 Beyblades (131 formerly authored in the monolith plus startup's Unlock Unicorn),
 54 Avatars, 18 purchasable Disks, 17 purchasable Drivers and 16 legacy Rings.
 Original record hashes verify IDs, total base stats, abilities, Specials, forms,
-images, rarity, Avatar skills and shop metadata. No Avatar definition changes.
+images, rarity, Avatar skills and shop metadata. Subsequent reviewed Avatar skill corrections are recorded separately in
+`avatar_skill_regression_baseline.json`, with both original and corrected hashes.
+The original migration manifest remains immutable; all record fields continue
+to be checked.
 
 The former null-default/unsplit-frame compatibility strategy is superseded by
 the user's authorized distribution. All 132 Beys now reference unique default
