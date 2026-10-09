@@ -166,9 +166,12 @@ class AttackManager:
             ostats = og.preprocess(mkey, okey, ostats)
 
         # ── Raw damage from damage_rules ──────────────────────────────────────
+        ostats = self.session.ability.dranzer.attack_stats(mkey, ostats)
         dmg_dealt, dmg_taken, matchup, is_crit = calc_damage(
             mmove, mstats, ostats, mblade, omove
         )
+        if mmove == MOVE_ATTACK:
+            dmg_dealt = self.session.ability.dranzer.attack_bonus(mkey, dmg_dealt)
 
         if og and mmove == MOVE_ATTACK and omove == MOVE_DEFENSE:
             from .combat_rules import base_damage
@@ -362,19 +365,23 @@ class AttackManager:
             dmg_p1, _ctr, _avl = AVC.absorb_incoming(self.session, k2, k1, dmg_p1)
             logs.extend(_avl)
             if _ctr and not (engine and engine.returns_damage(k1, k2, m1)):
-                hp[k1] = max(0, hp[k1] - _ctr)
+                self.session.ability.dranzer.terminal(k1, _ctr, logs)
             dmg_p1, _imm = AVC.guard_lethal(self.session, k2, dmg_p1)
             logs.extend(_imm)
             from .type_gimmicks import hp_damage
             dmg_p1 = hp_damage(dmg_p1)
             from .combat_rules import damage_hp
-            remaining, actual = damage_hp(hp[k2], dmg_p1)
+            parts = getattr(self, 'phoenix_hit_parts', {}).get(k1) if m1 == MOVE_SPECIAL else None
+            actual = self.session.ability.dranzer.commit_damage(k2, dmg_p1, logs, parts)
+            remaining = hp[k2]
             if engine and engine.returns_damage(k1, k2, m1):
                 returned.append((k1, actual))
                 counter_p1 = 0
             hp[k2] = remaining
+            self.session.ability.dranzer.after_incoming(k2, logs)
             self.committed_damage[k1] = actual
             self.session.ability.draciel.committed(k1, k2, m1, actual)
+            self.session.ability.dranzer.committed(k1, k2, m1, actual)
             if extra is not None:
                 extra.committed(k1, k2, m1, actual, logs)
             if tactical is not None:
@@ -383,19 +390,23 @@ class AttackManager:
             dmg_p2, _ctr, _avl = AVC.absorb_incoming(self.session, k1, k2, dmg_p2)
             logs.extend(_avl)
             if _ctr and not (engine and engine.returns_damage(k2, k1, m2)):
-                hp[k2] = max(0, hp[k2] - _ctr)
+                self.session.ability.dranzer.terminal(k2, _ctr, logs)
             dmg_p2, _imm = AVC.guard_lethal(self.session, k1, dmg_p2)
             logs.extend(_imm)
             from .type_gimmicks import hp_damage
             dmg_p2 = hp_damage(dmg_p2)
             from .combat_rules import damage_hp
-            remaining, actual = damage_hp(hp[k1], dmg_p2)
+            parts = getattr(self, 'phoenix_hit_parts', {}).get(k2) if m2 == MOVE_SPECIAL else None
+            actual = self.session.ability.dranzer.commit_damage(k1, dmg_p2, logs, parts)
+            remaining = hp[k1]
             if engine and engine.returns_damage(k2, k1, m2):
                 returned.append((k2, actual))
                 counter_p2 = 0
             hp[k1] = remaining
+            self.session.ability.dranzer.after_incoming(k1, logs)
             self.committed_damage[k2] = actual
             self.session.ability.draciel.committed(k2, k1, m2, actual)
+            self.session.ability.dranzer.committed(k2, k1, m2, actual)
             if extra is not None:
                 extra.committed(k2, k1, m2, actual, logs)
             if tactical is not None:
@@ -408,7 +419,7 @@ class AttackManager:
             for key, amount in returned]
         for key, amount in returned:
             from .combat_rules import damage_hp
-            hp[key], _ = damage_hp(hp[key], amount, already_final=True)
+            self.session.ability.dranzer.terminal(key, amount, logs)
             logs.append(f"↩️ **Kinetic Counter** — returns **{amount} actual HP damage**!")
 
         # ── Apply counter-hit reflections ─────────────────────────────────────
@@ -434,13 +445,13 @@ class AttackManager:
                 counter_p1 = 0
 
         if counter_p1 > 0 and matchup_p1 != "mirror":
-            hp[k1] = max(0, hp[k1] - counter_p1)
+            self.session.ability.dranzer.terminal(k1, counter_p1, logs)
             logs.append(
                 f"  🔰 **Counter!** {b1['name']} hits {b2['name']}'s Defense — "
                 f"**{counter_p1} dmg** reflected back at {b1['name']}!"
             )
         if counter_p2 > 0 and matchup_p2 != "mirror":
-            hp[k2] = max(0, hp[k2] - counter_p2)
+            self.session.ability.dranzer.terminal(k2, counter_p2, logs)
             logs.append(
                 f"  🔰 **Counter!** {b2['name']} hits {b1['name']}'s Defense — "
                 f"**{counter_p2} dmg** reflected back at {b2['name']}!"
@@ -661,6 +672,13 @@ class AttackManager:
             og.preprocess(mkey, okey, effective_stats(self.session, okey))
         _live_stats = effective_stats(self.session, mkey)
         hits, per_hit, flavour, ignores_def = resolve_special(mblade, _spc, _live_stats)
+        phoenix = ab_eng.dranzer
+        if phoenix.owned(mkey):
+            hits = phoenix.special_hits(mkey)
+            if not hasattr(self, 'phoenix_hit_parts'): self.phoenix_hit_parts = {}
+            self.phoenix_hit_parts[mkey] = []
+        elif hasattr(self, 'phoenix_hit_parts'):
+            self.phoenix_hit_parts.pop(mkey, None)
         # Abilities can grant extra hits (e.g. a max-stack payoff). Consumed
         # here so it applies to exactly one Special, then clears.
         _extra = 0
@@ -810,6 +828,8 @@ class AttackManager:
         total_dmg = 0
         for hit_n in range(hits):
             base_for_hit = hit_table[hit_n] if hit_n < len(hit_table) else per_hit
+            if phoenix.owned(mkey):
+                base_for_hit = phoenix.special_damage(mkey, okey, hit_n) * _mh_mult
             base_for_hit = math.ceil(base_for_hit * _amp)
             rider, rider_log = _rider(hit_n)
             if rider_log:
@@ -869,6 +889,8 @@ class AttackManager:
                 continue
 
             total_dmg += hit_dmg
+            phoenix.special_landed(mkey, okey, hit_n, hit_dmg)
+            if phoenix.owned(mkey): self.phoenix_hit_parts[mkey].append(hit_dmg)
 
             if hit_dmg > 0:
                 sm.add_gauge(okey, "dmg_taken")

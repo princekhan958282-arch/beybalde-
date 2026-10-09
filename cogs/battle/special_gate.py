@@ -100,6 +100,9 @@ def charge(session: Any, key: str, counter: str) -> int:
 def cooldown_left(session: Any, key: str, cooldown_name: str) -> int:
     """Rounds left before `cooldown_name` clears, from `engine.cooldowns`."""
     try:
+        phoenix = getattr(session.ability, 'dranzer', None)
+        if cooldown_name == 'dranzer_special' and phoenix:
+            return phoenix.cooldown_left(str(key))
         runtime = getattr(session.ability, 'draciel', None)
         if cooldown_name == 'draciel_special' and runtime:
             return runtime.cooldown_left(str(key))

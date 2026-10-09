@@ -132,6 +132,9 @@ class DamageFilter:
         draciel = getattr(getattr(self.session, 'ability', None), 'draciel', None)
         if draciel:
             dmg_dealt = draciel.outgoing(mover_key, move, dmg_dealt)
+        dranzer = getattr(getattr(self.session, 'ability', None), 'dranzer', None)
+        if dranzer:
+            dmg_dealt = dranzer.outgoing(mover_key, move, dmg_dealt)
         mover_silenced = self._sm.is_silenced(mover_key)
         tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
         if tactical is not None and not mover_silenced:

@@ -1,0 +1,75 @@
+{
+  "id": "BB132",
+  "name": "Dranzer G",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558063348547977317/1791465257046.png?ex=6aca1311&is=6ac8c191&hm=859ba254fb7795373968a620058e3a39a5e7b2e02501e824cb788ce30c51ed76&",
+  "description": "Dranzer G: a Balance phoenix with two unique abilities and one Special.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 105,
+    "defense": 95,
+    "stamina": 100,
+    "special": 125,
+    "hp": 112
+  },
+  "ability": {
+    "name": "Gravity Flame",
+    "description": "Every successful Attack increases ATK by 4%. Maximum 5 stacks (20% ATK). Stacks last until battle ends.",
+    "rules": [],
+    "runtime": "dranzer"
+  },
+  "special_move": {
+    "name": "G-Revolution Inferno",
+    "description": "Base damage: 145 + 65% ATK. Ignores 12% enemy DEF. Consumes all Gravity Flame stacks. Each consumed stack adds 12 bonus damage. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_formula": {
+      "base": 145,
+      "attack": 0.65
+    },
+    "pierce_defense_pct": 12,
+    "cooldown": 4,
+    "flavour_texts": [
+      "G-Revolution Inferno!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Gravity Flame",
+      "description": "Every successful Attack increases ATK by 4%. Maximum 5 stacks (20% ATK). Stacks last until battle ends.",
+      "rules": [],
+      "runtime": "dranzer"
+    },
+    {
+      "name": "Phoenix Rotation",
+      "description": "After using Stamina, recover 6% of missing HP. Gain 10% DEF for 2 rounds. Cooldown: 3 rounds.",
+      "rules": [],
+      "runtime": "dranzer"
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 50,
+    "attack": 47,
+    "defense": 43,
+    "stamina": 45
+  },
+  "default_parts": {
+    "disk": "BB132_default_disk",
+    "driver": "BB132_default_driver"
+  },
+  "generation": null,
+  "_registry_order": 132,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "dranzer_kit": "G",
+  "booster_exclusive": false,
+  "special_requires": {
+    "cooldown_name": "dranzer_special",
+    "label": "G-Revolution Inferno",
+    "emoji": "🔥"
+  }
+}

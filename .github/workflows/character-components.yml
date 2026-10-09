@@ -9,6 +9,9 @@ on:
       - 'utils/**'
       - 'cogs/avatar/**'
       - 'cogs/battle/session.py'
+      - 'cogs/battle/**'
+      - 'cogs/abilities/**'
+      - 'cogs/story/story_ai.py'
       - 'cogs/economy/**'
       - 'cogs/ui/inventory_ui.py'
       - 'cogs/extras/trade.py'
@@ -46,6 +49,7 @@ jobs:
           python tools/test_avatar_roster.py
           python -m unittest tools.test_avatar_progression
           python tools/test_draciel.py
+          python -m unittest tools.test_dranzer
           python -m unittest tools.test_boss_flow
       - name: Character info cards and effective-stat compatibility
         run: |

@@ -283,6 +283,9 @@ class StaminaManager:
         draciel = getattr(self, 'draciel_runtime', None)
         if draciel:
             cost = draciel.cost(key, move, cost)
+        dranzer = getattr(self, 'dranzer_runtime', None)
+        if dranzer:
+            cost = dranzer.cost(key, move, cost)
         return cost, note
 
     def cost_for(self, key: str, move: str) -> float:

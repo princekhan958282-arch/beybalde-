@@ -845,6 +845,7 @@ class BattleSession:
             """Return a list of compact effect tag strings (one per effect)."""
             dm   = self.defense_manager
             tags = []
+            tags.extend(self.ability.dranzer.tags(key))
 
             atk_buff  = sum(b["amount"] for b in st.active_buffs.get(key, []) if b["stat"] == "attack")
             def_buff  = sum(b["amount"] for b in st.active_buffs.get(key, []) if b["stat"] == "defense")
@@ -903,7 +904,10 @@ class BattleSession:
             # given a row of its own — only one blade in the roster has one,
             # and an always-present empty row costs every other card space.
             _extra = special_gate.progress(self, key, self.blades.get(key))
-            if _extra:
+            if _extra and _extra['need'] == 0:
+                gauge_line += (f"\n{_extra['emoji']} {_extra['label']}: "
+                               + (f"{_extra['have']} round(s) remaining" if _extra['have'] else 'Ready'))
+            elif _extra:
                 gauge_line += (f"\n`{'▰' * min(5, round(5 * _extra['have'] / _extra['need']))}"
                                f"{'▱' * (5 - min(5, round(5 * _extra['have'] / _extra['need'])))}` "
                                f"{_extra['emoji']} {_extra['have']}/{_extra['need']}")
@@ -1174,6 +1178,7 @@ class BattleSession:
         for key in (k1, k2):
             self._sync_morph_hp(key)
         self.ability.draciel.begin({k1: m1, k2: m2}, round_log)
+        self.ability.dranzer.begin({k1: m1, k2: m2}, round_log)
         s1, s2 = effective_stats(self, k1), effective_stats(self, k2)
         tactical.round_start(k1, k2, m1, m2, s1, s2, round_log)
         tactical.round_start(k2, k1, m2, m1, s2, s1, round_log)
@@ -1257,6 +1262,7 @@ class BattleSession:
 
         self.original_generation.end_round(round_log)
         self.ability.draciel.end({k1: m1, k2: m2}, round_log)
+        self.ability.dranzer.end({k1: m1, k2: m2}, round_log)
 
         # ── Intermediate ring-out check (ability-driven stability drops) ──────
         # apply_pair_results may trigger on_win / on_special abilities that drain
@@ -1494,6 +1500,7 @@ class BattleSession:
                      if st.special_boost_flat.get(k, 0) else None)
                 # engine state: mode + biggest stack counter
                 eng = self.ability
+                out.extend(eng.dranzer.tags(k))
                 safe(lambda: out.append(f"MODE {eng.modes[k]}") if eng.modes.get(k) else None)
                 def _stacks():
                     best = max(((n, v) for (kk, n), v in eng.counters.items()

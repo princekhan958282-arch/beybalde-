@@ -1,0 +1,75 @@
+{
+  "id": "BB136",
+  "name": "Dranzer V2",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558065079138787358/1791541780203.png?ex=6aca14ae&is=6ac8c32e&hm=a067c9702cf44b51c97f79429bc3968e380aa6eae1c16761e941c44a86f1d004&",
+  "description": "Dranzer V2: a Balance phoenix with two unique abilities and one Special.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 105,
+    "defense": 95,
+    "stamina": 100,
+    "special": 125,
+    "hp": 112
+  },
+  "ability": {
+    "name": "Twin Phoenix Wings",
+    "description": "After a successful Attack, launches an additional strike. Additional strike deals 22% of the original hit's damage. Cooldown: 2 rounds.",
+    "rules": [],
+    "runtime": "dranzer"
+  },
+  "special_move": {
+    "name": "Double Phoenix Cyclone",
+    "description": "Performs 2 consecutive hits. Each hit deals 80 + 38% ATK. First hit reduces enemy DEF by 12% for 2 rounds. Second hit benefits from the reduced DEF. Cooldown: 4 rounds.",
+    "hits": 2,
+    "damage_formula": {
+      "base": 80,
+      "attack": 0.38
+    },
+    "pierce_defense_pct": 0,
+    "cooldown": 4,
+    "flavour_texts": [
+      "Double Phoenix Cyclone!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Twin Phoenix Wings",
+      "description": "After a successful Attack, launches an additional strike. Additional strike deals 22% of the original hit's damage. Cooldown: 2 rounds.",
+      "rules": [],
+      "runtime": "dranzer"
+    },
+    {
+      "name": "Rebirth Flame",
+      "description": "When HP would reach zero, survive with 20% maximum HP. Removes all removable debuffs. Gains 15% ATK for 2 rounds. Activates once per battle.",
+      "rules": [],
+      "runtime": "dranzer"
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 50,
+    "attack": 47,
+    "defense": 43,
+    "stamina": 45
+  },
+  "default_parts": {
+    "disk": "BB136_default_disk",
+    "driver": "BB136_default_driver"
+  },
+  "generation": null,
+  "_registry_order": 136,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "dranzer_kit": "V2",
+  "booster_exclusive": false,
+  "special_requires": {
+    "cooldown_name": "dranzer_special",
+    "label": "Double Phoenix Cyclone",
+    "emoji": "🔥"
+  }
+}

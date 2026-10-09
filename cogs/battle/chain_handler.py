@@ -245,7 +245,7 @@ class ChainHandler:
 
         if effect == "crit":
             bonus = int(value)
-            s.hp[okey] = max(0, s.hp.get(okey, 0) - bonus)
+            s.ability.dranzer.terminal(okey, bonus, logs)
             logs.append(
                 f"  ⛓️ **{ab_name} Chain** — Forced CRIT! +**{bonus} true dmg**!"
             )

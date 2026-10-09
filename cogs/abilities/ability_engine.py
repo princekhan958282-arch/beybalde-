@@ -132,6 +132,8 @@ class AbilityEngine:
         self.tactical = TacticalEffects(self)
         from cogs.battle.draciel import DracielRuntime
         self.draciel = DracielRuntime(session)
+        from cogs.battle.dranzer import DranzerRuntime
+        self.dranzer = DranzerRuntime(session)
 
         # ── Generic rule state (the ONLY ability memory that exists) ─────────
         self.counters:   dict[tuple[str, str], int] = {}   # (key, name) -> value
@@ -835,7 +837,7 @@ class AbilityEngine:
                 self.crit_damage_mult[key] = m if m > 1 else 1.5 + m
             elif kind == "true_damage":
                 amount = self._special_true_damage(rule, move, key, int(val), logs)
-                self.session.hp[okey] = self.session.hp.get(okey, 0) - amount
+                self.dranzer.terminal(okey, amount, logs)
                 logs.append(f"💥 **{ab_name}** — {amount} TRUE damage!")
             elif kind == "true_damage_stat_pct":
                 # Like true_damage, but scaled off the WIELDER'S OWN stat
@@ -863,7 +865,7 @@ class AbilityEngine:
                     amt = max(0, int(round(float(base) * scale)))
                     amt = self._special_true_damage(rule, move, key, amt, logs)
                     if amt > 0:
-                        self.session.hp[okey] = self.session.hp.get(okey, 0) - amt
+                        self.dranzer.terminal(okey, amt, logs)
                         logs.append(f"💥 **{ab_name}** — {amt} TRUE damage "
                                     f"({int(scale * 100)}% of {stat.title()})!")
                 except Exception:
@@ -887,7 +889,7 @@ class AbilityEngine:
                 if at > 0 and cur >= at:
                     dmg = int(op.get("damage", val or 0))
                     if dmg > 0:
-                        self.session.hp[okey] = self.session.hp.get(okey, 0) - dmg
+                        self.dranzer.terminal(okey, dmg, logs)
                         logs.append(f"🐉 **{ab_name}** — BURST! {dmg} TRUE damage!")
                     heal = int(op.get("heal", 0))
                     if heal > 0:
@@ -898,7 +900,7 @@ class AbilityEngine:
             elif kind == "execute":
                 thr = float(op.get("enemy_hp_below_pct", 0.25))
                 if self._hp_pct(okey) < thr:
-                    self.session.hp[okey] = self.session.hp.get(okey, 0) - int(val)
+                    self.dranzer.terminal(okey, int(val), logs)
                     logs.append(f"☠️ **{ab_name}** — execute! {int(val)} TRUE damage!")
             elif kind == "recoil":
                 self.session.hp[key] = self.session.hp.get(key, 0) - int(val)
@@ -1291,7 +1293,7 @@ class AbilityEngine:
                     enemy_hp = max(0, self.session.hp.get(okey, 0))
                     dmg = math.ceil(enemy_hp * pct / 100)
                     if dmg > 0:
-                        self.session.hp[okey] = self.session.hp.get(okey, 0) - dmg
+                        self.dranzer.terminal(okey, dmg, logs)
                         logs.append(f"🌸💥 **{ab_name}** — {cur} layer(s) burst "
                                     f"for {dmg} damage ({pct:g}% of current HP)!")
                     self.counters[(key, cname)] = 0
@@ -1667,7 +1669,7 @@ class AbilityEngine:
                                 f"{label} {new_c - cur:+d} ({new_c}{suffix})!")
             elif kind == "steal_hp":
                 take = min(int(val), max(0, self.session.hp.get(okey, 0)))
-                self.session.hp[okey] = self.session.hp.get(okey, 0) - take
+                take = self.dranzer.terminal(okey, take, logs)
                 self._heal(key, take, logs, ab_name)
 
             # ── counters / modes / chains ────────────────────────────────────
@@ -2058,6 +2060,7 @@ class AbilityEngine:
         dmg_dealt = self.draciel.mitigate(
             mover_key, other_key, move, dmg_dealt, logs,
             true_damage=self.damage_filter.is_true_damage(mover_key, move))
+        dmg_dealt = self.dranzer.mitigate(other_key, move, dmg_dealt, logs)
 
         # Lifesteal (generic, set by ops)
         ls = self.lifesteal_pct.get(mover_key, 0.0)
@@ -2256,7 +2259,7 @@ class AbilityEngine:
                 dmg = (z["total"] * z["fired"]) // z["hits"] - before
                 tgt = z["target"]
                 if tgt in self.session.hp:
-                    self.session.hp[tgt] = max(0, self.session.hp[tgt] - dmg)
+                    self.dranzer.terminal(tgt, dmg, logs)
                     logs.append(f"{z['emoji']} **{z['name']}** — the zone "
                                 f"strikes for {dmg}! "
                                 f"({z['fired']}/{z['hits']})")

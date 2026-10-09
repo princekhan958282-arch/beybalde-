@@ -33,7 +33,7 @@ def stat_bonus(session, key, stat):
     return round(base * pct)
 
 
-def effective_stats(session, key):
+def effective_stats(session, key, include_dranzer=True):
     adapter = getattr(session, "effective_stats_for", None)
     if adapter:
         return adapter(key)
@@ -62,6 +62,10 @@ def effective_stats(session, key):
     if draciel:
         for stat in ('attack', 'defense'):
             result[stat] *= draciel.stat_multiplier(key, stat)
+    dranzer = getattr(getattr(session, 'ability', None), 'dranzer', None)
+    if dranzer and include_dranzer:
+        for stat in ('attack', 'defense'):
+            result[stat] = dranzer.stat(key, stat, result[stat])
     return result
 
 
@@ -162,7 +166,11 @@ def mark(session, actor, token, logs):
             ability = session.ability
             logs.extend(ability._check_revive(actor, session.blades[actor], damage,
                                               okey=owner, move="special", matchup="win"))
-            session.hp[actor] = max(0, session.hp[actor] - damage)
+            phoenix = getattr(getattr(session, 'ability', None), 'dranzer', None)
+            if phoenix:
+                phoenix.terminal(actor, damage, logs)
+            else:
+                session.hp[actor] = max(0, session.hp[actor] - damage)
             logs.append(f"⚡ **Purity Judgment** — {damage} true damage!")
 
 

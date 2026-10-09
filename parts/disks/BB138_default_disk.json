@@ -1,0 +1,18 @@
+{
+  "id": "BB138_default_disk",
+  "name": "Dranzer MS Harmony Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 31,
+    "attack": 29,
+    "defense": 26,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB138",
+  "_registry_order": 1138
+}

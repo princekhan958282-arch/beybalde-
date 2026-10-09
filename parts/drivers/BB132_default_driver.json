@@ -1,0 +1,18 @@
+{
+  "id": "BB132_default_driver",
+  "name": "Dranzer G Pivot Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 31,
+    "attack": 29,
+    "defense": 26,
+    "stamina": 27
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB132",
+  "_registry_order": 1132
+}

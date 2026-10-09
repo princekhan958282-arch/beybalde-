@@ -1,0 +1,75 @@
+{
+  "id": "BB135",
+  "name": "Dranzer V",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558065052148568064/1791541787822.png?ex=6aca14a7&is=6ac8c327&hm=133b8cf09d6dc908ec2c43239e6bd545e9b933653da5c657ff08e60ae2138738&",
+  "description": "Dranzer V: a Balance phoenix with two unique abilities and one Special.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 105,
+    "defense": 95,
+    "stamina": 100,
+    "special": 125,
+    "hp": 112
+  },
+  "ability": {
+    "name": "Volcano Drive",
+    "description": "Each consecutive successful Attack increases Attack damage by 7%. Maximum 3 stacks (21%). Using Defense or Stamina resets the stacks.",
+    "rules": [],
+    "runtime": "dranzer"
+  },
+  "special_move": {
+    "name": "Volcanic Eruption",
+    "description": "Base damage: 135 + 60% ATK. Gains 10% bonus damage for each Volcano Drive stack. Removes the opponent's strongest removable DEF buff. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_formula": {
+      "base": 135,
+      "attack": 0.6
+    },
+    "pierce_defense_pct": 0,
+    "cooldown": 4,
+    "flavour_texts": [
+      "Volcanic Eruption!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Volcano Drive",
+      "description": "Each consecutive successful Attack increases Attack damage by 7%. Maximum 3 stacks (21%). Using Defense or Stamina resets the stacks.",
+      "rules": [],
+      "runtime": "dranzer"
+    },
+    {
+      "name": "Phoenix Guard",
+      "description": "Activates when HP drops below 45%. Gains 25% DEF. Gains 10% damage reduction. Effects last 2 rounds. Once per battle.",
+      "rules": [],
+      "runtime": "dranzer"
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 50,
+    "attack": 47,
+    "defense": 43,
+    "stamina": 45
+  },
+  "default_parts": {
+    "disk": "BB135_default_disk",
+    "driver": "BB135_default_driver"
+  },
+  "generation": null,
+  "_registry_order": 135,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "dranzer_kit": "V",
+  "booster_exclusive": false,
+  "special_requires": {
+    "cooldown_name": "dranzer_special",
+    "label": "Volcanic Eruption",
+    "emoji": "🔥"
+  }
+}

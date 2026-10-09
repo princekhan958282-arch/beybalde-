@@ -1,0 +1,75 @@
+{
+  "id": "BB137",
+  "name": "Dranzer GT",
+  "rarity": "Epic",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558065094049660928/1791541774489.png?ex=6aca14b1&is=6ac8c331&hm=4220fecfceb60009eb599e866a51ce4a0637ecf90f24ae4d889f3b0496a23ff0&",
+  "description": "Dranzer GT: a Balance phoenix with two unique abilities and one Special.",
+  "burst_height": "Mid",
+  "type": "Balance",
+  "stats": {
+    "attack": 105,
+    "defense": 95,
+    "stamina": 100,
+    "special": 125,
+    "hp": 112
+  },
+  "ability": {
+    "name": "Giga Turbo Engine",
+    "description": "Using Charge grants 1 Turbo stack. Maximum 3 Turbo stacks. Each stack increases ATK by 6%. Each stack reduces stamina consumption by 5%. Stacks expire after 3 rounds without gaining another.",
+    "rules": [],
+    "runtime": "dranzer"
+  },
+  "special_move": {
+    "name": "Giga Phoenix Explosion",
+    "description": "Base damage: 165 + 70% ATK. Consumes all Turbo stacks. Each consumed stack increases Special damage by 12%. At 3 stacks, ignores 18% enemy DEF. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_formula": {
+      "base": 165,
+      "attack": 0.7
+    },
+    "pierce_defense_pct": 0,
+    "cooldown": 4,
+    "flavour_texts": [
+      "Giga Phoenix Explosion!"
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Giga Turbo Engine",
+      "description": "Using Charge grants 1 Turbo stack. Maximum 3 Turbo stacks. Each stack increases ATK by 6%. Each stack reduces stamina consumption by 5%. Stacks expire after 3 rounds without gaining another.",
+      "rules": [],
+      "runtime": "dranzer"
+    },
+    {
+      "name": "Overheat Reactor",
+      "description": "Activates at 3 Turbo stacks. Successful Attacks deal 18% additional damage. Attacks consume 1 additional stamina while active.",
+      "rules": [],
+      "runtime": "dranzer"
+    }
+  ],
+  "spin_direction": "Right",
+  "main_frame": {
+    "hp": 50,
+    "attack": 47,
+    "defense": 43,
+    "stamina": 45
+  },
+  "default_parts": {
+    "disk": "BB137_default_disk",
+    "driver": "BB137_default_driver"
+  },
+  "generation": null,
+  "_registry_order": 137,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "dranzer_kit": "GT",
+  "booster_exclusive": false,
+  "special_requires": {
+    "cooldown_name": "dranzer_special",
+    "label": "Giga Phoenix Explosion",
+    "emoji": "🔥"
+  }
+}
