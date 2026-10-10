@@ -17,6 +17,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+import discord
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PIL import Image, ImageDraw
 from utils import avatar_info_card as C
@@ -156,21 +158,27 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
             await AvatarShop.avatar_info.callback(fake, ctx, query='Yuki')
         self.assertIn('Yuki', ctx.send.call_args.kwargs['embed'].title)
 
-    async def test_attachment_and_existing_skill_controls(self):
+    async def test_attachment_and_contextual_action_controls(self):
         fake = SimpleNamespace(bot=None, _resolve_avatar_query=lambda q:YUKI,
                                _get_owned_avatar_ids=lambda user:[YUKI['id']],
                                _get_equipped_id=AsyncMock(return_value=YUKI['id']))
         ctx = SimpleNamespace(author=SimpleNamespace(id=123), send=AsyncMock())
-        profile = {'avatar': {'cards': {YUKI['id']: {'level': 3, 'skills': {}}}}}
+        profile = {'avatar_inventory': [YUKI['id']],
+                   'avatar': {'cards': {YUKI['id']: {'level': 3, 'skills': {}}}}}
         with patch('utils.database.get_user', AsyncMock(return_value=profile)), patch.object(C, '_art', return_value=None):
             await AvatarShop.avatar_info.callback(fake, ctx, query='Yuki')
         kwargs = ctx.send.call_args.kwargs
         self.assertEqual(kwargs['file'].filename, 'ainfo.jpg')
         self.assertIn('embed', kwargs)
-        self.assertTrue(any(getattr(child, 'label', '') == 'Level Up' for child in kwargs['view'].children))
-        self.assertTrue(any(child.label == 'Details' for child in kwargs['view'].children))
-        self.assertIsInstance(kwargs['view'], AvatarSkillsView)
-        self.assertTrue(any(child.label == 'Skills' for child in kwargs['view'].children))
+        from cogs.avatar.avatar_progression_ui import ActionSelect, ProgressionView
+        view = kwargs['view']
+        self.assertIsInstance(view, ProgressionView)
+        self.assertEqual([child.label for child in view.children if isinstance(child, discord.ui.Button)],
+                         ['Details'])
+        self.assertEqual(len(view.children), 2)
+        menu = next(child for child in view.children if isinstance(child, ActionSelect))
+        self.assertEqual([option.label for option in menu.options], ['Level Up', 'Skills', 'Star Up / Feed'])
+        self.assertTrue(all(not child.disabled for child in view.children))
         self.assertIn('ainfo', AvatarShop.avatar_info.aliases)
 
     async def test_render_failure_keeps_existing_embed_and_button(self):
