@@ -8,7 +8,7 @@ Proposed balance: Epic / Legendary / Ultimate tiers assigned to fit the current 
 | Arc Bahamut | Defense | Legendary | 155 | 80 | 150 | 110 |
 | Circle Bahamut | Defense | Epic | 145 | 75 | 130 | 115 |
 | Judgement Joker | Balance | Legendary | 140 | 140 | 115 | 110 |
-| Jambo Jamunter | Defense | Epic | 150 | 80 | 135 | 100 |
+| Jail Jormungand | Stamina | Epic | 150 | 80 | 135 | 100 |
 | Greatest Raphael | Balance | Ultimate | 155 | 140 | 135 | 130 |
 | Bushin Ashura | Defense | Legendary | 150 | 85 | 145 | 115 |
 | Orb Engaard | Defense | Epic | 145 | 75 | 135 | 110 |
@@ -34,7 +34,7 @@ Proposed balance: Epic / Legendary / Ultimate tiers assigned to fit the current 
 - **Double Jeopardy:** Your next normal Attack consumes one token of each colour, if available, for +15% damage and an 8% max HP shield.
 - **Final Verdict:** 1 hit(s), each 140 base + 35% ATTACK. Consume all tokens: +15 damage per Red and +5% max HP shield per Black. Cooldown: 4 rounds.
 
-## Jambo Jamunter
+## Jail Jormungand
 - **Heavy Landing:** Defense wins reduce enemy base ATK by 8% for 2 rounds. Repeated activation refreshes instead of stacking.
 - **Crushing Weight:** Above 60% HP, successful Defense counters gain bonus damage equal to 15% of base DEF.
 - **Giant Hammerfall:** 1 hit(s), each 130 base + 55% DEFENSE. If your Heavy Landing debuff is active, extend it by 1 round and restore 8 Stability. Cooldown: 4 rounds.

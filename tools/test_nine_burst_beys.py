@@ -10,7 +10,7 @@ from cogs.battle.purification import effective_stats
 from cogs.battle.damage_rules import resolve_special_hits
 
 NAMES = ('Silver Valkyrie', 'Arc Bahamut', 'Circle Bahamut', 'Judgement Joker',
-         'Jambo Jamunter', 'Greatest Raphael', 'Bushin Ashura', 'Orb Engaard', 'Ace Dragon')
+         'Jail Jormungand', 'Greatest Raphael', 'Bushin Ashura', 'Orb Engaard', 'Ace Dragon')
 
 
 def session(name):
@@ -130,7 +130,7 @@ class Mechanics(unittest.TestCase):
         self.assertEqual(s.status.get_shield(P), 180)
 
     def test_heavy_landing_refresh_and_special_extension(self):
-        s, b, r, d = session('Jambo Jamunter')
+        s, b, r, d = session('Jail Jormungand')
         end(s, 'defense', 'attack'); end(s, 'defense', 'attack')
         buffs = [x for x in s.status.active_buffs[E] if x['source'].startswith('heavy_landing')]
         self.assertEqual(len(buffs), 1)
