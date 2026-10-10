@@ -231,8 +231,9 @@ class TacticalEffects:
                 d["active_special"] = not last
         return damage
 
-    def mitigate(self, key, other, move, incoming, logs):
-        incoming = self.engine.burst.incoming(key, move, incoming, logs)
+    def mitigate(self, key, other, move, incoming, logs, *, include_burst=True):
+        if include_burst:
+            incoming = self.engine.burst.incoming(key, move, incoming, logs)
         if incoming <= 0:
             return incoming
         if self.has(key, "pattern_reader") and self.data(key, "pattern_reader").get("against") == move:

@@ -392,10 +392,16 @@ class OriginalGeneration:
         damage = raw * 100 / max(1, defense)
         damage, _ = self.s.attack_manager._apply_passive_reduction(other, self.s.blades[other], damage, [])
         if self.s.status.is_invulnerable(other): damage = 0
+        tactical = getattr(getattr(self.s, 'ability', None), 'tactical', None)
+        if tactical:
+            damage = tactical.engine.burst.incoming(other, 'special', damage, logs)
         absorb = getattr(self.s, 'rider_absorb', None)
         if absorb:
             damage = absorb(other, damage)
-        damage -= self.s.status.absorb_shield(other, math.floor(damage))
+        absorbed = self.s.status.absorb_shield(other, math.floor(damage))
+        damage -= absorbed
+        if absorbed and tactical:
+            tactical.shield_absorbed(key, other, absorbed, damage, logs)
         effect = self.effect(other, 'shield')
         if effect:
             absorbed = min(damage, effect['hp'])
@@ -403,7 +409,7 @@ class OriginalGeneration:
             damage -= absorbed
         tactical = getattr(getattr(self.s, 'ability', None), 'tactical', None)
         if tactical:
-            damage = tactical.mitigate(other, key, 'special', damage, logs)
+            damage = tactical.mitigate(other, key, 'special', damage, logs, include_burst=False)
         damage = self.s.type_gimmicks.mitigate(key, other, 'special', damage)
         av = self.s.avatar_bonuses.get(other)
         if av: damage = av.apply_damage_resistance(damage)

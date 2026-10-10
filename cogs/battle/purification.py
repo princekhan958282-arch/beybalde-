@@ -66,6 +66,9 @@ def effective_stats(session, key, include_dranzer=True):
     if dranzer and include_dranzer:
         for stat in ('attack', 'defense'):
             result[stat] = dranzer.stat(key, stat, result[stat])
+    burst = getattr(getattr(session, 'ability', None), 'burst', None)
+    if burst:
+        burst.apply_stats(key, result)
     return result
 
 

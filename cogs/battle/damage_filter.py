@@ -204,6 +204,13 @@ class DamageFilter:
             if evaded:
                 dmg_dealt = 0
 
+        # Burst guards reduce the incoming hit, including shield damage. Keep
+        # legacy tactical HP-only mitigation after shields without applying
+        # these guards twice or leaving one-use arms unconsumed.
+        tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
+        if tactical is not None and not self.is_true_damage(mover_key, move):
+            dmg_dealt = tactical.engine.burst.incoming(other_key, move, dmg_dealt, logs)
+
         # ── Step 4: Shield absorption ─────────────────────────────────────────
         # Shield absorbs on EVERY hit (correct behaviour); a breaking shield
         # emits its log naturally when remaining drops to 0.
@@ -217,7 +224,7 @@ class DamageFilter:
         dmg_dealt += bypass
         tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
         if tactical is not None and not self.is_true_damage(mover_key, move):
-            dmg_dealt = tactical.mitigate(other_key, mover_key, move, dmg_dealt, logs)
+            dmg_dealt = tactical.mitigate(other_key, mover_key, move, dmg_dealt, logs, include_burst=False)
 
         # ── Step 4b: Knockout resistance (% damage reduction) ─────────────────
         # Applied after shield so the reduction only affects damage that

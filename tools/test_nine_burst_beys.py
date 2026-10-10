@@ -6,6 +6,7 @@ from tools.test_october_bey_roster import build, P, E
 from utils.character_registry import REGISTRY, load_parts
 from utils.bey_components import reconcile, assemble
 from cogs.battle.special_gate import ready
+from cogs.battle.purification import effective_stats
 from cogs.battle.damage_rules import resolve_special_hits
 
 NAMES = ('Silver Valkyrie', 'Arc Bahamut', 'Circle Bahamut', 'Judgement Joker',
@@ -24,7 +25,7 @@ def end(s, move, enemy='stamina', result='win'):
 
 
 def start(s, move='attack', enemy='stamina'):
-    stats, opponent = copy.deepcopy(s.battle_stats[P]), copy.deepcopy(s.battle_stats[E])
+    stats, opponent = effective_stats(s, P), effective_stats(s, E)
     s.ability.tactical.round_start(P, E, move, enemy, stats, opponent, [])
     return stats, opponent
 

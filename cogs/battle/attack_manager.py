@@ -663,6 +663,10 @@ class AttackManager:
         # (see below), so a Special that only wants to shave a few percent off
         # mitigation, rather than ignore it outright, had no way to say so.
         _sm_block    = mblade.get("special_move") or {}
+        # Using the authored Burst Special spends its cooldown even when
+        # silence or ability disabling suppresses the on_special rider.
+        if (mblade.get("special_requires") or {}).get("cooldown_name") == "burst_finisher":
+            ab_eng.cooldowns[(mkey, "burst_finisher")] = 4
         _min_hit_dmg = int(_sm_block.get("min_hit_damage", 0) or 0)
         _spc = getattr(self.session, "special_stats", {}).get(mkey)
         from .purification import effective_stats
