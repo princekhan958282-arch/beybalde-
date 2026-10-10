@@ -152,7 +152,9 @@ class Cog:
 def panel(size=8, host=99):
     cog = Cog()
     lobby = T.Lobby(host_id=host, channel_id=1, guild_id=1, size=size)
-    view = T.TournamentPanel(cog, lobby)
+    async def make_view():
+        return T.TournamentPanel(cog, lobby)
+    view = run(make_view())
     return cog, lobby, view
 
 
@@ -249,7 +251,14 @@ for label, member, allowed in (
     ("Tournament Hoster", hoster, True),
     ("plain player", Member(7), False),
 ):
-    cog, sent = Cog(), []
+    import tempfile
+    from cogs.tournament.drafts import DraftStore
+    async def not_owner(member):
+        return False
+    cog = T.TournamentCog(types.SimpleNamespace(is_owner=not_owner))
+    temp = tempfile.TemporaryDirectory()
+    cog.draft_store = DraftStore(os.path.join(temp.name, 'drafts.db'))
+    sent = []
 
     async def send(content=None, *, embed=None, view=None, ephemeral=False):
         sent.append((ephemeral, view))
@@ -257,10 +266,13 @@ for label, member, allowed in (
 
     run(T.TournamentCog.open_panel(cog, send, types.SimpleNamespace(id=1),
                                    member, types.SimpleNamespace(id=1)))
-    check(f"{label}: command opens a public lobby" if allowed else
+    check(f"{label}: command opens a public draft" if allowed else
           f"{label}: command refuses privately",
           len(sent) == 1 and sent[0][0] is not allowed and
-          (cog.lobbies.get(1) is not None) == allowed)
+          (cog.setups.get(1) is not None) == allowed)
+    for setup_view in cog.setups.values():
+        setup_view.stop()
+    temp.cleanup()
 
 _src = open(os.path.join(ROOT, "cogs", "tournament", "tournament.py"),
             encoding="utf-8").read()
@@ -269,7 +281,7 @@ check("open_panel refuses a non-admin", "is_tournament_admin" in _open)
 # THE failure mode worth guarding: an ephemeral panel is a tournament nobody
 # can join, and every other test would still pass.
 check("...but the PANEL itself is never ephemeral — it IS the announcement",
-      "view.message = await send(embed=view.embed(), view=view)" in _open
+      "view.message = await send(view=view)" in _open
       and "ephemeral" not in _open.split("view.message = await send")[1])
 check("only refusals are ephemeral", _open.count("ephemeral=True") >= 2)
 

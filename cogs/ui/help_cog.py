@@ -309,14 +309,11 @@ COMMAND_DATA = {
         (";copy <number|id>",           "Card for one of your copies"),
     ],
     "tournament": [
-        (";tournament",                 "🏆 Open a tournament — admins only"),
-        ("/tournament",                 "The same panel, as a slash command"),
-        ("(the Join button)",           "Anyone can join from the panel — no command needed"),
-        # Every entry becomes an embed FIELD, and a field with an empty name is
-        # a Discord 400 — `name` must be 1-256. An empty string here rendered
-        # as "``" and would have taken the whole ;help page down.
-        ("How it works",                "Everyone gets a random blade drafted at "
-                                        "the start; the champion takes the coin pot."),
+        (";tournament", "🏆 Configure a tournament draft — authorized hosts only"),
+        ("/tournament", "The same host panel, as a slash command"),
+        ("Edit buttons", "Edit each setting beside its value through a dropdown or modal; the preview updates in place."),
+        ("Confirm Setup", "Save a draft. Registration, brackets, and battles are deferred to later phases."),
+        ("Reset / Cancel", "Confirm a reset to defaults, or discard unsaved edits."),
     ],
     "mastery": [
         (";mastery",                    "🔰 Your blades — paged, tap one for detail"),

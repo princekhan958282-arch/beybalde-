@@ -1,37 +1,7 @@
-"""
-tournament.py  —  🏆 one command, one panel, one bracket
+"""Tournament commands open a Components V2 draft editor in Phase 1.
 
-What this replaces
-------------------
-Two tournament systems, ~4,000 lines between them, that between them had been
-used by exactly nobody: 3,410 profiles carried no tournament key of any kind
-and all seven tables of `data/tournaments.db` were empty. One was a scheduled
-esports admin tool (ELO, timezone availability, auto-scheduling, check-in
-windows, no-show bans, RSVP announcements) whose results were SELF-REPORTED and
-which never once touched the battle engine. The other was a live bracket that
-did run real battles, and had been commented out of the loader.
-
-They also both claimed the app-command name `tournament`, which is a
-`CommandAlreadyRegistered` crash waiting for anyone to load both.
-
-This is the whole feature now: an admin runs one command, picks a size, the
-panel is posted publicly, players press Join, and the bracket runs itself with
-real battles.
-
-Why the panel is a public message
----------------------------------
-It IS the announcement. An ephemeral panel would be a tournament nobody can
-join — the entire point is that everyone reading the channel sees it and
-presses the button. `open_panel` therefore never sets `ephemeral=True` on the
-panel itself; only refusals and "not your button" notes are ephemeral.
-
-Why state is in memory
-----------------------
-The persistent version shipped seven tables and collected zero rows. A lobby
-that lives on the cog cannot corrupt anything, cannot half-write a bracket, and
-disappears cleanly on restart — which is the correct behaviour for a lobby
-nobody has joined yet. If tournaments ever need to survive a restart, that is
-one store module against a feature people actually use.
+The legacy lobby and bracket runner remain available internally, unchanged.
+DraftConfig never enters that runner: registration and V2 matches are deferred.
 """
 
 from __future__ import annotations
@@ -53,6 +23,8 @@ from utils.database import (get_beyblade, get_user, load_beyblades,
 from . import brackets
 from .hosters import is_tournament_hoster
 from .models import Match, MatchState, Mode
+from .drafts import DraftStore
+from .host_panel import HostPanel
 
 log = logging.getLogger("beyblade_bot.tournament")
 
@@ -407,10 +379,12 @@ class StartButton(discord.ui.Button):
 
 
 class TournamentCog(commands.Cog, name=COG_NAME):
-    """One command. The panel and the bracket runner both live here."""
+    """Shared command entry point, draft editor, and preserved legacy runner."""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.setups: dict[int, HostPanel] = {}
+        self.draft_store = DraftStore()
         # guild_id -> Lobby. One live tournament per guild: two panels in one
         # server would fight over the same players' `_active` entries.
         self.lobbies: dict[int, Lobby] = {}
@@ -431,7 +405,9 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
 
-    def cog_unload(self):
+    async def cog_unload(self):
+        for panel in list(self.setups.values()):
+            await panel.close("Setup closed because the tournament extension reloaded.")
         for t in list(self._tasks):
             t.cancel()
 
@@ -492,29 +468,31 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         and the two-modules-one-name split is exactly what made the old system
         crash on load.
         """
-        if not is_tournament_admin(author):
-            return await send("🏆 An admin opens tournaments — ask one to "
-                              "start the next.", ephemeral=True)
-
-        live = self.lobbies.get(guild.id if guild else 0)
-        if live and not live.finished:
-            return await send("A tournament is already open in this server.",
-                              ephemeral=True)
-
-        lobby = Lobby(host_id=author.id,
-                      channel_id=getattr(channel, "id", 0),
-                      guild_id=guild.id if guild else 0)
-        self.lobbies[lobby.guild_id] = lobby
-        view = TournamentPanel(self, lobby)
-        self.panels[lobby.guild_id] = view
-        # Public on purpose: the panel IS the announcement, and an ephemeral
-        # one would be a tournament nobody else can see or join.
-        view.message = await send(embed=view.embed(), view=view)
+        if not is_tournament_admin(author) and not await self.bot.is_owner(author):
+            return await send("Only a tournament host or Tournament Admin can configure tournaments.", ephemeral=True)
+        if guild is None:
+            return await send("Use this command in a server.", ephemeral=True)
+        live = self.lobbies.get(guild.id)
+        if (live and not live.finished) or guild.id in self.setups:
+            return await send("A tournament or setup is already open in this server.", ephemeral=True)
+        # Reserve before the first await, preventing simultaneous command opens.
+        view = HostPanel(self, guild.id, author.id)
+        self.setups[guild.id] = view
+        try:
+            saved = await asyncio.to_thread(self.draft_store.load, guild.id)
+            if saved:
+                view.config = saved[1]
+                view.note = "Editing the saved draft. Changes are saved only on Confirm Setup."
+                view.build()
+            view.message = await send(view=view)
+        except Exception:
+            view.release()
+            raise
 
     @commands.command(name="tournament", aliases=["tourney"])
     @commands.guild_only()
     async def tournament_prefix(self, ctx: commands.Context) -> None:
-        """🏆 Open a tournament (admin only). Players join with the button."""
+        """🏆 Configure a tournament draft (host only)."""
         async def send(content=None, *, embed=None, view=None, ephemeral=False):
             # `ephemeral` has no meaning for a prefix command; a refusal is
             # sent and auto-deleted instead of silently ignoring the flag.
@@ -523,7 +501,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         await self.open_panel(send, ctx.guild, ctx.author, ctx.channel)
 
     @app_commands.command(name="tournament",
-                          description="Open a tournament (admin only)")
+                          description="Configure a tournament draft (host only)")
     @app_commands.guild_only()
     async def tournament_slash(self, interaction: discord.Interaction) -> None:
         async def send(content=None, *, embed=None, view=None, ephemeral=False):
@@ -766,11 +744,8 @@ class TournamentCog(commands.Cog, name=COG_NAME):
     async def admin_announce(self, channel, author, note: str = "") -> bool:
         """Open a tournament and post the panel into `channel`.
 
-        This is how an announcement gets a working Join button: it posts the
-        REAL `TournamentPanel`, not a copy of it. `open_panel` was already
-        written against an injected sender rather than a Context, so pointing
-        it at another channel needs nothing from the lobby, the panel or the
-        bracket runner — only a different `send`.
+        Phase 1 posts the host draft editor, without Join or Start controls.
+        Announcement text is omitted because Components V2 uses TextDisplay.
 
         Returns False when a tournament is already open here or `author` isn't
         an admin; `open_panel` says which through the sender.
@@ -785,7 +760,10 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             if ephemeral:
                 posted.append(None)
                 return None
-            msg = await channel.send(content=note or None, embed=embed, view=view)
+            if isinstance(view, HostPanel):
+                msg = await channel.send(view=view)
+            else:
+                msg = await channel.send(content=note or None, embed=embed, view=view)
             posted.append(msg)
             return msg
 
@@ -807,6 +785,10 @@ class TournamentCog(commands.Cog, name=COG_NAME):
 
     async def admin_cancel(self, guild_id: int) -> bool:
         """Close the lobby AND its panel. False when there is nothing open."""
+        setup_panel = self.setups.get(guild_id)
+        if setup_panel is not None:
+            await setup_panel.close("✖️ Setup cancelled by an admin.")
+            return True
         view = self.panels.get(guild_id)
         lobby = self.lobbies.get(guild_id)
         if not lobby:
