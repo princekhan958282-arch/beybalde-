@@ -28,6 +28,7 @@ OCTOBER_ADDITIONS = {f'BB{139+i}': name for i, name in enumerate(
     ('Golden Imperial Dragon', 'Black Valkyrie', 'Black Brave Valkyrie',
      'Ultimate Dark Valkyrie', 'Strike Longinus', 'Dragon Circle',
      'Legend Spriggan', 'Shelter Regulus', 'Abyss Fang', 'Deathscyth Longinus'))}
+OCTOBER_ADDITIONS.update({'BB149': 'S,Dragon Killer', 'BB150': 'Black Legend'})
 
 def digest(document):
     return hashlib.sha256(json.dumps(document, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
@@ -58,7 +59,7 @@ class MigrationTests(unittest.TestCase):
                         self.assertEqual(correction['name'], value['name'])
                         expected_hash = correction['sha256']
                     self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
-        for folder, number in (('beys', 149), ('avatars', 54), ('parts/disks', 167), ('parts/drivers', 166)):
+        for folder, number in (('beys', 151), ('avatars', 54), ('parts/disks', 169), ('parts/drivers', 168)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
         for folder in ('beys', 'avatars'):
             self.assertFalse(any(p.is_dir() for p in (ROOT / folder).iterdir()))

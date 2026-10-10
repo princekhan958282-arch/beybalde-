@@ -1,0 +1,18 @@
+{
+  "id": "BB149_default_driver",
+  "name": "S,Dragon Killer Pursuit Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 42,
+    "attack": 49,
+    "defense": 18,
+    "stamina": 34
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB149",
+  "_registry_order": 1149
+}

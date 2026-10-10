@@ -1,0 +1,18 @@
+{
+  "id": "BB149_default_disk",
+  "name": "S,Dragon Killer Slayer Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 43,
+    "attack": 50,
+    "defense": 18,
+    "stamina": 35
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB149",
+  "_registry_order": 1149
+}
