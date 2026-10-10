@@ -120,6 +120,8 @@ class _InChannelControlPanel(discord.ui.View):
     def __init__(self, session: "BattleSession") -> None:
         super().__init__(timeout=BATTLE_TIMEOUT)
         self.session = session
+        if not getattr(session, "story_match", None):
+            self.remove_item(self.btn_forfeit)
         if not getattr(session, "original_generation", None) or not session.original_generation.states:
             self.remove_item(self.btn_avatar)
 
@@ -158,7 +160,28 @@ class _InChannelControlPanel(discord.ui.View):
                 "❌ You are not in this battle!", ephemeral=True
             )
             return
+        if self.session.finished or self.session._current_view is not self:
+            await interaction.response.send_message(
+                "This battle panel is no longer active.", ephemeral=True)
+            return
         await self.session.submit_move(interaction, interaction.user, move)
+
+    @discord.ui.button(label="Forfeit", emoji="🏳️", style=discord.ButtonStyle.danger, row=1)
+    async def btn_forfeit(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        session = self.session
+        match = getattr(session, "story_match", None)
+        if not match or interaction.user.id != match.player.id:
+            return await interaction.response.send_message(
+                "Only the Story player can forfeit this match.", ephemeral=True)
+        await interaction.response.defer()
+        # Wait for an in-flight exchange before changing its result.
+        async with session._resolve_lock:
+            if session.finished or session._current_view is not self:
+                return await interaction.followup.send(
+                    "This battle panel is no longer active.", ephemeral=True)
+            match.forfeited = True
+            session.hp[str(interaction.user.id)] = 0
+            await session._end_battle()
 
     @discord.ui.button(label="⚔️ Attack", style=discord.ButtonStyle.danger, row=0)
     async def btn_attack(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:

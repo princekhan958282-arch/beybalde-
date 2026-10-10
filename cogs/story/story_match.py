@@ -73,6 +73,7 @@ class LeagueMatch:
         self.history: list[str] = []
         self.rounds = 0
         self.won: Optional[bool] = None
+        self.forfeited = False
 
     # ── result ───────────────────────────────────────────────────────────────
     @property
@@ -113,7 +114,7 @@ class LeagueMatch:
             except Exception:                            # noqa: BLE001
                 pass
 
-        self.won = self.player_points > self.npc_points
+        self.won = not self.forfeited and self.player_points > self.npc_points
         return bool(self.won)
 
     async def _rounds(self, npc_member, controller, opponent_blade) -> None:
@@ -144,7 +145,12 @@ class LeagueMatch:
                 victory_points={pkey: self.points["player"],
                                 nkey: self.points["npc"]},
             )
+            session.story_match = self
             await session.run()
+
+            if self.forfeited:
+                self.history.append(f"R{self.rounds}: 🏳️ **{self.player.display_name}** forfeited the match")
+                break
 
             winner_id = getattr(session, "winner_id", None)
             if not winner_id:
