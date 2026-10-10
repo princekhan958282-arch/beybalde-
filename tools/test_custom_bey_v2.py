@@ -116,13 +116,58 @@ class Panel(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as temp, patch.object(db,'CONFIG_PATH',temp+'/config.json'):
             db.set_custom_review_channel(123,456)
             self.assertEqual(db.get_custom_review_channel(123),456)
-            self.assertIsNone(db.get_custom_review_channel(124))
+            self.assertEqual(db.get_custom_review_channel(124),456)
+            db.set_custom_review_channel(789,999)
+            self.assertEqual(db.get_custom_review_channel(123),999)
+            self.assertEqual(db.get_custom_review_channel(124),999)
         ctx=MagicMock(); ctx.guild.id=123; ctx.send=AsyncMock()
         target=MagicMock(); target.guild.id=123; target.id=456; target.mention='<#456>'; target.send=AsyncMock()
         with patch('cogs.custom_bey.set_custom_review_channel') as save, patch('cogs.custom_bey._pending_custom_submissions',AsyncMock(return_value=[(1,{**blade(['heal']),'submitted_guild_id':123}),(2,{**blade(['heal']),'submitted_guild_id':124})])):
             await CustomBeyCog.setcustom.callback(CustomBeyCog(None),ctx,target)
             save.assert_called_once_with(123,456)
-            target.send.assert_awaited_once()
+            self.assertEqual(target.send.await_count,2)
+
+    async def test_single_legacy_review_channel_works_for_other_servers(self):
+        from utils import database as db
+        with patch.object(db,'load_config',return_value={'123':{'custom_review_channel_id':456}}):
+            self.assertEqual(db.get_custom_review_channel(124),456)
+        with patch.object(db,'load_config',return_value={}):
+            self.assertIsNone(db.get_custom_review_channel(124))
+
+    async def test_submission_from_other_server_uses_central_channel(self):
+        b=CustomBeyBuilder(1,'Attack')
+        b.draft.update(name='Test Custom',stats=(100,100,100,95),image='https://example.com/bey.png',
+                       special_name='Custom Strike',special_damage=120,special_effect='none')
+        b.abilities[0].update(name='Heal',effect='heal',trigger=allowed_triggers('heal')[0])
+        i=MagicMock(); i.user.id=1; i.guild.id=124
+        i.response.defer=AsyncMock(); i.edit_original_response=AsyncMock()
+        target=MagicMock(); target.send=AsyncMock()
+        i.client.get_channel.return_value=None
+        i.client.fetch_channel=AsyncMock(return_value=target)
+        saved={}
+        async def mutate(uid, callback): callback(saved)
+        with patch('cogs.custom_bey.get_custom_review_channel',return_value=456), \
+                patch('cogs.custom_bey.validate_image_url',AsyncMock()), \
+                patch('cogs.custom_bey.get_beyblade',return_value=None), \
+                patch('cogs.custom_bey.mutate_user',side_effect=mutate):
+            await b.create(i)
+        i.client.fetch_channel.assert_awaited_once_with(456)
+        i.guild.get_channel.assert_not_called()
+        target.send.assert_awaited_once()
+        self.assertEqual(saved['custom_bey']['submitted_guild_id'],124)
+        self.assertEqual(saved['custom_bey']['approval_status'],'pending')
+
+    async def test_create_opens_in_another_server_and_review_remains_owner_only(self):
+        i=MagicMock(); i.guild.id=124; i.user.id=1
+        i.response.send_message=AsyncMock(); i.original_response=AsyncMock()
+        with patch('cogs.custom_bey.get_custom_review_channel',return_value=456), \
+                patch('cogs.custom_bey.get_user',AsyncMock(return_value={})):
+            await CustomBeyCog.custombey.callback(CustomBeyCog(i.client),i,
+                discord.app_commands.Choice(name='Create',value='create'),
+                discord.app_commands.Choice(name='Attack',value='Attack'))
+        self.assertIsInstance(i.response.send_message.call_args.kwargs['view'],CustomBeyBuilder)
+        i.client.is_owner=AsyncMock(return_value=False)
+        self.assertFalse(await CustomApprovalView(0,1).interaction_check(i))
 
     async def test_image_modal_updates_original_builder(self):
         b=CustomBeyBuilder(1,'Attack'); b._message=MagicMock(); b._message.edit=AsyncMock()

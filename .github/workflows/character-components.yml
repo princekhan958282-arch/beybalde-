@@ -46,6 +46,7 @@ jobs:
       - name: Migration, equipment and SQLite restart
         run: |
           python -m unittest tools.test_character_components
+          python -m unittest tools.test_custom_bey_v2
           python -m unittest tools.test_physical_components
       - name: PvP, Boss, Story, inventory controls and battle snapshots
         run: python tools/test_component_battles.py
