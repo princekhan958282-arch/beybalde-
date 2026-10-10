@@ -1,6 +1,6 @@
 {
   "id": "BB155_default_driver",
-  "name": "Jambo Jamunter Spin Driver",
+  "name": "Jail Jormungand Spin Driver",
   "category": "driver",
   "type": "driver",
   "stats": {
@@ -14,5 +14,8 @@
   "shop_available": false,
   "tradable": false,
   "bey_id": "BB155",
-  "_registry_order": 1155
+  "_registry_order": 1155,
+  "aliases": [
+    "Jambo Jamunter Spin Driver"
+  ]
 }

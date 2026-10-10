@@ -50,6 +50,45 @@ def definition_for(profile, ident):
     return REGISTRY.part(item["definition_id"]) if item else None
 
 
+def _migrate_jail_jormungand(profile: dict) -> None:
+    """Keep name-keyed ownership/progression attached to the unchanged BB155."""
+    blade = REGISTRY.find_bey("BB155")
+    if not blade or blade["name"] != "Jail Jormungand":
+        return
+    canonical = blade["name"]
+    old_names = {name.casefold() for name in blade.get("aliases", [])}
+
+    def renamed(value):
+        return canonical if isinstance(value, str) and value.casefold() in old_names else value
+
+    for item in profile.get("inventory", []):
+        if isinstance(item, dict):
+            item["name"] = renamed(item.get("name"))
+    if isinstance(profile.get("inventory"), list):
+        profile["inventory"] = [renamed(item) for item in profile["inventory"]]
+    for item in profile.get("bey_instances", []):
+        item["name"] = renamed(item.get("name"))
+    if "active_beyblade" in profile:
+        profile["active_beyblade"] = renamed(profile["active_beyblade"])
+    for field in ("bey_progress", "spin_mode"):
+        bucket = profile.get(field)
+        if not isinstance(bucket, dict):
+            continue
+        for key in list(bucket):
+            if renamed(key) == key:
+                continue
+            old = bucket.pop(key)
+            if canonical not in bucket:
+                bucket[canonical] = old
+            elif field == "bey_progress":
+                # Retain both records when a player already has both spellings.
+                profile.setdefault("bey_rename_archive", {}).setdefault(key, copy.deepcopy(old))
+                current = bucket[canonical]
+                if old.get("xp", 0) > current.get("xp", 0):
+                    profile["bey_rename_archive"].setdefault(canonical, copy.deepcopy(current))
+                    bucket[canonical] = old
+
+
 def reconcile(profile: dict) -> None:
     """Grant each copy's defaults once and adapt legacy purchased equipment.
 
@@ -57,6 +96,7 @@ def reconcile(profile: dict) -> None:
     Trades/listings instead explicitly move the copy and attached components.
     A components_granted marker survives transfers so defaults cannot respawn.
     """
+    _migrate_jail_jormungand(profile)
     inventory = profile.get("inventory")
     if not isinstance(inventory, list):
         return

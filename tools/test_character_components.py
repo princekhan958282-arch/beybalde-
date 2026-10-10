@@ -31,7 +31,7 @@ OCTOBER_ADDITIONS = {f'BB{139+i}': name for i, name in enumerate(
 OCTOBER_ADDITIONS.update({'BB149': 'S,Dragon Killer', 'BB150': 'Black Legend'})
 BURST_ADDITIONS = {f'BB{151+i}': name for i, name in enumerate(
     ('Silver Valkyrie', 'Arc Bahamut', 'Circle Bahamut', 'Judgement Joker',
-     'Jambo Jamunter', 'Greatest Raphael', 'Bushin Ashura', 'Orb Engaard', 'Ace Dragon'))}
+     'Jail Jormungand', 'Greatest Raphael', 'Bushin Ashura', 'Orb Engaard', 'Ace Dragon'))}
 
 FOUR_BURST_ADDITIONS = {f'BB{160+i}': name for i, name in enumerate(
     ('Black Especially', 'Grand Dragon', 'Heaven Pegasus', 'Hyperion Burn Cho Xceed'))}

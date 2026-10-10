@@ -146,7 +146,7 @@ class AuthoredSpecialEffects(unittest.IsolatedAsyncioTestCase):
                     elif name == 'Judgement Joker':
                         self.assertEqual((d.get('red', 0), d.get('black', 0)), (0, 0))
                         self.assertEqual(s.status.get_shield(key), math.ceil(s.max_hp_per_player[key] * .10))
-                    elif name == 'Jambo Jamunter':
+                    elif name == 'Jail Jormungand':
                         self.assertEqual(landing['rounds_left'], 4)
                         self.assertEqual(s.stability_manager.stability[key], before_stability + 8)
                     elif name == 'Greatest Raphael':

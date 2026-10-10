@@ -1,6 +1,6 @@
 {
   "id": "BB155_default_disk",
-  "name": "Jambo Jamunter Core Disk",
+  "name": "Jail Jormungand Core Disk",
   "category": "disk",
   "type": "disk",
   "stats": {
@@ -14,5 +14,8 @@
   "shop_available": false,
   "tradable": false,
   "bey_id": "BB155",
-  "_registry_order": 1155
+  "_registry_order": 1155,
+  "aliases": [
+    "Jambo Jamunter Core Disk"
+  ]
 }

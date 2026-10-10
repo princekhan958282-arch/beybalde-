@@ -1,16 +1,17 @@
 {
   "id": "BB155",
-  "name": "Jambo Jamunter",
+  "name": "Jail Jormungand",
   "aliases": [
     "Jumbo Jormuntor",
-    "Jumbo Jormungand"
+    "Jumbo Jormungand",
+    "Jambo Jamunter"
   ],
   "rarity": "Epic",
-  "type": "Defense",
+  "type": "Stamina",
   "spin_direction": "Right",
   "burst_height": "Mid",
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438065507410013/08b09dcc75cd9a94ed349a53eee9bdc9.jpg?ex=6acb700d&is=6aca1e8d&hm=83d8826e6b4d14b7fcdf115285d041adfd984548fc350b0fc051b64992be1833&",
-  "description": "Jambo Jamunter: Defense type with two unique battle abilities.",
+  "description": "Jail Jormungand: Stamina type with two unique battle abilities.",
   "stats": {
     "hp": 150,
     "attack": 80,
