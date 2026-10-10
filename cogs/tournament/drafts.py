@@ -1,4 +1,4 @@
-"""Phase 1 configuration and durable drafts, deliberately separate from Lobby."""
+"""V2 configuration and durable drafts, deliberately separate from Lobby."""
 from dataclasses import asdict, dataclass, replace
 from contextlib import closing
 from pathlib import Path
@@ -12,12 +12,17 @@ OPTIONS = {
     'level_rule': ('Actual Levels', 'Equalized Level 100'),
     'combo_lock': ('Whole Tournament', 'Per Match', 'Per Battle'),
     'match_start': ('Both Players Ready', 'Host Approval'),
+    'avatars': ('Allowed', 'Disabled'),
+    'avatar_level_rule': ('Actual Levels', 'Equalized Level'),
+    'bey_selection': ('Equipped Beyblade', 'Random Beyblade'),
 }
 LABELS = {
     'name': 'Tournament Name', 'format': 'Tournament Format',
     'slots': 'Player Slots', 'victory_target': 'Victory Target',
     'level_rule': 'Beyblade Level Rule', 'combo_lock': 'Beyblade Combo Lock',
     'match_start': 'Match Start Rule', 'entry_fee': 'Entry Fee',
+    'avatars': 'Avatars', 'avatar_level_rule': 'Avatar Level',
+    'avatar_level': 'Equalized Avatar Level', 'bey_selection': 'Beyblade Selection',
 }
 
 @dataclass
@@ -30,8 +35,24 @@ class DraftConfig:
     combo_lock: str = 'Whole Tournament'
     match_start: str = 'Both Players Ready'
     entry_fee: int = 0
+    avatars: str = 'Allowed'
+    avatar_level_rule: str = 'Actual Levels'
+    avatar_level: int = 1
+    bey_selection: str = 'Equipped Beyblade'
+
+    def visible_keys(self):
+        return [key for key in LABELS if key != 'avatar_level'
+                and (key != 'avatar_level_rule' or self.avatars == 'Allowed')]
+
+    def summary(self):
+        import discord
+        return '\n'.join(f"**{LABELS[key]}:** {discord.utils.escape_mentions(discord.utils.escape_markdown(self.display(key)))}"
+                         for key in self.visible_keys())
 
     def validate(self):
+        from cogs.avatar.avatar_config import MAX_CARD_LEVEL
+        if type(self.avatar_level) is not int or not 1 <= self.avatar_level <= MAX_CARD_LEVEL:
+            raise ValueError(f'Avatar level must be between 1 and {MAX_CARD_LEVEL}.')
         if not isinstance(self.name, str) or not 1 <= len(self.name.strip()) <= 100:
             raise ValueError('Tournament name must contain 1–100 characters.')
         if any(ord(c) < 32 for c in self.name):
@@ -52,6 +73,8 @@ class DraftConfig:
 
     def display(self, key):
         value = getattr(self, key)
+        if key == 'avatar_level_rule' and value == 'Equalized Level':
+            return f'Equalized Level {self.avatar_level}'
         if key == 'victory_target':
             return f'First to {value}'
         if key == 'entry_fee':

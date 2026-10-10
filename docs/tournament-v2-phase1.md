@@ -1,5 +1,9 @@
 # Tournament V2 — Phase 1 host panel
 
+Historical Phase 1 behavior is documented below. The registration follow-up
+changes confirmation/publication; see `tournament-v2-registration.md` for the
+current flow.
+
 `;tournament` (alias `;tourney`) and `/tournament` open one public Discord
 Components V2 container. Only its host can interact, and that host must retain
 the configured host allowlist, Tournament Admin role, master permission, or

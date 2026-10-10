@@ -7,6 +7,7 @@ import pytest
 from cogs.tournament.drafts import DraftConfig, DraftStore, LABELS, OPTIONS
 from cogs.tournament.host_panel import HostPanel, EditButton, SettingSelect, SettingModal, PanelButton
 from cogs.tournament.tournament import TournamentCog, MASTER_ID, ADMIN_ROLE
+from cogs.tournament.registration import RegistrationStore
 from cogs.tournament.hosters import TOURNAMENT_HOSTER_IDS
 
 pytestmark = pytest.mark.asyncio
@@ -22,6 +23,7 @@ def interaction(who=None):
 def cog(tmp_path):
     c = TournamentCog(NS(is_owner=AsyncMock(return_value=False)))
     c.draft_store = DraftStore(tmp_path / 'drafts.db')
+    c.registration_store = RegistrationStore(c.draft_store)
     return c
 
 async def opened(c, who=None):
@@ -37,7 +39,7 @@ async def test_defaults_and_v2(cog):
     assert isinstance(p, discord.ui.LayoutView)
     assert len(p.to_components()) == 1
     assert p.content_length() < 4000
-    assert all(label in text(p) for label in LABELS.values())
+    assert all(label in text(p) for label in [LABELS[key] for key in p.config.visible_keys()])
     assert 'First to 3' in text(p) and '0 Beycoins' in text(p)
     assert send.call_args.kwargs == {'view': p}
     assert not cog.lobbies
@@ -72,7 +74,12 @@ async def test_every_enum_and_preview(cog, key):
         select = next(x for x in p.walk_children() if isinstance(x, SettingSelect))
         assert [o.value for o in select.options] == [str(v) for v in OPTIONS[key]]
         select._values = [str(value)]
-        await select.callback(interaction())
+        i2 = interaction()
+        await select.callback(i2)
+        if key == 'avatar_level_rule' and value == 'Equalized Level':
+            modal = i2.response.send_modal.call_args.args[0]
+            modal.input._value = '3'
+            await modal.on_submit(interaction())
         assert getattr(p.config, key) == value
         assert p.config.display(key) in text(p)
         assert p.editing is None
@@ -132,10 +139,11 @@ async def test_confirm_persistence_and_no_runner(cog):
     cog._spawn = lambda _: pytest.fail('Runner must not start')
     i = interaction()
     await p.act(i, 'confirm')
-    assert p.closed and not cog.setups and not cog.lobbies
+    assert not p.closed and p.channel_stage and cog.setups[1] is p and not cog.lobbies
     i.edit_original_response.assert_awaited_once()
     store = DraftStore(cog.draft_store.path)
     assert store.load(1) == (MASTER_ID, p.config)
+    await p.act(interaction(), 'cancel')
     p2, _ = await opened(cog)
     assert p2.config == p.config
     p2.config = p2.config.updated('name', 'Unsaved')
@@ -245,11 +253,12 @@ async def test_maximum_name_is_safely_rendered(cog):
 
 async def test_form_sections_and_component_budget(cog):
     p, _ = await opened(cog)
-    assert [x.key for x in p.walk_children() if isinstance(x, EditButton)] == list(LABELS)
-    assert len([x for x in p.walk_children() if isinstance(x, discord.ui.Section)]) == 8
+    assert [x.key for x in p.walk_children() if isinstance(x, EditButton)] == p.config.visible_keys()
+    assert len([x for x in p.walk_children() if isinstance(x, discord.ui.Section)]) == len(p.config.visible_keys())
     assert p.total_children_count <= 40
     await p.act(interaction(), 'reset')
     assert p.total_children_count <= 40
+    await p.act(interaction(), 'back')
     edit = next(x for x in p.walk_children() if isinstance(x, EditButton) and x.key == 'slots')
     await edit.callback(interaction())
     assert not p.reset_pending and p.editing == 'slots'

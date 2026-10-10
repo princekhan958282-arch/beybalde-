@@ -15,6 +15,9 @@ class HostPanel(discord.ui.LayoutView):
         self.closed = False
         self.editing = None
         self.reset_pending = False
+        self.channel_stage = False
+        self.channel_id = None
+        self.published = False
         self.note = 'Each victory is one complete PvP battle won.'
         self.lock = asyncio.Lock()
         self.build()
@@ -33,34 +36,35 @@ class HostPanel(discord.ui.LayoutView):
 
     def build(self):
         self.clear_items()
-        safe_name = discord.utils.escape_mentions(discord.utils.escape_markdown(self.config.name))
-        summary = '\n'.join(f'**{label}:** {safe_name if key == "name" else self.config.display(key)}' for key, label in LABELS.items())
+        summary = self.config.summary()
         card = discord.ui.Container(
-            discord.ui.TextDisplay('# 🏆 Tournament Host Panel\nTournament configuration\n**Status: Draft**'),
-            discord.ui.Separator(),
+            discord.ui.TextDisplay('# 🏆 Tournament Host Panel\nTournament configuration\n**Status: ' + ('Registration Published' if self.published else 'Ready to Publish' if self.channel_stage else 'Draft') + '**'),
             accent_colour=0x5865F2)
-        # Discord sections place one real Edit button beside each label/value.
-        # A native select occupies a full row, so two-column selects are not used.
-        for key, label in LABELS.items():
-            value = safe_name if key == 'name' else self.config.display(key)
-            field = discord.ui.TextDisplay(f'**{label}**\n{value}')
-            if self.closed:
+        editing = self.editing or self.reset_pending or self.channel_stage
+        for key in self.config.visible_keys():
+            field = discord.ui.TextDisplay(f'**{LABELS[key]}**\n{discord.utils.escape_mentions(discord.utils.escape_markdown(self.config.display(key)))}')
+            if self.closed or editing:
                 card.add_item(field)
             else:
                 card.add_item(discord.ui.Section(field, accessory=EditButton(key)))
         if not self.closed:
-            if self.reset_pending:
-                card.add_item(discord.ui.Separator())
+            if self.channel_stage:
+                card.add_item(discord.ui.TextDisplay('### Select Registration Channel' +
+                    (f'\nSelected: <#{self.channel_id}>' if self.channel_id else '')))
+                card.add_item(discord.ui.ActionRow(RegistrationChannelSelect()))
+                buttons = [PanelButton('Back to Settings', 'back'), PanelButton('Cancel Setup', 'cancel', discord.ButtonStyle.danger)]
+                if self.channel_id:
+                    buttons.insert(0, PanelButton('Publish Registration', 'publish', discord.ButtonStyle.success))
+                card.add_item(discord.ui.ActionRow(*buttons))
+            elif self.reset_pending:
                 card.add_item(discord.ui.TextDisplay('Restore all settings to their defaults?'))
                 card.add_item(discord.ui.ActionRow(PanelButton('Restore Defaults', 'reset_yes', discord.ButtonStyle.danger), PanelButton('Keep Settings', 'back')))
             elif self.editing:
-                card.add_item(discord.ui.Separator())
                 card.add_item(discord.ui.ActionRow(SettingSelect(self.editing, self.config)))
                 card.add_item(discord.ui.ActionRow(PanelButton('Back', 'back')))
-        card.add_item(discord.ui.Separator())
-        card.add_item(discord.ui.TextDisplay('### Tournament Preview\n' + summary))
-        card.add_item(discord.ui.TextDisplay(self.note + '\n-# Phase 1 saves drafts only. Registration and battles are unavailable.'))
-        if not self.closed and not self.reset_pending and not self.editing:
+        card.add_item(discord.ui.TextDisplay('### Tournament Preview\n' + summary +
+            '\n\n' + self.note + '\n-# Registration is available. Battles and fee collection are deferred.'))
+        if not self.closed and not editing:
             card.add_item(discord.ui.ActionRow(
                 PanelButton('Confirm Setup', 'confirm', discord.ButtonStyle.success),
                 PanelButton('Reset', 'reset'),
@@ -107,7 +111,8 @@ class HostPanel(discord.ui.LayoutView):
                 return
             if action == 'edit':
                 self.reset_pending = False
-                if value in ('name', 'entry_fee'):
+                self.channel_stage = False
+                if value in ('name', 'entry_fee', 'avatar_level'):
                     return await interaction.response.send_modal(SettingModal(self, value))
                 if value not in OPTIONS:
                     raise ValueError('Unknown setting')
@@ -118,13 +123,15 @@ class HostPanel(discord.ui.LayoutView):
                     return await interaction.response.send_message('That editor is outdated. Select the setting again.', ephemeral=True)
                 try:
                     parsed = int(raw) if isinstance(OPTIONS[key][0], int) else raw
+                    if key == 'avatar_level_rule' and parsed == 'Equalized Level':
+                        return await interaction.response.send_modal(SettingModal(self, 'avatar_level'))
                     self.config = self.config.updated(key, parsed)
                 except ValueError as exc:
                     return await interaction.response.send_message(str(exc), ephemeral=True)
                 self.editing = None
             elif action == 'reset':
                 self.reset_pending = True
-                self.note = 'Restore all eight settings to their defaults?'
+                self.note = 'Restore all settings to their defaults?'
             elif action == 'reset_yes':
                 if not self.reset_pending:
                     return await interaction.response.send_message('Select Reset first.', ephemeral=True)
@@ -132,6 +139,8 @@ class HostPanel(discord.ui.LayoutView):
                 self.reset_pending = False
                 self.note = 'Defaults restored.'
             elif action == 'back':
+                self.channel_stage = False
+                self.channel_id = None
                 self.editing = None
                 self.reset_pending = False
                 self.note = 'Each victory is one complete PvP battle won.'
@@ -141,15 +150,46 @@ class HostPanel(discord.ui.LayoutView):
             elif action == 'confirm':
                 self.config.validate()
                 live = self.cog.lobbies.get(self.guild_id)
-                if live and not live.finished:
+                if (live and not live.finished) or self.guild_id in self.cog.registrations:
                     return await interaction.response.send_message('A tournament is already active in this server.', ephemeral=True)
                 await interaction.response.defer()
                 await asyncio.to_thread(self.cog.draft_store.save, self.guild_id, self.host_id, self.config)
-                self.note = '✅ Configuration saved as a draft. Registration and battles have not started.'
+                self.note = '✅ Setup confirmed. Select a channel, then publish registration.'
+                self.channel_stage = True
+                self.editing = None
+                self.reset_pending = False
+                self.build()
+                return await interaction.edit_original_response(view=self, allowed_mentions=discord.AllowedMentions.none())
+            elif action == 'channel':
+                if not self.channel_stage:
+                    return await interaction.response.send_message('Confirm setup first.', ephemeral=True)
+                from .registration import validate_channel
+                try:
+                    validate_channel(interaction.guild, interaction.guild.get_channel(value))
+                except ValueError as exc:
+                    return await interaction.response.send_message(str(exc), ephemeral=True)
+                self.channel_id = value
+            elif action == 'publish':
+                if not self.channel_stage or not self.channel_id:
+                    return await interaction.response.send_message('Select a registration channel first.', ephemeral=True)
+                await interaction.response.defer()
+                try:
+                    panel = await self.cog.publish_registration(self, interaction.guild)
+                except ValueError as exc:
+                    return await interaction.followup.send(str(exc), ephemeral=True)
+                self.published = True
+                self.note = f'✅ Registration published: {panel.message.jump_url}'
                 self.release()
                 self.build()
                 return await interaction.edit_original_response(view=self, allowed_mentions=discord.AllowedMentions.none())
             await self.refresh(interaction)
+
+class RegistrationChannelSelect(discord.ui.ChannelSelect):
+    def __init__(self):
+        super().__init__(placeholder='Select Registration Channel', channel_types=[discord.ChannelType.text], min_values=1, max_values=1)
+
+    async def callback(self, interaction):
+        await self.view.act(interaction, 'channel', self.values[0].id)
 
 class EditButton(discord.ui.Button):
     def __init__(self, key):
@@ -189,15 +229,19 @@ class SettingModal(discord.ui.Modal):
                 return
             raw = self.input.value.strip()
             try:
-                if self.key == 'entry_fee' and (not raw.isascii() or not raw.isdecimal()):
-                    raise ValueError('Entry fee must be a non-negative integer.')
-                value = int(raw) if self.key == 'entry_fee' else raw
+                if self.key in ('entry_fee', 'avatar_level') and (not raw.isascii() or not raw.isdecimal()):
+                    raise ValueError('Enter a valid non-negative integer.')
+                value = int(raw) if self.key in ('entry_fee', 'avatar_level') else raw
                 config = panel.config.updated(self.key, value)
+                if self.key == 'avatar_level':
+                    config = config.updated('avatar_level_rule', 'Equalized Level')
             except ValueError as exc:
                 return await interaction.response.send_message(str(exc), ephemeral=True)
             await interaction.response.defer()
             panel.config = config
             panel.editing = None
+            panel.channel_stage = False
+            panel.channel_id = None
             panel.build()
             # Modal is tied to the host panel message; never send a new public message.
             await panel.message.edit(view=panel, allowed_mentions=discord.AllowedMentions.none())
