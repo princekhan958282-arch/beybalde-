@@ -1,0 +1,18 @@
+{
+  "id": "BB164_default_driver",
+  "name": "Blast Jinnius Tower Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 42,
+    "attack": 23,
+    "defense": 42,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB164",
+  "_registry_order": 1164
+}

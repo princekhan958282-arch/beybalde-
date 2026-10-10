@@ -58,6 +58,7 @@ jobs:
         run: |
           python -m unittest tools.test_october_bey_roster
           python -m unittest tools.test_nine_burst_beys
+          python -m unittest tools.test_blast_jinnius
           python -m unittest tools.test_four_burst_beys
           python -m unittest tools.test_new_bey_regressions
           python -m unittest tools.test_dragon_killer_black_legend
