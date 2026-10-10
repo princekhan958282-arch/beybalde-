@@ -1,0 +1,116 @@
+{
+  "id": "BB158",
+  "name": "Orb Engaard",
+  "aliases": [
+    "Orb Egis"
+  ],
+  "rarity": "Epic",
+  "type": "Defense",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438376162721822/7ade6968c540247974fe13c78bd3dad7.jpg?ex=6acb7057&is=6aca1ed7&hm=2be10075b1c1361fc99f2d77d2cd1c3acc575d7e770fdc26f298ffc6a58963c9&",
+  "description": "Orb Engaard: Defense type with two unique battle abilities.",
+  "stats": {
+    "hp": 145,
+    "attack": 75,
+    "defense": 135,
+    "stamina": 110,
+    "special": 120
+  },
+  "ability": {
+    "name": "Orb Deflection",
+    "description": "Every third enemy normal Attack deals 30% less damage. Specials do not advance this counter.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "third_deflection"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Orb Deflection",
+      "description": "Every third enemy normal Attack deals 30% less damage. Specials do not advance this counter.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "third_deflection"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Perfect Sphere",
+      "description": "When both fighters choose Defense, restore 5 Stability and gain 1 Sphere charge, up to 3.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "mirror_spheres"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "sphere_finisher"
+            }
+          ],
+          "_name": "Engaard Repulsion"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Engaard Repulsion",
+    "description": "1 hit(s), each 120 base + 40% DEFENSE. Consume Sphere charges for 8% damage reduction each during the next round. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 120,
+    "total_damage": 120,
+    "damage_formula": {
+      "base": 120,
+      "defense": 0.4
+    },
+    "flavour_texts": [
+      "**ENGAARD REPULSION!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Engaard Repulsion"
+  },
+  "generation": "Burst",
+  "_registry_order": 158,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 65,
+    "attack": 34,
+    "defense": 61,
+    "stamina": 50
+  },
+  "default_parts": {
+    "disk": "BB158_default_disk",
+    "driver": "BB158_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

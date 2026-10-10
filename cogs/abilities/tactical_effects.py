@@ -135,6 +135,7 @@ class TacticalEffects:
 
     def round_start(self, key, other, move, enemy_move, stats, enemy_stats, logs):
         """Before any stats are used or costs are charged for this round."""
+        self.engine.burst.round_start(key, other, move, enemy_move, stats, enemy_stats, logs)
         sm = self.session.stamina_manager
         hp = self.session.hp
         self.round_hits[key] = 0
@@ -188,6 +189,7 @@ class TacticalEffects:
             d["was_ready"] = ready
 
     def before_damage(self, key, other, move, matchup, damage, logs, first=True, last=True):
+        damage = self.engine.burst.outgoing(key, move, matchup, damage, first, logs)
         if not first:
             if move == "special" and self.has(key, "finishers_mark"):
                 d = self.data(key, "finishers_mark")
@@ -230,6 +232,7 @@ class TacticalEffects:
         return damage
 
     def mitigate(self, key, other, move, incoming, logs):
+        incoming = self.engine.burst.incoming(key, move, incoming, logs)
         if incoming <= 0:
             return incoming
         if self.has(key, "pattern_reader") and self.data(key, "pattern_reader").get("against") == move:
@@ -251,6 +254,7 @@ class TacticalEffects:
     def shield_absorbed(self, attacker, defender, amount, through, logs):
         if amount <= 0:
             return
+        self.engine.burst.absorbed(defender, amount, logs)
         if self.has(defender, "shield_momentum"):
             d = self.data(defender, "shield_momentum")
             d["absorbed"] = d.get("absorbed", 0) + amount
@@ -262,6 +266,7 @@ class TacticalEffects:
             self.data(attacker, "exposed_core")["candidate"] = True
 
     def committed(self, attacker, defender, move, actual, logs):
+        self.engine.burst.committed(defender, logs)
         if self.has(attacker, "exposed_core"):
             d = self.data(attacker, "exposed_core")
             if d.pop("candidate", False) and actual > 0:
@@ -292,6 +297,7 @@ class TacticalEffects:
                 logs.append("💨 Second Wind restores Stamina.")
 
     def round_end(self, key, other, move, enemy_move, matchup, logs):
+        self.engine.burst.round_end(key, other, move, enemy_move, matchup, logs)
         if self.has(key, "pressure_gauge"):
             d = self.data(key, "pressure_gauge")
             if self.round_hits.get(key, 0) <= 0:

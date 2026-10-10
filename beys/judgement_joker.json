@@ -1,0 +1,116 @@
+{
+  "id": "BB154",
+  "name": "Judgement Joker",
+  "aliases": [
+    "Judgment Joker"
+  ],
+  "rarity": "Legendary",
+  "type": "Balance",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438047354458223/2b8b8ee57c66b0ed673ad510c2d98b9a.jpg?ex=6acb7008&is=6aca1e88&hm=207616dd64ac213dde214972590cde0742c3d45a38462ad767286063e0e18ffd&",
+  "description": "Judgement Joker: Balance type with two unique battle abilities.",
+  "stats": {
+    "hp": 140,
+    "attack": 140,
+    "defense": 115,
+    "stamina": 110,
+    "special": 140
+  },
+  "ability": {
+    "name": "Loaded Verdict",
+    "description": "Attack wins earn a Red token; Defense wins earn a Black token. Hold up to 2 of each; Specials earn no tokens.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "verdict_tokens"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Loaded Verdict",
+      "description": "Attack wins earn a Red token; Defense wins earn a Black token. Hold up to 2 of each; Specials earn no tokens.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "verdict_tokens"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Double Jeopardy",
+      "description": "Your next normal Attack consumes one token of each colour, if available, for +15% damage and an 8% max HP shield.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "paired_verdict"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "verdict_finisher"
+            }
+          ],
+          "_name": "Final Verdict"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Final Verdict",
+    "description": "1 hit(s), each 140 base + 35% ATTACK. Consume all tokens: +15 damage per Red and +5% max HP shield per Black. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 140,
+    "total_damage": 140,
+    "damage_formula": {
+      "base": 140,
+      "attack": 0.35
+    },
+    "flavour_texts": [
+      "**FINAL VERDICT!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Final Verdict"
+  },
+  "generation": "Burst",
+  "_registry_order": 154,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 63,
+    "attack": 63,
+    "defense": 52,
+    "stamina": 50
+  },
+  "default_parts": {
+    "disk": "BB154_default_disk",
+    "driver": "BB154_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

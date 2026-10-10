@@ -1,0 +1,114 @@
+{
+  "id": "BB159",
+  "name": "Ace Dragon",
+  "aliases": [],
+  "rarity": "Legendary",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438386853875722/95f19bf13ac292cf9e12d8700c962125.jpg?ex=6acb7059&is=6aca1ed9&hm=520768caab310b07dd29aff3ada90d186d195d22af7f43dd7da5fee4b521e656&",
+  "description": "Ace Dragon: Attack type with two unique battle abilities.",
+  "stats": {
+    "hp": 140,
+    "attack": 150,
+    "defense": 80,
+    "stamina": 110,
+    "special": 155
+  },
+  "ability": {
+    "name": "Dragon Pursuit",
+    "description": "Attack losses grant 1 Pursuit stack, up to 3; the next Attack win consumes them for +10% damage each.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "loss_pursuit"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dragon Pursuit",
+      "description": "Attack losses grant 1 Pursuit stack, up to 3; the next Attack win consumes them for +10% damage each.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "loss_pursuit"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Ace Momentum",
+      "description": "After Charge, your next normal Attack within 2 rounds gains bonus damage equal to 15% base ATK. Does not stack or boost Specials.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "charge_momentum"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "pursuit_finisher"
+            }
+          ],
+          "_name": "Dragonic Ace"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Dragonic Ace",
+    "description": "1 hit(s), each 155 base + 45% ATTACK. Consume Pursuit stacks to pierce 5% Defense mitigation each. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 155,
+    "total_damage": 155,
+    "damage_formula": {
+      "base": 155,
+      "attack": 0.45
+    },
+    "flavour_texts": [
+      "**DRAGONIC ACE!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Dragonic Ace"
+  },
+  "generation": "Burst",
+  "_registry_order": 159,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 63,
+    "attack": 68,
+    "defense": 36,
+    "stamina": 50
+  },
+  "default_parts": {
+    "disk": "BB159_default_disk",
+    "driver": "BB159_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

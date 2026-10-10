@@ -1,0 +1,18 @@
+{
+  "id": "BB159_default_disk",
+  "name": "Ace Dragon Core Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 39,
+    "attack": 41,
+    "defense": 22,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB159",
+  "_registry_order": 1159
+}

@@ -1,0 +1,114 @@
+{
+  "id": "BB151",
+  "name": "Silver Valkyrie",
+  "aliases": [],
+  "rarity": "Legendary",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438014005551104/f78d2f76e56d182f4b1d270eceff1300.jpg?ex=6acb7000&is=6aca1e80&hm=7eda91ae46cbba0b6406814281830c220b85f17d35354c147dd9c160db045d6a&",
+  "description": "Silver Valkyrie: Attack type with two unique battle abilities.",
+  "stats": {
+    "hp": 135,
+    "attack": 155,
+    "defense": 75,
+    "stamina": 110,
+    "special": 150
+  },
+  "ability": {
+    "name": "Silver Acceleration",
+    "description": "Attack wins add +5% base ATK per Speed stack, up to 4; an Attack loss removes 1.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "speed_accumulation"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Silver Acceleration",
+      "description": "Attack wins add +5% base ATK per Speed stack, up to 4; an Attack loss removes 1.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "speed_accumulation"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Valkyrie’s Edge",
+      "description": "Two consecutive Attack wins arm the next normal Attack to ignore 20% enemy DEF.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "consecutive_edge"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "speed_finisher"
+            }
+          ],
+          "_name": "Silver Wing Breaker"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Silver Wing Breaker",
+    "description": "1 hit(s), each 150 base + 45% ATTACK. Consume Speed stacks for +12 damage each. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 150,
+    "total_damage": 150,
+    "damage_formula": {
+      "base": 150,
+      "attack": 0.45
+    },
+    "flavour_texts": [
+      "**SILVER WING BREAKER!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Silver Wing Breaker"
+  },
+  "generation": "Burst",
+  "_registry_order": 151,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 61,
+    "attack": 70,
+    "defense": 34,
+    "stamina": 50
+  },
+  "default_parts": {
+    "disk": "BB151_default_disk",
+    "driver": "BB151_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "id": "BB156",
+  "name": "Greatest Raphael",
+  "aliases": [],
+  "rarity": "Ultimate",
+  "type": "Balance",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438178594103380/51fed2fed7746eeb88f228dc1d560461.jpg?ex=6acb7028&is=6aca1ea8&hm=eac25ef2ba3af89c6f1f9a32ee3b147f61a54087f90888a57a16dca3da3cbeeb&",
+  "description": "Greatest Raphael: Balance type with two unique battle abilities.",
+  "stats": {
+    "hp": 155,
+    "attack": 140,
+    "defense": 135,
+    "stamina": 130,
+    "special": 145
+  },
+  "ability": {
+    "name": "Halo Ascension",
+    "description": "Gain 1 Halo stack at each round end, up to 4; each grants +3% base ATK and DEF.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "halo_accumulation"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Halo Ascension",
+      "description": "Gain 1 Halo stack at each round end, up to 4; each grants +3% base ATK and DEF.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "halo_accumulation"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Angelic Reversal",
+      "description": "Once per battle when damage leaves you below 40% HP, remove negative stat modifiers and gain 20% damage reduction for the next 2 rounds. Damage over time remains.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "threshold_reversal"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "halo_finisher"
+            }
+          ],
+          "_name": "Greatest Halo"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Greatest Halo",
+    "description": "1 hit(s), each 145 base + 40% ATTACK. Consume Halo stacks to heal 3% max HP per stack; stacks can rebuild. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 145,
+    "total_damage": 145,
+    "damage_formula": {
+      "base": 145,
+      "attack": 0.4
+    },
+    "flavour_texts": [
+      "**GREATEST HALO!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Greatest Halo"
+  },
+  "generation": "Burst",
+  "_registry_order": 156,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 70,
+    "attack": 63,
+    "defense": 61,
+    "stamina": 58
+  },
+  "default_parts": {
+    "disk": "BB156_default_disk",
+    "driver": "BB156_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

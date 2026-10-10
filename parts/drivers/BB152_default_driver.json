@@ -1,0 +1,18 @@
+{
+  "id": "BB152_default_driver",
+  "name": "Arc Bahamut Spin Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 42,
+    "attack": 22,
+    "defense": 41,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB152",
+  "_registry_order": 1152
+}

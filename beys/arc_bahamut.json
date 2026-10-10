@@ -1,0 +1,114 @@
+{
+  "id": "BB152",
+  "name": "Arc Bahamut",
+  "aliases": [],
+  "rarity": "Legendary",
+  "type": "Defense",
+  "spin_direction": "Left",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438034989654076/5046bc3f855f018f31fd9b55afc3811f.jpg?ex=6acb7005&is=6aca1e85&hm=2d213a8a43d34e9769fe0ff43c2cac4ff235562b2cfe50593ea763b3b298fc42&",
+  "description": "Arc Bahamut: Defense type with two unique battle abilities.",
+  "stats": {
+    "hp": 155,
+    "attack": 80,
+    "defense": 150,
+    "stamina": 110,
+    "special": 110
+  },
+  "ability": {
+    "name": "Arc Barrier",
+    "description": "Start with a 15% max HP shield. When it breaks, gain +15% base DEF for 2 rounds.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "breakable_barrier"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Arc Barrier",
+      "description": "Start with a 15% max HP shield. When it breaks, gain +15% base DEF for 2 rounds.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "breakable_barrier"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Recoil Vault",
+      "description": "Store 20% of shield-absorbed damage, capped at 60; release it as bonus counter damage on your next Defense win.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "shield_vault"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "fortress_finisher"
+            }
+          ],
+          "_name": "Bahamut Fortress"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Bahamut Fortress",
+    "description": "1 hit(s), each 110 base + 40% DEFENSE. Replace your Arc shield with a 20% max HP shield lasting 2 rounds; replacement does not trigger breaking. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 110,
+    "total_damage": 110,
+    "damage_formula": {
+      "base": 110,
+      "defense": 0.4
+    },
+    "flavour_texts": [
+      "**BAHAMUT FORTRESS!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Bahamut Fortress"
+  },
+  "generation": "Burst",
+  "_registry_order": 152,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 70,
+    "attack": 36,
+    "defense": 68,
+    "stamina": 50
+  },
+  "default_parts": {
+    "disk": "BB152_default_disk",
+    "driver": "BB152_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

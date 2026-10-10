@@ -1,0 +1,116 @@
+{
+  "id": "BB153",
+  "name": "Circle Bahamut",
+  "aliases": [
+    "Cricle Bahamut"
+  ],
+  "rarity": "Epic",
+  "type": "Defense",
+  "spin_direction": "Left",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438041968967750/ec2bc7f1cd4b0cb115fd8e74b4ba8e35.jpg?ex=6acb7007&is=6aca1e87&hm=c754b2a416e274747f5b49271ae61dc5a4fecb3e425e61eeb92918eb109215d9&",
+  "description": "Circle Bahamut: Defense type with two unique battle abilities.",
+  "stats": {
+    "hp": 145,
+    "attack": 75,
+    "defense": 130,
+    "stamina": 115,
+    "special": 125
+  },
+  "ability": {
+    "name": "Circular Guard",
+    "description": "Defense wins grant 1 Orbit stack, up to 3; each reduces incoming damage by 4%. An Attack loss removes 1.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "orbit_accumulation"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Circular Guard",
+      "description": "Defense wins grant 1 Orbit stack, up to 3; each reduces incoming damage by 4%. An Attack loss removes 1.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "orbit_accumulation"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Unbroken Circle",
+      "description": "Start a round with 3 Orbit stacks to prevent incoming Stability damage that round. Action costs still apply. Consume those stacks at round end.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "orbit_immunity"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "orbit_finisher"
+            }
+          ],
+          "_name": "Ring of Judgment"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Ring of Judgment",
+    "description": "1 hit(s), each 125 base + 45% DEFENSE. Restore 12 Stability and gain 2 Orbit stacks, up to 3. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 125,
+    "total_damage": 125,
+    "damage_formula": {
+      "base": 125,
+      "defense": 0.45
+    },
+    "flavour_texts": [
+      "**RING OF JUDGMENT!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Ring of Judgment"
+  },
+  "generation": "Burst",
+  "_registry_order": 153,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 65,
+    "attack": 34,
+    "defense": 58,
+    "stamina": 52
+  },
+  "default_parts": {
+    "disk": "BB153_default_disk",
+    "driver": "BB153_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

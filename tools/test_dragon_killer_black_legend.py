@@ -19,7 +19,7 @@ class StockData(unittest.TestCase):
         legend = REGISTRY.find_bey('Black Legend')
         self.assertEqual(legend['id'], 'BB150')
         self.assertEqual(legend['rarity'], 'Legendary')
-        self.assertEqual(len(load_beys()), 151)
+        self.assertEqual(len(load_beys()), 160)
 
     def test_mode_picker_and_equipment_preserve_both_forms(self):
         b = REGISTRY.find_bey('Black Legend')
