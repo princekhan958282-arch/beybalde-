@@ -1,13 +1,13 @@
 {
   "id": "BB151_default_driver",
-  "name": "Circle Bahamut Spin Driver",
+  "name": "Silver Valkyrie Spin Driver",
   "category": "driver",
   "type": "driver",
   "stats": {
-    "hp": 40,
-    "attack": 20,
-    "defense": 36,
-    "stamina": 31
+    "hp": 37,
+    "attack": 42,
+    "defense": 20,
+    "stamina": 30
   },
   "compatibility": {},
   "source": "beyblade_default",

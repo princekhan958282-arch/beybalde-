@@ -1,5 +1,5 @@
 {
-  "id": "BB155",
+  "id": "BB157",
   "name": "Bushin Ashura",
   "aliases": [
     "Bushin Asura"
@@ -96,7 +96,7 @@
     "label": "Ashura’s Sixfold Strike"
   },
   "generation": "Burst",
-  "_registry_order": 155,
+  "_registry_order": 157,
   "booster_exclusive": false,
   "main_frame": {
     "hp": 68,
@@ -105,8 +105,8 @@
     "stamina": 52
   },
   "default_parts": {
-    "disk": "BB155_default_disk",
-    "driver": "BB155_default_driver"
+    "disk": "BB157_default_disk",
+    "driver": "BB157_default_driver"
   },
   "component_migration": {
     "strategy": "authorized_45_27_5_27_5",

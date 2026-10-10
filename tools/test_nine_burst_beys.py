@@ -36,7 +36,7 @@ def outgoing(s, move='attack', result='win', amount=100, first=True):
 class RosterIntegrity(unittest.TestCase):
     def test_records_and_bundled_components(self):
         stock = {x['id'] for x in load_parts(shop_only=True)}
-        for i, name in enumerate(NAMES, 149):
+        for i, name in enumerate(NAMES, 151):
             b = REGISTRY.find_bey(name)
             self.assertEqual(b['id'], f'BB{i}')
             self.assertEqual(len(b['abilities']), 2)

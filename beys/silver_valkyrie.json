@@ -1,5 +1,5 @@
 {
-  "id": "BB149",
+  "id": "BB151",
   "name": "Silver Valkyrie",
   "aliases": [],
   "rarity": "Legendary",
@@ -94,7 +94,7 @@
     "label": "Silver Wing Breaker"
   },
   "generation": "Burst",
-  "_registry_order": 149,
+  "_registry_order": 151,
   "booster_exclusive": false,
   "main_frame": {
     "hp": 61,
@@ -103,8 +103,8 @@
     "stamina": 50
   },
   "default_parts": {
-    "disk": "BB149_default_disk",
-    "driver": "BB149_default_driver"
+    "disk": "BB151_default_disk",
+    "driver": "BB151_default_driver"
   },
   "component_migration": {
     "strategy": "authorized_45_27_5_27_5",

@@ -1,13 +1,13 @@
 {
   "id": "BB155_default_disk",
-  "name": "Bushin Ashura Core Disk",
+  "name": "Jambo Jamunter Core Disk",
   "category": "disk",
   "type": "disk",
   "stats": {
     "hp": 41,
-    "attack": 24,
-    "defense": 40,
-    "stamina": 32
+    "attack": 22,
+    "defense": 37,
+    "stamina": 28
   },
   "compatibility": {},
   "source": "beyblade_default",

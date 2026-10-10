@@ -1,5 +1,5 @@
 {
-  "id": "BB153",
+  "id": "BB155",
   "name": "Jambo Jamunter",
   "aliases": [
     "Jumbo Jormuntor",
@@ -97,7 +97,7 @@
     "label": "Giant Hammerfall"
   },
   "generation": "Burst",
-  "_registry_order": 153,
+  "_registry_order": 155,
   "booster_exclusive": false,
   "main_frame": {
     "hp": 68,
@@ -106,8 +106,8 @@
     "stamina": 45
   },
   "default_parts": {
-    "disk": "BB153_default_disk",
-    "driver": "BB153_default_driver"
+    "disk": "BB155_default_disk",
+    "driver": "BB155_default_driver"
   },
   "component_migration": {
     "strategy": "authorized_45_27_5_27_5",

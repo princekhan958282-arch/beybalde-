@@ -1,13 +1,13 @@
 {
   "id": "BB149_default_disk",
-  "name": "Silver Valkyrie Core Disk",
+  "name": "S,Dragon Killer Slayer Disk",
   "category": "disk",
   "type": "disk",
   "stats": {
-    "hp": 37,
-    "attack": 43,
-    "defense": 21,
-    "stamina": 30
+    "hp": 43,
+    "attack": 50,
+    "defense": 18,
+    "stamina": 35
   },
   "compatibility": {},
   "source": "beyblade_default",

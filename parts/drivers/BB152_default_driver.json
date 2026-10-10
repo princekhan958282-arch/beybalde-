@@ -1,12 +1,12 @@
 {
   "id": "BB152_default_driver",
-  "name": "Judgement Joker Spin Driver",
+  "name": "Arc Bahamut Spin Driver",
   "category": "driver",
   "type": "driver",
   "stats": {
-    "hp": 38,
-    "attack": 38,
-    "defense": 31,
+    "hp": 42,
+    "attack": 22,
+    "defense": 41,
     "stamina": 30
   },
   "compatibility": {},

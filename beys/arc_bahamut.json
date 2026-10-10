@@ -1,5 +1,5 @@
 {
-  "id": "BB150",
+  "id": "BB152",
   "name": "Arc Bahamut",
   "aliases": [],
   "rarity": "Legendary",
@@ -94,7 +94,7 @@
     "label": "Bahamut Fortress"
   },
   "generation": "Burst",
-  "_registry_order": 150,
+  "_registry_order": 152,
   "booster_exclusive": false,
   "main_frame": {
     "hp": 70,
@@ -103,8 +103,8 @@
     "stamina": 50
   },
   "default_parts": {
-    "disk": "BB150_default_disk",
-    "driver": "BB150_default_driver"
+    "disk": "BB152_default_disk",
+    "driver": "BB152_default_driver"
   },
   "component_migration": {
     "strategy": "authorized_45_27_5_27_5",

@@ -1,12 +1,12 @@
 {
   "id": "BB152_default_disk",
-  "name": "Judgement Joker Core Disk",
+  "name": "Arc Bahamut Core Disk",
   "category": "disk",
   "type": "disk",
   "stats": {
-    "hp": 39,
-    "attack": 39,
-    "defense": 32,
+    "hp": 43,
+    "attack": 22,
+    "defense": 41,
     "stamina": 30
   },
   "compatibility": {},

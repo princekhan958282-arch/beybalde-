@@ -1,13 +1,13 @@
 {
   "id": "BB153_default_driver",
-  "name": "Jambo Jamunter Spin Driver",
+  "name": "Circle Bahamut Spin Driver",
   "category": "driver",
   "type": "driver",
   "stats": {
-    "hp": 41,
-    "attack": 22,
-    "defense": 37,
-    "stamina": 27
+    "hp": 40,
+    "attack": 20,
+    "defense": 36,
+    "stamina": 31
   },
   "compatibility": {},
   "source": "beyblade_default",

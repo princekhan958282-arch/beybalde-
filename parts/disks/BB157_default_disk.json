@@ -1,13 +1,13 @@
 {
   "id": "BB157_default_disk",
-  "name": "Ace Dragon Core Disk",
+  "name": "Bushin Ashura Core Disk",
   "category": "disk",
   "type": "disk",
   "stats": {
-    "hp": 39,
-    "attack": 41,
-    "defense": 22,
-    "stamina": 30
+    "hp": 41,
+    "attack": 24,
+    "defense": 40,
+    "stamina": 32
   },
   "compatibility": {},
   "source": "beyblade_default",

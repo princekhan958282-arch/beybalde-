@@ -1,12 +1,12 @@
 {
   "id": "BB150_default_driver",
-  "name": "Arc Bahamut Spin Driver",
+  "name": "Black Legend Reversal Driver",
   "category": "driver",
   "type": "driver",
   "stats": {
-    "hp": 42,
-    "attack": 22,
-    "defense": 41,
+    "hp": 40,
+    "attack": 42,
+    "defense": 22,
     "stamina": 30
   },
   "compatibility": {},

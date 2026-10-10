@@ -1,5 +1,5 @@
 {
-  "id": "BB152",
+  "id": "BB154",
   "name": "Judgement Joker",
   "aliases": [
     "Judgment Joker"
@@ -96,7 +96,7 @@
     "label": "Final Verdict"
   },
   "generation": "Burst",
-  "_registry_order": 152,
+  "_registry_order": 154,
   "booster_exclusive": false,
   "main_frame": {
     "hp": 63,
@@ -105,8 +105,8 @@
     "stamina": 50
   },
   "default_parts": {
-    "disk": "BB152_default_disk",
-    "driver": "BB152_default_driver"
+    "disk": "BB154_default_disk",
+    "driver": "BB154_default_driver"
   },
   "component_migration": {
     "strategy": "authorized_45_27_5_27_5",

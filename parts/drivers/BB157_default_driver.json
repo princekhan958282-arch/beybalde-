@@ -1,13 +1,13 @@
 {
   "id": "BB157_default_driver",
-  "name": "Ace Dragon Spin Driver",
+  "name": "Bushin Ashura Spin Driver",
   "category": "driver",
   "type": "driver",
   "stats": {
-    "hp": 38,
-    "attack": 41,
-    "defense": 22,
-    "stamina": 30
+    "hp": 41,
+    "attack": 23,
+    "defense": 40,
+    "stamina": 31
   },
   "compatibility": {},
   "source": "beyblade_default",

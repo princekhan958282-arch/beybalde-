@@ -28,7 +28,8 @@ OCTOBER_ADDITIONS = {f'BB{139+i}': name for i, name in enumerate(
     ('Golden Imperial Dragon', 'Black Valkyrie', 'Black Brave Valkyrie',
      'Ultimate Dark Valkyrie', 'Strike Longinus', 'Dragon Circle',
      'Legend Spriggan', 'Shelter Regulus', 'Abyss Fang', 'Deathscyth Longinus'))}
-BURST_ADDITIONS = {f'BB{149+i}': name for i, name in enumerate(
+OCTOBER_ADDITIONS.update({'BB149': 'S,Dragon Killer', 'BB150': 'Black Legend'})
+BURST_ADDITIONS = {f'BB{151+i}': name for i, name in enumerate(
     ('Silver Valkyrie', 'Arc Bahamut', 'Circle Bahamut', 'Judgement Joker',
      'Jambo Jamunter', 'Greatest Raphael', 'Bushin Ashura', 'Orb Engaard', 'Ace Dragon'))}
 
@@ -61,7 +62,7 @@ class MigrationTests(unittest.TestCase):
                         self.assertEqual(correction['name'], value['name'])
                         expected_hash = correction['sha256']
                     self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
-        for folder, number in (('beys', 158), ('avatars', 54), ('parts/disks', 176), ('parts/drivers', 175)):
+        for folder, number in (('beys', 160), ('avatars', 54), ('parts/disks', 178), ('parts/drivers', 177)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
         for folder in ('beys', 'avatars'):
             self.assertFalse(any(p.is_dir() for p in (ROOT / folder).iterdir()))

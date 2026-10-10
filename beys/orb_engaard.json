@@ -1,5 +1,5 @@
 {
-  "id": "BB156",
+  "id": "BB158",
   "name": "Orb Engaard",
   "aliases": [
     "Orb Egis"
@@ -96,7 +96,7 @@
     "label": "Engaard Repulsion"
   },
   "generation": "Burst",
-  "_registry_order": 156,
+  "_registry_order": 158,
   "booster_exclusive": false,
   "main_frame": {
     "hp": 65,
@@ -105,8 +105,8 @@
     "stamina": 50
   },
   "default_parts": {
-    "disk": "BB156_default_disk",
-    "driver": "BB156_default_driver"
+    "disk": "BB158_default_disk",
+    "driver": "BB158_default_driver"
   },
   "component_migration": {
     "strategy": "authorized_45_27_5_27_5",

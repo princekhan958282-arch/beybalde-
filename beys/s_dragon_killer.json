@@ -1,0 +1,100 @@
+{
+  "id": "BB149",
+  "name": "S,Dragon Killer",
+  "aliases": [
+    "S Dragon Killer",
+    "S, Dragon Killer"
+  ],
+  "rarity": "Ultimate",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "stats": {
+    "hp": 155,
+    "attack": 180,
+    "defense": 65,
+    "stamina": 125,
+    "special": 195
+  },
+  "abilities": [
+    {
+      "name": "Dragonbane Edge",
+      "description": "Successful Attacks gain bonus damage equal to 12% of ATK.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "value": 0,
+              "stat": "attack",
+              "scale": 0.12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dragon Slayer",
+      "description": "Each Special gains bonus damage equal to 8% of the enemy current HP, applied once on its first hit.",
+      "rules": [
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "bonus_damage_enemy_hp_pct",
+              "value": 8
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Dragon Slayer Rupture",
+    "description": "3 hits at 65 base damage each (195 total).",
+    "hits": 3,
+    "damage_per_hit": 65,
+    "total_damage": 195,
+    "flavour_texts": [
+      "**DRAGON SLAYER RUPTURE!**"
+    ]
+  },
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558073716599160875/1791543793575.png?ex=6acac579&is=6ac973f9&hm=c002c7a91c2cf2ddb7a07ba4111b1361eafccc5f56675ba4ff32c73d22fad14a&",
+  "burst_height": "Mid",
+  "generation": "Burst",
+  "booster_exclusive": false,
+  "_registry_order": 149,
+  "ability": {
+    "name": "Dragonbane Edge",
+    "description": "Successful Attacks gain bonus damage equal to 12% of ATK.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "bonus_damage_stat",
+            "value": 0,
+            "stat": "attack",
+            "scale": 0.12
+          }
+        ]
+      }
+    ]
+  },
+  "description": "An Ultimate Attack blade that cuts down its opponent with Dragon Slayer Rupture.",
+  "main_frame": {
+    "hp": 70,
+    "attack": 81,
+    "defense": 29,
+    "stamina": 56
+  },
+  "default_parts": {
+    "disk": "BB149_default_disk",
+    "driver": "BB149_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

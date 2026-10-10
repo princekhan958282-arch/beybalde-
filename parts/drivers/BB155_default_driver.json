@@ -1,13 +1,13 @@
 {
   "id": "BB155_default_driver",
-  "name": "Bushin Ashura Spin Driver",
+  "name": "Jambo Jamunter Spin Driver",
   "category": "driver",
   "type": "driver",
   "stats": {
     "hp": 41,
-    "attack": 23,
-    "defense": 40,
-    "stamina": 31
+    "attack": 22,
+    "defense": 37,
+    "stamina": 27
   },
   "compatibility": {},
   "source": "beyblade_default",

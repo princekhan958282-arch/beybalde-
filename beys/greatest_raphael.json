@@ -1,5 +1,5 @@
 {
-  "id": "BB154",
+  "id": "BB156",
   "name": "Greatest Raphael",
   "aliases": [],
   "rarity": "Ultimate",
@@ -94,7 +94,7 @@
     "label": "Greatest Halo"
   },
   "generation": "Burst",
-  "_registry_order": 154,
+  "_registry_order": 156,
   "booster_exclusive": false,
   "main_frame": {
     "hp": 70,
@@ -103,8 +103,8 @@
     "stamina": 58
   },
   "default_parts": {
-    "disk": "BB154_default_disk",
-    "driver": "BB154_default_driver"
+    "disk": "BB156_default_disk",
+    "driver": "BB156_default_driver"
   },
   "component_migration": {
     "strategy": "authorized_45_27_5_27_5",

@@ -1,13 +1,13 @@
 {
   "id": "BB156_default_disk",
-  "name": "Orb Engaard Core Disk",
+  "name": "Greatest Raphael Core Disk",
   "category": "disk",
   "type": "disk",
   "stats": {
-    "hp": 40,
-    "attack": 21,
+    "hp": 43,
+    "attack": 39,
     "defense": 37,
-    "stamina": 30
+    "stamina": 36
   },
   "compatibility": {},
   "source": "beyblade_default",

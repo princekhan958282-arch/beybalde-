@@ -1,13 +1,13 @@
 {
   "id": "BB154_default_disk",
-  "name": "Greatest Raphael Core Disk",
+  "name": "Judgement Joker Core Disk",
   "category": "disk",
   "type": "disk",
   "stats": {
-    "hp": 43,
+    "hp": 39,
     "attack": 39,
-    "defense": 37,
-    "stamina": 36
+    "defense": 32,
+    "stamina": 30
   },
   "compatibility": {},
   "source": "beyblade_default",

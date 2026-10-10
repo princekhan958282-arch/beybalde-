@@ -1,5 +1,5 @@
 {
-  "id": "BB151",
+  "id": "BB153",
   "name": "Circle Bahamut",
   "aliases": [
     "Cricle Bahamut"
@@ -96,7 +96,7 @@
     "label": "Ring of Judgment"
   },
   "generation": "Burst",
-  "_registry_order": 151,
+  "_registry_order": 153,
   "booster_exclusive": false,
   "main_frame": {
     "hp": 65,
@@ -105,8 +105,8 @@
     "stamina": 52
   },
   "default_parts": {
-    "disk": "BB151_default_disk",
-    "driver": "BB151_default_driver"
+    "disk": "BB153_default_disk",
+    "driver": "BB153_default_driver"
   },
   "component_migration": {
     "strategy": "authorized_45_27_5_27_5",

@@ -1,13 +1,13 @@
 {
   "id": "BB156_default_driver",
-  "name": "Orb Engaard Spin Driver",
+  "name": "Greatest Raphael Spin Driver",
   "category": "driver",
   "type": "driver",
   "stats": {
-    "hp": 40,
-    "attack": 20,
+    "hp": 42,
+    "attack": 38,
     "defense": 37,
-    "stamina": 30
+    "stamina": 36
   },
   "compatibility": {},
   "source": "beyblade_default",

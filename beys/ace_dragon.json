@@ -1,5 +1,5 @@
 {
-  "id": "BB157",
+  "id": "BB159",
   "name": "Ace Dragon",
   "aliases": [],
   "rarity": "Legendary",
@@ -94,7 +94,7 @@
     "label": "Dragonic Ace"
   },
   "generation": "Burst",
-  "_registry_order": 157,
+  "_registry_order": 159,
   "booster_exclusive": false,
   "main_frame": {
     "hp": 63,
@@ -103,8 +103,8 @@
     "stamina": 50
   },
   "default_parts": {
-    "disk": "BB157_default_disk",
-    "driver": "BB157_default_driver"
+    "disk": "BB159_default_disk",
+    "driver": "BB159_default_driver"
   },
   "component_migration": {
     "strategy": "authorized_45_27_5_27_5",

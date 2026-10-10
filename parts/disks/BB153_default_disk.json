@@ -1,13 +1,13 @@
 {
   "id": "BB153_default_disk",
-  "name": "Jambo Jamunter Core Disk",
+  "name": "Circle Bahamut Core Disk",
   "category": "disk",
   "type": "disk",
   "stats": {
-    "hp": 41,
-    "attack": 22,
-    "defense": 37,
-    "stamina": 28
+    "hp": 40,
+    "attack": 21,
+    "defense": 36,
+    "stamina": 32
   },
   "compatibility": {},
   "source": "beyblade_default",
