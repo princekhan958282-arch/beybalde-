@@ -56,12 +56,14 @@ import json
 import logging
 import os
 import shutil
+import tempfile
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
 from typing import Optional
+from pathlib import Path
 
 log = logging.getLogger("beyblade_bot.update")
 
@@ -390,6 +392,31 @@ def _members(zf: zipfile.ZipFile) -> list[tuple[str, str]]:
     return out
 
 
+CATALOG_FOLDERS = ("beys", "avatars", "parts/disks", "parts/drivers")
+CATALOG_SYNC_VERSION = 1
+
+
+def _catalog_paths(zf: zipfile.ZipFile, members: list[tuple[str, str]]) -> set[str]:
+    """Validate the incoming flat catalogues before changing the install."""
+    from .character_registry import CharacterRegistry
+
+    paths = set()
+    with tempfile.TemporaryDirectory(prefix="beycord-catalog-") as temporary:
+        for name, rel in members:
+            path = Path(rel)
+            if path.parent.as_posix() in CATALOG_FOLDERS and path.suffix == ".json":
+                if rel in paths:
+                    raise ValueError(f"duplicate archive definition: {rel}")
+                paths.add(rel)
+                dest = Path(temporary) / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(zf.read(name))
+        # Legacy archives without flat catalogues must not prune anything.
+        if paths:
+            CharacterRegistry(Path(temporary)).refresh()
+    return paths
+
+
 def _apply(zf: zipfile.ZipFile, sha: str) -> tuple[int, int]:
     """Copy changed files in. Returns (written, skipped_identical)."""
     members = _members(zf)
@@ -398,6 +425,8 @@ def _apply(zf: zipfile.ZipFile, sha: str) -> tuple[int, int]:
         # something is wrong with the download and copying it over a working
         # install would be worse than doing nothing.
         raise RuntimeError("archive has no app.py — refusing to apply it")
+
+    catalog_paths = _catalog_paths(zf, members)
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
     backup_root = os.path.join(_BACKUP_DIR, stamp)
@@ -428,6 +457,20 @@ def _apply(zf: zipfile.ZipFile, sha: str) -> tuple[int, int]:
         with open(dest, "wb") as f:
             f.write(new)
         written += 1
+
+    # Renames otherwise leave two files with the same character ID. Only the
+    # validated repository catalogues are authoritative; live data stays put.
+    if catalog_paths:
+        for folder in CATALOG_FOLDERS:
+            for dest in (Path(_ROOT) / folder).glob("*.json"):
+                rel = dest.relative_to(_ROOT).as_posix()
+                if rel in catalog_paths:
+                    continue
+                bpath = Path(backup_root) / rel
+                bpath.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(dest, bpath)  # Abort if backup fails; never lose it.
+                dest.unlink()
+                log.info("[update] backed up and removed retired definition: %s", rel)
 
     return written, skipped
 
@@ -558,12 +601,15 @@ def check_and_apply() -> None:
 
     state = _read_state()
     current = state.get("sha", "")
-    if current == head["sha"]:
+    if current == head["sha"] and state.get("catalog_sync_version") == CATALOG_SYNC_VERSION:
         log.info("[update] already up to date (%s).", head["sha"][:7])
         _record_attempt("up to date", f"{head['sha'][:7]} on {branch}")
         return
 
-    log.info("[update] new commit %s — %s", head["sha"][:7], head["message"][:72])
+    if current == head["sha"]:
+        log.info("[update] repairing catalogues for existing commit %s", current[:7])
+    else:
+        log.info("[update] new commit %s — %s", head["sha"][:7], head["message"][:72])
 
     zf = _download_zip(repo, head["sha"], token)
     if zf is None:
@@ -585,6 +631,7 @@ def check_and_apply() -> None:
 
     _write_state({
         "sha": head["sha"],
+        "catalog_sync_version": CATALOG_SYNC_VERSION,
         "message": head["message"],
         "date": head["date"],
         "applied_at": time.strftime("%Y-%m-%d %H:%M:%S"),

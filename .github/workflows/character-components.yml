@@ -85,5 +85,6 @@ jobs:
       - name: Deployment paths, snapshot compatibility and syntax
         run: |
           python tools/sim_updater_paths.py
+          python -m unittest tools.test_roster_refresh
           python tools/sim_snapshots.py
           python -m compileall -q utils cogs tools

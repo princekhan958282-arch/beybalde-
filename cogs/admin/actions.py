@@ -1584,7 +1584,13 @@ async def _sync_mirror(ctx: ActionCtx) -> Result:
 
 async def do_reload(bot) -> Result:
     """Reload every loaded extension. Shared by `;reload` and the panel."""
-    lines = []
+    from utils.character_registry import REGISTRY
+    try:
+        counts = REGISTRY.refresh()
+    except Exception as exc:
+        return Result(ok=False, embed=_embed("❌ Roster reload failed", 0xE74C3C,
+                      f"Previous roster retained. Fix the uploaded definitions and retry.\n{exc}"[:4000]))
+    lines = [f"✅ Roster: {counts['bey']} Beys, {counts['avatar']} avatars"]
     for cog in list(bot.extensions.keys()):
         try:
             await bot.reload_extension(cog)
@@ -1593,7 +1599,7 @@ async def do_reload(bot) -> Result:
             lines.append(f"❌ `{cog}`: {exc}")
     bad = sum(1 for line in lines if line.startswith("❌"))
     return Result(ok=not bad,
-                  embed=_embed(f"♻️  Reload — {len(lines) - bad}/{len(lines)} ok",
+                  embed=_embed(f"♻️  Reload — {len(lines) - 1 - bad}/{len(lines) - 1} cogs ok",
                                0xE74C3C if bad else 0x2ECC71,
                                "\n".join(lines)[:4000]))
 
