@@ -309,10 +309,11 @@ COMMAND_DATA = {
         (";copy <number|id>",           "Card for one of your copies"),
     ],
     "tournament": [
-        (";tournament", "🏆 Configure a tournament draft — authorized hosts only"),
+        (";tournament", "🏆 Configure a tournament — authorized hosts only"),
         ("/tournament", "The same host panel, as a slash command"),
         ("Edit buttons", "Edit each setting beside its value through a dropdown or modal; the preview updates in place."),
-        ("Confirm Setup", "Save a draft. Registration, brackets, and battles are deferred to later phases."),
+        ("Confirm Setup", "Confirm settings, select a channel, then Publish Registration."),
+        ("Join / Leave", "Use the published registration panel. Players and settings survive restarts; battles and fees are deferred."),
         ("Reset / Cancel", "Confirm a reset to defaults, or discard unsaved edits."),
     ],
     "mastery": [

@@ -1,7 +1,7 @@
-"""Tournament commands open a Components V2 draft editor in Phase 1.
+"""Tournament commands configure and publish persistent V2 registrations.
 
 The legacy lobby and bracket runner remain available internally, unchanged.
-DraftConfig never enters that runner: registration and V2 matches are deferred.
+V2 registrations never enter that runner; V2 battle execution remains deferred.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from .hosters import is_tournament_hoster
 from .models import Match, MatchState, Mode
 from .drafts import DraftStore
 from .host_panel import HostPanel
+from .registration import Registration, RegistrationPanel, RegistrationStore, validate_channel
 
 log = logging.getLogger("beyblade_bot.tournament")
 
@@ -385,6 +386,8 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         self.bot = bot
         self.setups: dict[int, HostPanel] = {}
         self.draft_store = DraftStore()
+        self.registration_store = RegistrationStore(self.draft_store)
+        self.registrations: dict[int, RegistrationPanel] = {}
         # guild_id -> Lobby. One live tournament per guild: two panels in one
         # server would fight over the same players' `_active` entries.
         self.lobbies: dict[int, Lobby] = {}
@@ -399,6 +402,58 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         # panel has scrolled out of reach.
         self.panels: dict[int, "TournamentPanel"] = {}
 
+    async def cog_load(self):
+        for reg in await asyncio.to_thread(self.registration_store.restore):
+            panel = RegistrationPanel(self, reg)
+            channel = self.bot.get_partial_messageable(reg.channel_id)
+            panel.message = channel.get_partial_message(reg.message_id)
+            self.registrations[reg.guild_id] = panel
+            self._active.update(reg.entrants)
+            self.bot.add_view(panel, message_id=reg.message_id)
+
+    async def publish_registration(self, host_panel, guild):
+        channel = validate_channel(guild, guild.get_channel(host_panel.channel_id))
+        live = self.lobbies.get(guild.id)
+        if guild.id in self.registrations or (live and not live.finished):
+            raise ValueError('A tournament is already active in this server.')
+        host_panel.config.validate()
+        # Clone so subsequent changes to an editor cannot change published rules.
+        from dataclasses import replace
+        config = replace(host_panel.config)
+        if config.bey_selection == 'Random Beyblade' and not draft_pool():
+            raise ValueError('No eligible random Beyblades are available.')
+        reg = Registration(guild.id, host_panel.host_id, channel.id, config)
+        panel = RegistrationPanel(self, reg)
+        self.registrations[guild.id] = panel
+        begun = False
+        try:
+            await asyncio.to_thread(self.registration_store.begin, reg)
+            begun = True
+            panel.message = await channel.send(view=panel, allowed_mentions=discord.AllowedMentions.none())
+            reg.message_id = panel.message.id
+            reg.status = 'open'
+            await asyncio.to_thread(self.registration_store.write, reg)
+            panel.build()
+            await panel.message.edit(view=panel, allowed_mentions=discord.AllowedMentions.none())
+            return panel
+        except Exception:
+            reg.status = 'cancelled'
+            if begun:
+                try:
+                    await asyncio.to_thread(self.registration_store.write, reg)
+                except Exception:
+                    log.exception('Failed to clear publication reservation')
+            if self.registrations.get(guild.id) is panel:
+                self.registrations.pop(guild.id)
+            panel.stop()
+            if panel.message:
+                panel.build()
+                try:
+                    await panel.message.edit(view=panel, allowed_mentions=discord.AllowedMentions.none())
+                except discord.HTTPException:
+                    log.warning('Failed to disable unsuccessful registration publication', exc_info=True)
+            raise
+
     # ── plumbing ─────────────────────────────────────────────────────────────
     def _spawn(self, coro) -> None:
         task = asyncio.create_task(coro)
@@ -408,6 +463,10 @@ class TournamentCog(commands.Cog, name=COG_NAME):
     async def cog_unload(self):
         for panel in list(self.setups.values()):
             await panel.close("Setup closed because the tournament extension reloaded.")
+        for registration in list(self.registrations.values()):
+            async with registration.lock:
+                registration.stop()  # durable registrations are reattached by cog_load
+        self.registrations.clear()  # stale modals must not write through a retired cog
         for t in list(self._tasks):
             t.cancel()
 
@@ -473,7 +532,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         if guild is None:
             return await send("Use this command in a server.", ephemeral=True)
         live = self.lobbies.get(guild.id)
-        if (live and not live.finished) or guild.id in self.setups:
+        if (live and not live.finished) or guild.id in self.setups or guild.id in self.registrations:
             return await send("A tournament or setup is already open in this server.", ephemeral=True)
         # Reserve before the first await, preventing simultaneous command opens.
         view = HostPanel(self, guild.id, author.id)
@@ -744,7 +803,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
     async def admin_announce(self, channel, author, note: str = "") -> bool:
         """Open a tournament and post the panel into `channel`.
 
-        Phase 1 posts the host draft editor, without Join or Start controls.
+        Posts the host configuration editor; the host chooses where to publish registration.
         Announcement text is omitted because Components V2 uses TextDisplay.
 
         Returns False when a tournament is already open here or `author` isn't
@@ -785,6 +844,10 @@ class TournamentCog(commands.Cog, name=COG_NAME):
 
     async def admin_cancel(self, guild_id: int) -> bool:
         """Close the lobby AND its panel. False when there is nothing open."""
+        registration = self.registrations.get(guild_id)
+        if registration is not None:
+            await registration.close()
+            return True
         setup_panel = self.setups.get(guild_id)
         if setup_panel is not None:
             await setup_panel.close("✖️ Setup cancelled by an admin.")
@@ -809,6 +872,9 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         being maintained there.
         """
         self.banned.add(user_id)
+        registration = self.registrations.get(guild_id)
+        if registration is not None and user_id in registration.reg.entrants:
+            self._spawn(registration.remove_banned(user_id))
         lobby = self.lobbies.get(guild_id)
         if lobby and user_id in lobby.entrants:
             lobby.entrants.remove(user_id)
