@@ -287,7 +287,11 @@ class AbilityEngine:
         out = self._compiled[name]
         # honour ability_2 disable for rule sets too (rules tagged with _ab_index)
         if key and self.ability_2_disabled.get(key):
-            out = [(i, r) for i, r in out if r.get("_ab_index") != 1]
+            # These opt-in on_special operations author the Special itself;
+            # their storage inside ability 2 does not make them that ability.
+            out = [(i, r) for i, r in out if r.get("_ab_index") != 1 or (
+                r.get("when") == "on_special" and r.get("do") and
+                all(op.get("op") == "burst_finisher" for op in r["do"]))]
         if key:
             out = out + self._avatar_rules_for(key)
         return out
