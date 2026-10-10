@@ -1,0 +1,113 @@
+{
+  "id": "BB161",
+  "name": "Grand Dragon",
+  "rarity": "Legendary",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438396706295888/19585799a874a62d6234b5103f52f204.jpg?ex=6acb705c&is=6aca1edc&hm=10d2b53f6d5b65d4f3b7a3f0a87e210541b1451a33ecd70031345baf4ec7ed95&",
+  "description": "Grand Dragon: Attack type with two unique battle abilities.",
+  "stats": {
+    "hp": 145,
+    "attack": 160,
+    "defense": 75,
+    "stamina": 115,
+    "special": 160
+  },
+  "ability": {
+    "name": "Dragon Excavation",
+    "description": "Successful normal Attacks deal 50% extra shield-only damage. Unused extra damage never overflows into HP.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "shield_excavation"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Dragon Excavation",
+      "description": "Successful normal Attacks deal 50% extra shield-only damage. Unused extra damage never overflows into HP.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "shield_excavation"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Grand Breakthrough",
+      "description": "Breaking an enemy shield arms your next normal Attack for +25% damage. Cannot stack or boost the shield-breaking hit itself.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "shield_breakthrough"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "crusher_finisher"
+            }
+          ],
+          "_name": "Grand Dragon Crusher"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Grand Dragon Crusher",
+    "description": "1 hit(s), each 160 base + 50% ATTACK. Deal 40 extra shield-only damage before resolving the normal hit. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 160,
+    "total_damage": 160,
+    "damage_formula": {
+      "base": 160,
+      "attack": 0.5
+    },
+    "flavour_texts": [
+      "**GRAND DRAGON CRUSHER!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Grand Dragon Crusher"
+  },
+  "generation": "Burst",
+  "_registry_order": 161,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 65,
+    "attack": 72,
+    "defense": 34,
+    "stamina": 52
+  },
+  "default_parts": {
+    "disk": "BB161_default_disk",
+    "driver": "BB161_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

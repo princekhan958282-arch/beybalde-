@@ -1,0 +1,18 @@
+{
+  "id": "BB162_default_disk",
+  "name": "Heaven Pegasus Core Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 40,
+    "attack": 26,
+    "defense": 30,
+    "stamina": 43
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB162",
+  "_registry_order": 1162
+}

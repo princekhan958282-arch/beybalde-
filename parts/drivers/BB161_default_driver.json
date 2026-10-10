@@ -1,0 +1,18 @@
+{
+  "id": "BB161_default_driver",
+  "name": "Grand Dragon Spin Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 40,
+    "attack": 44,
+    "defense": 20,
+    "stamina": 31
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB161",
+  "_registry_order": 1161
+}

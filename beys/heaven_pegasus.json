@@ -1,0 +1,113 @@
+{
+  "id": "BB162",
+  "name": "Heaven Pegasus",
+  "rarity": "Legendary",
+  "type": "Stamina",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438411981815940/58faa42aee191cf0ee7237a2a79609df.jpg?ex=6acb705f&is=6aca1edf&hm=ce6cd1ba8b66e58721abd3e5d966f7c7fcb5fbc5ba0bb3583c92bc68ded82429&",
+  "description": "Heaven Pegasus: Stamina type with two unique battle abilities.",
+  "stats": {
+    "hp": 145,
+    "attack": 95,
+    "defense": 110,
+    "stamina": 155,
+    "special": 125
+  },
+  "ability": {
+    "name": "Heaven’s Recovery",
+    "description": "Stamina wins grant 1 Feather, up to 3. Each Feather increases Stamina-action HP healing by 5%.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "feather_recovery"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Heaven’s Recovery",
+      "description": "Stamina wins grant 1 Feather, up to 3. Each Feather increases Stamina-action HP healing by 5%.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "feather_recovery"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Pegasus Slipstream",
+      "description": "After a Stamina win, your next Charge within 2 rounds steals up to 0.8 enemy stamina and restores that amount to you. Cannot stack.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "win_slipstream"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "ascension_finisher"
+            }
+          ],
+          "_name": "Heaven Ascension"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Heaven Ascension",
+    "description": "1 hit(s), each 125 base + 50% STAMINA. Consume Feathers to restore 1 stamina and 4 Stability per Feather. Cooldown: 4 rounds.",
+    "hits": 1,
+    "damage_per_hit": 125,
+    "total_damage": 125,
+    "damage_formula": {
+      "base": 125,
+      "stamina": 0.5
+    },
+    "flavour_texts": [
+      "**HEAVEN ASCENSION!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Heaven Ascension"
+  },
+  "generation": "Burst",
+  "_registry_order": 162,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 65,
+    "attack": 43,
+    "defense": 50,
+    "stamina": 70
+  },
+  "default_parts": {
+    "disk": "BB162_default_disk",
+    "driver": "BB162_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

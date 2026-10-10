@@ -159,7 +159,9 @@ class DracielRuntime:
             if move == 'defense' and enemy_move == 'attack' and d.get('ability_ready', 0) <= self.s.round:
                 if kind == 'F':
                     from .combat_rules import recover_hp
-                    self.s.hp[key], healed = recover_hp(self.s.hp[key], self.s.max_hp_per_player[key], min(35, math.floor(defense*.08)))
+                    from .purification import heal_amount
+                    heal = heal_amount(self.s, key, min(35, math.floor(defense*.08)))
+                    self.s.hp[key], healed = recover_hp(self.s.hp[key], self.s.max_hp_per_player[key], heal)
                     logs.extend(self.s.stability_manager._apply(key, 3))
                     logs.append(f'🏰 **Draciel’s Fortress Foundation** restores {healed} HP!')
                 elif kind == 'V':
