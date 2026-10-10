@@ -1,0 +1,18 @@
+{
+  "id": "BB141_default_disk",
+  "name": "Black Brave Valkyrie Crown Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 38,
+    "attack": 42,
+    "defense": 21,
+    "stamina": 32
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB141",
+  "_registry_order": 1141
+}

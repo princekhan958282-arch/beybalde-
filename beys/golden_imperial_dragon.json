@@ -1,0 +1,96 @@
+{
+  "id": "BB139",
+  "name": "Golden Imperial Dragon",
+  "rarity": "Legendary",
+  "type": "Balance",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069108627738684/1aacb4da855ea8a973a86cde5057b062.jpg?ex=6acac12f&is=6ac96faf&hm=5094c5f279dac2714f35801935a7e0ba89a2b8c0cea5a58d4c410335fe471c",
+  "description": "Golden Imperial Dragon: Balance type with two unique abilities.",
+  "stats": {
+    "hp": 145,
+    "attack": 138,
+    "defense": 95,
+    "stamina": 130,
+    "special": 160
+  },
+  "ability": {
+    "name": "Imperial Crown",
+    "description": "Start battle with a shield equal to 12% of maximum HP.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "shield_pct",
+            "value": 12,
+            "of": "max_hp"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Imperial Crown",
+      "description": "Start battle with a shield equal to 12% of maximum HP.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "shield_pct",
+              "value": 12,
+              "of": "max_hp"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Sovereign Recovery",
+      "description": "Every Stamina win restores 5% of maximum HP.",
+      "rules": [
+        {
+          "when": "on_stamina_win",
+          "do": [
+            {
+              "op": "heal_pct",
+              "value": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Golden Emperor Break",
+    "description": "4 hit(s), 40 base damage per hit (160 total).",
+    "hits": 4,
+    "damage_per_hit": 40,
+    "total_damage": 160,
+    "flavour_texts": [
+      "**GOLDEN EMPEROR BREAK!**"
+    ]
+  },
+  "generation": "Burst",
+  "_registry_order": 139,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 65,
+    "attack": 62,
+    "defense": 43,
+    "stamina": 58
+  },
+  "default_parts": {
+    "disk": "BB139_default_disk",
+    "driver": "BB139_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

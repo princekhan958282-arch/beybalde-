@@ -1,0 +1,104 @@
+{
+  "id": "BB143",
+  "name": "Strike Longinus",
+  "rarity": "Legendary",
+  "type": "Attack",
+  "spin_direction": "Left",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069179322736660/e7bbdc61d943d96a65a710009e718c07.jpg?ex=6acac13f&is=6ac96fbf&hm=937122008e33fec0a09bf0d097f6cb03fe7d374b83ab06fe68ec61f00190194d&",
+  "description": "Strike Longinus: Attack type with two unique abilities.",
+  "stats": {
+    "hp": 135,
+    "attack": 155,
+    "defense": 75,
+    "stamina": 108,
+    "special": 165
+  },
+  "ability": {
+    "name": "Lance Breaker",
+    "description": "Successful Attacks against Defense gain 18% bonus damage.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "bonus_damage_pct",
+            "value": 18
+          }
+        ],
+        "if": [
+          {
+            "cond": "enemy_move_is",
+            "value": "defense"
+          }
+        ]
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Lance Breaker",
+      "description": "Successful Attacks against Defense gain 18% bonus damage.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 18
+            }
+          ],
+          "if": [
+            {
+              "cond": "enemy_move_is",
+              "value": "defense"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Impact Anchor",
+      "description": "Each Attack win restores 4 Stability.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "gain_stability",
+              "value": 4
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Lance Strike",
+    "description": "3 hit(s), 55 base damage per hit (165 total).",
+    "hits": 3,
+    "damage_per_hit": 55,
+    "total_damage": 165,
+    "flavour_texts": [
+      "**LANCE STRIKE!**"
+    ]
+  },
+  "generation": "Burst",
+  "_registry_order": 143,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 61,
+    "attack": 70,
+    "defense": 34,
+    "stamina": 48
+  },
+  "default_parts": {
+    "disk": "BB143_default_disk",
+    "driver": "BB143_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

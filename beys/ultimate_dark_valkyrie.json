@@ -1,0 +1,96 @@
+{
+  "id": "BB142",
+  "name": "Ultimate Dark Valkyrie",
+  "rarity": "Ultimate",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069169243553792/5ceb66c9f7b017eb13ad1cf2b03de985.jpg?ex=6acac13d&is=6ac96fbd&hm=3996e843f5fe84f092b1aaa30a9c8e705c967273a319af2dfabce020065c5725&",
+  "description": "Ultimate Dark Valkyrie: Attack type with two unique abilities.",
+  "stats": {
+    "hp": 150,
+    "attack": 170,
+    "defense": 66,
+    "stamina": 124,
+    "special": 180
+  },
+  "ability": {
+    "name": "Eclipse Edge",
+    "description": "Successful Attacks gain bonus damage equal to 14% of ATK.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "bonus_damage_stat",
+            "value": 0,
+            "stat": "attack",
+            "scale": 0.14
+          }
+        ]
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Eclipse Edge",
+      "description": "Successful Attacks gain bonus damage equal to 14% of ATK.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "value": 0,
+              "stat": "attack",
+              "scale": 0.14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dark Ascension",
+      "description": "Each Special restores 6 Stability.",
+      "rules": [
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "gain_stability",
+              "value": 6
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Ultimate Eclipse V",
+    "description": "5 hit(s), 36 base damage per hit (180 total).",
+    "hits": 5,
+    "damage_per_hit": 36,
+    "total_damage": 180,
+    "flavour_texts": [
+      "**ULTIMATE ECLIPSE V!**"
+    ]
+  },
+  "generation": "Burst",
+  "_registry_order": 142,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 68,
+    "attack": 76,
+    "defense": 30,
+    "stamina": 56
+  },
+  "default_parts": {
+    "disk": "BB142_default_disk",
+    "driver": "BB142_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

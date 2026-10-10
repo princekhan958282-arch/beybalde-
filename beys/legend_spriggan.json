@@ -1,0 +1,95 @@
+{
+  "id": "BB145",
+  "name": "Legend Spriggan",
+  "rarity": "Legendary",
+  "type": "Balance",
+  "spin_direction": "Dual",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069202710171728/16c2762d8c450bbc87090d3007346cd7.jpg?ex=6acac145&is=6ac96fc5&hm=cb222bfcadc0d9c337978d5f96d4130cd449b443a7000ab6083a789c3fa89d0a&",
+  "description": "Legend Spriggan: Balance type with two unique abilities.",
+  "stats": {
+    "hp": 140,
+    "attack": 125,
+    "defense": 115,
+    "stamina": 115,
+    "special": 160
+  },
+  "ability": {
+    "name": "Legend Counter",
+    "description": "Each Defense win restores 5 Stability.",
+    "rules": [
+      {
+        "when": "on_defense_win",
+        "do": [
+          {
+            "op": "gain_stability",
+            "value": 5
+          }
+        ]
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Legend Counter",
+      "description": "Each Defense win restores 5 Stability.",
+      "rules": [
+        {
+          "when": "on_defense_win",
+          "do": [
+            {
+              "op": "gain_stability",
+              "value": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Crossfire Momentum",
+      "description": "Every Special grants 12% ATK for 2 rounds.",
+      "rules": [
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "buff",
+              "value": 0,
+              "stat": "attack",
+              "pct": 12,
+              "turns": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Legend Crossfire",
+    "description": "4 hit(s), 40 base damage per hit (160 total).",
+    "hits": 4,
+    "damage_per_hit": 40,
+    "total_damage": 160,
+    "flavour_texts": [
+      "**LEGEND CROSSFIRE!**"
+    ]
+  },
+  "generation": "Burst",
+  "_registry_order": 145,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 63,
+    "attack": 56,
+    "defense": 52,
+    "stamina": 52
+  },
+  "default_parts": {
+    "disk": "BB145_default_disk",
+    "driver": "BB145_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

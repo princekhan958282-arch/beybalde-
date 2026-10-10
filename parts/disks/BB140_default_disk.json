@@ -1,0 +1,18 @@
+{
+  "id": "BB140_default_disk",
+  "name": "Black Valkyrie Crown Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 35,
+    "attack": 38,
+    "defense": 19,
+    "stamina": 28
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB140",
+  "_registry_order": 1140
+}
