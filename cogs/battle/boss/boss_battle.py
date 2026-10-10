@@ -946,7 +946,7 @@ class BossFight:
         verdict = ""
         if self.finished:
             verdict = {"win": "🏆 VICTORY", "loss": "💀 DEFEATED",
-                       "draw": "🤝 DOUBLE KO"}.get(self.result, "")
+                       "draw": "🤝 DOUBLE KO", "forfeit": "🏳️ FORFEITED"}.get(self.result, "")
         return {
             "boss_name":  cfg["name"],
             "tier":       self.tier_cfg["label"],
@@ -1024,6 +1024,39 @@ class BossView(discord.ui.View):
             btn=discord.ui.Button(label="Avatar Skill",emoji="✨",style=discord.ButtonStyle.primary,row=1,disabled=f.finished)
             btn.callback=self._avatar_skill
             self.add_item(btn)
+
+        btn = discord.ui.Button(label="Forfeit", emoji="🏳️",
+                                style=discord.ButtonStyle.danger, row=1,
+                                disabled=f.finished)
+        btn.callback = self._forfeit
+        self.add_item(btn)
+
+    async def _forfeit(self, interaction: discord.Interaction):
+        f = self.fight
+        # `f.player` rotates each turn; party[0] remains the lobby host.
+        if interaction.user.id != f.party[0].id:
+            return await interaction.response.send_message(
+                "Only the host can forfeit this Boss fight for the party.", ephemeral=True)
+        if f.finished:
+            return await interaction.response.send_message(
+                "This Boss fight has already ended.", ephemeral=True)
+        if self.busy:
+            return await interaction.response.send_message(
+                "A turn is being processed. Try Forfeit again when it finishes.", ephemeral=True)
+        self.busy = True
+        f.finished, f.result = True, "forfeit"
+        f.log.append(f"🏳️ **{interaction.user.display_name}** forfeited the fight. No rewards awarded.")
+        # Release before network calls so a failed edit cannot strand a party.
+        for member in f.party:
+            self.cog._active.discard(member.id)
+        self._build()
+        self.stop()
+        try:
+            await interaction.response.defer()
+            await self.push(interaction)
+            await self.cog.finish(f, interaction.channel)
+        finally:
+            self.busy = False
 
     async def _avatar_skill(self, interaction):
         f=self.fight
@@ -1240,7 +1273,8 @@ class BossView(discord.ui.View):
 
         if f.finished:
             verdict = {"win": "🏆 You won!", "loss": "💀 Defeated.",
-                       "draw": "🤝 Double knockout."}[f.result]
+                       "draw": "🤝 Double knockout.",
+                       "forfeit": "🏳️ Forfeited. No rewards awarded."}[f.result]
             e.add_field(name="Result", value=verdict, inline=False)
         if not f.finished and len(f.party) > 1:
             e.description = ((e.description + "\n") if e.description else "") + \
@@ -1747,6 +1781,12 @@ class BossCog(commands.Cog, name="Boss"):
         for m in fight.party:
             self._active.discard(m.id)
         cfg = fight.cfg
+
+        if fight.result == "forfeit":
+            return await channel.send(embed=discord.Embed(
+                title="🏳️ Boss fight forfeited",
+                description="The host ended the fight for the party. No rewards awarded.",
+                color=0xe74c3c))
 
         if fight.result != "win":
             line = await gemini.say_with_deadline(
