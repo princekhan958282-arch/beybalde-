@@ -780,7 +780,7 @@ class AbilityEngine:
                                 for c in gate):
                 continue
             if kind == 'burst_mechanic':
-                self.burst.register(key, op['effect'])
+                self.burst.register(key, op['effect'], rule.get('_ab_index'))
                 continue
             if kind == 'burst_finisher':
                 dmg_dealt = self.burst.special(key, okey, op['effect'], dmg_dealt, logs)

@@ -28,12 +28,16 @@ class BurstMechanics:
         self.session = engine.session
         self.effects = {}
         self.state = {}
+        self.effect_sources = {}
 
     def data(self, key):
         return self.state.setdefault(key, {})
 
     def has(self, key, effect):
-        return effect in self.effects.get(key, set()) and not self.session.status.is_silenced(key)
+        if effect not in self.effects.get(key, set()) or self.session.status.is_silenced(key):
+            return False
+        source = self.effect_sources.get((key, effect))
+        return not (source == 1 and self.engine.ability_2_disabled.get(key))
 
     def stat(self, key, stat):
         base = (getattr(self.session, 'battle_stats', {}) or {}).get(key)
@@ -62,28 +66,35 @@ class BurstMechanics:
         d['barrier'] = amount
         d['barrier_until'] = None if duration is None else self.round() + duration - 1
 
-    def register(self, key, effect):
+    def register(self, key, effect, ability_index=None):
         if effect not in EFFECTS:
             raise ValueError(f'Unknown Burst mechanic: {effect}')
         registered = self.effects.setdefault(key, set())
         if effect in registered:
             return
         registered.add(effect)
+        self.effect_sources[(key, effect)] = ability_index
         if effect == 'breakable_barrier':
             self.shield(key, 15)
 
-    def round_start(self, key, other, move, enemy_move, stats, enemy_stats, logs):
+    def apply_stats(self, key, stats):
+        """Shared by normal attacks, Special formulas and AI stat readers."""
         d = self.data(key)
         if self.has(key, 'speed_accumulation'):
             stats['attack'] += self.stat(key, 'attack') * .05 * d.get('speed', 0)
         if self.has(key, 'halo_accumulation'):
             for stat in ('attack', 'defense'):
                 stats[stat] += self.stat(key, stat) * .03 * d.get('halo', 0)
+        return stats
+
+    def round_start(self, key, other, move, enemy_move, stats, enemy_stats, logs):
+        d = self.data(key)
         if self.has(key, 'consecutive_edge') and move == 'attack' and d.pop('edge', False):
             enemy_stats['defense'] *= .80
             logs.append('🪽 Valkyrie’s Edge ignores 20% DEF.')
         if self.has(key, 'orbit_immunity'):
             d['orbit_protected'] = d.get('orbit', 0) >= 3
+            d['orbit_protected_round'] = self.round()
         if self.has(key, 'third_deflection') and enemy_move == 'attack':
             d['attacks'] = d.get('attacks', 0) + 1
             d['deflect_round'] = self.round() if d['attacks'] % 3 == 0 else -1
@@ -112,7 +123,8 @@ class BurstMechanics:
                 damage = math.ceil(damage * (1 + .10 * stacks))
                 if stacks:
                     logs.append(f'🐉 Dragon Pursuit consumes {stacks} stacks.')
-            if self.has(key, 'charge_momentum') and d.get('momentum_until', -1) >= self.round():
+            if (damage > 0 and self.has(key, 'charge_momentum')
+                    and d.get('momentum_until', -1) >= self.round()):
                 damage += round(self.stat(key, 'attack') * .15)
                 d['momentum_until'] = -1
                 logs.append('🐉 Ace Momentum adds 15% ATK damage.')
@@ -192,7 +204,9 @@ class BurstMechanics:
             logs.append('🛡️ Arc Barrier breaks: +15% DEF for 2 rounds.')
 
     def stability_delta(self, key, delta, action=False):
-        if delta < 0 and not action and self.has(key, 'orbit_immunity') and self.data(key).get('orbit_protected'):
+        d = self.data(key)
+        if (delta < 0 and not action and self.has(key, 'orbit_immunity')
+                and d.get('orbit_protected') and d.get('orbit_protected_round') == self.round()):
             return 0
         return delta
 

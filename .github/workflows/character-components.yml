@@ -59,6 +59,7 @@ jobs:
           python -m unittest tools.test_october_bey_roster
           python -m unittest tools.test_nine_burst_beys
           python -m unittest tools.test_four_burst_beys
+          python -m unittest tools.test_new_bey_regressions
           python -m unittest tools.test_dragon_killer_black_legend
           python tools/test_avatar_battle_connection.py
           python tools/test_special_avatar_pipeline.py
