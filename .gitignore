@@ -32,3 +32,6 @@ __pycache__/
 # boot updater downloads the repo, so backups in git would be pulled onto
 # every install at every restart.
 backups/
+
+# Phase 1 host drafts are installation-local state.
+data/tournament_drafts.db*
