@@ -1,0 +1,18 @@
+{
+  "id": "BB152_default_driver",
+  "name": "Judgement Joker Spin Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 38,
+    "attack": 38,
+    "defense": 31,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB152",
+  "_registry_order": 1152
+}

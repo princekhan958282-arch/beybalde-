@@ -1,0 +1,116 @@
+{
+  "id": "BB155",
+  "name": "Bushin Ashura",
+  "aliases": [
+    "Bushin Asura"
+  ],
+  "rarity": "Legendary",
+  "type": "Defense",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438193013985340/cd2fcb4051ab5851bfef286cddb887b0.jpg?ex=6acb702b&is=6aca1eab&hm=76ce3a33eb4c23850cdefa0348166637979ae914aec97b836fd9dc33cc310671&",
+  "description": "Bushin Ashura: Defense type with two unique battle abilities.",
+  "stats": {
+    "hp": 150,
+    "attack": 85,
+    "defense": 145,
+    "stamina": 115,
+    "special": 120
+  },
+  "ability": {
+    "name": "Six-Armed Guard",
+    "description": "Defense wins grant 1 Guard arm, up to 3; your next incoming normal Attack consumes all arms for 7% damage reduction each.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "guard_arms"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Six-Armed Guard",
+      "description": "Defense wins grant 1 Guard arm, up to 3; your next incoming normal Attack consumes all arms for 7% damage reduction each.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "guard_arms"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Bushin Discipline",
+      "description": "Use 3 different normal actions consecutively to restore 6 Stability and gain +12% base DEF for 2 rounds. Repeated actions reset the sequence; Specials interrupt it.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "action_discipline"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "sixfold_finisher"
+            }
+          ],
+          "_name": "Ashura’s Sixfold Strike"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Ashura’s Sixfold Strike",
+    "description": "6 hit(s), each 20 base + 8% DEFENSE. Six hits, each 20 base + 8% DEF; resolve defense separately. Does not trigger normal Attack abilities. Cooldown: 4 rounds.",
+    "hits": 6,
+    "damage_per_hit": 20,
+    "total_damage": 120,
+    "damage_formula": {
+      "base": 20,
+      "defense": 0.08
+    },
+    "flavour_texts": [
+      "**ASHURA’S SIXFOLD STRIKE!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Ashura’s Sixfold Strike"
+  },
+  "generation": "Burst",
+  "_registry_order": 155,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 68,
+    "attack": 38,
+    "defense": 65,
+    "stamina": 52
+  },
+  "default_parts": {
+    "disk": "BB155_default_disk",
+    "driver": "BB155_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

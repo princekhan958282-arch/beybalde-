@@ -1,0 +1,18 @@
+{
+  "id": "BB151_default_driver",
+  "name": "Circle Bahamut Spin Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 40,
+    "attack": 20,
+    "defense": 36,
+    "stamina": 31
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB151",
+  "_registry_order": 1151
+}

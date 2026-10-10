@@ -346,7 +346,7 @@ class BladeKit:
             low = when in LOW_HP_TRIGGERS
             target = self.low_hp_mult if low else self.stat_mult
             for op in rule.get("do") or []:
-                if op.get("op") in EXTENDED_OPS | TACTICAL_OPS:
+                if op.get("op") in EXTENDED_OPS | TACTICAL_OPS | {'burst_mechanic', 'burst_finisher'}:
                     note = f"{ability.get('name', 'Ability')}: {op['op']} (shared engine only)"
                     if note not in self.dormant:
                         self.dormant.append(note)

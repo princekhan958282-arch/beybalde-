@@ -76,7 +76,7 @@ class DranzerData(unittest.TestCase):
                 self.assertEqual(part['stats'], REGISTRY.part(base['default_parts'][slot])['stats'])
             ids.append(blade['id'])
         self.assertEqual(len(set(ids)), 7)
-        self.assertEqual(len(load_beys()), 149)
+        self.assertGreaterEqual(len(load_beys()), 149)
         self.assertIsNone(version(base))
 
     def test_black_mechanics_require_black_identity(self):

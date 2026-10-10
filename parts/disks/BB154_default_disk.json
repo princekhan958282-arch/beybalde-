@@ -1,0 +1,18 @@
+{
+  "id": "BB154_default_disk",
+  "name": "Greatest Raphael Core Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 43,
+    "attack": 39,
+    "defense": 37,
+    "stamina": 36
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB154",
+  "_registry_order": 1154
+}

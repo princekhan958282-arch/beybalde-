@@ -130,6 +130,8 @@ class AbilityEngine:
         self.damage_filter = DamageFilter(session)
         self.extended = ExtendedEffects(self)
         self.tactical = TacticalEffects(self)
+        from .burst_mechanics import BurstMechanics
+        self.burst = BurstMechanics(self)
         from cogs.battle.draciel import DracielRuntime
         self.draciel = DracielRuntime(session)
         from cogs.battle.dranzer import DranzerRuntime
@@ -776,6 +778,12 @@ class AbilityEngine:
             gate = op.get("_if")
             if gate and not all(self._check(c, key, okey, move, matchup)
                                 for c in gate):
+                continue
+            if kind == 'burst_mechanic':
+                self.burst.register(key, op['effect'])
+                continue
+            if kind == 'burst_finisher':
+                dmg_dealt = self.burst.special(key, okey, op['effect'], dmg_dealt, logs)
                 continue
             from cogs.battle.type_gimmicks import GIMMICK_OPS
             if kind in GIMMICK_OPS:

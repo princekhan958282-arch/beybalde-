@@ -1,0 +1,18 @@
+{
+  "id": "BB152_default_disk",
+  "name": "Judgement Joker Core Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 39,
+    "attack": 39,
+    "defense": 32,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB152",
+  "_registry_order": 1152
+}

@@ -378,6 +378,9 @@ class StabilityManager:
         """
         # Check burst resistance on negative deltas only
         original_delta = delta
+        tactical = getattr(self, 'tactical_runtime', None)
+        if tactical is not None:
+            delta = tactical.engine.burst.stability_delta(key, delta, action=action)
         draciel = getattr(self, 'draciel_runtime', None)
         if draciel:
             delta = draciel.stability_delta(key, delta, action=action)

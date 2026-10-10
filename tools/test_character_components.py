@@ -28,6 +28,9 @@ OCTOBER_ADDITIONS = {f'BB{139+i}': name for i, name in enumerate(
     ('Golden Imperial Dragon', 'Black Valkyrie', 'Black Brave Valkyrie',
      'Ultimate Dark Valkyrie', 'Strike Longinus', 'Dragon Circle',
      'Legend Spriggan', 'Shelter Regulus', 'Abyss Fang', 'Deathscyth Longinus'))}
+BURST_ADDITIONS = {f'BB{149+i}': name for i, name in enumerate(
+    ('Silver Valkyrie', 'Arc Bahamut', 'Circle Bahamut', 'Judgement Joker',
+     'Jambo Jamunter', 'Greatest Raphael', 'Bushin Ashura', 'Orb Engaard', 'Ace Dragon'))}
 
 def digest(document):
     return hashlib.sha256(json.dumps(document, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
@@ -41,7 +44,7 @@ class MigrationTests(unittest.TestCase):
     def test_every_record_and_every_original_field_is_preserved(self):
         for kind, entries in (('bey', load_beys().values()), ('avatar', load_avatars()['avatars'])):
             baseline = BASELINE['beys' if kind == 'bey' else 'avatars']
-            additions = {**DRANZER_ADDITIONS, **OCTOBER_ADDITIONS} if kind == 'bey' else {}
+            additions = {**DRANZER_ADDITIONS, **OCTOBER_ADDITIONS, **BURST_ADDITIONS} if kind == 'bey' else {}
             self.assertEqual({v['id'] for v in entries}, set(baseline) | set(additions))
             for value in entries:
                 if value['id'] in additions:
@@ -58,7 +61,7 @@ class MigrationTests(unittest.TestCase):
                         self.assertEqual(correction['name'], value['name'])
                         expected_hash = correction['sha256']
                     self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
-        for folder, number in (('beys', 149), ('avatars', 54), ('parts/disks', 167), ('parts/drivers', 166)):
+        for folder, number in (('beys', 158), ('avatars', 54), ('parts/disks', 176), ('parts/drivers', 175)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
         for folder in ('beys', 'avatars'):
             self.assertFalse(any(p.is_dir() for p in (ROOT / folder).iterdir()))

@@ -1,0 +1,18 @@
+{
+  "id": "BB155_default_disk",
+  "name": "Bushin Ashura Core Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 41,
+    "attack": 24,
+    "defense": 40,
+    "stamina": 32
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB155",
+  "_registry_order": 1155
+}
