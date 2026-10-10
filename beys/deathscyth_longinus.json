@@ -1,0 +1,113 @@
+{
+  "id": "BB148",
+  "name": "Deathscyth Longinus",
+  "rarity": "Mythic",
+  "type": "Attack",
+  "spin_direction": "Left",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558073688426020915/1791543495863.png?ex=6acac572&is=6ac973f2&hm=d2ead141e777cf10b5d37f51eb9150ed6a5808930e7b974896a3f0c7fc5fd9e6&",
+  "description": "Deathscyth Longinus: Attack type with two unique abilities.",
+  "stats": {
+    "hp": 170,
+    "attack": 150,
+    "defense": 120,
+    "stamina": 100,
+    "special": 180
+  },
+  "ability": {
+    "name": "Reaper Mark",
+    "description": "Successful Attacks gain 15% bonus damage against enemies below 40% HP.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "bonus_damage_pct",
+            "value": 15
+          }
+        ],
+        "if": [
+          {
+            "cond": "enemy_hp_below_pct",
+            "value": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Reaper Mark",
+      "description": "Successful Attacks gain 15% bonus damage against enemies below 40% HP.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 15
+            }
+          ],
+          "if": [
+            {
+              "cond": "enemy_hp_below_pct",
+              "value": 0.4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Soul Armor",
+      "description": "Once per battle below 35% HP, gain a shield equal to 12% of maximum HP.",
+      "rules": [
+        {
+          "when": "on_low_hp",
+          "do": [
+            {
+              "op": "shield_pct",
+              "value": 12,
+              "of": "max_hp"
+            }
+          ],
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.35
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Reaper Dragon Execution",
+    "description": "3 hit(s), 60 base damage per hit (180 total).",
+    "hits": 3,
+    "damage_per_hit": 60,
+    "total_damage": 180,
+    "flavour_texts": [
+      "**REAPER DRAGON EXECUTION!**"
+    ]
+  },
+  "generation": "Burst",
+  "_registry_order": 148,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 76,
+    "attack": 68,
+    "defense": 54,
+    "stamina": 45
+  },
+  "default_parts": {
+    "disk": "BB148_default_disk",
+    "driver": "BB148_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "hidden_drop_one_in": 10000
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB146_default_driver",
+  "name": "Shelter Regulus Orbit Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 38,
+    "attack": 36,
+    "defense": 20,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB146",
+  "_registry_order": 1146
+}

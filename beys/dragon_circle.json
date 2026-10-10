@@ -1,0 +1,92 @@
+{
+  "id": "BB144",
+  "name": "Dragon Circle",
+  "rarity": "Epic",
+  "type": "Stamina",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069193138774036/e3356eb76eee5236510bb5e6c5ecd82e.jpg?ex=6acac143&is=6ac96fc3&hm=d238f3b10c79453389fe74fdd444f09e17eaf969d9edc10c4536b4458be56137&",
+  "description": "Dragon Circle: Stamina type with two unique abilities.",
+  "stats": {
+    "hp": 140,
+    "attack": 98,
+    "defense": 108,
+    "stamina": 136,
+    "special": 150
+  },
+  "ability": {
+    "name": "Endless Orbit",
+    "description": "Each Stamina win steals 0.5 enemy stamina.",
+    "rules": [
+      {
+        "when": "on_stamina_win",
+        "do": [
+          {
+            "op": "drain_stamina",
+            "value": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Endless Orbit",
+      "description": "Each Stamina win steals 0.5 enemy stamina.",
+      "rules": [
+        {
+          "when": "on_stamina_win",
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Circle Renewal",
+      "description": "Each Charge restores 4% of maximum HP.",
+      "rules": [
+        {
+          "when": "on_charge",
+          "do": [
+            {
+              "op": "heal_pct",
+              "value": 4
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Ouroboros Spiral",
+    "description": "3 hit(s), 50 base damage per hit (150 total).",
+    "hits": 3,
+    "damage_per_hit": 50,
+    "total_damage": 150,
+    "flavour_texts": [
+      "**OUROBOROS SPIRAL!**"
+    ]
+  },
+  "generation": "Burst",
+  "_registry_order": 144,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 63,
+    "attack": 44,
+    "defense": 48,
+    "stamina": 61
+  },
+  "default_parts": {
+    "disk": "BB144_default_disk",
+    "driver": "BB144_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "BB145_default_disk",
+  "name": "Legend Spriggan Crown Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 39,
+    "attack": 35,
+    "defense": 32,
+    "stamina": 32
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB145",
+  "_registry_order": 1145
+}

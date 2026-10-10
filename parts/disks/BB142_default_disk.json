@@ -1,0 +1,18 @@
+{
+  "id": "BB142_default_disk",
+  "name": "Ultimate Dark Valkyrie Crown Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 41,
+    "attack": 47,
+    "defense": 18,
+    "stamina": 34
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB142",
+  "_registry_order": 1142
+}

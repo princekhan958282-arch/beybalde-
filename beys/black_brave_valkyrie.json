@@ -1,0 +1,130 @@
+{
+  "id": "BB141",
+  "name": "Black Brave Valkyrie",
+  "rarity": "Legendary",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069158363660388/c84d8366a504886bce939674d8276778.jpg?ex=6acac13a&is=6ac96fba&hm=98df93ec2a3c37b8acc40b5b9eb69b9b2505e475dec1dfe64460828d7cd8f5f8&",
+  "description": "Black Brave Valkyrie: Attack type with two unique abilities.",
+  "stats": {
+    "hp": 138,
+    "attack": 152,
+    "defense": 74,
+    "stamina": 116,
+    "special": 160
+  },
+  "ability": {
+    "name": "Brave Reprisal",
+    "description": "After an Attack loss, gain 15% ATK for 2 rounds. Cooldown: 3 rounds.",
+    "rules": [
+      {
+        "when": "on_attack_loss",
+        "do": [
+          {
+            "op": "buff",
+            "value": 0,
+            "stat": "attack",
+            "pct": 15,
+            "turns": 2
+          },
+          {
+            "op": "start_cooldown",
+            "value": 0,
+            "name": "brave_reprisal",
+            "turns": 3
+          }
+        ],
+        "if": [
+          {
+            "cond": "not_on_cooldown",
+            "name": "brave_reprisal"
+          }
+        ]
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Brave Reprisal",
+      "description": "After an Attack loss, gain 15% ATK for 2 rounds. Cooldown: 3 rounds.",
+      "rules": [
+        {
+          "when": "on_attack_loss",
+          "do": [
+            {
+              "op": "buff",
+              "value": 0,
+              "stat": "attack",
+              "pct": 15,
+              "turns": 2
+            },
+            {
+              "op": "start_cooldown",
+              "value": 0,
+              "name": "brave_reprisal",
+              "turns": 3
+            }
+          ],
+          "if": [
+            {
+              "cond": "not_on_cooldown",
+              "name": "brave_reprisal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Obsidian Courage",
+      "description": "Once per battle below 40% HP, gain a shield equal to 15% of maximum HP.",
+      "rules": [
+        {
+          "when": "on_low_hp",
+          "do": [
+            {
+              "op": "shield_pct",
+              "value": 15,
+              "of": "max_hp"
+            }
+          ],
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.4
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Shadow Brave Impact",
+    "description": "4 hit(s), 40 base damage per hit (160 total).",
+    "hits": 4,
+    "damage_per_hit": 40,
+    "total_damage": 160,
+    "flavour_texts": [
+      "**SHADOW BRAVE IMPACT!**"
+    ]
+  },
+  "generation": "Burst",
+  "_registry_order": 141,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 62,
+    "attack": 68,
+    "defense": 33,
+    "stamina": 52
+  },
+  "default_parts": {
+    "disk": "BB141_default_disk",
+    "driver": "BB141_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

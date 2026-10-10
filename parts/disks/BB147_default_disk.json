@@ -1,0 +1,18 @@
+{
+  "id": "BB147_default_disk",
+  "name": "Abyss Fang Crown Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 43,
+    "attack": 50,
+    "defense": 6,
+    "stamina": 31
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB147",
+  "_registry_order": 1147
+}

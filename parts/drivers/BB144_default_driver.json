@@ -1,0 +1,18 @@
+{
+  "id": "BB144_default_driver",
+  "name": "Dragon Circle Orbit Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 38,
+    "attack": 27,
+    "defense": 30,
+    "stamina": 37
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB144",
+  "_registry_order": 1144
+}

@@ -1,0 +1,106 @@
+{
+  "id": "BB140",
+  "name": "Black Valkyrie",
+  "rarity": "Epic",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069145793331200/afccbc032fe2d1a876b86292aebebdef.jpg?ex=6acac137&is=6ac96fb7&hm=c05e908949f72388b2eb782fd2abe99ffc7f504641a8949356da36d0578dd993&",
+  "description": "Black Valkyrie: Attack type with two unique abilities.",
+  "stats": {
+    "hp": 125,
+    "attack": 139,
+    "defense": 68,
+    "stamina": 100,
+    "special": 140
+  },
+  "ability": {
+    "name": "Night Wing",
+    "description": "Successful Attacks gain bonus damage equal to 10% of ATK.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "bonus_damage_stat",
+            "value": 0,
+            "stat": "attack",
+            "scale": 0.1
+          }
+        ]
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Night Wing",
+      "description": "Successful Attacks gain bonus damage equal to 10% of ATK.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "value": 0,
+              "stat": "attack",
+              "scale": 0.1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Midnight Resolve",
+      "description": "Once per battle below 35% HP, gain 18% ATK for 2 rounds.",
+      "rules": [
+        {
+          "when": "on_low_hp",
+          "do": [
+            {
+              "op": "buff",
+              "value": 0,
+              "stat": "attack",
+              "pct": 18,
+              "turns": 2
+            }
+          ],
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.35
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Black Wing Slash",
+    "description": "2 hit(s), 70 base damage per hit (140 total).",
+    "hits": 2,
+    "damage_per_hit": 70,
+    "total_damage": 140,
+    "flavour_texts": [
+      "**BLACK WING SLASH!**"
+    ]
+  },
+  "generation": "Burst",
+  "_registry_order": 140,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 56,
+    "attack": 63,
+    "defense": 30,
+    "stamina": 45
+  },
+  "default_parts": {
+    "disk": "BB140_default_disk",
+    "driver": "BB140_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

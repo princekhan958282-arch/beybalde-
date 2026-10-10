@@ -1,0 +1,103 @@
+{
+  "id": "BB147",
+  "name": "Abyss Fang",
+  "rarity": "Mythic",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558073674752336013/1791543848421.png?ex=6acac56f&is=6ac973ef&hm=45620033d3088a184c304c1ee86c31661934e197c043246bf4744ed892a774de&",
+  "description": "Abyss Fang: Attack type with two unique abilities.",
+  "stats": {
+    "hp": 157,
+    "attack": 180,
+    "defense": 20,
+    "stamina": 111,
+    "special": 170
+  },
+  "ability": {
+    "name": "Razor Hunger",
+    "description": "Successful Attacks gain bonus damage equal to 12% of ATK.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "do": [
+          {
+            "op": "bonus_damage_stat",
+            "value": 0,
+            "stat": "attack",
+            "scale": 0.12
+          }
+        ]
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Razor Hunger",
+      "description": "Successful Attacks gain bonus damage equal to 12% of ATK.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "value": 0,
+              "stat": "attack",
+              "scale": 0.12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Last Bite",
+      "description": "Once per battle below 30% HP, recover 10% of maximum HP.",
+      "rules": [
+        {
+          "when": "on_low_hp",
+          "do": [
+            {
+              "op": "heal_pct",
+              "value": 10
+            }
+          ],
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.3
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Abyss Fang Rupture",
+    "description": "2 hit(s), 85 base damage per hit (170 total).",
+    "hits": 2,
+    "damage_per_hit": 85,
+    "total_damage": 170,
+    "flavour_texts": [
+      "**ABYSS FANG RUPTURE!**"
+    ]
+  },
+  "generation": "Burst",
+  "_registry_order": 147,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 71,
+    "attack": 81,
+    "defense": 9,
+    "stamina": 50
+  },
+  "default_parts": {
+    "disk": "BB147_default_disk",
+    "driver": "BB147_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}
