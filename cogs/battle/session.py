@@ -1146,8 +1146,13 @@ class BattleSession:
 
         # ── Round-start DoT tick (Burn, Curse, Corruption) ─────────────────────
         for _key, _blade in ((k1, b1), (k2, b2)):
+            _hp_before_dot = self.hp[_key]
             round_log.extend(self.ability.apply_dot_tick_extras(_key, _blade))
             round_log.extend(self.status.tick_burn(_key, _blade))  # pass blade for name lookup
+            # Surviving DoT damage can cross Raphael's reversal threshold.
+            # Resolve it before building this round's effective stat snapshot.
+            if self.hp[_key] < _hp_before_dot:
+                self.ability.burst.committed(_key, round_log)
 
         # ── Death check after DoT ─────────────────────────────────────────────
         if self.hp[k1] <= 0 or self.hp[k2] <= 0:

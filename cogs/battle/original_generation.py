@@ -420,6 +420,9 @@ class OriginalGeneration:
             actual = phoenix.terminal(other, damage, logs)
         else:
             self.s.hp[other], actual = damage_hp(self.s.hp[other], damage)
+        burst = getattr(getattr(self.s, 'ability', None), 'burst', None)
+        if actual > 0 and burst is not None:
+            burst.committed(other, logs)
         logs.append(f'🌪️ **{label}** — {actual} damage' + (' (CRITICAL ×2)!' if critical else '!'))
 
     def end_round(self, logs):
