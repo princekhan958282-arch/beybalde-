@@ -85,7 +85,7 @@ class SpecialPipelineTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_entire_roster_specials_have_no_missing_avatar_amplification(self):
         blades = list(load_beys().values())
-        self.assertEqual(len(blades), 151)
+        self.assertEqual(len(blades), 160)
         for blade in blades:
             with self.subTest(blade=blade['name']):
                 plain = await self.build(blade)
