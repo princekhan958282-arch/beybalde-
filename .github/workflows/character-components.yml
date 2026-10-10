@@ -63,6 +63,7 @@ jobs:
           python tools/test_avatar_roster.py
           python -m unittest tools.test_avatar_progression
           python -m unittest tools.test_avatar_action_menu
+          python -m unittest tools.test_avatar_skill_display
           python tools/test_draciel.py
           python -m unittest tools.test_dranzer
           python -m unittest tools.test_boss_flow
