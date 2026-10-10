@@ -338,6 +338,22 @@ class UserStore:
             self._UPSERT,
             self._row_tuple(uid, profile, seen=time.time() if touch else None))
 
+    def mutate_one(self, uid: str, fn, touch: bool = True):
+        """Serialize the entire read/modify/write across processes."""
+        self.ensure_ready()
+        conn = self._conn()
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            profile = self.get_one(uid)
+            profile, result = fn(profile)
+            if profile is not None:
+                self.put_one(uid, profile, touch=touch)
+            conn.execute("COMMIT")
+            return result
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+
     def put_many(self, profiles: dict[str, dict], touch: bool = True) -> None:
         """Write several profiles in one SQLite transaction."""
         self.ensure_ready()

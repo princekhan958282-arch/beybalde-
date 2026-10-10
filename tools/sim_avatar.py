@@ -63,10 +63,10 @@ dist = {t: sum(1 for c in CARDS if c["type"] == t) for t in VALID_TYPES}
 check("all four types are represented", all(dist.values()), dist)
 print(f"       distribution: {dist}")
 
-print("\n── 2. the calibration guarantee: Lv1 changes nothing ────────────")
+print("\n── 2. V4 first-level allocation ────────────")
 for t in AL.TYPES:
-    check(f"{t} card at Lv1 adds zero",
-          AL.card_stat_bonus(t, 1) == {"attack": 0, "defense": 0, "stamina": 0},
+    check(f"{t} card at Lv1 allocates exactly 15",
+          sum(AL.card_stat_bonus(t, 1).values()) == 15,
           AL.card_stat_bonus(t, 1))
 check("an absent profile block reads as Lv1", AP.card_level({}, "avatar_x002") == 1)
 check("a junk profile block reads as Lv1",
@@ -216,21 +216,10 @@ for c in CARDS:
 else:
     check("no authored card has colliding skill slugs", True)
 
-print("\n── 9. the battle path is unchanged at Lv1 ───────────────────────")
-# Rebuild what get_battle_bonuses does, without a database: the level bonus is
-# added to the flat fields, so at Lv1 the AvatarBonuses must equal the authored
-# block exactly.
+print("\n── 9. every card receives its typed Level 1 allocation ─────────")
 from cogs.avatar.avatar_engine import AvatarBonuses  # noqa: E402
-
-drift = []
-for c in CARDS:
-    b = c["bonuses"]
-    lv1 = AL.card_stat_bonus(c["type"], 1)
-    if (b.get("attack_flat", 0.0) + lv1["attack"] != b.get("attack_flat", 0.0)
-            or b.get("defence_flat", 0.0) + lv1["defense"] != b.get("defence_flat", 0.0)
-            or b.get("stamina_flat", 0.0) + lv1["stamina"] != b.get("stamina_flat", 0.0)):
-        drift.append(c["id"])
-check("all 29 cards are byte-identical at Lv1", not drift, drift)
+check("all cards allocate exactly 15 points at Lv1",
+      all(sum(AL.card_stat_bonus(c['type'],1).values()) == 15 for c in CARDS))
 
 lv5 = [c for c in CARDS if c["type"] == "attack"][0]
 g = AL.card_stat_bonus(lv5["type"], 5)
@@ -309,7 +298,7 @@ async def _run_effective_blade_checks():
                                            include_parts=False)
     lvl5_attack = b5["stats"]["attack"]
 
-    expected = AL.card_stat_bonus(CARD_TYPE, 5)["attack"]
+    expected = AL.card_stat_bonus(CARD_TYPE, 5)["attack"] - AL.card_stat_bonus(CARD_TYPE, 1)["attack"]
     engine_lvl = await ENGINE.card_level(1, CARD)
     check("engine reports the purchased level",
           engine_lvl == 5, engine_lvl)
@@ -324,7 +313,7 @@ async def _run_effective_blade_checks():
           (brk1["attack"], brk5["attack"]))
     check("defence moved too, by its own growth rate",
           b5["stats"]["defense"] - b1["stats"]["defense"]
-          == AL.card_stat_bonus(CARD_TYPE, 5)["defense"])
+          == AL.card_stat_bonus(CARD_TYPE, 5)["defense"] - AL.card_stat_bonus(CARD_TYPE, 1)["defense"])
 
     # And the guarantee, through the real code path this time.
     FAKE["avatar"] = {"cards": {CARD: {"level": 1}}}
@@ -377,7 +366,7 @@ def _want(card):
 # specifies, and a flat pool bonus does not scale with the pool, so it needs no
 # band. They are exempted here explicitly rather than by a silent `.get`, and
 # the exemption is asserted below so it cannot quietly widen.
-_FLAT_HP_RARITIES = {"Blader"}
+_FLAT_HP_RARITIES = {"Blader", "Original Generation"}
 _BANDED = [c for c in _CARDS if c["rarity"] not in _FLAT_HP_RARITIES]
 
 check(f"all {len(_BANDED)} percent-HP cards are on a known rarity band",

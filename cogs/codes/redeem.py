@@ -29,7 +29,7 @@ from discord.ext import commands
 
 from cogs.casino import casino_premium, casino_wallet
 from cogs.economy.profile import fuzzy_find_beyblade
-from utils.database import add_avatar_to_inventory, mutate_user
+from utils.database import mutate_user
 
 from .code_store import REDEEM_PATH, load, make_code, normalise, redeem_lock, save
 
@@ -167,7 +167,7 @@ def describe(rewards: list[dict]) -> str:
     return " · ".join(bits)
 
 
-async def grant(user_id: int, rewards: list[dict]) -> list[str]:
+async def grant(user_id: int, rewards: list[dict], *, source=None, channel_id=None) -> list[str]:
     """Apply rewards. Returns human-readable lines of what landed."""
     got = []
     # Coins are accumulated as a delta and applied at the end through
@@ -177,7 +177,7 @@ async def grant(user_id: int, rewards: list[dict]) -> list[str]:
     # any blade from a code that grants coins and a blade together.
     coin_delta = 0
 
-    for r in rewards:
+    for reward_index, r in enumerate(rewards):
         if r["kind"] == "coins":
             coin_delta += int(r["value"])
             got.append(f"🪙 **+{r['value']:,}** Beycoins")
@@ -229,10 +229,10 @@ async def grant(user_id: int, rewards: list[dict]) -> list[str]:
                 got.append("👑 premium pass could not be applied — tell an admin")
         elif r["kind"] == "avatar":
             label = r.get("label", r["value"])
-            if add_avatar_to_inventory(user_id, r["value"]):
-                got.append(f"🖼️ **{label}** added to your avatars")
-            else:
-                got.append(f"🖼️ **{label}** — you already own this one")
+            from cogs.avatar.avatar_rewards import enqueue
+            await mutate_user(user_id, lambda p: enqueue(p, r['value'],
+                reward_id=f'code:{source}:{reward_index}' if source else None, channel_id=channel_id))
+            got.append(f"🖼️ **{label}** — Keep/Sell decision pending (`;avatarrewards`)")
         elif r["kind"] == "bossbey":
             from cogs.battle.boss import boss_copy as bcopy
             from cogs.battle.boss import boss_info as binfo
@@ -331,7 +331,7 @@ class RedeemCog(commands.Cog, name="Codes"):
         if error:
             return await ctx.send(error)
 
-        lines = await grant(ctx.author.id, rewards)
+        lines = await grant(ctx.author.id, rewards, source=code, channel_id=ctx.channel.id)
 
         e = discord.Embed(
             title="🎟️  Code Redeemed!",

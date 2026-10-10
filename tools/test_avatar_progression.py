@@ -41,9 +41,9 @@ class StorageTests(unittest.TestCase):
     def read(self):
         return DB._get_user_sync(101)
 
-    def seed_tier(self, stars, stages=0, copies=20):
+    def seed_tier(self, stars, stages=0, copies=200):
         def seed(p):
-            AP._ensure(p, AID).update(stars=stars, stages=stages)
+            AP._ensure(p, AID).update(stars=stars, stages=stages, feeding=C.STAR_COPY_COST.get(stars + 1, 0))
             p['avatar_copies'][AID] = copies
         self.mutate(seed)
 
@@ -57,8 +57,11 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(AP.skill_level(self.read(), AID, 'storm'), 6)
 
     def test_duplicate_copy_is_separate_from_owned_equipped_card(self):
-        self.assertFalse(DB.add_avatar_to_inventory(101, AID))
-        self.assertEqual(AC.spare_copies(self.read(), AID), 1)
+        for _ in range(5):
+            self.assertFalse(self.mutate(lambda p: AC.grant(p, AID)))
+        avatar_engine.load()
+        catalog = {c['id']: c for c in avatar_engine.get_all_avatars()}
+        self.mutate(lambda p: AC.feed(p, AID, 0, {AID: 5}, catalog))
         self.mutate(lambda p: AC.upgrade_star(p, AID, 2, Mock(side_effect=AssertionError('Safe upgrades never roll'))))
         self.assertEqual(DB.get_avatar_inventory(101), [AID])
         self.assertEqual(self.read()['equipped_avatar'], AID)
@@ -69,28 +72,30 @@ class StorageTests(unittest.TestCase):
             self.mutate(lambda p: AC.upgrade_star(p, AID, 2, Mock()))
         self.assertEqual(DB.get_avatar_inventory(101), [AID])
 
-    def test_all_safe_tiers_and_stage_gate(self):
+    def test_all_safe_tiers_and_feeding_gate(self):
+        avatar_engine.load()
+        catalog = {c['id']: c for c in avatar_engine.get_all_avatars()}
         self.seed_tier(1)
+        self.mutate(lambda p: AP._ensure(p, AID).update(feeding=0))
         roll = Mock(side_effect=AssertionError('Safe upgrade rolled'))
         for target in range(2, 6):
+            with self.assertRaises(AP.PurchaseError):
+                self.mutate(lambda p: AC.upgrade_star(p, AID, target, roll))
+            self.mutate(lambda p: AC.feed(p, AID, 0, {AID: C.STAR_COPY_COST[target]}, catalog))
             self.assertTrue(self.mutate(lambda p: AC.upgrade_star(p, AID, target, roll))['success'])
-        with self.assertRaisesRegex(AP.PurchaseError, 'five stages'):
-            self.mutate(lambda p: AC.upgrade_star(p, AID, 6, roll))
-        for stage in range(C.STAGE_COUNT):
-            self.mutate(lambda p: AC.feed(p, AID, stage))
-        self.assertEqual(AC.stages(self.read(), AID), 5)
-        with self.assertRaises(AP.PurchaseError): self.mutate(lambda p: AC.feed(p, AID, 5))
+            self.assertEqual(AC.stages(self.read(), AID), 0)
 
-    def test_success_at_six_and_seven_and_max_rejection(self):
-        self.seed_tier(5, 5)
-        for target in (6, 7):
+    def test_success_at_six_seven_eight_and_pending_rejection(self):
+        for target in (6, 7, 8):
+            self.seed_tier(target - 1)
             self.assertTrue(self.mutate(lambda p: AC.upgrade_star(p, AID, target, lambda: 0))['success'])
-        with self.assertRaises(AP.PurchaseError): self.mutate(lambda p: AC.upgrade_star(p, AID, 8, lambda: 0))
-        self.assertEqual(AC.stars(self.read(), AID), 7)
+        with self.assertRaisesRegex(AP.PurchaseError, 'pending approval'):
+            self.mutate(lambda p: AC.upgrade_star(p, AID, 9, lambda: 0))
+        self.assertEqual(AC.stars(self.read(), AID), 8)
 
     def test_loss_is_durable_and_old_profile_cannot_resurrect(self):
         for source, target in ((5, 6), (6, 7)):
-            DB.add_avatar_to_inventory(101, AID)
+            self.mutate(lambda p: AC.grant(p, AID))
             self.seed_tier(source, 5)
             old = self.read()
             result = self.mutate(lambda p: AC.upgrade_star(p, AID, target, lambda: 1))
@@ -99,8 +104,9 @@ class StorageTests(unittest.TestCase):
             p = self.read()
             self.assertIsNone(p['equipped_avatar'])
             self.assertNotIn(AID, p['avatar']['cards'])
-            self.assertEqual(p['avatar_copies'][AID], 20 - C.STAR_COPY_COST[target])
-            DB._update_user_sync(101, old)
+            self.assertEqual(p['avatar_copies'][AID], 200)
+            with self.assertRaisesRegex(ValueError, 'Stale'):
+                DB._update_user_sync(101, old)
             restarted = UserStore(str(self.root / 'users.db'), str(self.root / 'users.json'))
             with patch.object(DB, 'USER_STORE', restarted):
                 self.assertNotIn(AID, DB.get_avatar_inventory(101))
@@ -125,7 +131,7 @@ class StorageTests(unittest.TestCase):
             results = list(pool.map(lambda _: attempt(), range(2)))
         self.assertEqual(sum(r is not None for r in results), 1)
         roll.assert_called_once()
-        self.assertEqual(AC.spare_copies(self.read(), AID), 15)
+        self.assertEqual(AC.spare_copies(self.read(), AID), 200)
 
     def test_snapshot_restores_new_progress_and_counts_live_inventory(self):
         from utils import snapshot as SN
@@ -137,7 +143,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(SN.describe({'profiles': {'101': loss}, 'files': {'avatars': {'101': [AID]}}})['avatars'], 0)
         asyncio.run(SN.restore(snap, sections=('avatars',)))
         self.assertEqual(AC.stars(self.read(), AID), 5)
-        self.assertEqual(self.read()['avatar_copies'][AID], 20)
+        self.assertEqual(self.read()['avatar_copies'][AID], 200)
         self.mutate(lambda p: AC.upgrade_star(p, AID, 6, lambda: 1))
         asyncio.run(SN.restore(snap))
         self.assertIn(AID, DB.get_avatar_inventory(101))
@@ -149,8 +155,8 @@ class StorageTests(unittest.TestCase):
         self.seed_tier(3)
         after = asyncio.run(avatar_engine.get_battle_bonuses(101))
         growth = C.GROWTH[avatar_engine.get_avatar(AID)['type']]
-        self.assertEqual(after.attack_flat - before.attack_flat, growth['attack'] + C.STAR_STAT_GAIN['attack'] * 2)
-        self.assertEqual(after.defence_flat - before.defence_flat, growth['defense'] + C.STAR_STAT_GAIN['defense'] * 2)
+        self.assertEqual(after.attack_flat - before.attack_flat, growth['attack'] + C.star_stat_total(3))
+        self.assertEqual(after.defence_flat - before.defence_flat, growth['defense'] + C.star_stat_total(3))
 
     def test_cost_max_and_ownership_revalidated(self):
         self.mutate(lambda p: AP.apply_card_purchase(p, AID))
@@ -170,8 +176,8 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         avatar_engine.load()
         self.card = avatar_engine.get_avatar(AID)
         self.profile = AC.migrate({'coins': 1000000}, [AID])
-        AP._ensure(self.profile, AID).update(stars=5, stages=5)
-        self.profile['avatar_copies'][AID] = 10
+        AP._ensure(self.profile, AID).update(stars=5, stages=5, feeding=25)
+        self.profile['avatar_copies'][AID] = 100
         self.parent = ProgressionView(101, self.card, self.profile)
         self.parent.refresh_message = AsyncMock()
         self.interaction = SimpleNamespace(user=SimpleNamespace(id=101),
@@ -196,7 +202,6 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(v2.closed)
         AP._ensure(self.profile, AID)['stars'] = 6
         v = StarConfirm(101, self.card, self.profile, self.parent)
-        self.assertIn('highest and riskiest', v.embed(self.profile).description)
         self.assertIn('25%', v.embed(self.profile).description)
 
     async def test_confirmation_disables_before_transaction_and_blocks_double_click(self):
@@ -212,7 +217,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(AC.stars(self.profile, AID), 6)
 
     async def test_disabled_buttons_respect_balance_caps_and_gate(self):
-        AP._ensure(self.profile, AID).update(level=C.MAX_CARD_LEVEL, stages=4, skills={
+        AP._ensure(self.profile, AID).update(level=C.MAX_CARD_LEVEL, feeding=4, skills={
             AP.slugify(s['name']): C.MAX_SKILL_LEVEL for s in self.card['skills']})
         self.profile['coins'] = 0
         self.parent.configure(self.profile)
@@ -235,8 +240,14 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             await self.parent.skill_up.callback(self.interaction)
             slug = AP.slugify(self.card['skills'][1]['name'])
             self.assertEqual(AP.skill_level(self.profile, AID, slug), 2)
-            AP._ensure(self.profile, AID)['stages'] = 0
+            AP._ensure(self.profile, AID)['feeding'] = 0
+            self.interaction.original_response = AsyncMock()
             await self.parent.feed_stage.callback(self.interaction)
+            selection = self.interaction.response.send_message.call_args.kwargs['view']
+            from cogs.avatar.avatar_progression_ui import FeedAmount
+            modal = FeedAmount(selection, AID)
+            modal.quantity._value = '1'
+            await modal.on_submit(self.interaction)
             self.assertEqual(AC.stages(self.profile, AID), 1)
         self.assertEqual(self.parent.refresh_message.await_count, 3)
         self.assertFalse(self.parent.busy)
@@ -264,7 +275,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(render.call_args.kwargs['stars'], 4)
             self.assertEqual(render.call_args.kwargs['level'], 3)
             self.assertEqual(view.message.edit.call_args.kwargs['attachments'][0].filename, 'ainfo.jpg')
-            self.assertIsNone(view.message.edit.call_args.kwargs['embed'])
+            self.assertIsNotNone(view.message.edit.call_args.kwargs['embed'])
             select = next(c for c in view.children if isinstance(c, SkillSelect))
             select._values = ['3']
             self.interaction.response.defer = AsyncMock()

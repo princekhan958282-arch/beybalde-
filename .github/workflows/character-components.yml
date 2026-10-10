@@ -23,13 +23,26 @@ on:
 jobs:
   isolated-regressions:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: avatar-test
+          MYSQL_DATABASE: avatar_v4_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pavatar-test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Install test dependencies
-        run: python -m pip install 'discord.py>=2.6' python-dotenv pillow playwright
+        run: python -m pip install 'discord.py>=2.6' python-dotenv pillow playwright 'PyMySQL[rsa]==1.1.1'
       - name: Migration, equipment and SQLite restart
         run: |
           python -m unittest tools.test_character_components
@@ -52,6 +65,10 @@ jobs:
           python tools/test_draciel.py
           python -m unittest tools.test_dranzer
           python -m unittest tools.test_boss_flow
+      - name: Avatar V4 SQLite and live MySQL progression/rewards
+        env:
+          AVATAR_V4_TEST_MYSQL_URL: mysql://root:avatar-test@127.0.0.1:3306/avatar_v4_test
+        run: python -m unittest tools.test_avatar_progression_v4
       - name: Character info cards and effective-stat compatibility
         run: |
           python tools/test_beycbot_info_card.py

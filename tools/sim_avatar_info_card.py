@@ -45,7 +45,7 @@ class CardTests(unittest.TestCase):
 
     def test_permanent_bonuses_match_growth_and_exclude_skills(self):
         bonuses = C.permanent_bonuses(YUKI, owned=True, level=3)
-        self.assertEqual(bonuses, {'hp_flat': 0, 'hp_percent': .03, 'attack_flat': 10, 'defence_flat': 24, 'stamina_flat': 12})
+        self.assertEqual(bonuses, {'hp_flat': 0, 'hp_percent': .03, 'attack_flat': 9, 'defence_flat': 27, 'stamina_flat': 9})
         self.assertEqual(C.permanent_bonuses(YUKI), {'hp_flat': 0, 'hp_percent': .03})
         passive = {**YUKI, 'skills': []}  # Compatibility with cards without skills
         self.assertEqual(C.permanent_bonuses(passive), passive['bonuses'])
@@ -57,18 +57,18 @@ class CardTests(unittest.TestCase):
             points.append(xy)
             return original(draw, xy, *args, **kwargs)
         with patch.object(C, '_art', return_value=None), patch.object(ImageDraw.ImageDraw, 'polygon', record):
-            for rating in range(1, 8):
+            for rating in range(1, 16):
                 points.clear()
                 self.assertIsNotNone(C.render_avatar_info_card(YUKI, owned=True, stars=rating))
                 self.assertEqual(len(points), rating)
-                self.assertTrue(all(1160 < x < 1440 and 90 < y < 137 for star in points for x, y in star))
+                self.assertTrue(all(1160 < x < 1440 and 90 < y < 155 for star in points for x, y in star))
             points.clear()
             C.render_avatar_info_card(YUKI, stars=7)
             self.assertEqual(points, [])
         base = C.permanent_bonuses(YUKI, owned=True, level=3)
         starred = C.permanent_bonuses(YUKI, owned=True, level=3, stars=4)
         for key in ('attack_flat', 'defence_flat', 'stamina_flat'):
-            self.assertEqual(starred[key] - base[key], 9)
+            self.assertEqual(starred[key] - base[key], 22)
         self.assertEqual(C.permanent_bonuses(YUKI, stars=7), C.permanent_bonuses(YUKI))
 
     def test_school_blader_always_on_stats_match_engine(self):
@@ -92,7 +92,7 @@ class CardTests(unittest.TestCase):
             return original(draw, xy, text, *args, **kwargs)
         with patch.object(C, '_art', return_value=None), patch.object(ImageDraw.ImageDraw, 'text', record):
             self.assertIsNotNone(C.render_avatar_info_card(YUKI, owned=True, level=3, active_skill_slot=1))
-        for value in ['+10', '+24', '+12', '+3%', 'Steadfast Guard', 'Second Wind', 'Calm Foundation', '25', '50', '75']:
+        for value in ['+9', '+27', '+9', '+3%', 'Steadfast Guard', 'Second Wind', 'Calm Foundation', '25', '50', '75']:
             self.assertIn(value, drawn)
         self.assertNotIn(YUKI['description'], drawn)
 

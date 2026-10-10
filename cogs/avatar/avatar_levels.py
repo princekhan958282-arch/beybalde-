@@ -1,36 +1,4 @@
-"""
-avatar_levels.py — per-card avatar progression: types, growth, and cost curves.
-
-Pure arithmetic. No database, no discord, no I/O — so the whole curve is testable
-headlessly and a balance change is a one-line edit with a simulator to check it.
-
-── The two rules that keep this from breaking the live game ──────────────────
-
-1. **Level 1 adds nothing.** Growth is `growth * (level - 1)`, so a card at
-   level 1 contributes byte-identically to what it contributed before this
-   module existed. Every one of the 29 authored cards keeps its exact tuning
-   until somebody spends coins, and no player wakes up stronger or weaker
-   because a migration ran. This is the same calibration guarantee that let
-   `resolve_special()` start reading the special stat without re-tuning 78
-   blades.
-
-   The spec's §2.2 formula was `AVATAR_BASE + growth * (level - 1)` with
-   `AVATAR_BASE = 20`, which would have handed every card +20/+20/+20 the moment
-   it shipped. That is a roster-wide buff disguised as a schema change.
-
-2. **Growth is flat stat lines, not a multiplier on the card's own bonuses.**
-   Scaling authored bonuses would multiply Argus's +40% crit into +69% at Lv5
-   and Dyrroth's defence-break with it. Flat lines are legible, cap-safe, and
-   they do not turn a card's signature mechanic into a different mechanic.
-
-── Growth rates ──────────────────────────────────────────────────────────────
-
-The spec offered 22/level for a primary stat and then flagged its own number:
-at `BASE_HP = 2000`, +88 flat attack against a roster averaging 97 attack is the
-single most likely source of a broken launch. Its own recommendation was 12.
-That is what is implemented — Lv5 attack card is +48 attack, meaningful against
-97 without rewriting the game.
-"""
+"""Pure V4 card and skill progression arithmetic. Level 1 includes 15 points."""
 
 from __future__ import annotations
 
@@ -59,12 +27,10 @@ def clamp_level(level) -> int:
 
 
 def card_stat_bonus(avatar_type: str, level) -> dict[str, int]:
-    """Flat stat lines a card contributes at `level`. All zero at level 1."""
+    """Flat stat lines a card contributes at `level`. Includes the first allocation at level 1."""
     lvl = clamp_level(level)
-    if lvl <= 1:
-        return {stat: 0 for stat in STATS}
     g = growth_for(avatar_type)
-    steps = lvl - 1
+    steps = lvl
     return {stat: int(g.get(stat, 0)) * steps for stat in STATS}
 
 

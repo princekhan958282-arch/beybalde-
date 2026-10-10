@@ -1,59 +1,67 @@
-# Avatar progression
+# Avatar progression V4
 
-Open `;ainfo` for the equipped avatar, or `;ainfo <name or id>` for another owned avatar. The owned-card view has Level Up, Skill Level Up, Star Up/Try 6★/Try 7★, Feed Stage, and a skill selector. Details and Skills remain available. Views belong to the invoking player and expire; they deliberately do not register persistent views containing an old player balance.
+Use `;ainfo` for your equipped card, or `;ainfo <name or id>` for another card. The existing template remains unchanged. The image and accompanying details show category, 1–15 stars, level, skill levels, permanent star gain, typed level allocation, total avatar stat contributions, feeding progress and the next upgrade probability/warning. Level Up, Skill Level Up, Star Up, Feed Stage, Details and Skills are owner-only controls. Changes refresh the image/details; destruction removes the image and disables every control.
 
-## Balance and effects
+## Approved balance
 
-All progression numbers live in `cogs/avatar/avatar_config.py`. Existing coin prices and card growth are retained: card maximum 5; skill maximum 10, gated by card level. Level-one effects do not change. Each star above 1 adds the configured flat ATK/DEF/STM gains. Numeric bonus/DSL skill magnitudes scale with skill level; timers, energy costs, counter thresholds and boolean mechanics remain unchanged. Selected noninteractive skills also gain configured flat stats. Original Generation skills gain a temporary ATK/DEF boost on activation, including skills with fixed control mechanics. Their costs, cooldowns and once-per-battle ultimate restrictions remain intact.
+Settings live in `cogs/avatar/avatar_config.py`.
 
-Safe star targets 2–5 require 1/2/3/4 spare copies and never roll. At 5★, feed five stages, one spare copy each. Then 6★ needs five copies and has a 50% chance; 7★ needs six copies and has a 25% chance. Failure consumes the required feeding copies and permanently removes the owned avatar, its level/skill progress and selection, and its equipped pointer. Leftover feeding copies remain resources; they are not an owned avatar. A future pack pull can grant a new level-one avatar.
+| Target | Required feeding copies | Success | Additional ATK, DEF and STM each |
+|---|---:|---:|---:|
+| 2★ | 5 | 100% | 5 |
+| 3★ | 10 | 100% | 7 |
+| 4★ | 15 | 100% | 10 |
+| 5★ | 20 | 100% | 15 |
+| 6★ | 25 | 50% | 40 |
+| 7★ | 30 | 25% | 65 |
+| 8★ | 35 | 5% | 110 |
+| 9★ | 40 | Pending | 140 |
+| 10★ | 45 | Pending | 175 |
+| 11★ | 50 | Pending | 210 |
+| 12★ | 55 | Pending | 250 |
+| 13★ | 60 | Pending | 300 |
+| 14★ | 65 | Pending | 350 |
+| 15★ | 70 | Pending | 450 |
 
-## Storage and migration
+Star gains are cumulative: 8★ adds 252 to each stat; 15★ adds 2,127. Upgrade and feeding controls for unapproved target probabilities are locked. Stored higher stars remain readable and retain their approved stat bonuses.
 
-Avatar ownership, feeding copies and progression share the existing SQLite/MySQL JSON profile row. No new SQL columns are needed. On first profile access/mutation, legacy `avatar_inventory.json` ownership is copied into `avatar_inventory`; repeated legacy IDs become extra feeding copies. The legacy file remains a backup. Presence of the new inventory key, including an empty list after loss, prevents reimport/resurrection. Existing card levels, skill levels and recorded spending are retained. Missing values read as level 1, skill level 1, 1★ and zero stages.
+Each level, **including Level 1**, allocates exactly 15 points: Attack 9/3/3, Defense 3/9/3, Stamina 3/3/9, Balance 5/5/5 (ATK/DEF/STM). Level 5 allocates 75 total. Existing level costs, skill maximum 10, card-level skill caps, triggers, energy costs, cooldowns and Original Generation abilities remain intact. The shared battle snapshot derives level and star bonuses once; PvP, Story and Boss use that pipeline.
 
-Pack duplicates now grant a feeding copy as well as their existing rarity refund. Original Generation still gives no duplicate coin refund and keeps its purchase cooldown. The single owned card is distinct from the spare-copy counter, so it and its equipped pointer are never used as feeding copies.
+## Feeding and risky upgrades
 
-Risk confirmations expire after 30 seconds. Opening, cancelling or timing out never rolls or spends. Confirming closes/disables controls before awaiting and revalidates ownership, target tier, stages and copies under a per-user async lock and the database mutation lock. All changes are persisted in one profile upsert; a validation/roll exception abandons the mutation. These locks follow the bot's existing single-process storage model. Generic stale profile saves preserve authoritative ownership/progression to prevent an old battle snapshot from reviving a lost card. Administrative snapshot restore explicitly handles both new profiles and legacy ownership snapshots.
+Category uses an explicit avatar `category` when present, otherwise the existing roster `rarity`/banner (e.g. Original Generation or Blader). Feed Stage opens a paginated list of eligible duplicate card definitions; selecting one opens a quantity modal. Only spare copies can be spent. Primary owned, equipped and upgraded cards are never materials; their independent untrained duplicate copies are eligible.
 
-## Manual checks
+Submitting feeding consumes those selected copies and saves credits toward the next star. Star Up requires full feeding progress and charges no second copy fee or coins. Successful upgrades reset progress for the next star. A 30-second confirmation warns of permanent loss for risky targets. Cancelling or timing out changes nothing, including previously saved feeding credits. A failed risky upgrade removes the primary card, its progression and selected skill, and unequips it. Fed copies are never refunded; unused spare copies remain. Keeping a later reward can acquire a fresh Level 1, 1★ card. A saved incarnation token prevents an old confirmation from operating on this replacement.
 
-1. Open `;ainfo` with an owned avatar. Verify level/max, progress bars, star rating, spare copies, cost and each skill's next-level preview. Try another user's buttons: the reply must be ephemeral and deny access.
-2. Click Level Up with enough coins. Check the exact coin deduction, new stats and raised skill cap. With insufficient coins or maximum level, the button is disabled; server validation also rejects stale actions.
-3. Select each skill and click Skill Level Up. Only that skill should change. Verify a new battle uses its scaled effect. For Original Generation, activate the skill and verify its temporary ATK/DEF boost, then expiry.
-4. Pull an already-owned avatar. Confirm one feeding copy is added and the existing refund rules still apply. Original Generation refunds zero coins.
-5. Star Up through 5★, confirming each attempt. Verify copy costs and guaranteed success; the owned/equipped card remains.
-6. At 5★, feed five stages. Verify one copy per stage, progress 0/5 to 5/5, and Try 6★ stays disabled until full progress and sufficient copies.
-7. Open a risky warning. Verify the avatar name, target, exact chance, required/owned copies, permanent-loss warning, red confirmation button, and extra 7★ warning. Cancel or wait 30 seconds: inventory, copies and stars must remain unchanged.
-8. On a disposable test account, confirm a risky attempt. A success raises the tier; a failure removes the avatar and unequips it. Double-click or open two confirmations: the same tier attempt must never consume copies or roll twice. Restart and verify the result persists.
-9. Verify inventory displays stars, level and spare copies. Verify snapshot collection/restore retains new progression fields and can import a legacy ownership snapshot.
+## Keep or Sell
 
-## Automated checks
+Packs, redeem codes, School League rewards and admin grants enqueue individual durable decisions. The compatibility inventory reward API also queues a decision rather than granting or selling directly. Only the receiving player can use KEEP AVATAR or SELL AVATAR.
 
-`python -m unittest tools.test_avatar_progression` covers migration, safe tiers, stage gates, both risky tiers, permanent loss, restart, stale saves, transaction rollback, concurrent attempts, ownership, costs, buttons, warnings, timeout/cancel, combat bonuses and snapshots.
+Keep grants a primary card or adds one duplicate feeding copy and pays no refund. Sell pays only the newly awarded card's saved sell value and never touches existing cards. Pack sell values retain the previous pack-price/rarity refund amounts, including zero for Original Generation. Non-pack rewards use an authored `sell_value`/`sell_price`, defaulting to zero when none exists; additional non-pack prices require a balance decision.
 
-`python tools/test_original_generation.py` covers all 27 interactive skills, including skill-level empowerment and expiry. Existing avatar roster, boss, component battle, startup, card and snapshot regression checks also run in CI. No live Discord login is required.
+Each reward has an independent ID and claim state. Timeout defaults to Keep after 180 seconds, with the recovery worker checking every 30 seconds. The worker registers saved message controls after startup, delivers undelivered decisions to the saved reward channel or the recipient's DM, and settles expired decisions. `;avatarrewards` recovers pending controls when a message is unavailable. Failed Discord delivery never loses the stored reward. Pack payment, cooldown and pending rewards commit together; command retries and repeated reward decisions cannot pay twice.
 
-## Changed files
+## Persistence and migration
 
-- `.github/workflows/character-components.yml` — runs progression tests in CI.
-- `cogs/avatar/avatar_config.py` — progression balance.
-- `cogs/avatar/avatar_collection.py` — ownership migration, feeding copies, stars and stages.
-- `cogs/avatar/avatar_scaling.py` — independent battle skill snapshots and scaling.
-- `cogs/avatar/avatar_progression_ui.py` — progress embeds, selectors, owner-only controls and confirmations.
-- `cogs/avatar/avatar_levels.py` — existing arithmetic reads centralized config.
-- `cogs/avatar/avatar_progress.py` — ownership validation and Original Generation skill upgrades.
-- `cogs/avatar/avatar_engine.py` — applies star and selected skill bonuses.
-- `cogs/avatar/avatar_shop.py` — duplicate copies/refunds and owned `;ainfo` controls.
-- `cogs/avatar/avatar_upgrade.py` — prevents repeated legacy confirmation callbacks.
-- `cogs/battle/session.py` — PvP/Story leveled skill snapshots.
-- `cogs/battle/boss/boss_battle.py` — boss leveled skill snapshots.
-- `cogs/battle/original_generation.py` — activation empowerment and expiry.
-- `cogs/abilities/ability_engine.py` — cache includes skill levels.
-- `cogs/ui/inventory_ui.py` — collection progression display.
-- `utils/database.py` — profile ownership migration, copy grants and stale-save protection.
-- `utils/snapshot.py` — progression backup/restore and authoritative ownership counts.
-- `tools/test_avatar_progression.py` — new transactional and UI tests.
-- `tools/test_original_generation.py` — upgraded skill/pack regression expectations.
-- `tools/sim_avatar_info_card.py` — card plus progression embed regression expectations.
-- `docs/avatar_progression.md` — this guide and complete file list.
+Ownership, duplicates, progression, feeding credits and pending/resolved reward receipts stay in the existing SQLite/MySQL JSON profile row. SQLite `BEGIN IMMEDIATE` and MySQL InnoDB row locks serialize the entire read/modify/write, with rollback on validation or persistence failure. Reward settlement, currency payout and claim state are one transaction.
+
+Migration preserves legacy ownership and equipped cards, existing levels/skills/stars/spending and duplicate IDs. Old V3 stages become feeding credits once because they represented already consumed copies. Level bonuses are calculated from stored level, never incrementally written; migration therefore cannot duplicate the first allocation. An existing inventory key, even an empty inventory after loss, prevents legacy reimport.
+
+Avatar-changing transactions advance a revision. Generic stale profile saves are rejected so old snapshots cannot restore destroyed cards, pending decisions or old currency balances. Callers receiving a stale-save error must reload and reapply their intended mutation. Administrative snapshot restore remains an explicit recovery operation.
+
+## Verification
+
+- `python -m unittest tools.test_avatar_progression tools.test_avatar_progression_v4`
+- `python -m unittest tools.test_original_generation tools.test_avatar_battle_connection tools.test_special_avatar_pipeline tools.sim_avatar_info_card`
+- `python tools/sim_avatar.py`
+- Existing component, startup and boss regressions.
+- `python -m compileall -q cogs utils app.py`
+
+Tests cover every configured tier and allocation, success boundaries, destruction, cancellation/timeout, same-category material selection, persistence, concurrent independent SQLite connections, stale confirmations/saves, all progression buttons, renders, rewards, recovery and real PvP/Story/Boss snapshots. Original Generation tests cover unique abilities and temporary skill-level empowerment.
+
+CI provisions an isolated MySQL 8 service and runs the same transaction tests through `AVATAR_V4_TEST_MYSQL_URL`. Without that test-only URL, five live MySQL tests skip; mocked MySQL row-lock/commit/rollback checks still run. No production credentials or live Discord login are required. Live Discord interactions and the CI MySQL result must be checked before rollout.
+
+## Remaining balance decisions
+
+1. Success probabilities for target stars 9–15; no probabilities have been invented.
+2. Non-pack sell prices for cards without an authored sell value. They currently sell for zero.
