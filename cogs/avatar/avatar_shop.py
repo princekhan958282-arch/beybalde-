@@ -341,7 +341,7 @@ class AvatarSkillsView(discord.ui.View):
     async def show_skills(self, interaction: discord.Interaction,
                           button: discord.ui.Button) -> None:
         from . import avatar_skills as AS
-        from .avatar_progress import slugify
+        from .avatar_skill_display import skill_description, skill_level, skill_stat_text
 
         av = self.avatar
         rarity = av.get("rarity", "Common")
@@ -355,13 +355,11 @@ class AvatarSkillsView(discord.ui.View):
         skills = av.get("skills") or []
         for slot, skill in enumerate(skills, 1):
             selected = "▫️ Active battle skill" if av.get("active_battle_skills") else ("✅ Selected" if slot == self.active_slot else "▫️ Available")
-            level = max(1, int(self.skill_levels.get(
-                slugify(skill.get("name", "")), 1
-            )))
+            level = skill_level(av, self.skill_levels, slot)
             embed.add_field(
                 name=(f"{selected}  •  {slot}. {skill.get('name', 'Skill')} "
                       f"• {skill.get('energy_cost', AS.skill_cost(slot))}⚡ • Lv{level}"),
-                value=skill.get("description") or "No description.",
+                value=skill_description(av, slot, level) + '\n' + skill_stat_text(av, level),
                 inline=False,
             )
 
@@ -790,8 +788,8 @@ class AvatarShop(commands.Cog, name="Avatar"):
         if owned:
             prof = await get_user(ctx.author.id)
             view = ProgressionView(ctx.author.id, avatar, prof, bot=self.bot)
-            msg = await ctx.send(embed=progression_embed(prof, avatar), view=view,
-                                 **({'file': card} if card is not None else {}))
+            msg = await ctx.send(view=view, **({'file': card} if card is not None else
+                                 {'embed': progression_embed(prof, avatar)}))
             view.message = msg
         elif card is not None:
             await ctx.send(file=card, view=AvatarSkillsView(

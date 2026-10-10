@@ -169,7 +169,7 @@ class CommandTests(unittest.IsolatedAsyncioTestCase):
             await AvatarShop.avatar_info.callback(fake, ctx, query='Yuki')
         kwargs = ctx.send.call_args.kwargs
         self.assertEqual(kwargs['file'].filename, 'ainfo.jpg')
-        self.assertIn('embed', kwargs)
+        self.assertNotIn('embed', kwargs)
         from cogs.avatar.avatar_progression_ui import ActionSelect, ProgressionView
         view = kwargs['view']
         self.assertIsInstance(view, ProgressionView)

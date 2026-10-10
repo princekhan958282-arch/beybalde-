@@ -337,19 +337,15 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
         except Exception:                                # noqa: BLE001
             costs = [0] * len(skills)
         lines = []
+        from .avatar_skill_display import skill_description, skill_level, skill_stat_text
         for i, sk in enumerate(skills, 1):
             tick = "✅" if i == active_skill_slot else "▫️"
             price = f"  ·  {costs[i - 1]}⚡" if costs[i - 1] else ""
             head = f"{tick} **{i}. {sk.get('name', 'Skill')}**{price}"
-            if (owned or equipped) and skill_levels:
-                try:
-                    from .avatar_progress import slugify
-                    sl = int(skill_levels.get(slugify(sk.get("name", "")), 1))
-                    if sl > 1:
-                        head += f"  ·  Lv{sl}"
-                except Exception:                        # noqa: BLE001
-                    pass
-            lines.append(f"{head}\n{sk.get('description', '')}")
+            sl = skill_level(avatar, skill_levels, i, level) if owned or equipped else 1
+            if (owned or equipped) and sl > 1:
+                head += f"  ·  Lv{sl}"
+            lines.append(f"{head}\n{skill_description(avatar, i, sl)}\n{skill_stat_text(avatar, sl)}")
         if avatar.get("active_battle_skills"):
             embed.add_field(name="⚡ Active battle skills", value="\n\n".join(lines)
                 + "\n\nStart at 0 energy; gain 20 per completed round. Use **Avatar Skill** before your move. One skill per round; ultimate once per battle.", inline=False)

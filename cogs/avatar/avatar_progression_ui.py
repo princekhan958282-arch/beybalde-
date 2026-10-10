@@ -10,6 +10,7 @@ from . import avatar_config as C, avatar_progress as AP, avatar_levels as AL
 from . import avatar_collection as AC, avatar_skills as AS
 from .avatar_shop import AvatarSkillsView
 from .avatar_utils import build_avatar_embed
+from .avatar_skill_display import skill_description, skill_stat_text, skill_preview, number
 
 log = logging.getLogger(__name__)
 _locks = WeakValueDictionary()
@@ -53,7 +54,7 @@ def progression_embed(profile, card, slot=1):
     for stat, key in [('attack', 'attack'), ('defense', 'defence'), ('stamina', 'stamina')]:
         flat = block.get(key + '_flat', 0) + gain[stat] + sg[stat] + selected[stat]
         pct = block.get(key + '_percent', 0)
-        totals.append(f"{stat.upper()}: +{flat:g} flat, +{pct:.0%}")
+        totals.append(f"{stat.upper()}: +{flat:g} flat, +{number(pct * 100)}%")
     e.add_field(name='Total avatar stats (current skill selection)', value='\n'.join(totals), inline=False)
     fed = AC.stages(profile, aid)
     if star < C.MAX_STARS:
@@ -71,12 +72,7 @@ def progression_embed(profile, card, slot=1):
     for i, skill in enumerate(card.get('skills', []), 1):
         slug = AP.slugify(skill['name'])
         sq = AP.quote_skill(profile, aid, slug)
-        if card.get('active_battle_skills'):
-            now = C.EMPOWER_PERCENT_STEP * (sq['from'] - 1)
-            nxt = C.EMPOWER_PERCENT_STEP * (sq['to'] - 1)
-            preview = f"Activation ATK/DEF boost: {now:.0%} → {nxt:.0%}, {C.EMPOWER_ROUNDS} rounds"
-        else:
-            preview = f"Numeric effect magnitude: ×{AL.skill_magnitude_mult(sq['from']):.2f} → ×{AL.skill_magnitude_mult(sq['to']):.2f}\nSelected skill stat bonus: +{C.SKILL_STAT_GAIN['attack'] * (sq['from'] - 1)} → +{C.SKILL_STAT_GAIN['attack'] * (sq['to'] - 1)} ATK/DEF/STM"
+        preview = skill_preview(card, i, sq['from'], sq['to'])
         e.add_field(name=f"{'✅ ' if i == slot else ''}{skill['name']} · Lv{sq['from']}/{C.MAX_SKILL_LEVEL}",
                     value=preview + '\n' + (sq['blocked'] or f"Next: {sq['cost']:,} coins"), inline=False)
     e.set_footer(text=f"Balance: {int(profile.get('coins', 0)):,} coins · Choose a skill to level it")
@@ -299,10 +295,10 @@ class ProgressionView(AvatarSkillsView):
                         feeding_progress=AC.stages(p, card['id']))
                     if buf is not None:
                         attachments.append(discord.File(buf, filename='ainfo.jpg'))
-                        # Keep V4 progression details alongside the unchanged image template.
                 except Exception:
                     log.exception('Avatar card refresh failed; using progression embed')
-            await self.message.edit(embed=e, view=self, attachments=attachments)
+            await self.message.edit(content=None, embed=None if attachments else e,
+                                    view=self, attachments=attachments)
 
     async def purchase(self, interaction, kind):
         if self.busy:
@@ -332,21 +328,27 @@ class ProgressionView(AvatarSkillsView):
             if AP.skill_level(profile, aid, slug) != expected:
                 raise AP.PurchaseError('Skill level changed. Refresh the view.')
             return AP.apply_skill_purchase(profile, aid, slug)
-        await self.apply(interaction, apply, deferred=True)
+        def success(result):
+            if kind == 'card':
+                return f"Avatar level {result['from']} → {result['to']}. Spent {result['cost']:,} coins."
+            return (f"{self.card['skills'][slot - 1]['name']} · Lv{result['from']} → Lv{result['to']}\n"
+                    f"{skill_preview(self.card, slot, result['from'], result['to'])}\n"
+                    f"Spent {result['cost']:,} coins.")
+        await self.apply(interaction, apply, deferred=True, success=success)
 
-    async def apply(self, interaction, fn, *, deferred=False):
+    async def apply(self, interaction, fn, *, deferred=False, success=None):
         if not deferred:
             await interaction.response.defer(ephemeral=True)
         try:
             async with user_lock(self.owner):
-                await mutate_user(self.owner, fn)
+                result = await mutate_user(self.owner, fn)
         except AP.PurchaseError as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
         except Exception:
             log.exception('Avatar progression failed')
             await interaction.followup.send('Could not save the upgrade. Reopen the avatar to check its state.', ephemeral=True)
         else:
-            await interaction.followup.send('Upgrade saved.', ephemeral=True)
+            await interaction.followup.send(success(result) if success else 'Upgrade saved.', ephemeral=True)
         await self.refresh_message()
 
     @discord.ui.button(label='Level Up', style=discord.ButtonStyle.primary)
@@ -360,11 +362,16 @@ class ProgressionView(AvatarSkillsView):
     @discord.ui.button(label='View Skill', style=discord.ButtonStyle.secondary)
     async def view_skill(self, interaction, button):
         skill = self.card['skills'][self.slot - 1]
-        level = self.skill_levels.get(AP.slugify(skill['name']), 1)
+        profile = await get_user(self.owner)
+        level = AP.skill_level(profile, self.card['id'], AP.slugify(skill['name']))
         embed = discord.Embed(title=f"{skill['name']} · Lv{level}",
-                              description=skill.get('description') or 'No description.',
+                              description=skill_description(self.card, self.slot, level),
                               colour=0x5865F2)
         embed.add_field(name='Energy', value=str(skill.get('energy_cost', AS.skill_cost(self.slot))))
+        embed.add_field(name='Skill level bonus', value=skill_stat_text(self.card, level), inline=False)
+        q = AP.quote_skill(profile, self.card['id'], AP.slugify(skill['name']))
+        embed.add_field(name='Next upgrade', value=q['blocked'] or
+            f"{skill_preview(self.card, self.slot, q['from'], q['to'])}\nCost: {q['cost']:,} coins", inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label='Star Up / Feed', style=discord.ButtonStyle.primary)
