@@ -955,3 +955,15 @@ def _set_equipped_avatar_sync(user_id: int, avatar_id: Optional[str]) -> None:
 async def set_equipped_avatar(user_id: int, avatar_id: Optional[str]) -> None:
     """Set or clear the equipped avatar for a user."""
     await asyncio.to_thread(_set_equipped_avatar_sync, user_id, avatar_id)
+
+
+def get_custom_review_channel(guild_id: int) -> Optional[int]:
+    with _config_lock:
+        return load_config().get(str(guild_id), {}).get("custom_review_channel_id")
+
+
+def set_custom_review_channel(guild_id: int, channel_id: int) -> None:
+    with _config_lock:
+        cfg = load_config()
+        cfg.setdefault(str(guild_id), {})["custom_review_channel_id"] = channel_id
+        save_config(cfg)

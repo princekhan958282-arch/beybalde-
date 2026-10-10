@@ -277,6 +277,7 @@ class BeybladeBot(commands.Bot):
 
         super().__init__(
             command_prefix = COMMAND_PREFIX,
+            strip_after_prefix = True,
             intents        = intents,
             help_command   = None,
             description    = "🌀 Let It Rip! — A Beyblade collection & battle bot.",
