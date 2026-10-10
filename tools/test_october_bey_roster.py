@@ -43,7 +43,7 @@ def snapshot(s):
 
 class RosterData(unittest.TestCase):
     def test_new_identity_and_original_variants_remain_separate(self):
-        self.assertEqual(len(load_beys()), 149)
+        self.assertEqual(len(load_beys()), 151)
         for i, name in enumerate(NAMES):
             b = REGISTRY.find_bey(name)
             self.assertEqual(b['id'], f'BB{139+i}')
