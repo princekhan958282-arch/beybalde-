@@ -4,8 +4,11 @@
 Components V2 container. Only its host can interact, and that host must retain
 the configured host allowlist, Tournament Admin role, master permission, or
 bot-owner permission. The panel shows all eight current values as its live
-Tournament Preview, with Draft status, Edit Setting, Confirm Setup, Reset,
-and Cancel Setup. Enum editors have Back; reset requires Restore Defaults.
+Tournament Preview, with Draft status and one Edit button beside each label and current value,
+followed by a separate live preview and Confirm Setup, Reset, and Cancel Setup.
+This follows the supplied form order using native Discord sections. Enum
+editors have Back; reset requires Restore Defaults. Discord does not support
+the reference image’s two-column dropdowns or custom field styling.
 
 Names and fees use modals. Successful edits refresh the same original message;
 errors and authorization refusals are private. Names are 1–100 single-line
@@ -28,7 +31,7 @@ compatibility. Admin cancel can also close a draft editor.
 
 ## Validation
 
-- discord.py 2.6.4: 34 new headless interaction tests pass.
+- discord.py 2.6.4: 37 new headless interaction tests pass.
 - `python tools/sim_tournament.py`: 100 pass, 1 existing failure: draft pool
   includes Boss Fighter and Limited rarities without explicit rarity weights.
   The script's view-construction harness now runs inside an event loop, as

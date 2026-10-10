@@ -5,7 +5,7 @@ import asyncio
 import discord
 import pytest
 from cogs.tournament.drafts import DraftConfig, DraftStore, LABELS, OPTIONS
-from cogs.tournament.host_panel import HostPanel, EditSelect, SettingSelect, SettingModal, PanelButton
+from cogs.tournament.host_panel import HostPanel, EditButton, SettingSelect, SettingModal, PanelButton
 from cogs.tournament.tournament import TournamentCog, MASTER_ID, ADMIN_ROLE
 from cogs.tournament.hosters import TOURNAMENT_HOSTER_IDS
 
@@ -67,8 +67,7 @@ async def test_every_enum_and_preview(cog, key):
     p, _ = await opened(cog)
     for value in OPTIONS[key]:
         i = interaction()
-        edit = next(x for x in p.walk_children() if isinstance(x, EditSelect))
-        edit._values = [key]
+        edit = next(x for x in p.walk_children() if isinstance(x, EditButton) and x.key == key)
         await edit.callback(i)
         select = next(x for x in p.walk_children() if isinstance(x, SettingSelect))
         assert [o.value for o in select.options] == [str(v) for v in OPTIONS[key]]
@@ -77,7 +76,7 @@ async def test_every_enum_and_preview(cog, key):
         assert getattr(p.config, key) == value
         assert p.config.display(key) in text(p)
         assert p.editing is None
-        assert any(isinstance(x, EditSelect) for x in p.walk_children())
+        assert any(isinstance(x, EditButton) for x in p.walk_children())
         i.response.edit_message.assert_awaited_once()
         assert p.config.name == DraftConfig().name
 
@@ -119,7 +118,7 @@ async def test_reset_cancel_timeout_and_stale_modal(cog):
     m.input._value = 'Too late'
     await p.act(interaction(), 'cancel')
     assert p.closed and not cog.setups
-    assert not any(isinstance(x, (PanelButton, EditSelect)) for x in p.walk_children())
+    assert not any(isinstance(x, (PanelButton, EditButton)) for x in p.walk_children())
     await m.on_submit(interaction())
     assert p.config.name == DraftConfig().name
     p, _ = await opened(cog)
@@ -243,3 +242,27 @@ async def test_maximum_name_is_safely_rendered(cog):
     p.build()
     assert '@\u200beveryone' in text(p)
     assert '\\*\\*' in text(p)
+
+async def test_form_sections_and_component_budget(cog):
+    p, _ = await opened(cog)
+    assert [x.key for x in p.walk_children() if isinstance(x, EditButton)] == list(LABELS)
+    assert len([x for x in p.walk_children() if isinstance(x, discord.ui.Section)]) == 8
+    assert p.total_children_count <= 40
+    await p.act(interaction(), 'reset')
+    assert p.total_children_count <= 40
+    edit = next(x for x in p.walk_children() if isinstance(x, EditButton) and x.key == 'slots')
+    await edit.callback(interaction())
+    assert not p.reset_pending and p.editing == 'slots'
+    assert p.total_children_count <= 40
+    await p.act(interaction(), 'value', ('slots', '32'))
+    assert p.config.slots == 32
+    assert 'Player Slots' in text(p).split('Tournament Preview')[0]
+    assert '32' in text(p).split('Tournament Preview')[1]
+
+@pytest.mark.parametrize('key', ('name', 'entry_fee'))
+async def test_form_modal_buttons(cog, key):
+    p, _ = await opened(cog)
+    edit = next(x for x in p.walk_children() if isinstance(x, EditButton) and x.key == key)
+    i = interaction()
+    await edit.callback(i)
+    assert isinstance(i.response.send_modal.call_args.args[0], SettingModal)

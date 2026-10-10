@@ -36,24 +36,35 @@ class HostPanel(discord.ui.LayoutView):
         safe_name = discord.utils.escape_mentions(discord.utils.escape_markdown(self.config.name))
         summary = '\n'.join(f'**{label}:** {safe_name if key == "name" else self.config.display(key)}' for key, label in LABELS.items())
         card = discord.ui.Container(
-            discord.ui.TextDisplay('# 🏆 Tournament Host Panel\nConfigure your championship\n**Status: Draft**'),
+            discord.ui.TextDisplay('# 🏆 Tournament Host Panel\nTournament configuration\n**Status: Draft**'),
             discord.ui.Separator(),
-            discord.ui.TextDisplay('### Tournament Preview\n' + summary),
-            discord.ui.Separator(),
-            discord.ui.TextDisplay(self.note + '\n-# Phase 1 saves drafts only. Registration and battles are unavailable.'),
             accent_colour=0x5865F2)
+        # Discord sections place one real Edit button beside each label/value.
+        # A native select occupies a full row, so two-column selects are not used.
+        for key, label in LABELS.items():
+            value = safe_name if key == 'name' else self.config.display(key)
+            field = discord.ui.TextDisplay(f'**{label}**\n{value}')
+            if self.closed:
+                card.add_item(field)
+            else:
+                card.add_item(discord.ui.Section(field, accessory=EditButton(key)))
         if not self.closed:
             if self.reset_pending:
+                card.add_item(discord.ui.Separator())
+                card.add_item(discord.ui.TextDisplay('Restore all settings to their defaults?'))
                 card.add_item(discord.ui.ActionRow(PanelButton('Restore Defaults', 'reset_yes', discord.ButtonStyle.danger), PanelButton('Keep Settings', 'back')))
             elif self.editing:
+                card.add_item(discord.ui.Separator())
                 card.add_item(discord.ui.ActionRow(SettingSelect(self.editing, self.config)))
                 card.add_item(discord.ui.ActionRow(PanelButton('Back', 'back')))
-            else:
-                card.add_item(discord.ui.ActionRow(EditSelect()))
-                card.add_item(discord.ui.ActionRow(
-                    PanelButton('Confirm Setup', 'confirm', discord.ButtonStyle.success),
-                    PanelButton('Reset', 'reset'),
-                    PanelButton('Cancel Setup', 'cancel', discord.ButtonStyle.danger)))
+        card.add_item(discord.ui.Separator())
+        card.add_item(discord.ui.TextDisplay('### Tournament Preview\n' + summary))
+        card.add_item(discord.ui.TextDisplay(self.note + '\n-# Phase 1 saves drafts only. Registration and battles are unavailable.'))
+        if not self.closed and not self.reset_pending and not self.editing:
+            card.add_item(discord.ui.ActionRow(
+                PanelButton('Confirm Setup', 'confirm', discord.ButtonStyle.success),
+                PanelButton('Reset', 'reset'),
+                PanelButton('Cancel Setup', 'cancel', discord.ButtonStyle.danger)))
         self.add_item(card)
 
     async def refresh(self, interaction):
@@ -95,6 +106,7 @@ class HostPanel(discord.ui.LayoutView):
             if not await self.interaction_check(interaction):
                 return
             if action == 'edit':
+                self.reset_pending = False
                 if value in ('name', 'entry_fee'):
                     return await interaction.response.send_modal(SettingModal(self, value))
                 if value not in OPTIONS:
@@ -139,11 +151,14 @@ class HostPanel(discord.ui.LayoutView):
                 return await interaction.edit_original_response(view=self, allowed_mentions=discord.AllowedMentions.none())
             await self.refresh(interaction)
 
-class EditSelect(discord.ui.Select):
-    def __init__(self):
-        super().__init__(placeholder='Edit Setting', options=[discord.SelectOption(label=label, value=key) for key, label in LABELS.items()])
+class EditButton(discord.ui.Button):
+    def __init__(self, key):
+        super().__init__(label='Edit', style=discord.ButtonStyle.secondary,
+                         custom_id=f'tournament:edit:{key}')
+        self.key = key
+
     async def callback(self, interaction):
-        await self.view.act(interaction, 'edit', self.values[0])
+        await self.view.act(interaction, 'edit', self.key)
 
 class SettingSelect(discord.ui.Select):
     def __init__(self, key, config):

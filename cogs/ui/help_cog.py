@@ -311,7 +311,7 @@ COMMAND_DATA = {
     "tournament": [
         (";tournament", "🏆 Configure a tournament draft — authorized hosts only"),
         ("/tournament", "The same host panel, as a slash command"),
-        ("Edit Setting", "Edit any setting through a dropdown or modal; the preview updates in place."),
+        ("Edit buttons", "Edit each setting beside its value through a dropdown or modal; the preview updates in place."),
         ("Confirm Setup", "Save a draft. Registration, brackets, and battles are deferred to later phases."),
         ("Reset / Cancel", "Confirm a reset to defaults, or discard unsaved edits."),
     ],
