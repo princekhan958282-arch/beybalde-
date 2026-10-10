@@ -216,17 +216,17 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(call.call_count, 1)
             self.assertEqual(AC.stars(self.profile, AID), 6)
 
-    async def test_disabled_buttons_respect_balance_caps_and_gate(self):
+    async def test_requirement_buttons_remain_clickable(self):
         AP._ensure(self.profile, AID).update(level=C.MAX_CARD_LEVEL, feeding=4, skills={
             AP.slugify(s['name']): C.MAX_SKILL_LEVEL for s in self.card['skills']})
         self.profile['coins'] = 0
         self.parent.configure(self.profile)
-        self.assertTrue(self.parent.level_up.disabled)
-        self.assertTrue(self.parent.skill_up.disabled)
-        self.assertTrue(self.parent.star_up.disabled)
+        self.assertFalse(self.parent.level_up.disabled)
+        self.assertFalse(self.parent.skill_up.disabled)
+        self.assertFalse(self.parent.star_up.disabled)
         self.profile['avatar_copies'][AID] = 0
         self.parent.configure(self.profile)
-        self.assertTrue(self.parent.feed_stage.disabled)
+        self.assertFalse(self.parent.feed_stage.disabled)
 
     async def test_level_skill_and_feed_buttons_save_and_refresh(self):
         self.interaction.response.defer = AsyncMock()
@@ -266,6 +266,7 @@ class ViewTests(unittest.IsolatedAsyncioTestCase):
         from cogs.avatar.avatar_progression_ui import SkillSelect
         import io
         view = ProgressionView(101, self.card, self.profile)
+        view.action = 'skills'
         view.message = SimpleNamespace(edit=AsyncMock())
         AP._ensure(self.profile, AID).update(level=3, stars=4)
         with patch('cogs.avatar.avatar_progression_ui.get_user', AsyncMock(return_value=self.profile)), \

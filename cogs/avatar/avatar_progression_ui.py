@@ -174,12 +174,29 @@ class StarConfirm(OwnedView):
 
 class SkillSelect(discord.ui.Select):
     def __init__(self, card, slot):
-        super().__init__(placeholder='Choose skill to level up', options=[
+        super().__init__(placeholder='Choose a skill', row=2, options=[
             discord.SelectOption(label=s['name'], value=str(i), default=i == slot)
             for i, s in enumerate(card['skills'], 1)])
 
     async def callback(self, interaction):
         self.view.slot = int(self.values[0])
+        await interaction.response.defer()
+        await self.view.refresh_message()
+
+
+class ActionSelect(discord.ui.Select):
+    def __init__(self, card, action):
+        choices = [('level', 'Level Up', 'Upgrade your avatar level'),
+                   ('skills', 'Skills', 'View or level up a signature skill'),
+                   ('star', 'Star Up / Feed', 'Feed spare cards, then upgrade stars')]
+        super().__init__(placeholder='Select an action…', row=1, options=[
+            discord.SelectOption(label=label, value=value, description=description,
+                                 default=value == action)
+            for value, label, description in choices
+            if value != 'skills' or card.get('skills')])
+
+    async def callback(self, interaction):
+        self.view.action = self.values[0]
         await interaction.response.defer()
         await self.view.refresh_message()
 
@@ -195,9 +212,25 @@ class ProgressionView(AvatarSkillsView):
         self.deadline = time.monotonic() + C.PROFILE_TIMEOUT
         self.bot = bot
         self.card, self.slot = card, 1
-        if card.get('skills'):
-            self.add_item(SkillSelect(card, self.slot))
+        self.action = None
         self.configure(profile)
+
+    def rebuild_controls(self):
+        self.clear_items()
+        self.show_details.row = 0
+        self.add_item(self.show_details)
+        self.add_item(ActionSelect(self.card, self.action))
+        if self.action == 'level':
+            self.level_up.row = 0
+            self.add_item(self.level_up)
+        elif self.action == 'skills' and self.card.get('skills'):
+            self.view_skill.row = self.skill_up.row = 0
+            self.add_item(self.view_skill)
+            self.add_item(self.skill_up)
+            self.add_item(SkillSelect(self.card, self.slot))
+        elif self.action == 'star':
+            self.star_feed.row = 0
+            self.add_item(self.star_feed)
 
     def configure(self, profile):
         aid = self.card['id']
@@ -208,23 +241,35 @@ class ProgressionView(AvatarSkillsView):
             level=AP.card_level(profile, aid), skill_levels=self.skill_levels,
             active_skill_slot=self.active_slot)
         owned = aid in profile.get('avatar_inventory', [])
-        q = AP.quote_card(profile, aid)
-        self.level_up.disabled = not owned or q['maxed'] or q['coins'] < q['cost']
+        self.level_up.disabled = not owned
         skills = self.card.get('skills', [])
-        sq = AP.quote_skill(profile, aid, AP.slugify(skills[self.slot - 1]['name'])) if skills else None
-        self.skill_up.disabled = not owned or not sq or bool(sq['blocked']) or sq['coins'] < sq['cost']
+        self.skill_up.disabled = not owned or not skills
         star, stage = AC.stars(profile, aid), AC.stages(profile, aid)
         self.star_up.label = f'Try {star + 1}★' if star >= C.SAFE_STARS and star < C.MAX_STARS else 'Star Up'
         self.star_up.style = discord.ButtonStyle.danger if star >= C.SAFE_STARS else discord.ButtonStyle.success
         required = C.STAR_COPY_COST.get(star + 1, 0)
         approved = star + 1 in C.STAR_SUCCESS
-        self.star_up.disabled = not owned or not approved or stage < required
-        from .avatar_engine import avatar_engine
-        catalog = {c['id']: c for c in avatar_engine.get_all_avatars()}
-        self.feed_stage.disabled = (not owned or not approved or stage >= required or
-                                   not AC.eligible_materials(profile, aid, catalog))
+        self.star_up.disabled = not owned
+        self.feed_stage.disabled = not owned
+        self.feed_ready = approved and stage < required
+        if star >= C.MAX_STARS:
+            self.star_feed.label = 'Max Stars'
+        elif not approved:
+            self.star_feed.label = 'Star Up Locked'
+        elif self.feed_ready:
+            self.star_feed.label = f'Feed ({stage}/{required})'
+        else:
+            self.star_feed.label = self.star_up.label
+        self.star_feed.style = (discord.ButtonStyle.primary if self.feed_ready
+                                else self.star_up.style)
+        self.star_feed.disabled = not owned
+        self.view_skill.disabled = not owned or not skills
+        self.rebuild_controls()
         if not owned:
             self.close()
+        elif self.closed:
+            for item in self.children:
+                item.disabled = True
 
     async def on_timeout(self):
         self.close()
@@ -312,6 +357,28 @@ class ProgressionView(AvatarSkillsView):
     async def skill_up(self, interaction, button):
         await self.purchase(interaction, 'skill')
 
+    @discord.ui.button(label='View Skill', style=discord.ButtonStyle.secondary)
+    async def view_skill(self, interaction, button):
+        skill = self.card['skills'][self.slot - 1]
+        level = self.skill_levels.get(AP.slugify(skill['name']), 1)
+        embed = discord.Embed(title=f"{skill['name']} · Lv{level}",
+                              description=skill.get('description') or 'No description.',
+                              colour=0x5865F2)
+        embed.add_field(name='Energy', value=str(skill.get('energy_cost', AS.skill_cost(self.slot))))
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @discord.ui.button(label='Star Up / Feed', style=discord.ButtonStyle.primary)
+    async def star_feed(self, interaction, button):
+        # Re-read before routing: another open view may have completed feeding.
+        self.configure(await get_user(self.owner))
+        if self.closed:
+            return await interaction.response.send_message(
+                'You no longer own this avatar. Open ;ainfo again.', ephemeral=True)
+        if self.feed_ready:
+            await self.feed_stage.callback(interaction)
+        else:
+            await self.star_up.callback(interaction)
+
     @discord.ui.button(label='Star Up', style=discord.ButtonStyle.success)
     async def star_up(self, interaction, button):
         p = await get_user(self.owner)
@@ -371,7 +438,7 @@ class FeedAmount(discord.ui.Modal, title='Feed same-category copies'):
         await v.parent.apply(interaction, lambda p: AC.feed(p, v.parent.card['id'], v.expected,
             {self.material: count}, v.catalog, expected_star=v.star, generation=v.generation))
         if v.message:
-            await v.message.edit(content='Feeding selection handled. Open Feed Stage again to feed more.', view=v)
+            await v.message.edit(content='Feeding selection handled. Select Star Up / Feed to continue.', view=v)
 
 
 class FeedSelect(discord.ui.Select):

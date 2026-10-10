@@ -360,10 +360,9 @@ class RecoveryUITests(unittest.IsolatedAsyncioTestCase):
             AP._ensure(p,AID)['stars']=star
             view=ProgressionView(101,card,p)
             self.assertIn(f'{star}★',progression_embed(p,card).title)
-            if star>=8:
-                self.assertTrue(view.star_up.disabled)
-                self.assertTrue(view.feed_stage.disabled)
-            self.assertEqual(len([c for c in view.children if hasattr(c,'label')]),6)
+            self.assertFalse(view.star_up.disabled)
+            self.assertFalse(view.feed_stage.disabled)
+            self.assertEqual(len([c for c in view.children if hasattr(c,'label')]),1)
         p['avatar_inventory']=[]
         view.configure(p)
         self.assertTrue(view.closed)
