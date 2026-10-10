@@ -122,6 +122,21 @@ class CharacterRegistry:
         self.load("bey")
         return self._indexes["bey"].get(str(value).casefold())
 
+    def refresh(self) -> dict:
+        """Validate all dependencies, then publish one complete replacement.
+
+        A failed upload leaves the last working catalogue available.
+        """
+        with self._lock:
+            candidate = CharacterRegistry(self.root)
+            for kind in ("disk", "driver", "bey", "avatar"):
+                candidate.load(kind)
+            if candidate._indexes["disk"].keys() & candidate._indexes["driver"].keys():
+                raise ValueError("duplicate part IDs/names across Disk and Driver catalogues")
+            self._cache = candidate._cache
+            self._indexes = candidate._indexes
+            return {kind: len(entries) for kind, entries in self._cache.items()}
+
     def part(self, value: str):
         value = str(value).casefold()
         matches = []
