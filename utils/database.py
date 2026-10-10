@@ -959,11 +959,22 @@ async def set_equipped_avatar(user_id: int, avatar_id: Optional[str]) -> None:
 
 def get_custom_review_channel(guild_id: int) -> Optional[int]:
     with _config_lock:
-        return load_config().get(str(guild_id), {}).get("custom_review_channel_id")
+        cfg = load_config()
+        central = cfg.get("custom_review", {}).get("channel_id")
+        if central:
+            return central
+        # Existing installs with one review destination already have an
+        # unambiguous central channel; no need to run ;setcustom again.
+        legacy = {value.get("custom_review_channel_id") for value in cfg.values()
+                  if isinstance(value, dict) and value.get("custom_review_channel_id")}
+        if len(legacy) == 1:
+            return next(iter(legacy))
+        return cfg.get(str(guild_id), {}).get("custom_review_channel_id")
 
 
 def set_custom_review_channel(guild_id: int, channel_id: int) -> None:
     with _config_lock:
         cfg = load_config()
+        cfg["custom_review"] = {"guild_id": guild_id, "channel_id": channel_id}
         cfg.setdefault(str(guild_id), {})["custom_review_channel_id"] = channel_id
         save_config(cfg)

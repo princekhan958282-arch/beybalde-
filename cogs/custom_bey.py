@@ -379,7 +379,7 @@ class CustomBeyBuilder(ModernPanel):
         chosen=[a1]+([a2] if all(a2.values()) else [])
         keys=[a["effect"] for a in chosen]; triggers=[a["trigger"] for a in chosen]
         if not i.guild or not get_custom_review_channel(i.guild.id):
-            return await i.response.send_message("Custom submissions are not configured here. Ask the owner to run ;setcustom #review-channel.",ephemeral=True)
+            return await i.response.send_message("Custom submissions need a review channel. Ask the bot owner to run ;setcustom in the approval server.",ephemeral=True)
         await i.response.defer()
         try:
             await validate_image_url(self.draft["image"])
@@ -400,13 +400,14 @@ class CustomBeyBuilder(ModernPanel):
             await mutate_user(i.user.id,save)
         except (CustomBeyError,InventoryFull) as exc:
             return await i.followup.send(f"❌ {exc}",ephemeral=True)
-        channel=i.guild.get_channel(get_custom_review_channel(i.guild.id))
         posted=False
-        if channel:
-            try:
+        try:
+            channel_id=get_custom_review_channel(i.guild.id)
+            channel=i.client.get_channel(channel_id) or await i.client.fetch_channel(channel_id)
+            if channel:
                 await channel.send(view=CustomApprovalView(0,i.user.id).display(_approval_embed(i.user.id,blade)))
                 posted=True
-            except discord.HTTPException: pass
+        except discord.HTTPException: pass
         note="Submitted for approval." if posted else "Saved as pending, but the review channel could not be reached. Ask the owner to run ;setcustom again."
         self.stop(); await i.edit_original_response(view=CustomBeyView(i.user.id).display(_summary(blade),content=note))
 
@@ -507,6 +508,8 @@ def _approval_embed(uid,blade):
         description=f"Player: <@{uid}> • ID: `{uid}`\nType: **{blade['type']}**\nStatus: **Pending**\nAbility cost: **{meta.get('ability_cost',0)}/{ABILITY_BUDGET}**",
         colour=0xF1C40F)
     e.add_field(name="Stats",value=f"HP {stats['hp']} • ATK {stats['attack']} • DEF {stats['defense']} • STM {stats['stamina']}",inline=False)
+    if blade.get("submitted_guild_id"):
+        e.add_field(name="Submitted in server",value=str(blade["submitted_guild_id"]),inline=False)
     e.add_field(name="Abilities",value="\n".join(abilities) or "None",inline=False)
     sm=blade["special_move"]; e.add_field(name="Special",value=f"**{sm['name']}** • {sm['damage_per_hit']} damage\n{sm.get('description','')}",inline=False)
     if blade.get("image_url"): e.set_image(url=blade["image_url"])
@@ -526,9 +529,8 @@ class CustomBeyCog(commands.Cog):
         if not (perms.view_channel and perms.send_messages and perms.embed_links):
             return await ctx.send("I need View Channel, Send Messages and Embed Links in the review channel.")
         set_custom_review_channel(ctx.guild.id,channel.id)
-        pending=[(uid,blade) for uid,blade in await _pending_custom_submissions()
-                 if blade.get("submitted_guild_id") in (None,ctx.guild.id)]
-        await ctx.send(view=ModernPanel().display(content=f"## Custom Bey Review Channel\nSaved {channel.mention}. New submissions will appear here.\n**{len(pending)} pending submissions**"))
+        pending=await _pending_custom_submissions()
+        await ctx.send(view=ModernPanel().display(content=f"## Custom Bey Review Channel\nSaved {channel.mention}. Submissions from every server will appear here.\n**{len(pending)} pending submissions**"))
         for uid,blade in pending:
             await channel.send(view=CustomApprovalView(0,uid).display(_approval_embed(uid,blade)))
 
@@ -554,7 +556,7 @@ class CustomBeyCog(commands.Cog):
         act=action.value
         if act=="create":
             if not interaction.guild or not get_custom_review_channel(interaction.guild.id):
-                return await interaction.response.send_message("Ask the owner to configure this server with ;setcustom #review-channel first.",ephemeral=True)
+                return await interaction.response.send_message("Ask the bot owner to run ;setcustom in the approval server first.",ephemeral=True)
             if bey_type is None: return await interaction.response.send_message("❌ Choose a bey_type when creating your Bey.",ephemeral=True)
             if (await get_user(interaction.user.id)).get("custom_bey"):
                 return await interaction.response.send_message("❌ You already own a Custom Bey. View or delete it first.",ephemeral=True)
@@ -575,7 +577,8 @@ class CustomBeyCog(commands.Cog):
                 "• Special base damage **80–140**; secondary effect: none, heal, shield.\n"
                 "• Photo must be a **background-removed transparent PNG/WebP**, at most **8 MB / 16 megapixels**.\n"
                 "• One Custom Bey per player. Owner approval required; approved Beys enter inventory at Level 1.\n"
-                "• Owner: use **;setcustom #channel** to save the review channel."),ephemeral=True)
+                "• Create in any server; approval requests go to the central review channel.\n"
+                "• Owner: use **;setcustom #channel** to save that channel for all servers."),ephemeral=True)
         profile=await get_user(interaction.user.id); blade=profile.get("custom_bey")
         if not isinstance(blade,dict): return await interaction.response.send_message("❌ You don't have a Custom Bey yet. Use /custombey action:create.",ephemeral=True)
         if act=="view": return await interaction.response.send_message(view=CustomBeyView(interaction.user.id).display(_summary(blade)),ephemeral=True)
