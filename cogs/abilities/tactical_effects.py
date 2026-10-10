@@ -266,6 +266,7 @@ class TacticalEffects:
             self.data(attacker, "exposed_core")["candidate"] = True
 
     def committed(self, attacker, defender, move, actual, logs):
+        self.engine.burst.hit_committed(attacker, defender, move, actual, logs)
         self.engine.burst.committed(defender, logs)
         if self.has(attacker, "exposed_core"):
             d = self.data(attacker, "exposed_core")

@@ -1,0 +1,18 @@
+{
+  "id": "BB163_default_disk",
+  "name": "Hyperion Burn Cho Xceed Core Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 41,
+    "attack": 47,
+    "defense": 22,
+    "stamina": 33
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB163",
+  "_registry_order": 1163
+}

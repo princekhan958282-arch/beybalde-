@@ -1,0 +1,18 @@
+{
+  "id": "BB162_default_driver",
+  "name": "Heaven Pegasus Spin Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 40,
+    "attack": 26,
+    "defense": 30,
+    "stamina": 42
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB162",
+  "_registry_order": 1162
+}

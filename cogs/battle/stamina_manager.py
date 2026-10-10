@@ -332,8 +332,12 @@ class StaminaManager:
         from .combat_rules import recover_hp, recover_resource
         self.stamina[key] = recover_resource(self.stamina[key], self.cap_for(key), recovery)
         from .purification import heal_amount
-        session = getattr(self, "purification_session", None)
+        session = (getattr(self, "purification_session", None)
+                   or getattr(getattr(self, 'tactical_runtime', None), 'session', None))
         if session is not None:
+            burst = getattr(getattr(session, 'ability', None), 'burst', None)
+            if burst is not None:
+                heal = burst.action_heal(key, heal)
             heal = heal_amount(session, key, heal)
         from utils.hp_system import max_hp_for_blade
         cap = max_hp_for_blade(blade) if max_hp is None else max_hp

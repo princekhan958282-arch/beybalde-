@@ -11,11 +11,14 @@ EFFECTS = frozenset({
     'landing_debuff', 'healthy_counter', 'halo_accumulation', 'threshold_reversal',
     'guard_arms', 'action_discipline', 'third_deflection', 'mirror_spheres',
     'loss_pursuit', 'charge_momentum',
+    'loss_adaptation', 'charge_seal', 'shield_excavation', 'shield_breakthrough',
+    'feather_recovery', 'win_slipstream', 'attack_heat', 'heat_ignition',
 })
 SPECIALS = frozenset({
     'speed_finisher', 'fortress_finisher', 'orbit_finisher', 'verdict_finisher',
     'hammer_finisher', 'halo_finisher', 'sixfold_finisher', 'sphere_finisher',
     'pursuit_finisher',
+    'eclipse_finisher', 'crusher_finisher', 'ascension_finisher', 'burn_finisher',
 })
 
 
@@ -86,10 +89,18 @@ class BurstMechanics:
             d['deflect_round'] = self.round() if d['attacks'] % 3 == 0 else -1
 
     def outgoing(self, key, move, matchup, damage, first, logs):
-        if not first:
-            return damage
         d = self.data(key)
+        if not first:
+            if move == 'special' and d.get('heat_special_round') == self.round():
+                damage += d.get('heat_special_bonus', 0)
+            return damage
         if move == 'attack':
+            if self.has(key, 'shield_breakthrough') and d.pop('breakthrough', False):
+                damage = math.ceil(damage * 1.25)
+                logs.append('🐉 Grand Breakthrough grants +25% damage.')
+            if (damage > 0 and self.has(key, 'heat_ignition')
+                    and d.get('ignition_until', -1) >= self.round()):
+                damage = math.ceil(damage * 1.30)
             if self.has(key, 'paired_verdict') and d.get('red', 0) and d.get('black', 0):
                 d['red'] -= 1
                 d['black'] -= 1
@@ -111,6 +122,44 @@ class BurstMechanics:
             if self.has(key, 'healthy_counter') and self.session.hp[key] > self.maximum(key) * .60:
                 damage += round(self.stat(key, 'defense') * .15)
         return damage
+
+    def shield_bonus(self, key, move, damage, first):
+        """Return extra shield-only damage; never convert this amount to HP."""
+        if move == 'attack' and self.has(key, 'shield_excavation'):
+            return math.ceil(damage * .50)
+        if move == 'special' and first:
+            d = self.data(key)
+            return d.pop('crusher_shield_bonus', 0) if d.get('crusher_shield_round') == self.round() else 0
+        return 0
+
+    def shield_broken(self, key, move, logs):
+        if self.has(key, 'shield_breakthrough'):
+            self.data(key)['breakthrough'] = True
+            logs.append('🐉 Grand Breakthrough arms the next normal Attack.')
+
+    def action_heal(self, key, amount):
+        if self.has(key, 'feather_recovery'):
+            amount *= 1 + .05 * self.data(key).get('feathers', 0)
+        return amount
+
+    def heal_multiplier(self, key):
+        return .75 if self.data(key).get('eclipse_until', -1) >= self.round() else 1
+
+    def hit_committed(self, attacker, defender, move, actual, logs):
+        if move != 'attack' or actual <= 0:
+            return
+        d = self.data(attacker)
+        if self.has(attacker, 'charge_seal') and d.pop('seal_ready', False):
+            if not self.engine.debuff_immune.get(defender, False):
+                from cogs.battle.purification import reduce_debuff
+                duration = int(reduce_debuff(self.session, defender, 2))
+                self.data(defender)['eclipse_until'] = self.round() + duration
+                logs.append('🌑 Eclipse Seal reduces enemy healing by 25%.')
+        if self.has(attacker, 'attack_heat'):
+            d['heat'] = min(4, d.get('heat', 0) + 1)
+        if self.has(attacker, 'heat_ignition') and d.get('ignition_until', -1) >= self.round():
+            d['ignition_until'] = -1
+            logs.append('🔥 Xceed Ignition consumes its +30% Attack boost.')
 
     def incoming(self, key, move, damage, logs):
         if damage <= 0:
@@ -162,6 +211,29 @@ class BurstMechanics:
         d = self.data(key)
         win = matchup == 'win'
         loss = matchup in ('lose', 'lose_grind')
+        if self.has(key, 'loss_adaptation') and loss and move in ('attack', 'defense'):
+            stat = 'defense' if move == 'attack' else 'attack'
+            self.buff(key, stat, 12, 2, f'shadow_adaptation:{stat}')
+        if self.has(key, 'charge_seal') and move == 'charge':
+            d['seal_ready'] = True
+        if self.has(key, 'feather_recovery') and move == 'stamina' and win:
+            d['feathers'] = min(3, d.get('feathers', 0) + 1)
+        if self.has(key, 'win_slipstream'):
+            if move == 'stamina' and win:
+                d['slipstream_until'] = self.round() + 2
+            elif move == 'charge' and d.get('slipstream_until', -1) >= self.round():
+                sm = self.session.stamina_manager
+                stolen = min(.8, max(0, sm.stamina.get(other, 0)))
+                sm.stamina[other] -= stolen
+                sm.stamina[key] = min(sm.cap_for(key), sm.stamina[key] + stolen)
+                d['slipstream_until'] = -1
+                logs.append(f'🪽 Pegasus Slipstream steals {stolen:g} stamina.')
+        if self.has(key, 'attack_heat') and move == 'stamina':
+            d['heat'] = max(0, d.get('heat', 0) - 1)
+        if self.has(key, 'heat_ignition') and move == 'charge' and d.get('heat', 0) >= 2:
+            d['heat'] -= 2
+            d['ignition_until'] = self.round() + 2
+            logs.append('🔥 Xceed Ignition consumes 2 Heat.')
         if self.has(key, 'speed_accumulation') and move == 'attack':
             d['speed'] = max(0, min(4, d.get('speed', 0) + (1 if win else -1 if loss else 0)))
         if self.has(key, 'consecutive_edge'):
@@ -237,13 +309,30 @@ class BurstMechanics:
                 logs.extend(self.session.stability_manager._apply(key, 8))
         elif effect == 'halo_finisher':
             heal = math.ceil(self.maximum(key) * .03 * d.pop('halo', 0))
-            self.session.hp[key] = min(self.maximum(key), self.session.hp[key] + heal)
-            logs.append(f'😇 Greatest Halo restores {heal} HP.')
+            self.engine._heal(key, heal, logs, 'Greatest Halo')
         elif effect == 'sphere_finisher':
             d['sphere_reduction'] = 8 * d.pop('spheres', 0)
             d['sphere_until'] = self.round() + 1
         elif effect == 'pursuit_finisher':
             self.engine.special_pierce_pct[key] = 5 * d.pop('pursuit', 0)
+        elif effect == 'eclipse_finisher':
+            enemy = self.data(other)
+            if enemy.get('eclipse_until', -1) >= self.round():
+                damage += 35
+                enemy.pop('eclipse_until', None)
+                logs.append('🌑 Black Eclipse consumes Eclipse Seal for +35 damage.')
+        elif effect == 'crusher_finisher':
+            d['crusher_shield_bonus'] = 40
+            d['crusher_shield_round'] = self.round()
+        elif effect == 'ascension_finisher':
+            feathers = d.pop('feathers', 0)
+            sm = self.session.stamina_manager
+            sm.stamina[key] = min(sm.cap_for(key), sm.stamina[key] + feathers)
+            logs.extend(self.session.stability_manager._apply(key, 4 * feathers))
+        elif effect == 'burn_finisher':
+            d['heat_special_bonus'] = 6 * d.pop('heat', 0)
+            d['heat_special_round'] = self.round()
+            damage += d['heat_special_bonus']
         # sixfold_finisher deliberately has no normal-Attack side effects.
         self.engine.cooldowns[(key, 'burst_finisher')] = 4
         return damage

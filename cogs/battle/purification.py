@@ -124,6 +124,11 @@ def reduce_debuff(session, key, amount):
 
 
 def heal_amount(session, key, amount):
+    burst = getattr(getattr(session, 'ability', None), 'burst', None)
+    if burst is not None:
+        multiplier = burst.heal_multiplier(key)
+        if multiplier != 1:
+            amount *= multiplier
     amount = math.floor(amount * 0.75) if enemy_domain(session, key) else amount
     og = getattr(session, "original_generation", None)
     if og and og.debuffs.get((key, "wound"), 0) >= session.round:

@@ -1,0 +1,113 @@
+{
+  "id": "BB163",
+  "name": "Hyperion Burn Cho Xceed",
+  "rarity": "Ultimate",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438403547070464/ef6f7c9630ec8039166ba8fde298e0fc.jpg?ex=6acb705d&is=6aca1edd&hm=acba9171061943913657a83eb4cb54a2d4c182ff729ec9476379fa442da65e83&",
+  "description": "Hyperion Burn Cho Xceed: Attack type with two unique battle abilities.",
+  "stats": {
+    "hp": 150,
+    "attack": 170,
+    "defense": 80,
+    "stamina": 120,
+    "special": 165
+  },
+  "ability": {
+    "name": "Burn Engine",
+    "description": "Successful normal Attacks generate 1 Heat, up to 4. Using Stamina removes 1 Heat. Heat itself grants no stat bonus.",
+    "rules": [
+      {
+        "when": "setup",
+        "do": [
+          {
+            "op": "burst_mechanic",
+            "effect": "attack_heat"
+          }
+        ],
+        "once": "battle"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Burn Engine",
+      "description": "Successful normal Attacks generate 1 Heat, up to 4. Using Stamina removes 1 Heat. Heat itself grants no stat bonus.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "attack_heat"
+            }
+          ],
+          "once": "battle"
+        }
+      ]
+    },
+    {
+      "name": "Xceed Ignition",
+      "description": "Charge with at least 2 Heat consumes exactly 2 and arms your next successful normal Attack for +30% damage. Expires after 2 rounds; cannot stack or boost Specials.",
+      "rules": [
+        {
+          "when": "setup",
+          "do": [
+            {
+              "op": "burst_mechanic",
+              "effect": "heat_ignition"
+            }
+          ],
+          "once": "battle"
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "burst_finisher",
+              "effect": "burn_finisher"
+            }
+          ],
+          "_name": "Super Hyperion Burn"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Super Hyperion Burn",
+    "description": "3 hit(s), each 55 base + 18% ATTACK. Consume remaining Heat for +6 damage per Heat on each hit. Cooldown: 4 rounds.",
+    "hits": 3,
+    "damage_per_hit": 55,
+    "total_damage": 165,
+    "damage_formula": {
+      "base": 55,
+      "attack": 0.18
+    },
+    "flavour_texts": [
+      "**SUPER HYPERION BURN!**"
+    ]
+  },
+  "special_requires": {
+    "cooldown_name": "burst_finisher",
+    "label": "Super Hyperion Burn"
+  },
+  "generation": "Burst",
+  "_registry_order": 163,
+  "booster_exclusive": false,
+  "main_frame": {
+    "hp": 68,
+    "attack": 76,
+    "defense": 36,
+    "stamina": 54
+  },
+  "default_parts": {
+    "disk": "BB163_default_disk",
+    "driver": "BB163_default_driver"
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

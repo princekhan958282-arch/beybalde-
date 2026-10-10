@@ -472,14 +472,23 @@ class DamageFilter:
         from cogs.abilities.extended_effects import runtime
         extra = runtime(self.session)
         multiplier = extra.shield_multiplier(mover_key) if extra is not None else 1
+        burst = getattr(getattr(self.session, 'ability', None), 'burst', None)
+        bonus = burst.shield_bonus(mover_key, move, dmg_dealt, is_first_hit) if burst else 0
+        # Specials apply their shield-only rider before the normal hit. Normal
+        # Attacks apply it afterward, so unused extra damage cannot reach HP.
+        extra_absorbed = sm.absorb_shield(other_key, bonus) if move == 'special' else 0
         absorbed = sm.absorb_shield(other_key, math.ceil(dmg_dealt * multiplier))
+        if move == 'attack' and bonus:
+            extra_absorbed += sm.absorb_shield(other_key, bonus)
         tactical = getattr(getattr(self.session, "ability", None), "tactical", None)
         dmg_dealt = max(0, dmg_dealt - math.ceil(absorbed / multiplier))
         if tactical is not None:
-            tactical.shield_absorbed(mover_key, other_key, absorbed, dmg_dealt, logs)
+            tactical.shield_absorbed(mover_key, other_key, absorbed + extra_absorbed, dmg_dealt, logs)
         remaining  = sm.get_shield(other_key)
+        if burst and remaining == 0:
+            burst.shield_broken(mover_key, move, logs)
         logs.append(
-            f"  🔵 **Shield** — {other_blade['name']}'s shield absorbed **{absorbed} dmg**! "
+            f"  🔵 **Shield** — {other_blade['name']}'s shield absorbed **{absorbed + extra_absorbed} dmg**! "
             + (f"({remaining} HP remaining)" if remaining > 0 else "Shield BROKEN!")
         )
 
