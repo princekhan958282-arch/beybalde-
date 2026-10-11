@@ -50,7 +50,7 @@ class Rules(unittest.TestCase):
                 trigger=b['abilities'][0]['trigger']
                 damage,_=s.ability._fire(trigger,P,E,b,'attack','win',100,0,logs)
                 # The engine sets this only after executing the preset operation.
-                self.assertEqual(s.ability.cooldowns.get((P,f'custom_{key}')),3)
+                self.assertEqual(s.ability.cooldowns.get((P,f'custom_{key}')),4)
                 second=[]
                 s.ability._fire(trigger,P,E,b,'attack','win',100,0,second)
                 self.assertEqual(second,[])
@@ -63,7 +63,7 @@ class Rules(unittest.TestCase):
         self.assertNotIn((P,'custom_heal'),s.ability.cooldowns)
         s.hp[P]=100
         s.ability._fire('on_low_hp',P,E,b,'attack','win',0,0,[])
-        self.assertEqual(s.hp[P],118)
+        self.assertEqual(s.hp[P],112)
         s,_=battle('Dranzer'); b=blade(['second_wind']); s.blades[P]=b
         s.ability._fire('turn_start',P,E,b,'attack','win',0,0,[])
         s.ability.revive_pool_pct[P]=0

@@ -105,10 +105,70 @@ for key, cfg in ABILITY_PRESETS.items():
 # Revival is armed once at the start, never rearmed by repeatable win hooks.
 ABILITY_TRIGGER_COMPAT["second_wind"] = ("turn_start",)
 
+# V3 balance: narrow the outliers and prevent stored shield/charge stacking.
+RULES_VERSION = 3
+ABILITY_COOLDOWN = 4
+_REBALANCE = {
+    "bonus_damage": ("Adds 10 damage when triggered.", {"value": 10}),
+    "bonus_damage_pct": ("Adds 10% damage when triggered.", {"value": 10}),
+    "true_damage": ("Deals 8 true damage when triggered.", {"value": 8}),
+    "heal": ("Restores 12 HP when triggered.", {"value": 12}),
+    "heal_pct": ("Restores 4% max HP when triggered.", {"value": 4}),
+    "shield": ("Gains a 12 HP shield; total shields cap at 10% max HP.", {"value": 12, "cap_max_hp_pct": 10}),
+    "gain_stamina": ("Restores 2 Stamina when triggered.", {"value": 2}),
+    "gain_stability": ("Restores 5 Stability when triggered.", {"value": 5}),
+    "enemy_lose_stability": ("Removes 5 enemy Stability when triggered.", {"value": 5}),
+    "drain_stamina": ("Drains 1 enemy Stamina when triggered.", {"value": 1}),
+    "reduce_damage_pct_turns": ("Take 10% less damage for 2 turns.", {"value": 10}),
+    "reflect_pct_turns": ("Reflect 10% damage for 2 turns.", {"value": 10}),
+    "ignore_defense": ("Reduce enemy Defense by 10% for 1 turn; does not bypass defense or counters.", {"op": "enemy_debuff_pct", "stat": "defense", "value": 10, "turns": 1}),
+    "crit_chance": ("Gain 5% critical chance.", {"value": 5}),
+    "crit_damage": ("Critical multiplier becomes 1.6x.", {"value": .1}),
+    "balanced_boost": ("Gain 5 ATK, DEF and STM for 2 turns.", {"value": 5}),
+    "balanced_surge": ("Gain 6% ATK, DEF and STM for 2 turns.", {"value": 6}),
+    "hp_barrier": ("Gain a shield worth 5% current HP; total shields cap at 10% max HP.", {"value": 5, "cap_max_hp_pct": 10}),
+    "max_hp_barrier": ("Gain a shield worth 4% max HP; total shields cap at 10% max HP.", {"value": 4, "cap_max_hp_pct": 10}),
+    "lifesteal": ("Gain 5% lifesteal for the battle.", {"value": 5}),
+    "second_wind": ("Arm a 10% max HP revival, once per battle.", {"value": 10}),
+    "hp_regeneration": ("Regenerate 2 HP per turn for the battle.", {"value": 2}),
+    "special_charge": ("Add 8 damage to the next Special; stored Special bonuses cap at 25.", {"value": 8, "cap": 25}),
+    "hit_charge": ("Add 6 damage to the next Attack or Special; stored hit bonuses cap at 12.", {"value": 6, "cap": 12}),
+    "extra_special_hit": ("Add 25 damage to the next Special; stored Special bonuses cap at 25. No full-strength extra hit.", {"op": "prime_bonus", "value": 25, "cap": 25}),
+    "finishing_blow": ("Deal 12 true damage if enemy HP is below 25%.", {"value": 12}),
+    "enemy_hp_strike": ("Add damage equal to 2% of enemy current HP.", {"value": 2}),
+    "missing_hp_drive": ("Add up to 12% damage as your HP falls.", {"scale": .12}),
+    "enemy_wound_drive": ("Add up to 10% damage as enemy HP falls.", {"scale": .10}),
+    "stamina_drive": ("Add up to 8% damage based on your stamina ratio.", {"scale": .08}),
+    "heavy_guard": ("Take 15% less damage for 2 turns.", {"value": 15}),
+    "long_guard": ("Take 8% less damage for 2 turns.", {"value": 8, "turns": 2}),
+    "heavy_reflect": ("Reflect 15% damage for 2 turns.", {"value": 15}),
+    "long_reflect": ("Reflect 8% damage for 2 turns.", {"value": 8, "turns": 2}),
+    "burst_recovery": ("Restore 8 Stability.", {"value": 8}),
+    "burst_pressure": ("Remove 7 enemy Stability.", {"value": 7}),
+    "deep_drain": ("Drain 2 enemy Stamina.", {"value": 2}),
+}
+for stat, title in (("attack", "Attack"), ("defense", "Defense"), ("stamina", "Stamina")):
+    _REBALANCE.update({
+        f"{stat}_boost": (f"Gain 8 {title} for 2 turns.", {"amount": 8}),
+        f"{stat}_surge": (f"Gain 10% {title} for 2 turns.", {"pct": 10}),
+        f"{stat}_pressure": (f"Enemy loses 8 {title} for 2 turns.", {"amount": 8}),
+        f"{stat}_shatter": (f"Enemy loses 10% {title} for 2 turns.", {"value": 10}),
+        f"{stat}_growth": (f"Gain 3 {title} per activation, at most 3 stacks.", {"per_stack": 3, "max": 3}),
+        f"{stat}_true_strike": (f"Deal true damage equal to 3% of your {title}.", {"scale": .03}),
+    })
+for key, (description, params) in _REBALANCE.items():
+    ABILITY_PRESETS[key]["description"] = description
+    ABILITY_PRESETS[key]["op"].update(params)
+ABILITY_PRESETS["ignore_defense"]["label"] = "Defense Weaken"
+ABILITY_PRESETS["extra_special_hit"]["label"] = "Special Follow-Up"
+for key, cfg in ABILITY_PRESETS.items():
+    if key != "second_wind":
+        cfg["description"] += f" Cooldown: {ABILITY_COOLDOWN} turns."
+
 SPECIAL_EFFECTS = {
     "none": ("No secondary effect", 0, []),
-    "heal": ("Restore 20 HP", 10, [{"op": "heal", "value": 20}]),
-    "shield": ("Gain a 20-point shield", 10, [{"op": "shield", "value": 20}]),
+    "heal": ("Restore 12 HP", 10, [{"op": "heal", "value": 12}]),
+    "shield": ("Gain a 12-point shield (10% max HP shield cap)", 10, [{"op": "shield", "value": 12, "cap_max_hp_pct": 10}]),
 }
 SPECIAL_DAMAGE_MIN = 80
 SPECIAL_DAMAGE_MAX = 140
@@ -198,7 +258,7 @@ def build(name: str, bey_type: str, hp: int, attack: int, defense: int,
         if triggers[index] in thresholds:
             cond, value = thresholds[triggers[index]]
             rule["if"].append({"cond": cond, "value": value})
-        rule["do"].append({"op": "start_cooldown", "name": f"custom_{key}", "turns": 3})
+        rule["do"].append({"op": "start_cooldown", "name": f"custom_{key}", "turns": ABILITY_COOLDOWN})
         if key == "second_wind":
             rule["if"] = []
             rule["once"] = "battle"
@@ -247,7 +307,7 @@ def build(name: str, bey_type: str, hp: int, attack: int, defense: int,
             "ability_triggers": triggers,
             "ability_cost": sum(ABILITY_PRESETS[k]["cost"] for k in keys),
             "ability_budget": ABILITY_BUDGET,
-            "rules_version": 2,
+            "rules_version": RULES_VERSION,
             "special_effect": special_effect,
         },
     }
@@ -255,4 +315,69 @@ def build(name: str, bey_type: str, hp: int, attack: int, defense: int,
 
 def from_profile(profile: dict):
     blade = (profile or {}).get("custom_bey")
-    return copy.deepcopy(blade) if isinstance(blade, dict) else None
+    return balanced_definition(blade) if isinstance(blade, dict) else None
+
+
+def balanced_definition(blade: dict) -> dict:
+    """Refresh saved preset operations without editing player identity or stats.
+
+    Names, ownership, approval and equipment remain saved as authored; battle
+    and info readers get current server-owned preset magnitudes and limits.
+    """
+    out = copy.deepcopy(blade)
+    if not out.get("custom"):
+        return out
+    meta = out.get("custom_meta") or {}
+    keys = meta.get("ability_keys") or []
+    triggers = meta.get("ability_triggers") or []
+    # Older builder definitions retain cooldown names even without metadata.
+    normal = [a for a in out.get("abilities", []) if not a.get("_custom_special_effect")]
+    if not keys:
+        for ability in normal:
+            names = [op.get("name", "") for r in ability.get("rules", [])
+                     for op in r.get("do", []) if op.get("op") == "start_cooldown"]
+            key = next((n[7:] for n in names if n.startswith("custom_") and n[7:] in ABILITY_PRESETS), None)
+            if key is None:
+                return out
+            keys.append(key)
+    if any(k not in ABILITY_PRESETS for k in keys) or len(keys) > MAX_ABILITIES:
+        return out
+    rebuilt = []
+    reverse = {v: k for k, v in CUSTOM_TRIGGERS.items()}
+    for i, key in enumerate(keys):
+        old = normal[i] if i < len(normal) else {}
+        trigger = triggers[i] if i < len(triggers) else reverse.get(old.get("trigger"))
+        if trigger not in allowed_triggers(key):
+            trigger = allowed_triggers(key)[0]
+        cfg = ABILITY_PRESETS[key]
+        rule = {"when": CUSTOM_TRIGGERS[trigger], "_name": old.get("name", cfg["label"]),
+                "if": [{"cond": "not_on_cooldown", "name": f"custom_{key}"}],
+                "do": [copy.deepcopy(cfg["op"]), {"op": "start_cooldown", "name": f"custom_{key}", "turns": ABILITY_COOLDOWN}]}
+        thresholds = {"low_hp": ("hp_below_pct", .5), "low_stamina": ("stamina_below_pct", .35), "low_stability": ("stability_below_pct", .35)}
+        if trigger in thresholds:
+            cond, value = thresholds[trigger]
+            rule["if"].append({"cond": cond, "value": value})
+        if key == "second_wind":
+            rule["if"] = []
+            rule["once"] = "battle"
+        rebuilt.append({"name": old.get("name", cfg["label"]), "trigger": rule["when"],
+                        "description": cfg["description"], "rules": [rule]})
+    for old in out.get("abilities", []):
+        if old.get("_custom_special_effect"):
+            effect = meta.get("special_effect")
+            if effect not in SPECIAL_EFFECTS:
+                # Recover legacy heal/shield riders by operation name.
+                ops = [op for r in old.get("rules", []) for op in r.get("do", [])]
+                effect = next((op.get("op") for op in ops if op.get("op") in ("heal", "shield")), "none")
+            label, _, ops = SPECIAL_EFFECTS[effect]
+            if ops:
+                rider = copy.deepcopy(old)
+                rider.update(description=label, rules=[{"when": "on_special", "_name": old.get("name"), "do": copy.deepcopy(ops)}])
+                rebuilt.append(rider)
+    effect = meta.get("special_effect")
+    if effect in SPECIAL_EFFECTS and isinstance(out.get("special_move"), dict):
+        out["special_move"]["description"] = SPECIAL_EFFECTS[effect][0]
+    out["abilities"] = rebuilt
+    out["ability"] = rebuilt[0] if rebuilt else None
+    out.setdefault("custom_meta", {})["rules_version"] = RULES_VERSION
+    return out

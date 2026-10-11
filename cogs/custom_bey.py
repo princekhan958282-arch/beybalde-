@@ -11,12 +11,13 @@ from discord.ext import commands
 from utils.database import get_user, mutate_user, get_beyblade, all_user_ids, get_custom_review_channel, set_custom_review_channel
 from utils import bey_levels as BL
 from utils.inventory import require_room, InventoryFull
-from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, CUSTOM_TRIGGERS, SPECIAL_EFFECTS, STAT_TOTAL, allowed_triggers, build, CustomBeyError
+from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, CUSTOM_TRIGGERS, SPECIAL_EFFECTS, STAT_TOTAL, allowed_triggers, build, CustomBeyError, balanced_definition
 
 ABILITY_EFFECT_CATALOG = tuple(ABILITY_PRESETS)
 ABILITY_EFFECTS_PER_PAGE = 10
 
 def _summary(blade):
+    blade=balanced_definition(blade)
     s=blade["stats"]; meta=blade.get("custom_meta",{})
     abilities=[a["name"] for a in blade.get("abilities",[]) if not a.get("_custom_special_effect")]
     sm=blade["special_move"]
@@ -502,6 +503,7 @@ async def _pending_custom_submissions():
     return rows
 
 def _approval_embed(uid,blade):
+    blade=balanced_definition(blade)
     meta=blade.get("custom_meta",{}); stats=blade["stats"]
     abilities=[f"• **{a.get('name','Ability')}** — {a.get('description','')} — trigger `{a.get('trigger','?')}`" for a in blade.get("abilities",[]) if not a.get("_custom_special_effect")]
     e=discord.Embed(title=f"📝 Custom Bey Approval • {blade['name']}",
