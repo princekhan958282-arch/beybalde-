@@ -461,9 +461,9 @@ check("a wildly out-of-range value is clamped, not applied",
       _over.apply_hp_bonus(2000))
 check("a negative value cannot SHRINK the pool",
       _AB(hp_percent=-0.5).apply_hp_bonus(2000) == 2000)
-check("apply_hp_bonus still multiplies hp_flat by the percent",
+check("apply_hp_bonus adds flat and percent HP once",
       _AB(hp_flat=100, hp_percent=0.10).apply_hp_bonus(2000)
-      == (2000 + 100) * 1.10,
+      == 2000 + 100 + 200,
       _AB(hp_flat=100, hp_percent=0.10).apply_hp_bonus(2000))
 check("...and a card with neither changes nothing",
       _AB().apply_hp_bonus(2000) == 2000)

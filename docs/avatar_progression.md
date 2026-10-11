@@ -65,3 +65,66 @@ CI provisions an isolated MySQL 8 service and runs the same transaction tests th
 
 1. Success probabilities for target stars 9–15; no probabilities have been invented.
 2. Non-pack sell prices for cards without an authored sell value. They currently sell for zero.
+
+## Per-Bey avatar bonus limits
+
+Permanent avatar ATK, DEF, STM and HP bonuses add flat gains plus a percentage of the stat before avatar bonuses. Each avatar has its own `stat_bonus_cap` in its JSON definition; 100% is the hard maximum, not a shared cap. Each combined bonus is capped at that avatar’s percentage of the Bey stat. HP uses the starting battle HP pool after Bey levels and parts are resolved, before avatar bonuses and type passives. Card and battle calculations read the same per-avatar cap; `AVATAR_STAT_BONUS_CAP` enforces the hard maximum. Stored stars and purchased levels are preserved; excess bonuses are capped only when applied. Skill upgrades scale magnitudes without changing hit intervals or effect durations.
+
+Individual caps reserve less permanent stat growth for kits with strong crit, Special amplification, control, damage resistance or survival effects. Stat-focused kits receive more room. These are authored balance settings, not runtime formulas based on rarity. The cap covers permanent ATK/DEF/STM/HP bonuses; timed skill effects and Special damage keep their existing mechanics.
+
+| Avatar | Combined stat bonus cap |
+|---|---:|
+| Abyssal Warden | 70% |
+| Alya | 45% |
+| Argus | 80% |
+| Cobra Titan | 100% |
+| Daichi | 95% |
+| Daigo Kurogami | 80% |
+| Dr. W. D. Gaster | 80% |
+| Dyrroth | 80% |
+| Eternal Inferno | 65% |
+| Eudora | 85% |
+| Freya | 85% |
+| Gary | 100% |
+| Gen | 50% |
+| Helcurt | 80% |
+| Hinata | 45% |
+| Historia | 60% |
+| Hoji Konda | 85% |
+| Kai | 90% |
+| Kanna | 40% |
+| Ken Midori | 85% |
+| Kevin | 95% |
+| Lee | 100% |
+| Mare | 100% |
+| Mariah | 100% |
+| Marina | 50% |
+| Max | 90% |
+| Miffy | 95% |
+| Mikasa | 80% |
+| Miku | 55% |
+| Mitsuha | 60% |
+| Mitsuri | 75% |
+| Okudera | 45% |
+| Omega Prime | 75% |
+| Orochi Ginba | 80% |
+| Rantaro Kiyama | 85% |
+| Ray | 95% |
+| Reina | 55% |
+| Sable | 50% |
+| Shadow Ninja | 75% |
+| Shinobu | 70% |
+| Shu Kurenai | 75% |
+| Storm Reaper | 65% |
+| Sukuna | 70% |
+| Taki | 65% |
+| Tessie | 45% |
+| Tifa | 70% |
+| Tyson | 100% |
+| Valt Aoi | 80% |
+| Vexana | 85% |
+| Wakiya Murasaki | 80% |
+| Ymir | 55% |
+| Yotsuha | 45% |
+| Yuki | 35% |
+| Zero Two | 70% |

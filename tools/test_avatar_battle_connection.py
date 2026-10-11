@@ -42,7 +42,7 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(s.skill_commit["101"]["slot"], 1)
         self.assertEqual(s.avatar_bonuses["101"].attack_percent, .30)
         self.assertEqual(s.avatar_bonuses["101"].crit_percent, 0)
-        self.assertEqual(effective_stats(s, "101")["attack"], (100 + 5) * 1.30 * passive_stat_multiplier("Balance", "attack"))
+        self.assertEqual(effective_stats(s, "101")["attack"], (100 + 5 + 30) * passive_stat_multiplier("Balance", "attack"))
 
     async def test_exhausted_energy_removes_bonus_skill(self):
         s = await self.build("avatar_x002", slot=1, energy=0, ranked=True)

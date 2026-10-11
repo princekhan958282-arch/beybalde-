@@ -4,6 +4,10 @@ from . import avatar_progress as AP, avatar_levels as AL, avatar_config as C
 
 # Scale effect magnitudes, not timers, costs, gates, caps, stack counts or IDs.
 OP_MAGNITUDES = {'value', 'pct', 'amount', 'scale'}
+BONUS_GATES = {'immortal_rounds', 'defence_break_rounds', 'nth_hit_interval'}
+PROBABILITIES = {'crit_percent', 'dodge_chance', 'counter_chance',
+                 'resistance_damage_percent', 'resistance_status_chance',
+                 'defence_break_min', 'defence_break_max'}
 
 
 def scaled_card(profile, card):
@@ -14,8 +18,9 @@ def scaled_card(profile, card):
         levels.append(level)
         mult = AL.skill_magnitude_mult(level)
         for k, v in skill.get('bonuses', {}).items():
-            if isinstance(v, (int, float)) and not isinstance(v, bool):
-                skill['bonuses'][k] = v * mult
+            if k not in BONUS_GATES and isinstance(v, (int, float)) and not isinstance(v, bool):
+                value = v * mult
+                skill['bonuses'][k] = min(1.0, max(0.0, value)) if k in PROBABILITIES else value
         for rule in skill.get('rules', []):
             for op in rule.get('do', []):
                 if op.get('op') in {'gain_stack', 'spend_stacks', 'set_counter', 'prime_crit', 'add_counter', 'consume_counter', 'reset_counter'}:

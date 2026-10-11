@@ -406,13 +406,19 @@ class BattleV4Tests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(b1.defence_flat-b0.defence_flat,264)
                 self.assertEqual(b1.stamina_flat-b0.stamina_flat,264)
                 if mode=='boss':
-                    self.assertEqual(progressed.attack-base.attack,288)
-                    self.assertEqual(progressed.defense-base.defense,264)
-                    self.assertEqual(progressed.stamina_stat-base.stamina_stat,264)
+                    from tools import sim_story as H
+                    raw = H.get_beyblade('Void Longinus')['stats']
+                    for stat, field, flat in [('attack', 'attack', b0.attack_flat),
+                                             ('defense', 'defense', b0.defence_flat),
+                                             ('stamina', 'stamina_stat', b0.stamina_flat)]:
+                        self.assertEqual(getattr(progressed, field), 2 * raw[stat])
+                        self.assertEqual(getattr(base, field), raw[stat] + flat)
                 else:
                     for key,gain in [('attack',288),('defense',264),('stamina',264)]:
                         from cogs.battle.type_gimmicks import passive_stat_multiplier
-                        expected = gain * passive_stat_multiplier(progressed.blades['101']['type'], key)
+                        flat = getattr(b0, 'defence_flat' if key == 'defense' else key + '_flat')
+                        raw = progressed.blades['101']['stats'][key]
+                        expected = (raw - flat) * passive_stat_multiplier(progressed.blades['101']['type'], key)
                         self.assertAlmostEqual(progressed.battle_stats['101'][key]-base.battle_stats['101'][key],expected)
 
 

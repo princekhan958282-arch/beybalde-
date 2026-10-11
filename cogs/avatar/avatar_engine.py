@@ -131,6 +131,8 @@ class AvatarBonuses:
     # on top of special_move_percent.
     ult_adds_attack_stat: bool = False
 
+    stat_bonus_cap: float = 1.0
+
     # ── Convenience methods called by combat engine ───────────────────────────
 
     def roll_defence_break(self, round_no: int) -> float:
@@ -152,14 +154,20 @@ class AvatarBonuses:
         return int(round(float(total_attack) * self.nth_hit_attack_percent))
 
     def apply_attack_bonus(self, base_attack: float) -> float:
-        """Return attack after flat + percent bonuses."""
-        return (base_attack + self.attack_flat) * (1.0 + self.attack_percent)
+        """Add capped avatar stats without multiplying purchased flat gains."""
+        return self._apply_stat_bonus(base_attack, self.attack_flat, self.attack_percent)
+
+    def _apply_stat_bonus(self, base: float, flat: float, percent: float) -> float:
+        from .avatar_config import avatar_bonus_cap
+        base = max(0.0, float(base))
+        bonus = float(flat) + base * float(percent)
+        return max(0.0, base + min(bonus, base * avatar_bonus_cap({'stat_bonus_cap': self.stat_bonus_cap})))
 
     def apply_defence_bonus(self, base_defence: float) -> float:
-        return (base_defence + self.defence_flat) * (1.0 + self.defence_percent)
+        return self._apply_stat_bonus(base_defence, self.defence_flat, self.defence_percent)
 
     def apply_stamina_bonus(self, base_stamina: float) -> float:
-        return (base_stamina + self.stamina_flat) * (1.0 + self.stamina_percent)
+        return self._apply_stat_bonus(base_stamina, self.stamina_flat, self.stamina_percent)
 
     def apply_stability_bonus(self, base_stability: float) -> float:
         return (base_stability + self.stability_flat) * (1.0 + self.stability_percent)
@@ -171,14 +179,9 @@ class AvatarBonuses:
         return (base_damage + self.special_move_flat) * (1.0 + self.special_move_percent)
 
     def apply_hp_bonus(self, base_hp: float) -> float:
-        """Return starting HP after flat + percent bonuses.
-
-        The cap is re-applied here as well as at load, so a bonuses object
-        built by hand — a test, an older save, a skill block read directly —
-        cannot exceed it either. Same belt-and-braces as `roll_dodge`.
-        """
+        """Add HP once, capped against the pool before avatar bonuses."""
         pct = min(self.HP_PERCENT_CAP, max(0.0, self.hp_percent))
-        return (base_hp + self.hp_flat) * (1.0 + pct)
+        return self._apply_stat_bonus(base_hp, self.hp_flat, pct)
 
     def apply_damage_resistance(self, incoming_damage: float) -> float:
         """Reduce incoming damage by resistance percent."""
@@ -221,20 +224,8 @@ class AvatarBonuses:
     # and makes the ceiling one number to change again later.
     DODGE_CAP = 0.05
 
-    # No avatar may add more than this fraction to a starting HP pool.
-    #
-    # `hp_percent` was a required key on every card and range-checked on none
-    # of them, and one card proved what that costs: Mikasa shipped at 0.69 —
-    # +69% HP, 4.6x the next highest and enough to make one Ultimate
-    # permanently five times better at surviving than any other. A typo of
-    # `12` meaning +1200% would have shipped just as quietly.
-    #
-    # Set above the top of the authored curve (Exclusive/MLBB at 15%) so it is
-    # a guard rail and not a balance lever. HP is worth strictly more per
-    # point than attack — it multiplies a ~2,100 pool and, unlike attack, is
-    # not contested by the opponent's defence — which is why the curve sits
-    # below the attack spread and why this ceiling is close behind it.
-    HP_PERCENT_CAP = 0.20
+    # HP shares the combined stat ceiling, including flat and percent gains.
+    from .avatar_config import AVATAR_STAT_BONUS_CAP as HP_PERCENT_CAP
 
     def roll_dodge(self) -> bool:
         """Roll whether this avatar dodges an incoming attack.
@@ -473,10 +464,11 @@ class AvatarEngine:
             return NULL_BONUSES
         b = await self._active_bonuses(player_id, avatar, profile)
         level_bonus = await self._level_bonus(player_id, avatar_id, avatar, profile)
-        return self.bonuses_from_block(b, level_bonus)
+        from .avatar_config import avatar_bonus_cap
+        return self.bonuses_from_block(b, level_bonus, stat_bonus_cap=avatar_bonus_cap(avatar))
 
     def bonuses_from_block(self, block: Optional[dict],
-                           level_bonus: Optional[dict] = None) -> AvatarBonuses:
+                           level_bonus: Optional[dict] = None, *, stat_bonus_cap=1.0) -> AvatarBonuses:
         """Build an `AvatarBonuses` straight from a card's bonus block.
 
         Extracted from `get_battle_bonuses` rather than copied. A League
@@ -488,6 +480,7 @@ class AvatarEngine:
         b = block or {}
         level_bonus = level_bonus or {"attack": 0, "defense": 0, "stamina": 0}
         return AvatarBonuses(
+            stat_bonus_cap=stat_bonus_cap,
             attack_flat=b.get("attack_flat", 0.0) + level_bonus["attack"],
             attack_percent=b.get("attack_percent", 0.0),
             defence_flat=b.get("defence_flat", 0.0) + level_bonus["defense"],

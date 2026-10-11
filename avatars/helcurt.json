@@ -63,5 +63,6 @@
     "defence_break_rounds": 3
   },
   "generation": null,
-  "_registry_order": 34
+  "_registry_order": 34,
+  "stat_bonus_cap": 0.8
 }

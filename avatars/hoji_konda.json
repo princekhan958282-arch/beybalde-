@@ -90,5 +90,6 @@
     "hp_percent": 0
   },
   "generation": null,
-  "_registry_order": 40
+  "_registry_order": 40,
+  "stat_bonus_cap": 0.85
 }

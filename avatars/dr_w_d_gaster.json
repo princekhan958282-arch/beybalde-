@@ -58,5 +58,6 @@
     "multi_hit_extra_hits": false
   },
   "generation": null,
-  "_registry_order": 36
+  "_registry_order": 36,
+  "stat_bonus_cap": 0.8
 }
