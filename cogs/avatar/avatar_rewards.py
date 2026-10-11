@@ -11,7 +11,11 @@ from . import avatar_collection as AC, avatar_config as C, avatar_progress as AP
 log = logging.getLogger(__name__)
 
 
-def enqueue(profile, aid, *, reward_id=None, sell_value=None, channel_id=None, now=None):
+def enqueue(profile, aid, *, reward_id=None, sell_value=None, channel_id=None, now=None,
+            level=1, stars=1):
+    for label, value, maximum in [('level', level, C.MAX_CARD_LEVEL), ('stars', stars, C.MAX_STARS)]:
+        if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= maximum:
+            raise AP.PurchaseError(f'Avatar {label} must be from 1 to {maximum}.')
     from .avatar_engine import avatar_engine
     card = avatar_engine.get_avatar(aid)
     if not card:
@@ -30,6 +34,7 @@ def enqueue(profile, aid, *, reward_id=None, sell_value=None, channel_id=None, n
               'state': 'pending', 'created_at': stamp,
               'expires_at': stamp + C.REWARD_TIMEOUT, 'channel_id': channel_id,
               'message_id': None}
+    reward.update(level=level, stars=stars)
     rewards[rid] = reward
     return dict(reward)
 
@@ -47,6 +52,11 @@ def decide(profile, rid, choice, *, now=None):
         choice = 'keep'
     if choice == 'keep':
         AC.grant(profile, reward['avatar_id'])
+        entry = AP._ensure(profile, reward['avatar_id'])
+        entry['level'] = max(AP.card_level(profile, reward['avatar_id']),
+                             min(C.MAX_CARD_LEVEL, int(reward.get('level', 1))))
+        entry['stars'] = max(AC.stars(profile, reward['avatar_id']),
+                             min(C.MAX_STARS, int(reward.get('stars', 1))))
     else:
         profile['coins'] = int(profile.get('coins', 0)) + reward['sell_value']
     reward.update(state=choice, resolved_at=stamp)
@@ -58,6 +68,7 @@ def reward_embed(profile, reward):
         reward['avatar_id'] in profile.get('avatar_inventory', []))
     return discord.Embed(title='NEW AVATAR OBTAINED!', colour=0xF1C40F,
         description=(f"Avatar: **{reward['name']}**\nCategory: **{reward['category']}**\n"
+                     f"Gift progression: **Lv.{reward.get('level', 1)} · {reward.get('stars', 1)}★**\n"
                      f"Owned Copies: **{copies}**\nSell Value: **{reward['sell_value']:,} Beycoins**\n\n"
                      'Would you like to keep or sell this avatar?\n'
                      f"No decision by <t:{int(reward['expires_at'])}:R> → Keep."))
@@ -80,7 +91,7 @@ class RewardView(discord.ui.View):
                     embed=discord.Embed(title=f"Avatar {result['state']}", colour=0x2ECC71,
                         description=f"{result['name']} · " + (
                             f"{result['sell_value']:,} Beycoins awarded." if result['state'] == 'sell'
-                            else 'Saved to your collection. No duplicate refund.')),
+                            else f"Lv.{result.get('level', 1)} · {result.get('stars', 1)}★ gift saved; higher owned progression retained. No duplicate refund.")),
                     view=self)
                 self.stop()
             button.callback = callback
