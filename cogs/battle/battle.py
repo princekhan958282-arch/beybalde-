@@ -28,7 +28,10 @@ The cog is responsible only for:
   5. Exposing ;forfeit and ;battlestats
 """
 
+from typing import Optional
+
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from .session import BattleSession
@@ -205,6 +208,18 @@ class BattleCog(commands.Cog, name="Battle"):
         self.active_battles: dict[int, BattleSession] = {}  # user_id → session
 
     # ── ;battle ──────────────────────────────────────────────────────────────
+
+    @app_commands.command(name="battle", description="Challenge a player with optional Bey level and avatar rules")
+    @app_commands.guild_only()
+    @app_commands.describe(player="Player to challenge", bey_level="Set BOTH Beys to this level (blank uses actual levels)",
+                           avatars="Allow avatars and their bonuses for both players")
+    async def battle_challenge(self, interaction: discord.Interaction, player: discord.Member,
+                     bey_level: Optional[app_commands.Range[int, 1, 100]] = None,
+                     avatars: bool = True) -> None:
+        from cogs.ui import invoke
+        await invoke.run_prefix_command(
+            interaction, self.battle, bot=self.bot, visibility=invoke.PUBLIC,
+            opponent=player, mode="casual", bey_level=bey_level, avatars=avatars)
 
     @commands.command(
         name="battle",

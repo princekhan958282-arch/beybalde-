@@ -37,7 +37,7 @@ def card_stat_bonus(avatar_type: str, level) -> dict[str, int]:
 def max_skill_level_for(card_level) -> int:
     """The spec's gate: `max_skill_level = avatar_level * 2`.
 
-    Lv1 caps skills at 2, Lv5 unlocks 10. This is what stops two independent
+    Lv1 caps skills at 2, Lv2 at 4, Lv3+ at 5. This is what stops two independent
     grinds and forces card investment before skill investment.
     """
     return max(1, min(MAX_SKILL_LEVEL, clamp_level(card_level) * SKILL_CAP_PER_CARD_LEVEL))
@@ -74,7 +74,7 @@ def skill_level_cost(from_level, to_level=None) -> int:
 
 
 def skill_magnitude_mult(skill_level) -> float:
-    """×1.00 at Lv1 rising to ×1.72 at Lv10."""
+    """×1.00 at Lv1 rising linearly to ×1.10 at Lv5."""
     lvl = max(1, min(MAX_SKILL_LEVEL, int(skill_level or 1)))
     return 1.0 + SKILL_MAGNITUDE_STEP * (lvl - 1)
 

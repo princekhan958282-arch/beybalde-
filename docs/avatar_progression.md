@@ -25,7 +25,7 @@ Settings live in `cogs/avatar/avatar_config.py`.
 
 Star gains are cumulative: 8★ adds 252 to each stat; 15★ adds 2,127. Upgrade and feeding controls for unapproved target probabilities are locked. Stored higher stars remain readable and retain their approved stat bonuses.
 
-Each level, **including Level 1**, allocates exactly 15 points: Attack 9/3/3, Defense 3/9/3, Stamina 3/3/9, Balance 5/5/5 (ATK/DEF/STM). Level 5 allocates 75 total. Existing level costs, skill maximum 10, card-level skill caps, triggers, energy costs, cooldowns and Original Generation abilities remain intact. The shared battle snapshot derives level and star bonuses once; PvP, Story and Boss use that pipeline.
+Each level, **including Level 1**, allocates exactly 15 points: Attack 9/3/3, Defense 3/9/3, Stamina 3/3/9, Balance 5/5/5 (ATK/DEF/STM). Level 5 allocates 75 total. Existing level costs, skill maximum 5, card-level skill caps, triggers, energy costs, cooldowns and Original Generation abilities remain intact. The shared battle snapshot derives level and star bonuses once; PvP, Story and Boss use that pipeline.
 
 ## Feeding and risky upgrades
 
@@ -132,3 +132,7 @@ Individual caps reserve less permanent stat growth for kits with strong crit, Sp
 ## Casual slash battle rules
 
 `/battle player:<opponent> bey_level:50 avatars:False` challenges another player with both Beys at level 50 and all avatar bonuses/skills disabled. Level accepts 1–100; omit it to use actual owned levels. Avatars default to On. The challenge shows both rules before acceptance. Fixed level changes are match-local and include ATK/DEF/STM, HP, Special and formula/ability level gates; saved XP remains unchanged and mastery multipliers are disabled for fixed-level matches. Fixed levels require normal Beys rather than rolled boss copies. Ranked keeps its existing rules. `/commands` lists the slash battle command.
+
+### Skill balance limit
+
+All avatars cap skills at level 5. Skill effect multipliers are 1.00, 1.025, 1.05, 1.075 and 1.10 (10% total increase at maximum). Existing stored levels above 5 are clamped when read without changing ownership or historical spending. Upgrades stop at 5. Timers, costs, stack counts and triggers stay unchanged. `/battle` registers with the battle cog independently of the optional UI panels; boot sync or an owner `;sync` registers it with Discord.

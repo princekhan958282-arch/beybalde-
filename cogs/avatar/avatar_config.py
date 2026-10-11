@@ -1,11 +1,12 @@
 """Approved V4 avatar progression balancing."""
 MAX_CARD_LEVEL = 5
-MAX_SKILL_LEVEL = 10
+MAX_SKILL_LEVEL = 5
 CARD_LEVEL_COSTS = (23_000, 40_000, 70_000, 123_000)
 SKILL_COST_BASE = 12_000
 SKILL_COST_RATIO = 1.35
 SKILL_COST_ROUNDING = 500
-SKILL_MAGNITUDE_STEP = .08
+# Four upgrades share a total 10% effect increase; never compound.
+SKILL_MAGNITUDE_STEP = .025
 RESET_REFUND = .70
 GROWTH = {
     'attack': {'attack': 9, 'defense': 3, 'stamina': 3},
