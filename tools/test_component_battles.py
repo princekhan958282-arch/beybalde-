@@ -162,7 +162,7 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(avatar_engine, 'get_battle_bonuses', new=AsyncMock(return_value=bonus)):
             s = await self.pvp()
             displayed = await battle_pool(701, self.raw)
-        expected = math.floor(int((effective['stats']['hp'] * 15 + 50) * 1.10)
+        expected = math.floor(int(effective['stats']['hp'] * 15 * 1.10 + 50)
                               * passive_stat_multiplier(self.raw['type'], 'hp'))
         self.assertEqual(s.hp['701'], expected)
         self.assertEqual(displayed, expected)

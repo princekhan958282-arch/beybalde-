@@ -782,7 +782,8 @@ class BattleSession:
             if not card:
                 return NULL_BONUSES
             try:
-                return avatar_engine.bonuses_from_block(card.get("bonuses"))
+                from cogs.avatar.avatar_config import avatar_bonus_cap
+                return avatar_engine.bonuses_from_block(card.get("bonuses"), stat_bonus_cap=avatar_bonus_cap(card))
             except Exception:                            # noqa: BLE001
                 return NULL_BONUSES
         return self._prefetch.get(str(player_id), {}).get("bonuses") or NULL_BONUSES

@@ -53,5 +53,6 @@
     }
   ],
   "generation": null,
-  "_registry_order": 0
+  "_registry_order": 0,
+  "stat_bonus_cap": 0.35
 }

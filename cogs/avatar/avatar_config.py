@@ -37,3 +37,16 @@ CONFIRM_TIMEOUT = 30
 PROFILE_TIMEOUT = 180
 EMPOWER_PERCENT_STEP = .02
 SKILL_CAP_PER_CARD_LEVEL = 2
+
+# Hard maximum for authored per-avatar ATK/DEF/STM/HP bonus caps.
+# Apply each card's stat_bonus_cap at use time, never to saved progress.
+AVATAR_STAT_BONUS_CAP = 1.0
+
+
+def avatar_bonus_cap(card):
+    """Per-avatar ceiling; older definitions fall back to the hard maximum."""
+    import math
+    value = card.get('stat_bonus_cap', AVATAR_STAT_BONUS_CAP)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return AVATAR_STAT_BONUS_CAP
+    return max(0.0, min(AVATAR_STAT_BONUS_CAP, value))

@@ -192,6 +192,8 @@ async def effective_blade(user_id: int, profile: Optional[dict] = None,
 
         a = 0.0
         if av is not None and stat in _AVATAR_STAT_MAP:
+            methods = {"attack": "apply_attack_bonus", "defense": "apply_defence_bonus",
+                       "stamina": "apply_stamina_bonus"}
             flat_key, pct_key = _AVATAR_STAT_MAP[stat]
             flat = float(getattr(av, flat_key, 0.0) or 0.0)
             pct = float(getattr(av, pct_key, 0.0) or 0.0)
@@ -199,6 +201,8 @@ async def effective_blade(user_id: int, profile: Optional[dict] = None,
             # attack" is worth more on a better-equipped blade — which is what
             # a percentage is supposed to mean.
             a = flat + subtotal * pct
+            if stat in methods:
+                a = getattr(av, methods[stat])(subtotal) - subtotal
 
         total = subtotal + a
         stats[stat] = round(total)

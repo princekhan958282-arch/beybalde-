@@ -121,6 +121,10 @@ def validate_avatar_data(avatar: dict) -> tuple[bool, str]:
     Validate a single avatar dict from avatar_data.json.
     Returns (is_valid, error_message).
     """
+    import math
+    cap = avatar.get('stat_bonus_cap', 1.0)
+    if isinstance(cap, bool) or not isinstance(cap, (int, float)) or not math.isfinite(cap) or not 0 <= cap <= 1:
+        return False, 'stat_bonus_cap must be between 0 and 1 (maximum 100%).'
     required_fields = ["id", "name", "rarity", "price", "description", "bonuses"]
     for field in required_fields:
         if field not in avatar:
@@ -320,6 +324,10 @@ def build_avatar_embed(avatar: dict, owned: bool = False, equipped: bool = False
         value=format_bonuses_summary(displayed_bonuses),
         inline=False,
     )
+    from .avatar_config import avatar_bonus_cap
+    embed.add_field(name='Avatar bonus limit',
+                    value=f"+{avatar_bonus_cap(avatar):.0%} maximum ATK / DEF / STM / HP from this avatar.",
+                    inline=False)
 
     # Signature skills. Only the nine banner avatars carry these, so the field
     # is skipped entirely for everyone else rather than showing an empty

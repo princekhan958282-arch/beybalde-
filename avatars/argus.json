@@ -59,5 +59,6 @@
     "immortal_rounds": 2
   },
   "generation": null,
-  "_registry_order": 27
+  "_registry_order": 27,
+  "stat_bonus_cap": 0.8
 }

@@ -60,5 +60,6 @@
     "nth_hit_attack_percent": 0.18
   },
   "generation": null,
-  "_registry_order": 33
+  "_registry_order": 33,
+  "stat_bonus_cap": 0.85
 }
