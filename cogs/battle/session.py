@@ -277,6 +277,8 @@ class BattleSession:
         payout:  bool = True,
         spend_energy: Optional[bool] = None,
         victory_points: Optional[dict] = None,
+        bey_level: Optional[int] = None,
+        avatars_enabled: bool = True,
     ) -> "BattleSession":
         """Async factory — the only correct way to build a BattleSession now.
 
@@ -294,6 +296,8 @@ class BattleSession:
         Every construction site in the codebase must call
         `await BattleSession.create(...)` instead of `BattleSession(...)`.
         """
+        if bey_level is not None and (isinstance(bey_level, bool) or not isinstance(bey_level, int) or not 1 <= bey_level <= 100):
+            raise ValueError("Bey level must be between 1 and 100.")
         def _is_npc(pid) -> bool:
             return npc_controller is not None and str(pid) == str(getattr(npc_controller, "key", ""))
 
@@ -310,32 +314,46 @@ class BattleSession:
                 continue
 
             profile   = await get_user(pid)
+            if bey_level is not None:
+                if profile.get('active_copy'):
+                    raise ValueError('Fixed Bey levels are unavailable for boss copies.')
+                # Match-only snapshot; never overwrite owned XP or progression.
+                profile = copy.deepcopy(profile)
+                entry = profile.setdefault('bey_progress', {}).setdefault(blade['name'], {})
+                entry['xp'] = _BL.xp_for_level(bey_level)
             # Resolve HP, Special and equipment from the same profile snapshot.
             from utils.loadout import effective_blade, part_bonuses
             effective, breakdown, _ = await effective_blade(pid, profile=profile, blade=blade, include_avatar=False,
                                                            include_parts=not bool(profile.get("active_copy")))
             hp_bd = breakdown.get("hp") or {}
             hp_gain = int(hp_bd.get('level', 0)) + int(hp_bd.get('parts', 0))
+            if bey_level is not None:
+                from utils.loadout import bey_level_and_stats
+                _, normalized = bey_level_and_stats(profile, blade)
+                for stat in ('attack', 'defense', 'stamina'):
+                    blade.setdefault('stats', {})[stat] = normalized.get(stat, 0)
+                blade['level'] = bey_level
             if effective.get("component_snapshot"):
                 blade["component_snapshot"] = effective["component_snapshot"]
-            avatar_id = await _AE.get_equipped_avatar_id(int(pid))
+            avatar_id = await _AE.get_equipped_avatar_id(int(pid)) if avatars_enabled else None
             avatar    = _AE.get_avatar(avatar_id or "") if avatar_id else None
             if avatar:
                 from cogs.avatar.avatar_scaling import scaled_card
                 avatar = scaled_card(profile, avatar)
-            stat_mult = await get_stat_multiplier(pid, blade.get("name"))
+            stat_mult = await get_stat_multiplier(pid, blade.get("name")) if bey_level is None else 1.0
 
             skill_commit: dict = {}
             try:
                 from cogs.avatar import avatar_skills as AS
-                skill_commit = await AS.begin_battle_for(
-                    int(pid), avatar, ranked=_spend_energy) or {}
+                if avatars_enabled:
+                    skill_commit = await AS.begin_battle_for(
+                        int(pid), avatar, ranked=_spend_energy) or {}
             except Exception:                                # noqa: BLE001
                 skill_commit = {}
 
             # Snapshot AFTER committing: the locked slot may have changed or
             # become 0 when this round exhausts the match's energy budget.
-            bonuses = await _AE.get_battle_bonuses(pid)
+            bonuses = await _AE.get_battle_bonuses(pid) if avatars_enabled else NULL_BONUSES
             eff_spec = int(effective.get("stats", {}).get("special", 0))
             # Only level/parts scale the authored Special stat here. Avatar
             # damage bonuses are applied before hit mitigation by AttackManager.
@@ -358,6 +376,7 @@ class BattleSession:
             bot, channel, p1, p2, blade1, blade2,
             ranked=ranked, npc_controller=npc_controller, payout=payout,
             spend_energy=spend_energy, victory_points=victory_points,
+            avatars_enabled=avatars_enabled,
             _prefetch=prefetch,
         )
 
@@ -375,7 +394,9 @@ class BattleSession:
         spend_energy: Optional[bool] = None,
         victory_points: Optional[dict] = None,
         _prefetch: Optional[dict] = None,
+        avatars_enabled: bool = True,
     ):
+        self.avatars_enabled = bool(avatars_enabled)
         # Populated by `create()` (the async factory) with every real
         # player's profile-backed data, keyed by str(player_id). Empty for a
         # direct `BattleSession(...)` call — which now only works when both
@@ -764,6 +785,8 @@ class BattleSession:
         blader — and is looked up straight from the roster, never through a
         profile the NPC does not have.
         """
+        if not self.avatars_enabled:
+            return {}
         try:
             if self._is_npc(player_id):
                 aid = getattr(self.npc_controller, "avatar_id", None)
@@ -803,6 +826,8 @@ class BattleSession:
         the 100 has to last the whole match, and only `end_match_for` (called
         by the ranked driver when the match is decided) puts it back.
         """
+        if not self.avatars_enabled:
+            return
         try:
             from cogs.avatar import avatar_skills as AS
             for player in self.players:

@@ -128,3 +128,7 @@ Individual caps reserve less permanent stat growth for kits with strong crit, Sp
 | Yotsuha | 45% |
 | Yuki | 35% |
 | Zero Two | 70% |
+
+## Casual slash battle rules
+
+`/battle player:<opponent> bey_level:50 avatars:False` challenges another player with both Beys at level 50 and all avatar bonuses/skills disabled. Level accepts 1–100; omit it to use actual owned levels. Avatars default to On. The challenge shows both rules before acceptance. Fixed level changes are match-local and include ATK/DEF/STM, HP, Special and formula/ability level gates; saved XP remains unchanged and mastery multipliers are disabled for fixed-level matches. Fixed levels require normal Beys rather than rolled boss copies. Ranked keeps its existing rules. `/commands` lists the slash battle command.
