@@ -375,6 +375,16 @@ class PanelCommands(commands.Cog, name="Panels"):
                 break
         return choices
 
+    @app_commands.command(name="battle", description="Challenge a player with optional Bey level and avatar rules")
+    @app_commands.guild_only()
+    @app_commands.describe(player="Player to challenge", bey_level="Set BOTH Beys to this level (blank uses actual levels)",
+                           avatars="Allow avatars and their bonuses for both players")
+    async def battle(self, interaction: discord.Interaction, player: discord.Member,
+                     bey_level: Optional[app_commands.Range[int, 1, 100]] = None,
+                     avatars: bool = True) -> None:
+        await self._run(interaction, "battle", opponent=player, mode="casual",
+                        bey_level=bey_level, avatars=avatars)
+
     @app_commands.command(name="rank",
                           description="Challenge a player to a ranked match")
     @app_commands.describe(player="Player to challenge in ranked")

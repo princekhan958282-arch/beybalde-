@@ -186,6 +186,7 @@ COMMAND_DATA = {
         ("/story",             "The same picker as a menu — chapter, battle, difficulty"),
     ],
     "battle": [
+        ("/battle player [bey_level] [avatars]", "Challenge with both Beys at level 1–100, or actual levels; avatars On/Off"),
         (";battle @user",   "Challenge another blader to a 1v1 match"),
         (";battlestats",    "View your full battle history & win/loss record"),
         (";forfeit",        "Surrender your current ongoing battle"),

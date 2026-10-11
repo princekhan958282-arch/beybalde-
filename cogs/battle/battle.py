@@ -235,7 +235,7 @@ class BattleCog(commands.Cog, name="Battle"):
         brief="Challenge a player to a battle! ⚔️",
     )
     async def battle(self, ctx: commands.Context, opponent: discord.Member,
-                     mode: str = "casual") -> None:
+                     mode: str = "casual", bey_level: int = None, avatars: bool = True) -> None:
         # ── Basic validation ──────────────────────────────────────────────────
         if opponent.bot:
             return await ctx.send("❌ You can't battle a bot!")
@@ -251,6 +251,10 @@ class BattleCog(commands.Cog, name="Battle"):
         # What is left is the daily cap, which is a rule about the ladder
         # rather than about who is allowed on it.
         ranked = str(mode).lower().startswith("rank")
+        if bey_level is not None and not 1 <= bey_level <= 100:
+            return await ctx.send("❌ Bey level must be between 1 and 100.")
+        if ranked and (bey_level is not None or not avatars):
+            return await ctx.send("❌ Custom Bey levels and avatar rules are available in casual battles only.")
         if ranked:
             from utils import ranked as RK
             # Per-opponent daily cap, checked from BOTH sides: the tally is
@@ -312,6 +316,12 @@ class BattleCog(commands.Cog, name="Battle"):
         # boss it came from.
         blade1 = blade1_raw if copy1 else _apply_parts(blade1_raw, c_profile)
         blade2 = blade2_raw if copy2 else _apply_parts(blade2_raw, o_profile)
+        if bey_level is not None:
+            if copy1 or copy2:
+                return await ctx.send("❌ Fixed Bey levels aren't available with boss copies. Use actual levels or equip a normal Bey.")
+            from utils.spin_mode import resolve
+            blade1 = resolve(c_profile, blade1_raw)
+            blade2 = resolve(o_profile, blade2_raw)
 
         # ── Dual-special selection (e.g. Spriggan Requiem) ───────────────────
         # Each player with a dual_special blade must pick their special move
@@ -349,6 +359,9 @@ class BattleCog(commands.Cog, name="Battle"):
         )
 
         view = ChallengeView(ctx.author, opponent)
+        challenge_embed.add_field(name="Battle rules", value=(
+            f"Bey level: **{bey_level if bey_level is not None else 'Actual levels'}** (both players)\n"
+            f"Avatars: **{'On' if avatars else 'Off'}**"), inline=False)
         msg  = await ctx.send(embed=challenge_embed, view=view)
         await view.wait()
 
@@ -370,7 +383,8 @@ class BattleCog(commands.Cog, name="Battle"):
         # Sends nothing when neither player has a card with skills, which is
         # most battles — 27 of the 36 avatars have none.
         from .skill_prompt import resolve_avatar_skills
-        await resolve_avatar_skills(ctx, ctx.author, opponent, ranked=ranked)
+        if avatars:
+            await resolve_avatar_skills(ctx, ctx.author, opponent, ranked=ranked)
 
         # ── Run the match ─────────────────────────────────────────────────────
         # A casual battle is one fight, exactly as before. A RANKED match is a
@@ -385,6 +399,7 @@ class BattleCog(commands.Cog, name="Battle"):
                     bot=self.bot, channel=ctx.channel,
                     p1=ctx.author, p2=opponent,
                     blade1=blade1, blade2=blade2, ranked=False,
+                    bey_level=bey_level, avatars_enabled=avatars,
                 )
                 self.active_battles[ctx.author.id] = session
                 self.active_battles[opponent.id] = session
