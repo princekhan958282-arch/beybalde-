@@ -44,6 +44,27 @@ class _AddModal(discord.ui.Modal):
         await self.view_ref.refresh(interaction)
 
 
+class _AvatarModal(discord.ui.Modal, title="Add an avatar gift"):
+    def __init__(self, view):
+        super().__init__()
+        self.view_ref = view
+        self.name = discord.ui.TextInput(label='Avatar name or ID', placeholder='Tyson', max_length=100)
+        self.level = discord.ui.TextInput(label='Avatar level (1-5)', default='1', max_length=1)
+        self.stars = discord.ui.TextInput(label='Avatar stars (1-15)', default='1', max_length=2)
+        for field in (self.name, self.level, self.stars):
+            self.add_item(field)
+
+    async def on_submit(self, interaction):
+        if not await self.view_ref.guard(interaction):
+            return
+        rewards, err = R.parse_rewards(f'avatar:{str(self.name.value).strip()}@{str(self.level.value).strip()}#{str(self.stars.value).strip()}')
+        if err:
+            return await interaction.response.send_message(f'❌ {err}', ephemeral=True)
+        self.view_ref.rewards.extend(rewards)
+        self.view_ref.note_line = f'✅ Added {R.describe(rewards)}.'
+        await self.view_ref.refresh(interaction)
+
+
 class _BeyLevelModal(discord.ui.Modal, title="Set gift Bey level"):
     """Set the starting level for the most recently added Bey reward."""
 
@@ -152,6 +173,8 @@ class RewardKindSelect(discord.ui.Select):
         kind = self.values[0]
         if kind == "bossbey":
             return await interaction.response.send_modal(_BossBeyModal(self.view_ref))
+        if kind == 'avatar':
+            return await interaction.response.send_modal(_AvatarModal(self.view_ref))
         _kind, label, field_label, placeholder = next(
             row for row in self.KINDS if row[0] == kind)
         modal = _AddModal(self.view_ref, kind, f"Add {label}", field_label, placeholder)

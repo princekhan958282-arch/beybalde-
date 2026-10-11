@@ -94,6 +94,21 @@ def parse_rewards(spec: str) -> tuple[Optional[list[dict]], Optional[str]]:
                               + ", ".join(f"`{k}`" for k in casino_premium.PACKS))
             rewards.append({"kind": "premium", "value": key})
         elif kind in ("avatar", "avatarcard", "card"):
+            # avatar:Tyson@5#8 means card level 5, 8 stars. Legacy names
+            # without suffixes still grant level 1, 1 star.
+            from cogs.avatar import avatar_config as C
+            stars, level = 1, 1
+            if '#' in value:
+                value, raw = value.rsplit('#', 1)
+                if not raw.isdigit() or not 1 <= int(raw) <= C.MAX_STARS:
+                    return None, f'Avatar stars must be from 1 to {C.MAX_STARS}.'
+                stars = int(raw)
+            if '@' in value:
+                value, raw = value.rsplit('@', 1)
+                if not raw.isdigit() or not 1 <= int(raw) <= C.MAX_CARD_LEVEL:
+                    return None, f'Avatar level must be from 1 to {C.MAX_CARD_LEVEL}.'
+                level = int(raw)
+            value = value.strip()
             from cogs.avatar import avatar_engine
             cards = avatar_engine.get_all_avatars()
             vl = value.lower()
@@ -107,7 +122,8 @@ def parse_rewards(spec: str) -> tuple[Optional[list[dict]], Optional[str]]:
                 return None, (f"**{value}** matches {len(hits)} avatars: {shown}{more}. "
                               f"Use the full name or the id.")
             av = hits[0]
-            rewards.append({"kind": "avatar", "value": av["id"], "label": av["name"]})
+            rewards.append({"kind": "avatar", "value": av["id"], "label": av["name"],
+                            "level": level, "stars": stars})
         elif kind in ("bossbey", "bosscopy", "bossblade", "boss"):
             # boss beys are deliberately absent from beyblades.json (see
             # boss_info.py), so they can't go through the `blade:` path above
@@ -160,7 +176,7 @@ def describe(rewards: list[dict]) -> str:
         elif r["kind"] == "premium":
             bits.append(f"👑 {casino_premium.PACKS[r['value']]['display']} pass")
         elif r["kind"] == "avatar":
-            bits.append(f"🖼️ **{r.get('label', r['value'])}**")
+            bits.append(f"🖼️ **{r.get('label', r['value'])}** (Lv.{r.get('level', 1)} · {r.get('stars', 1)}★)")
         elif r["kind"] == "bossbey":
             grade = f" ({r['grade']})" if r.get("grade") else ""
             bits.append(f"👹 **{r['value'].title()}** boss copy{grade}")
@@ -231,8 +247,9 @@ async def grant(user_id: int, rewards: list[dict], *, source=None, channel_id=No
             label = r.get("label", r["value"])
             from cogs.avatar.avatar_rewards import enqueue
             await mutate_user(user_id, lambda p: enqueue(p, r['value'],
-                reward_id=f'code:{source}:{reward_index}' if source else None, channel_id=channel_id))
-            got.append(f"🖼️ **{label}** — Keep/Sell decision pending (`;avatarrewards`)")
+                reward_id=f'code:{source}:{reward_index}' if source else None, channel_id=channel_id,
+                level=r.get('level', 1), stars=r.get('stars', 1)))
+            got.append(f"🖼️ **{label}** (Lv.{r.get('level', 1)} · {r.get('stars', 1)}★) — Keep/Sell decision pending (`;avatarrewards`)")
         elif r["kind"] == "bossbey":
             from cogs.battle.boss import boss_copy as bcopy
             from cogs.battle.boss import boss_info as binfo
