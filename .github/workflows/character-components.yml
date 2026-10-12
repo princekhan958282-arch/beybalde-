@@ -70,6 +70,7 @@ jobs:
           python tools/test_special_defense.py
           python -m unittest tools.test_battle_log_consistency
           python -m unittest tools.test_battle_bug_audit
+          python -m unittest tools.test_requiem_specials
           python -m unittest tools.test_noctilune
           python -m unittest tools.test_void_longinus
           python tools/test_original_generation.py

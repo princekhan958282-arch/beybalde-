@@ -888,6 +888,9 @@ class AttackManager:
         if hits > 1:
             logs.append(f"  🔥 **Total Special Damage: {total_dmg}**")
 
+        from . import requiem
+        requiem.cast(self.session, mkey, mblade, logs)
+
         return total_dmg, logs
 
     def _apply_passive_reduction(

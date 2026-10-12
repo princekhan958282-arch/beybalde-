@@ -2118,6 +2118,9 @@ class AbilityEngine:
             true_damage=self.damage_filter.is_true_damage(mover_key, move))
         dmg_dealt = self.dranzer.mitigate(other_key, move, dmg_dealt, logs)
 
+        from cogs.battle import requiem
+        dmg_dealt = requiem.absorb(self.session, other_key, move, dmg_dealt, logs)
+
         # A rolled critical is not a landed hit. Reward only after final
         # avatar dodge/resistance and HP commit in AttackManager.
         if self.last_hit_was_crit and dmg_dealt > 0 and is_first_hit:

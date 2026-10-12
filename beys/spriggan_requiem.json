@@ -45,7 +45,7 @@
   "special_moves": {
     "Requiem Whip": {
       "name": "Requiem Whip",
-      "description": "Spriggan reverses its spin and delivers a devastating whipping slash that tears through all defenses!",
+      "description": "Deals a three-hit Special, then converts its DEF and STM into additional ATK for the next 3 turns (ATK = ATK + DEF + STM). The conversion does not consume its DEF, STM, or current stamina.",
       "hits": 3,
       "damage_per_hit": 48.33,
       "total_damage": 145,
@@ -53,11 +53,12 @@
         "👑 **Requiem Whip** — Spriggan's spin axis reverses!",
         "⚡ **Hit 2** — The whip tears through the stadium walls!",
         "🌀 **Hit 3** — REQUIEM WHIP — DIVINE SPIN FINISH!"
-      ]
+      ],
+      "requiem_form": "whip"
     },
     "Requiem Zone": {
       "name": "Requiem Zone",
-      "description": "Spriggan creates a zone of absolute domination — raining divine spin energy on the opponent from all angles!",
+      "description": "Deals a four-hit Special, then enters Spin Absorption for the next 2 turns. Incoming normal Attack damage is absorbed instead of reducing HP and restores 1 stamina per 20 damage, up to its stamina cap. Enemy Specials, counters, and damage-over-time still deal damage.",
       "hits": 4,
       "damage_per_hit": 36.25,
       "total_damage": 145,
@@ -66,20 +67,22 @@
         "💫 **Hit 2** — Divine energy floods the stadium!",
         "⚡ **Hit 3** — The zone tightens — no escape!",
         "👑 **Hit 4** — REQUIEM ZONE — ABSOLUTE DOMINATION!"
-      ]
+      ],
+      "requiem_form": "zone"
     }
   },
   "special_move": {
     "name": "Requiem Whip",
-    "description": "Spriggan reverses its spin and delivers a devastating whipping slash that tears through all defenses!",
+    "description": "Deals a three-hit Special, then converts its DEF and STM into additional ATK for the next 3 turns (ATK = ATK + DEF + STM). The conversion does not consume its DEF, STM, or current stamina.",
     "hits": 3,
     "damage_per_hit": 48.33,
-    "total_damage": 144,
+    "total_damage": 145,
     "flavour_texts": [
       "👑 **Requiem Whip** — Spriggan's spin axis reverses!",
       "⚡ **Hit 2** — The whip tears through the stadium walls!",
       "🌀 **Hit 3** — REQUIEM WHIP — DIVINE SPIN FINISH!"
-    ]
+    ],
+    "requiem_form": "whip"
   },
   "_note": "dual_special=True: battle.py's DualSpecialView overwrites special_move + chosen_special at runtime. special_move is pre-seeded with Requiem Whip because tournament.py builds a BattleSession WITHOUT calling _resolve_dual_special — a null special_move there hits the resolve_special() fallback of 1 x 360 damage. Never let special_move go back to null.",
   "abilities": [

@@ -69,6 +69,8 @@ def effective_stats(session, key, include_dranzer=True):
     burst = getattr(getattr(session, 'ability', None), 'burst', None)
     if burst:
         burst.apply_stats(key, result)
+    from . import requiem
+    requiem.apply_stats(session, key, result)
     return result
 
 
