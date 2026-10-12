@@ -138,10 +138,17 @@ class AvatarRosterTests(AvatarConnectionTests):
             s.type_gimmicks.rng=lambda:.99
             s.type_gimmicks.start_round();s.type_gimmicks.begin_round(s.moves,started=True)
             with patch('cogs.battle.avatar_combat.random.random',return_value=0):
-                dmg,_,_=s.ability.apply(key,other,s.blades[key],s.blades[other],'attack','win',100,0)
+                dmg,counter,_=s.ability.apply(key,other,s.blades[key],s.blades[other],'attack','win',100,0)
             self.assertEqual(dmg,200)
             if bonus.get('gauge_on_crit'):
-                self.assertGreater(s.stamina_manager.gauge[key],0)
+                # Critical rewards are granted only once damage reaches HP.
+                self.assertEqual(s.stamina_manager.gauge[key],0)
+                hp_before=s.hp[other]
+                s.attack_manager.apply_pair_results(
+                    key,other,s.blades[key],s.blades[other],
+                    'attack','charge',dmg,counter,'win',0,0,'lose')
+                self.assertLess(s.hp[other],hp_before)
+                self.assertEqual(s.stamina_manager.gauge[key],av.gauge_on_crit)
         if bonus.get('dodge_chance'):
             with patch('cogs.battle.avatar_combat.random.random',return_value=0):
                 through,_,_=AVC.absorb_incoming(s,key,other,100)
