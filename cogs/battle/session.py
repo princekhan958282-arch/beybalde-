@@ -904,6 +904,10 @@ class BattleSession:
             dm   = self.defense_manager
             tags = []
             tags.extend(self.ability.dranzer.tags(key))
+            from . import requiem
+            form_tag = requiem.tag(self, key)
+            if form_tag:
+                tags.append(form_tag)
 
             atk_buff  = sum(b["amount"] for b in st.active_buffs.get(key, []) if b["stat"] == "attack")
             def_buff  = sum(b["amount"] for b in st.active_buffs.get(key, []) if b["stat"] == "defense")
@@ -1187,6 +1191,8 @@ class BattleSession:
         sm     = self.stamina_manager
 
         round_log: list[str] = []
+        from . import requiem
+        requiem.expire(self, round_log)
         tactical = self.ability.tactical
 
         # ── Round-start stamina regen from active buffs (e.g. Cosmic Mode) ───
