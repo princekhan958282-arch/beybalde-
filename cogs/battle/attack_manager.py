@@ -365,6 +365,8 @@ class AttackManager:
             hp[k2] = remaining
             self.session.ability.dranzer.after_incoming(k2, logs)
             self.committed_damage[k1] = actual
+            if self.session.ability.pending_critical_rewards.pop(k1, False) and actual > 0:
+                logs.extend(AVC.on_crit(self.session, k1))
             self.session.ability.draciel.committed(k1, k2, m1, actual)
             self.session.ability.dranzer.committed(k1, k2, m1, actual)
             if extra is not None:
@@ -390,6 +392,8 @@ class AttackManager:
             hp[k1] = remaining
             self.session.ability.dranzer.after_incoming(k1, logs)
             self.committed_damage[k2] = actual
+            if self.session.ability.pending_critical_rewards.pop(k2, False) and actual > 0:
+                logs.extend(AVC.on_crit(self.session, k2))
             self.session.ability.draciel.committed(k2, k1, m2, actual)
             self.session.ability.dranzer.committed(k2, k1, m2, actual)
             if extra is not None:
@@ -510,6 +514,9 @@ class AttackManager:
                 out.append("Special gauge charged up!")
             elif move == MOVE_STAMINA:
                 out.append("It braced and recovered stamina!")
+            elif move == MOVE_DEFENSE and dmg <= 0:
+                out.append("Its guard was outmaneuvered!" if matchup in ("lose", "lose_grind")
+                           else "It held its guard!")
             elif dmg > 0:
                 if matchup == "win":
                     out.append(f"It's super effective! Dealt **{dmg}** damage!")
