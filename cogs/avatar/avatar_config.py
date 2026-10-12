@@ -39,7 +39,7 @@ PROFILE_TIMEOUT = 180
 EMPOWER_PERCENT_STEP = .02
 SKILL_CAP_PER_CARD_LEVEL = 2
 
-# Hard maximum for authored per-avatar ATK/DEF/STM/HP bonus caps.
+# Hard maximum for authored per-avatar ATK/DEF/STM bonus caps.
 # Apply each card's stat_bonus_cap at use time, never to saved progress.
 AVATAR_STAT_BONUS_CAP = 1.0
 
