@@ -7,7 +7,7 @@ tools/sim_balance_pass.py — the five-part balance pass.
                    multi_hit_power_double which doubles the damage per hit.
   2. Shadow Dragon King   Absolute Darkness 70% -> 55%, of CURRENT stats.
   3. Void Longinus        Longinus Strike awakens at bey level 100: 30 damage
-                          and 10 stability instead of 20 / 5.
+                          and 15 stability instead of 20 / 8.
   4. Tartarus Reaper      Soul Judgement 30 -> 25, capped at 3 stacks.
   5. Excalibur Ascendant  Internal Overdrive 3 -> 4 turns, undodgeable,
                           guaranteed crits at double damage; Dragon Core
@@ -157,14 +157,14 @@ lo = [r for r in ls["rules"]
 hi = [r for r in ls["rules"]
       if any(c["cond"] == "bey_level_at_least" for c in (r.get("if") or []))]
 check("the two forms have the same number of rules",
-      len(lo) == len(hi) and len(lo) == 6, (len(lo), len(hi)))
+      len(lo) == len(hi) and len(lo) == 10, (len(lo), len(hi)))
 check("below 100 it is 20 damage",
       {o["value"] for o in ops_in(lo, "bonus_damage")} == {20})
 check("at 100 it is 30", {o["value"] for o in ops_in(hi, "bonus_damage")} == {30})
-check("below 100 it is 5 stability",
-      {o["amount"] for o in ops_in(lo, "enemy_lose_stability")} == {5})
-check("at 100 it is 10",
-      {o["amount"] for o in ops_in(hi, "enemy_lose_stability")} == {10})
+check("below 100 it is 8 base / 5 bonus stability",
+      {o["amount"] for o in ops_in(lo, "enemy_lose_stability")} == {5, 8})
+check("at 100 it is 15 base / 10 bonus",
+      {o["amount"] for o in ops_in(hi, "enemy_lose_stability")} == {10, 15})
 
 
 class _Sess:
