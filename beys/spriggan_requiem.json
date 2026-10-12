@@ -45,7 +45,7 @@
   "special_moves": {
     "Requiem Whip": {
       "name": "Requiem Whip",
-      "description": "Deals a three-hit Special, then converts its DEF and STM into additional ATK for the next 3 turns (ATK = ATK + DEF + STM). The conversion does not consume its DEF, STM, or current stamina.",
+      "description": "Deals a three-hit Special. For the next 3 turns, ATK becomes ATK + DEF + STM. Defense and Stamina buttons also deal normal Attack damage while retaining their original effects: Defense still guards/counters, and Stamina still restores HP and stamina. DEF, STM and current stamina are not consumed by the conversion.",
       "hits": 3,
       "damage_per_hit": 48.33,
       "total_damage": 145,
@@ -73,7 +73,7 @@
   },
   "special_move": {
     "name": "Requiem Whip",
-    "description": "Deals a three-hit Special, then converts its DEF and STM into additional ATK for the next 3 turns (ATK = ATK + DEF + STM). The conversion does not consume its DEF, STM, or current stamina.",
+    "description": "Deals a three-hit Special. For the next 3 turns, ATK becomes ATK + DEF + STM. Defense and Stamina buttons also deal normal Attack damage while retaining their original effects: Defense still guards/counters, and Stamina still restores HP and stamina. DEF, STM and current stamina are not consumed by the conversion.",
     "hits": 3,
     "damage_per_hit": 48.33,
     "total_damage": 145,

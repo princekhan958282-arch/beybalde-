@@ -12,6 +12,15 @@ def active(session, key, mode=None):
                 and (mode is None or form['mode'] == mode))
 
 
+def button_attack(session, key, move):
+    return move in ('defense', 'stamina') and active(session, key, 'whip')
+
+
+def damage_move(session, key, move):
+    """Whip adds a normal strike without changing the selected action."""
+    return 'attack' if button_attack(session, key, move) else move
+
+
 def cast(session, key, blade, logs):
     if blade.get('id') != 'BB023':
         return
@@ -27,7 +36,7 @@ def cast(session, key, blade, logs):
     session.requiem_forms[key] = {'mode': mode, 'start': session.round + 1,
                                   'end': session.round + turns}
     if mode == 'whip':
-        logs.append('⚔️ **Requiem Whip** — ATK uses ATK + DEF + STM for the next **3 turns**!')
+        logs.append('⚔️ **Requiem Whip** — ATK uses ATK + DEF + STM for **3 turns**; Defense and Stamina also strike while retaining their original effects!')
     else:
         logs.append('🌀 **Requiem Zone** — normal Attack damage converts to stamina for the next **2 turns**; Specials still deal damage!')
 

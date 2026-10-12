@@ -1897,6 +1897,8 @@ class AbilityEngine:
     ) -> tuple[int, int, list[str]]:
         """Route one move through the full generic trigger pipeline."""
         logs: list[str] = []
+        from cogs.battle import requiem
+        hit_move = requiem.damage_move(self.session, mover_key, move)
         if is_first_hit:
             self.pending_critical_rewards.pop(mover_key, None)
         if move == MOVE_SPECIAL and is_first_hit:
@@ -2073,7 +2075,7 @@ class AbilityEngine:
                 self.last_hit_was_crit |= natural
             true = self.st.get_duration("true_damage_turns", mover_key) > 0
             # A nullified normal hit must not consume shields or invoke reflects.
-            if engine.nullifies(mover_key, other_key, move, true_damage=true):
+            if engine.nullifies(mover_key, other_key, hit_move, true_damage=true):
                 dmg_dealt = 0
                 dmg_taken = 0
             dmg_dealt, defensive_logs = self.damage_filter.defensive(
@@ -2085,7 +2087,7 @@ class AbilityEngine:
         # Defender reactive triggers (blocked only by evasion, not mover silence)
         if not evaded and dmg_dealt > 0:
             dmg_dealt, dmg_taken = self._fire_defensive(
-                other_key, mover_key, other_blade, move, matchup,
+                other_key, mover_key, other_blade, hit_move, matchup,
                 dmg_dealt, dmg_taken, logs)
 
         if engine is not None:
@@ -2098,7 +2100,7 @@ class AbilityEngine:
             if not true and not bypass:
                 dmg_dealt, logs = self.session.attack_manager._apply_passive_reduction(
                     other_key, other_blade, dmg_dealt, logs)
-            dmg_dealt = engine.mitigate(mover_key, other_key, move, dmg_dealt,
+            dmg_dealt = engine.mitigate(mover_key, other_key, hit_move, dmg_dealt,
                                        true_damage=true, bypass_reduction=bypass,
                                        pierce_pct=pierce)
             if pierce > 0 and not true and not bypass and engine.types[other_key] == 'defense':
@@ -2114,12 +2116,12 @@ class AbilityEngine:
 
         # Draciel barriers absorb after normal mitigation, before HP commits.
         dmg_dealt = self.draciel.mitigate(
-            mover_key, other_key, move, dmg_dealt, logs,
+            mover_key, other_key, hit_move, dmg_dealt, logs,
             true_damage=self.damage_filter.is_true_damage(mover_key, move))
-        dmg_dealt = self.dranzer.mitigate(other_key, move, dmg_dealt, logs)
+        dmg_dealt = self.dranzer.mitigate(other_key, hit_move, dmg_dealt, logs)
 
         from cogs.battle import requiem
-        dmg_dealt = requiem.absorb(self.session, other_key, move, dmg_dealt, logs)
+        dmg_dealt = requiem.absorb(self.session, other_key, hit_move, dmg_dealt, logs)
 
         # A rolled critical is not a landed hit. Reward only after final
         # avatar dodge/resistance and HP commit in AttackManager.

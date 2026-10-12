@@ -119,6 +119,79 @@ class RequiemSpecials(unittest.IsolatedAsyncioTestCase):
         other, other_key, _ = self.session()
         self.assertFalse(requiem.active(other, other_key))
 
+    async def test_whip_defense_and_stamina_strike_with_original_effects(self):
+        for reverse in (False, True):
+            for level in (1, 100):
+                incoming = {}
+                for move in ('defense', 'stamina'):
+                    with self.subTest(reverse=reverse, level=level, move=move):
+                        s, key, enemy = self.session(reverse=reverse, level=level)
+                        await self.turn(s, key, enemy, 'special', 'charge')
+                        s.hp[key] = 5000
+                        s.stamina_manager.stamina[key] = 5
+                        enemy_hp = s.hp[enemy]
+                        await self.turn(s, key, enemy, move, 'attack')
+                        self.assertGreater(s.attack_manager.committed_damage[key], 0)
+                        self.assertEqual(s.last_moves[key], move)
+                        incoming[move] = s.attack_manager.committed_damage[enemy]
+                        if move == 'defense':
+                            self.assertGreater(enemy_hp - s.hp[enemy],
+                                               s.attack_manager.committed_damage[key])
+                        if move == 'stamina':
+                            self.assertGreater(s.hp[key], 5000 - incoming[move] + 8)
+                            self.assertGreater(s.stamina_manager.stamina[key], 5)
+                self.assertLess(incoming['defense'], incoming['stamina'])
+
+    async def test_whip_keeps_selected_button_triggers_without_attack_trigger_replay(self):
+        for move, trigger in (('defense', 'on_defense_win'), ('stamina', 'on_stamina_loss')):
+            with self.subTest(move=move):
+                s, key, enemy = self.session()
+                await self.turn(s, key, enemy, 'special', 'charge')
+                s.blades[key]['abilities'] = [{'name': 'Action audit', 'rules': [
+                    {'when': trigger, 'do': [{'op': 'add_counter', 'name': 'original_button'}]},
+                    {'when': 'on_attack_hit', 'do': [{'op': 'add_counter', 'name': 'attack_only'}]}]}]
+                s.ability._compiled.clear()
+                await self.turn(s, key, enemy, move, 'attack')
+                self.assertEqual(s.ability.counters.get((key, 'original_button')), 1)
+                self.assertEqual(s.ability.counters.get((key, 'attack_only'), 0), 0)
+
+    async def test_whip_button_strikes_obey_invulnerability_and_shields(self):
+        for move in ('defense', 'stamina'):
+            for guard in ('invulnerability', 'shield'):
+                with self.subTest(move=move, guard=guard):
+                    s, key, enemy = self.session()
+                    await self.turn(s, key, enemy, 'special', 'charge')
+                    if guard == 'invulnerability':
+                        s.status.set_invulnerable(enemy, 3)
+                    else:
+                        s.status.add_shield(enemy, 10000)
+                    await self.turn(s, key, enemy, move, 'charge')
+                    self.assertEqual(s.attack_manager.committed_damage[key], 0)
+
+    async def test_whip_stamina_strike_stops_after_three_turns(self):
+        s, key, enemy = self.session()
+        await self.turn(s, key, enemy, 'stamina', 'charge')
+        self.assertEqual(s.attack_manager.committed_damage[key], 0)
+        await self.turn(s, key, enemy, 'special', 'charge')
+        for _ in range(3):
+            await self.turn(s, key, enemy, 'stamina', 'charge')
+            self.assertGreater(s.attack_manager.committed_damage[key], 0)
+        await self.turn(s, key, enemy, 'stamina', 'charge')
+        self.assertEqual(s.attack_manager.committed_damage[key], 0)
+
+    async def test_both_whip_defense_strikes_keep_both_guard_counters(self):
+        s, key, enemy = self.session()
+        s.blades[enemy] = copy.deepcopy(s.blades[key])
+        s.ability._compiled.clear()
+        await self.turn(s, key, enemy, 'special', 'special')
+        s.hp[key] = s.hp[enemy] = 8000
+        await self.turn(s, key, enemy, 'defense', 'defense')
+        from cogs.battle.damage_rules import _counter_hit
+        for defender, attacker in ((key, enemy), (enemy, key)):
+            counter = _counter_hit(0, effective_stats(s, defender)['defense'])
+            self.assertEqual(s.hp[defender],
+                8008 - s.attack_manager.committed_damage[attacker] - counter)
+
 
 if __name__ == '__main__':
     unittest.main()
