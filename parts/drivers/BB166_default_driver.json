@@ -1,0 +1,18 @@
+{
+  "id": "BB166_default_driver",
+  "name": "ARGUS PRIME org Signature Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 55,
+    "attack": 36,
+    "defense": 24,
+    "stamina": 30
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB166",
+  "_registry_order": 1166
+}

@@ -136,7 +136,7 @@ def _roll_hidden_spawn(beyblades: dict) -> Optional[dict]:
             continue
         # Booster-exclusive blades must stay pack-only even if stale or
         # accidental hidden-drop metadata is present.
-        if data.get("booster_exclusive"):
+        if data.get("booster_exclusive") or data.get("boss_only"):
             continue
         if data.get("rarity") in _NEVER_SPAWN or not obtainable(data):
             continue
@@ -158,7 +158,7 @@ def _pick_random_beyblade(beyblades: dict) -> Optional[dict]:
         # whose limited-time window has closed, or anything bound to named
         # owners — a wild spawn has no player in hand, so owner-bound content
         # must never land in the pool at all.
-        if data.get("booster_exclusive") or r in _NEVER_SPAWN:
+        if data.get("booster_exclusive") or data.get("boss_only") or r in _NEVER_SPAWN:
             continue
         if not obtainable(data):
             continue
@@ -176,6 +176,7 @@ def _pick_random_beyblade(beyblades: dict) -> Optional[dict]:
         fallback = [
             v for v in beyblades.values()
             if not v.get("booster_exclusive")
+            and not v.get("boss_only")
             and v.get("rarity", "Common") not in _NEVER_SPAWN
             and obtainable(v)
             and not _hidden_spawn_n(v)      # the fallback is still a pool
@@ -537,7 +538,7 @@ class SpawnCog(commands.Cog):
                 # Admin-forced Exclusive spawn: bypass the normal weights and
                 # the _NEVER_SPAWN filter, pick uniformly among Exclusives.
                 pool = [d for d in beyblades.values()
-                        if d.get("rarity") == "Exclusive"]
+                        if d.get("rarity") == "Exclusive" and not d.get("boss_only")]
                 chosen = random.choice(pool) if pool else None
             else:
                 # The hidden roll goes FIRST and short-circuits the weighted
@@ -827,6 +828,9 @@ class SpawnCog(commands.Cog):
             return
 
         await self._do_spawn(spawn_channel)
+        # Boss encounters share natural server activity and the configured
+        # spawn channel. Admin force-spawns do not trigger this event.
+        self.bot.dispatch("beycord_spawn_cycle", spawn_channel)
 
     # ── ;claim ────────────────────────────────────────────────────────────────
 

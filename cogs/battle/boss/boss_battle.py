@@ -1,9 +1,9 @@
 """
 boss_battle.py  —  👹 Boss battles
 
-    ;boss           → pick a boss
-    ;boss <name>    → fight one directly
+    Bosses appear randomly during server activity. Challenge the spawn button.
     ;bosses         → the roster and what you've beaten
+    ;bossrewards    → collect original Beys held while inventory was full
 
 Self-contained on purpose. The live PvP engine in cogs/battle/session.py is
 wired through StaminaManager, AbilityEngine, StabilityManager and friends, and
@@ -37,6 +37,7 @@ from . import boss_abilities as ab
 from . import boss_ai as ai
 from . import boss_card as bcard
 from . import boss_copy as bcopy
+from . import boss_originals as originals
 from . import boss_info as binfo
 from . import boss_tiers as btiers
 from . import drakos as dk
@@ -49,6 +50,9 @@ from . import gemini
 # every mode rather than doubling the moment you type ;boss.
 BASE_PLAYER_HP = 2000
 TURN_SECONDS   = 60
+BOSS_AI_DIFFICULTY = "veteran"  # IQ 2, independent of stat/reward tier.
+BOSS_SPAWN_CHANCE = 0.05       # One roll per natural wild-spawn activity cycle.
+BOSS_SPAWN_SECONDS = 300       # Five minutes to challenge a random encounter.
 log = logging.getLogger("beyblade_bot.boss")
 
 # ── System lock ───────────────────────────────────────────────────────────────
@@ -398,15 +402,12 @@ def lobby_card_state(key: str, party: list = None, footer: str = "",
         ("Attack",    f"{atk:.0f}"),
         ("Defense",   f"{base_def:.0f}"),
         ("Stamina",   f"{base_sta:.0f}"),
-        ("Boss AI",    btiers.walk_difficulty(
-                           cfg.get("difficulty", ""), tcfg["key"]).title()
-                       + " · " + ai.iq_label(btiers.walk_difficulty(
-                           cfg.get("difficulty", ""), tcfg["key"]))),
+        ("Boss AI",    ai.iq_label(BOSS_AI_DIFFICULTY)),
         ("Entry",     "free" if not btiers.price_of(tcfg["key"], key)
                       else f"{btiers.price_of(tcfg['key'], key):,} coins each"),
         ("Reward",    (f"{btiers.scale_reward(reward.get('coins', 0), tcfg['key']):,} coins"
                         if reward.get("coins") else "No coin payout")
-                       + (" · boss copy" if prof else "")),
+                       + (" · original Bey" if prof else "")),
     ]
     return {
         "boss_name": cfg["name"],
@@ -701,8 +702,7 @@ class BossFight:
 
         boss_move, _vals = ai.choose_move(
             self.boss, self.foe, self.model,
-            difficulty=btiers.walk_difficulty(self.cfg["difficulty"],
-                                              self.tier))
+            difficulty=BOSS_AI_DIFFICULTY)
         if not is_round_end:
             boss_move = ai.MOVE_CHARGE if self.boss.can(ai.MOVE_CHARGE) else ai.MOVE_STAMINA
 
@@ -954,8 +954,7 @@ class BossFight:
             # The AI rung this fight is ACTUALLY running at, not the one
             # printed in the boss profile — otherwise a Nightmare card claims
             # to be an elite fight.
-            "difficulty": btiers.walk_difficulty(cfg.get("difficulty", ""),
-                                                 self.tier),
+            "difficulty": BOSS_AI_DIFFICULTY,
             "boss_hp":    self.boss.hp, "boss_max": self.boss.max_hp,
             "boss_gauge": self.boss.gauge, "boss_sp": self.boss.sp,
             "boss_ready": self.boss.gauge >= ai.SPECIAL_GAUGE_MAX,
@@ -1090,7 +1089,7 @@ class BossView(discord.ui.View):
             f = self.fight
             if not any(m.id == interaction.user.id for m in f.party):
                 return await interaction.response.send_message(
-                    "You're not in this fight — run `;boss` to start your own.",
+                    "You're not in this fight. Challenge the next random boss spawn.",
                     ephemeral=True)
             if interaction.user.id != f.active.id:
                 return await interaction.response.send_message(
@@ -1280,7 +1279,7 @@ class BossView(discord.ui.View):
             e.description = ((e.description + "\n") if e.description else "") + \
                 f"### ▶️ {f.active.display_name}'s turn"
         _t = btiers.get(f.tier)
-        _rung = btiers.walk_difficulty(cfg["difficulty"], f.tier)
+        _rung = BOSS_AI_DIFFICULTY
         e.set_footer(text=f"Turn {f.turn} · {_t['emoji']} {_t['label']} · "
                           f"Opponent: {_rung} · {ai.iq_label(_rung)}"
                           + ("" if gemini.available() else " · dialogue offline"))
@@ -1403,12 +1402,11 @@ class BossLobbyView(discord.ui.View):
     async def refresh(self, interaction: discord.Interaction) -> None:
         """Redraw after someone joins. Swaps the attachment, not just the embed."""
         f = await self.card_file()
+        edit = interaction.edit_original_response if interaction.response.is_done() else interaction.response.edit_message
         if f is not None:
-            await interaction.response.edit_message(
-                embed=None, attachments=[f], view=self)
+            await edit(embed=None, attachments=[f], view=self)
         else:
-            await interaction.response.edit_message(
-                embed=self.build_embed(), attachments=[], view=self)
+            await edit(embed=self.build_embed(), attachments=[], view=self)
 
     def build_embed(self) -> discord.Embed:
         cfg = BOSSES[self.key]
@@ -1444,6 +1442,7 @@ class BossLobbyView(discord.ui.View):
         e.add_field(
             name="Difficulty",
             value=(btiers.summary_line(self.tier, self.key)
+                   + "\n" + ai.iq_label(BOSS_AI_DIFFICULTY)
                    + ("\n*Free — this is the standard fight.*" if not price
                       else f"\n*Each player pays 🪙 {price:,} to enter.*")),
             inline=False,
@@ -1639,43 +1638,55 @@ class BossLobbyView(discord.ui.View):
             await self._launch(None)
 
 
-class BossSelect(discord.ui.Select):
-    def __init__(self, cleared: set):
-        opts = []
-        for key, cfg in BOSSES.items():
-            done = " ✅" if key in cleared else ""
-            opts.append(discord.SelectOption(
-                label=f"{cfg['name']}{done}",
-                value=key,
-                emoji=cfg["emoji"],
-                description=f"{cfg['difficulty']} · 🪙 {cfg['reward']['coins']:,}"[:100],
-            ))
-        super().__init__(placeholder="👹 Choose your opponent…", options=opts)
-
-    async def callback(self, interaction: discord.Interaction):
-        view: "BossPickView" = self.view
-        if interaction.user.id != view.player.id:
-            return await interaction.response.send_message("Not your menu.", ephemeral=True)
-        await view.cog.launch(interaction, self.values[0])
-        view.stop()
-
-
-class BossPickView(discord.ui.View):
-    def __init__(self, cog, player, cleared: set):
-        super().__init__(timeout=120)
-        self.cog = cog
-        self.player = player
-        self.add_item(BossSelect(cleared))
+class BossEncounterView(discord.ui.View):
+    def __init__(self, cog, guild_id, key):
+        super().__init__(timeout=BOSS_SPAWN_SECONDS)
+        self.cog, self.guild_id, self.key = cog, guild_id, key
         self.message = None
+        self.claimed = False
+        self._claim_lock = asyncio.Lock()
+
+    def embed(self):
+        cfg = BOSSES[self.key]
+        embed = discord.Embed(
+            title=f"{cfg['emoji']} A boss appeared: {cfg['name']}!",
+            description=f"{cfg['blurb']}\n\nPress **Challenge** to open a party lobby. "
+                        "Defeat it to earn its **original Bey**.\n"
+                        f"🧠 **{ai.iq_label(BOSS_AI_DIFFICULTY)}**",
+            colour=cfg["colour"],
+        )
+        prof = binfo.REGISTRY.get(self.key, {})
+        if prof.get("image_url"):
+            embed.set_image(url=prof["image_url"])
+        embed.set_footer(text="First eligible challenger hosts • Expires in 5 minutes")
+        return embed
+
+    @discord.ui.button(label="Challenge", emoji="⚔️", style=discord.ButtonStyle.danger)
+    async def challenge(self, interaction, _button):
+        async with self._claim_lock:
+            if (self.claimed or self.is_finished()
+                    or self.cog._encounters.get(self.guild_id) is not self):
+                return await interaction.response.send_message("This boss encounter is no longer available.", ephemeral=True)
+            await interaction.response.defer()
+            lobby = await self.cog.launch(interaction, self.key)
+            if lobby is not None:
+                self.claimed = True
+                self.cog._encounters.pop(self.guild_id, None)
+                self.stop()
 
     async def on_timeout(self):
-        for c in self.children:
-            c.disabled = True
-        if self.message:
-            try:
-                await self.message.edit(view=self)
-            except Exception:
-                pass
+        async with self._claim_lock:
+            if self.claimed:
+                return
+            if self.cog._encounters.get(self.guild_id) is self:
+                self.cog._encounters.pop(self.guild_id, None)
+            for button in self.children:
+                button.disabled = True
+            if self.message:
+                try:
+                    await self.message.edit(content="⏰ The boss left the arena.", view=self)
+                except discord.HTTPException:
+                    pass
 
 
 class _SellCopyConfirm(discord.ui.View):
@@ -1735,6 +1746,9 @@ class BossCog(commands.Cog, name="Boss"):
         # create_task() can be garbage-collected mid-flight and the boss just
         # goes quiet. Keep a strong ref until it finishes.
         self._tasks: set = set()
+        self._encounters: dict[int, BossEncounterView] = {}
+        self._encounter_lock = asyncio.Lock()
+        self._host_lock = asyncio.Lock()
 
     async def cog_check(self, ctx: commands.Context) -> bool:
         """One gate for the whole cog while the system is locked.
@@ -1773,8 +1787,39 @@ class BossCog(commands.Cog, name="Boss"):
         task.add_done_callback(self._tasks.discard)
 
     def cog_unload(self):
+        for encounter in self._encounters.values():
+            encounter.stop()
+        self._encounters.clear()
         for t in list(self._tasks):
             t.cancel()
+
+    @commands.Cog.listener()
+    async def on_beycord_spawn_cycle(self, channel):
+        if BOSS_SYSTEM_LOCKED or random.random() >= BOSS_SPAWN_CHANCE:
+            return
+        async with self._encounter_lock:
+            if channel.guild.id in self._encounters:
+                return
+            key = random.choice(tuple(BOSSES))
+            view = BossEncounterView(self, channel.guild.id, key)
+            self._encounters[channel.guild.id] = view
+            try:
+                view.message = await channel.send(embed=view.embed(), view=view)
+            except Exception:
+                view.stop()
+                self._encounters.pop(channel.guild.id, None)
+                log.exception("Could not post random boss in guild %s", channel.guild.id)
+
+    @commands.command(name="bossrewards")
+    async def bossrewards(self, ctx):
+        """Collect original boss rewards held while your inventory was full."""
+        granted, remaining = await mutate_user(ctx.author.id, originals.claim_pending)
+        message = "🌀 Added: " + ", ".join(granted[:10]) if granted else "No original boss rewards collected."
+        if len(granted) > 10:
+            message += f" and {len(granted) - 10} more. See `;inventory`."
+        if remaining:
+            message += f"\n🎒 {remaining} reward(s) still saved. Free inventory slots and use `;bossrewards` again."
+        await ctx.send(message)
 
     # ── Rewards ──────────────────────────────────────────────────────────────
     async def finish(self, fight: BossFight, channel):
@@ -1793,7 +1838,7 @@ class BossCog(commands.Cog, name="Boss"):
                 cfg["name"], cfg["persona"], "victory", fight.state())
             e = discord.Embed(
                 title=f"💀  {cfg['name']} stands unbeaten",
-                description=f"*“{line}”*\n\nTry again — `;boss {fight.key}`",
+                description=f"*“{line}”*\n\nWatch for the next random boss spawn.",
                 color=0xe74c3c,
             )
             if fight.result == "draw":
@@ -1802,35 +1847,17 @@ class BossCog(commands.Cog, name="Boss"):
 
         reward = cfg["reward"]
 
-        # Every member of the party is paid, not just fight.player.
-        #
-        # fight.player is the ROTATING active member (_advance_turn sets it from
-        # the turn index), so on a co-op clear it is simply whoever happened to
-        # be up when the boss died. Paying only that one meant the other three
-        # got no coins, no clear credit and — the visible symptom — no boss copy
-        # at all: the drop embed announced a blade that had been written to
-        # somebody else's profile, so it never appeared in their ;inventory.
-        #
-        # Each member also rolls their OWN copy. Sharing one roll would mean
-        # three players hold the same id, and find_copy/;copy resolve by id.
-        prof  = binfo.REGISTRY.get(fight.key)
-        drops: list[tuple] = []          # (member, rolled copy | None)
+        # Each winner gets the original definition in ordinary inventory.
+        # Existing rolled copies remain intact for backwards compatibility.
+        prof = binfo.REGISTRY.get(fight.key)
+        drops: list[tuple] = []  # (member, original name, queued)
         first_any = False
 
-        # The tier the party paid for. It buys three things: bigger payouts, a
-        # grade ladder weighted toward the good end, and a shorter Perfect
-        # roll. The middle one is what a player actually feels — even at the
-        # top tier a Perfect is one clear in twenty thousand.
-        tcfg = fight.tier_cfg
         xp_gains: list[tuple] = []
         t_coins  = btiers.scale_reward(reward["coins"],  fight.tier)
         t_casino = btiers.scale_reward(reward["casino"], fight.tier)
 
         for member in fight.party:
-            rolled = (bcopy.roll_copy(prof,
-                                      perfect_odds=tcfg["perfect_odds"],
-                                      bands=tcfg["bands"])
-                      if prof is not None else None)
 
             def grant(profile):
                 receipts = list(profile.get("boss_reward_receipts") or [])
@@ -1842,8 +1869,7 @@ class BossCog(commands.Cog, name="Boss"):
                 if first:
                     cleared.append(fight.key)
                 profile["bosses_cleared"] = cleared
-                if rolled is not None:
-                    bcopy.grant_copy(profile, rolled)
+                drop_name, queued = originals.grant_original(profile, fight.key) if prof else (None, False)
                 bey_gain = None
                 blade = profile.get("active_beyblade")
                 if blade and not profile.get("active_copy"):
@@ -1854,12 +1880,12 @@ class BossCog(commands.Cog, name="Boss"):
                     except Exception:
                         log.exception("boss bey XP failed for %s", member.id)
                 profile["boss_reward_receipts"] = (receipts + [fight.reward_id])[-50:]
-                return first, bey_gain
+                return first, bey_gain, drop_name, queued
 
             granted = await mutate_user(member.id, grant)
             if granted is None:
                 continue
-            first, bey_gain = granted
+            first, bey_gain, drop_name, queued = granted
             first_any = first_any or first
             try:
                 grant_xp(member.id,
@@ -1872,7 +1898,7 @@ class BossCog(commands.Cog, name="Boss"):
                 member.id, t_casino * (2 if first else 1))
             self._cooldowns[(member.id, fight.key)] = time.time()
 
-            drops.append((member, rolled))
+            drops.append((member, drop_name, queued))
 
         # Headline numbers reflect a first clear if it was one for anybody.
         coins  = t_coins  * (2 if first_any else 1)
@@ -1900,59 +1926,60 @@ class BossCog(commands.Cog, name="Boss"):
                 f"🌀 **{gain['blade']}**{who} +{gain['gained']:,} EXP"
                 + (f" — **Lv {gain['level']}!**" if gain["leveled"] else ""))
         e.add_field(name="📈 Experience", value="\n".join(xp_lines), inline=False)
-        for member, drop in drops:
-            if not drop:
+        for member, name, queued in drops:
+            if not name:
                 continue
-            d = bcopy.describe(drop, prof)
-            kit = []
-            if d["ultimates"]: kit.append("💀 " + ", ".join(d["ultimates"]))
-            if d["specials"]:  kit.append("⚡ " + ", ".join(d["specials"]))
-            if d["abilities"]: kit.append("◆ " + ", ".join(d["abilities"]))
-            if drop["awakening"]:
-                kit.append(f"✨ Awakening ({drop['awaken_chance'] * 100:.0f}%)")
             who = "" if len(drops) == 1 else f" — {member.display_name}"
             e.add_field(
-                name=f"{d['emoji']} {drop['grade']} copy dropped!{who}",
-                value=(f"**{drop['name']}** · `#{drop['id']}`\n"
-                       f"{d['total']}/{d['base_total']} stats "
-                       f"({d['pct']:.0f}% of the original)\n"
-                       + "\n".join(kit)),
+                name=f"🌀 Original Bey earned!{who}",
+                value=f"**{name}** — full base stats and abilities.\n"
+                      + ("Inventory full: saved safely. Free a slot, then use `;bossrewards`."
+                         if queued else "Added to your inventory. Use `;equip <name>` to equip it."),
                 inline=False,
             )
         if first_any:
             e.add_field(name="✨ First clear", value="Rewards doubled!", inline=False)
         e.set_footer(text=f"Cleared in {fight.turn} turns"
-                          + ("  •  ;copies to view your drops" if drops else ""))
+                          + ("  •  ;inventory to view your Beys" if drops else ""))
         mentions = " ".join(m.mention for m in fight.party)
         await channel.send(mentions, embed=e)
 
     # ── Launch ───────────────────────────────────────────────────────────────
     async def launch(self, interaction: discord.Interaction, key: str):
+        # One player cannot claim two encounters concurrently across servers.
+        async with self._host_lock:
+            return await self._launch_encounter(interaction, key)
+
+    async def _launch_encounter(self, interaction: discord.Interaction, key: str):
+        send = interaction.followup.send if interaction.response.is_done() else interaction.response.send_message
         # A picker posted BEFORE the lock still has live buttons until its view
         # times out, so the command gate alone doesn't close every door.
         if BOSS_SYSTEM_LOCKED and interaction.user.id != MASTER_ID:
-            return await interaction.response.send_message(
-                embed=discord.Embed(title=LOCK_TITLE, description=LOCK_MESSAGE,
-                                    colour=0x4E5058),
-                ephemeral=True)
+            await send(embed=discord.Embed(title=LOCK_TITLE, description=LOCK_MESSAGE,
+                                          colour=0x4E5058), ephemeral=True)
+            return None
         player = interaction.user
         ok, msg = await self._can_fight(player.id, key)
         if not ok:
-            return await interaction.response.send_message(msg, ephemeral=True)
+            await send(msg, ephemeral=True)
+            return None
 
         self._active.add(player.id)
         lobby = BossLobbyView(self, player, key)
-        await lobby.refresh(interaction)
         try:
+            await lobby.refresh(interaction)
             lobby.message = await interaction.original_response()
         except Exception:
-            pass
+            lobby.stop()
+            self._active.discard(player.id)
+            raise
+        return lobby
 
     async def _can_fight(self, user_id: int, key: str) -> tuple[bool, str]:
         if user_id in self._active:
             return False, "❌ You're already in a boss fight!"
         profile = await get_user(user_id)
-        if not profile.get("active_beyblade"):
+        if not await bcopy.has_equipped_blade(user_id):
             return False, "❌ Equip a blade first — `;equip <name>` (or `;start`)."
 
         # Progression lock.
@@ -1961,7 +1988,7 @@ class BossCog(commands.Cog, name="Boss"):
             need_name = BOSSES.get(need, {}).get("name", need)
             this_name = BOSSES.get(key, {}).get("name", key)
             return False, (f"🔒 **{this_name}** is locked.\n"
-                           f"Beat **{need_name}** first — `;boss {need}`.")
+                           f"Beat **{need_name}** when it spawns first.")
 
         # Daily limit, persisted so a restart doesn't hand out a free attempt.
         left = daily_remaining(profile, key)
@@ -1978,88 +2005,6 @@ class BossCog(commands.Cog, name="Boss"):
         return True, ""
 
     # ── Commands ─────────────────────────────────────────────────────────────
-    @commands.command(name="boss", aliases=["bossfight", "raidboss"])
-    async def boss(self, ctx: commands.Context, *, name: str = None):
-        """👹 Fight a boss. `;boss` to pick one."""
-        profile = await get_user(ctx.author.id)
-        cleared = set(profile.get("bosses_cleared") or [])
-
-        if name:
-            q = name.strip().lower()
-            key = next((k for k, c in BOSSES.items()
-                        if k == q or c["name"].lower() == q or q in c["name"].lower()), None)
-            if key is None:
-                return await ctx.send(
-                    "❌ No such boss. `;bosses` to see the roster.")
-            ok, msg = await self._can_fight(ctx.author.id, key)
-            if not ok:
-                return await ctx.send(msg)
-
-            self._active.add(ctx.author.id)
-            lobby = BossLobbyView(self, ctx.author, key)
-            try:
-                await lobby.send(ctx)
-            except discord.DiscordException:
-                self._active.discard(ctx.author.id)
-            return
-
-        view = BossPickView(self, ctx.author, cleared)
-
-        def _status(k: str) -> str:
-            """Why a boss can't be fought right now, if it can't.
-
-            Shown up front so a player isn't told 'locked' only after picking
-            it — the roster should explain itself.
-            """
-            need = BOSS_REQUIRES.get(k)
-            if need and need not in cleared:
-                return f"🔒 Beat {BOSSES[need]['name']} first"
-            if k in UNTIMED_BOSSES:
-                return "✅ No timer — pay the fee, fight again"
-            left = daily_remaining(profile, k)
-            if left > 0:
-                return f"🌙 Again in {_fmt_wait(left)}"
-            return "✅ Ready now"
-
-        e = discord.Embed(
-            title="👹  Boss Battles",
-            description="\n".join(
-                f"{c['emoji']} **{c['name']}**{' ✅' if k in cleared else ''}\n"
-                f"　*{c['difficulty']}* · 🪙 {c['reward']['coins']:,}\n"
-                f"　{_status(k)}"
-                for k, c in BOSSES.items()
-            ),
-            color=0x9b59b6,
-        )
-        e.set_footer(text=f"One attempt per boss every {DAILY_LIMIT_H}h  "
-                          f"•  paid bosses have no timer  "
-                          f"•  first clear pays double")
-        e.add_field(
-            name="👁️ God tier",
-            value=("**NEMESIS ÆTHERION** is boss-only — it can't be caught, "
-                   "bought, traded or spawned."),
-            inline=False,
-        )
-        # Feature the boss they should fight next as a card above the roster.
-        # The roster itself stays an embed — per-boss lock/cooldown status is
-        # genuinely textual and reads better as a list than as artwork.
-        featured = next((k for k in BOSSES if k not in cleared), None) \
-            or next(iter(BOSSES))
-        card = None
-        if USE_CARD:
-            try:
-                buf = await bcard.render_lobby(lobby_card_state(
-                    featured, footer="Pick a boss from the menu below"))
-                if buf is not None:
-                    card = discord.File(buf, filename=getattr(buf, "name", "boss.png"))
-            except Exception:                        # noqa: BLE001
-                log.debug("[boss] picker card failed", exc_info=True)
-
-        if card is not None:
-            view.message = await ctx.send(embed=e, file=card, view=view)
-        else:
-            view.message = await ctx.send(embed=e, view=view)
-
     @commands.command(name="bossinfo", aliases=["bossbey", "bossblade"])
     async def bossinfo(self, ctx: commands.Context, *, name: str = None):
         """📖 Info card for a boss-only blade."""
@@ -2080,8 +2025,7 @@ class BossCog(commands.Cog, name="Boss"):
         rows = await bcopy.all_copies(ctx.author.id)
         if not rows:
             return await ctx.send(
-                "🧬 No boss copies yet. Beat a boss with `;boss` — every clear "
-                "drops a copy, and every copy rolls its own kit.")
+                "🧬 You have no legacy boss copies. Random boss wins now award original Beys in `;inventory`.")
 
         # all_copies() already returns best-first, and find_copy() indexes the
         # same order — re-sorting here is what broke ";copy <number>".
@@ -2183,16 +2127,12 @@ class BossCog(commands.Cog, name="Boss"):
             title="⚔️  Boss difficulty",
             description=(
                 "The host picks a tier in the lobby and **every player pays "
-                "their own entry**. A harder boss pays more coins, rolls "
-                "better copy grades, and shortens the odds on a 👑 **Perfect** "
-                "— full stats, the complete kit, a guaranteed awakening."),
+                "their own entry**. Higher tiers increase boss HP, attack and coin/EXP rewards. "
+                "Every tier uses **IQ 2** and awards the **original Bey** on victory."),
             colour=0x8E44AD,
         )
         for k in btiers.ORDERED:
             t = btiers.TIERS[k]
-            gw = sum(b[0] for b in t["bands"])
-            top = sum(w for w, _lo, _hi, g in t["bands"]
-                      if g in ("Pristine", "Flawless"))
             afford = "" if coins >= t["price"] else "  ⚠️ *can't afford*"
             e.add_field(
                 name=f"{t['emoji']} {t['label']} — "
@@ -2201,11 +2141,10 @@ class BossCog(commands.Cog, name="Boss"):
                 value=(f"{t['blurb']}\n"
                        f"❤️ ×{t['hp_mult']:g} HP · ⚔️ ×{t['atk_mult']:g} ATK · "
                        f"💰 ×{t['reward_mult']:g} rewards\n"
-                       f"💠 Pristine+ **{top / gw * 100:.0f}%** · "
-                       f"👑 Perfect **1 in {t['perfect_odds']:,}**"),
+                       "🧠 IQ 2 · 🌀 Original Bey reward"),
                 inline=False,
             )
-        e.set_footer(text=f"You have 🪙 {coins:,}  ·  ;boss to fight one")
+        e.set_footer(text=f"You have 🪙 {coins:,}  ·  Challenge a random boss spawn")
         await ctx.send(embed=e)
 
     @commands.command(name="bosses", aliases=["bosslist"])
@@ -2222,11 +2161,11 @@ class BossCog(commands.Cog, name="Boss"):
             e.add_field(
                 name=f"{cfg['emoji']} {cfg['name']}{' ✅' if key in cleared else ''}",
                 value=(f"*{cfg['blurb']}*\n"
-                       f"{cfg['difficulty']} · {cfg['hp']:,} HP · "
+                       f"IQ 2 · {cfg['hp']:,} HP · "
                        f"🪙 {cfg['reward']['coins']:,} + 🎰 {cfg['reward']['casino']:,}"),
                 inline=False,
             )
-        e.set_footer(text="`;boss <name>` to fight  •  first clear pays double")
+        e.set_footer(text="Challenge a random boss spawn  •  IQ 2  •  first clear pays double")
         await ctx.send(embed=e)
 
 

@@ -1,0 +1,18 @@
+{
+  "id": "BB168_default_driver",
+  "name": "NEMESIS ÆTHERION org Signature Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 55,
+    "attack": 40,
+    "defense": 45,
+    "stamina": 36
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB168",
+  "_registry_order": 1168
+}

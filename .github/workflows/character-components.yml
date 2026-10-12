@@ -81,7 +81,7 @@ jobs:
           python -m unittest tools.test_avatar_skill_display
           python tools/test_draciel.py
           python -m unittest tools.test_dranzer
-          python -m unittest tools.test_boss_flow
+          python -m unittest tools.test_boss_flow tools.test_boss_revamp
       - name: Avatar V4 SQLite and live MySQL progression/rewards
         env:
           AVATAR_V4_TEST_MYSQL_URL: mysql://root:avatar-test@127.0.0.1:3306/avatar_v4_test
