@@ -11,6 +11,12 @@
       "migration_sha256": "557465f1ec3f4b96f0d4fa1fef2d55ec6c3a50c7d3c934ca4fabed7d4af962e5",
       "sha256": "26ff8ac9ad5597c90f3dc8a74222c3d6849dd5a4211ad69845e500f5093c6b9c",
       "reason": "Authorized Longinus Strike stability buff and Attack/Defense/Charge bonus; overlapping Defense conditions apply once per hit. HP damage, stats, parts and ownership identity preserved."
+    },
+    "BB023": {
+      "name": "Spriggan Requiem",
+      "migration_sha256": "3a837a40d36340d11c682d556b1307d2bd362b151adedd60f34e241fa31f6313",
+      "sha256": "1a3d13753af6d5fb38226c221264caf93f1c2584a2578c7d709360c00b2e16bb",
+      "reason": "Authorized Requiem Whip three-turn ATK conversion and Requiem Zone two-turn Attack absorption; Special descriptions and default Whip synchronized. Base stats, component totals, identity and ownership preserved."
     }
   }
 }
