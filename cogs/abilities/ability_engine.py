@@ -715,8 +715,8 @@ class AbilityEngine:
             return
         max_hp = self.session.max_hp_per_player.get(key) or self.session.max_hp
         before = self.session.hp.get(key, 0)
-        self.session.hp[key] = min(max_hp, before + amount)
-        gained = self.session.hp[key] - before
+        from cogs.battle.combat_rules import recover_hp
+        self.session.hp[key], gained = recover_hp(before, max_hp, amount)
         if gained > 0:
             logs.append(f"💚 **{label}** — healed **{gained}** HP!")
 

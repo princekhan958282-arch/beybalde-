@@ -108,6 +108,8 @@ ABILITY_TRIGGER_COMPAT["second_wind"] = ("turn_start",)
 # V3 balance: narrow the outliers and prevent stored shield/charge stacking.
 RULES_VERSION = 3
 ABILITY_COOLDOWN = 4
+# Post-hit debuffs grant after the stat snapshot: two duration boundaries
+# reserve the grant round and exactly one following combat round.
 _REBALANCE = {
     "bonus_damage": ("Adds 10 damage when triggered.", {"value": 10}),
     "bonus_damage_pct": ("Adds 10% damage when triggered.", {"value": 10}),
@@ -121,7 +123,7 @@ _REBALANCE = {
     "drain_stamina": ("Drains 1 enemy Stamina when triggered.", {"value": 1}),
     "reduce_damage_pct_turns": ("Take 10% less damage for 2 turns.", {"value": 10}),
     "reflect_pct_turns": ("Reflect 10% damage for 2 turns.", {"value": 10}),
-    "ignore_defense": ("Reduce enemy Defense by 10% for 1 turn; does not bypass defense or counters.", {"op": "enemy_debuff_pct", "stat": "defense", "value": 10, "turns": 1}),
+    "ignore_defense": ("Reduce enemy Defense by 10% for the next round; does not bypass defense or counters.", {"op": "enemy_debuff_pct", "stat": "defense", "value": 10, "turns": 2}),
     "crit_chance": ("Gain 5% critical chance.", {"value": 5}),
     "crit_damage": ("Critical multiplier becomes 1.6x.", {"value": .1}),
     "balanced_boost": ("Gain 5 ATK, DEF and STM for 2 turns.", {"value": 5}),

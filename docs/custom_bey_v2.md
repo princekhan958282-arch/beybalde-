@@ -24,7 +24,7 @@ Existing owned Custom Bey identity, stats, progression and approval data are pre
 | Stamina Drain | 50 | Drains 1 enemy Stamina when triggered. Cooldown: 4 turns. |
 | Guard Window | 50 | Take 10% less damage for 2 turns. Cooldown: 4 turns. |
 | Reflect Window | 50 | Reflect 10% damage for 2 turns. Cooldown: 4 turns. |
-| Defense Weaken | 50 | Reduce enemy Defense by 10% for 1 turn; does not bypass defense or counters. Cooldown: 4 turns. |
+| Defense Weaken | 50 | Reduce enemy Defense by 10% for the next round; does not bypass defense or counters. Cooldown: 4 turns. |
 | Critical Focus | 50 | Gain 5% critical chance. Cooldown: 4 turns. |
 | Critical Power | 50 | Critical multiplier becomes 1.6x. Cooldown: 4 turns. |
 | Cleanse | 50 | Cleanse negative effects when triggered. Cooldown: 4 turns. |
@@ -77,4 +77,4 @@ Live Discord sending and deployed bot behavior require a post-deployment smoke t
 
 ## V3 battle safeguards
 
-Repeatable preset abilities use a 4-turn cooldown. Defense Weaken applies a 10% DEF debuff for one turn; it never arms full defense bypass. Special Follow-Up adds 25 flat damage to the next Special instead of a duplicate full-strength hit. Stored Special bonuses cap at 25, stored Attack/Special bonuses at 12, and shields from Custom presets/riders cannot increase the total shield above 10% of max HP. Second Wind remains once per battle. Same-named player designs compile independently. Official Bey definitions retain their authored operations and values.
+Repeatable preset abilities use a 4-turn cooldown. Defense Weaken applies a 10% DEF debuff for the next combat round; it never arms full defense bypass. Special Follow-Up adds 25 flat damage to the next Special instead of a duplicate full-strength hit. Stored Special bonuses cap at 25, stored Attack/Special bonuses at 12, and shields from Custom presets/riders cannot increase the total shield above 10% of max HP. Second Wind remains once per battle. Same-named player designs compile independently. Official Bey definitions retain their authored operations and values.

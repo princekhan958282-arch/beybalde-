@@ -69,6 +69,7 @@ jobs:
           python tools/test_special_avatar_pipeline.py
           python tools/test_special_defense.py
           python -m unittest tools.test_battle_log_consistency
+          python -m unittest tools.test_battle_bug_audit
           python tools/test_original_generation.py
           python -m unittest tools.test_avatar_skill_cap tools.test_battle_slash_options
           python tools/test_avatar_roster.py
