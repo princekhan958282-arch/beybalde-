@@ -5,6 +5,12 @@
       "migration_sha256": "aff3c466b846f75f8ab6dce1d0eadb9a81c0cf0e1d7bcaca4ea8217898137d42",
       "sha256": "d865a61f0bc2ab565063e321c63c23c5ca9aa15637eed2be2d58958165d00a80",
       "reason": "Authorized implementation of Lunar Blossom and Midnight Butterfly; stats, component totals and ownership identity preserved."
+    },
+    "BB079": {
+      "name": "Void Longinus",
+      "migration_sha256": "557465f1ec3f4b96f0d4fa1fef2d55ec6c3a50c7d3c934ca4fabed7d4af962e5",
+      "sha256": "26ff8ac9ad5597c90f3dc8a74222c3d6849dd5a4211ad69845e500f5093c6b9c",
+      "reason": "Authorized Longinus Strike stability buff and Attack/Defense/Charge bonus; overlapping Defense conditions apply once per hit. HP damage, stats, parts and ownership identity preserved."
     }
   }
 }

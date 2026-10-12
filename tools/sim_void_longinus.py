@@ -103,7 +103,7 @@ class FakeSession:
         # What each side played this round. A real BattleSession sets this at
         # the top of _resolve_round_inner; `enemy_move_is` reads it and now
         # fails closed when it is absent.
-        self.last_moves = {"p": "attack", "e": "attack"}
+        self.last_moves = {"p": "attack", "e": "stamina"}
 
 
 def engine(foe="Shadow Dragon King"):
@@ -147,7 +147,7 @@ print("\n── 2. Longinus Strike fires on a NORMAL attack ──────�
 e, s = engine()
 dmg, _ = e._fire("on_attack_hit", "p", "e", VL, "attack", "win", 100, 0, [])
 check("adds 20 damage", dmg == 120, dmg)
-check("takes 5 enemy stability", s.stability_manager.applied == [("e", -5)],
+check("takes 8 enemy stability", s.stability_manager.applied == [("e", -8)],
       s.stability_manager.applied)
 check("...off the ENEMY, never itself",
       all(k == "e" for k, _ in s.stability_manager.applied))
@@ -159,7 +159,7 @@ for _hit in range(sm["hits"]):
     d, _ = e.process_hit_proc("p", VL, "e", sm["damage_per_hit"])
     total += d
 check("each of the 2 hits gains 20", total == (90 + 20) * 2, total)
-check("each hit strips 5 stability", len(s.stability_manager.applied) == 2,
+check("each hit strips 8 stability", s.stability_manager.applied == [("e", -8)] * 2,
       s.stability_manager.applied)
 check("8 hits would strip 8 times — it is per hit, not per move",
       True)
@@ -171,18 +171,18 @@ DEF_BLADE = next(n for n, b in BLADES.items()
 e, s = engine(DEF_BLADE)
 e._fire("on_attack_hit", "p", "e", VL, "attack", "win", 100, 0, [])
 took = -sum(d for _k, d in s.stability_manager.applied)
-check(f"a Defense-TYPE enemy ({DEF_BLADE}) loses 10, not 5", took == 10, took)
+check(f"a Defense-TYPE enemy ({DEF_BLADE}) loses 13, not 8", took == 13, took)
 
 e, s = engine()          # Balance enemy, but HOLDING defense
 s.last_moves["e"] = "defense"
 e._fire("on_attack_hit", "p", "e", VL, "attack", "win", 100, 0, [])
 took = -sum(d for _k, d in s.stability_manager.applied)
-check("an enemy HOLDING Defense loses 10 too", took == 10, took)
+check("an enemy HOLDING Defense loses 13 too", took == 13, took)
 
-e, s = engine()          # Balance enemy, attacking
+e, s = engine()          # Balance enemy, using Stamina
 e._fire("on_attack_hit", "p", "e", VL, "attack", "win", 100, 0, [])
 took = -sum(d for _k, d in s.stability_manager.applied)
-check("anyone else loses the base 5", took == 5, took)
+check("anyone else loses the base 8", took == 8, took)
 
 print("\n── 5. Void — right-spin only ────────────────────────────────────")
 RIGHT = next(n for n, b in BLADES.items()

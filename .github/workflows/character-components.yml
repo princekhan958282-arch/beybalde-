@@ -71,6 +71,7 @@ jobs:
           python -m unittest tools.test_battle_log_consistency
           python -m unittest tools.test_battle_bug_audit
           python -m unittest tools.test_noctilune
+          python -m unittest tools.test_void_longinus
           python tools/test_original_generation.py
           python -m unittest tools.test_avatar_skill_cap tools.test_battle_slash_options
           python -m unittest tools.test_avatar_no_hp tools.test_avatar_bonus_caps

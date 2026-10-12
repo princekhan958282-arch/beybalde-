@@ -28,7 +28,7 @@
     {
       "name": "Longinus Strike",
       "trigger": "on_hit",
-      "description": "Every hit Void Longinus lands — a normal attack, or each individual hit of Void Crash — deals 20 bonus damage and 5 stability damage. Against a Defense-type opponent, or one holding Defense, it strips a further 5 stability. At bey level 100 the lance is fully awakened: 30 damage and 10 stability instead.",
+      "description": "Every hit Void Longinus lands — a normal attack, or each individual hit of Void Crash — deals 20 bonus damage and 8 stability damage. Against a Defense-type opponent or an opponent using Attack, Defense, or Charge, it strips a further 5 stability, once per hit. At bey level 100, each hit deals 30 bonus damage and 15 stability damage, with a further 10 stability under the same conditions (25 total).",
       "rules": [
         {
           "when": "on_attack_hit",
@@ -40,7 +40,7 @@
             },
             {
               "op": "enemy_lose_stability",
-              "amount": 5
+              "amount": 8
             }
           ],
           "if": [
@@ -76,11 +76,69 @@
           "if": [
             {
               "cond": "enemy_move_is",
+              "value": "attack"
+            },
+            {
+              "cond": "bey_level_below",
+              "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
+            }
+          ],
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "amount": 5
+            }
+          ]
+        },
+        {
+          "when": "on_attack_hit",
+          "_name": "Longinus Strike",
+          "if": [
+            {
+              "cond": "enemy_move_is",
               "value": "defense"
             },
             {
               "cond": "bey_level_below",
               "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
+            }
+          ],
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "amount": 5
+            }
+          ]
+        },
+        {
+          "when": "on_attack_hit",
+          "_name": "Longinus Strike",
+          "if": [
+            {
+              "cond": "enemy_move_is",
+              "value": "charge"
+            },
+            {
+              "cond": "bey_level_below",
+              "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
             }
           ],
           "do": [
@@ -100,7 +158,7 @@
             },
             {
               "op": "enemy_lose_stability",
-              "amount": 5
+              "amount": 8
             }
           ],
           "if": [
@@ -136,11 +194,69 @@
           "if": [
             {
               "cond": "enemy_move_is",
+              "value": "attack"
+            },
+            {
+              "cond": "bey_level_below",
+              "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
+            }
+          ],
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "amount": 5
+            }
+          ]
+        },
+        {
+          "when": "on_hit",
+          "_name": "Longinus Strike",
+          "if": [
+            {
+              "cond": "enemy_move_is",
               "value": "defense"
             },
             {
               "cond": "bey_level_below",
               "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
+            }
+          ],
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "amount": 5
+            }
+          ]
+        },
+        {
+          "when": "on_hit",
+          "_name": "Longinus Strike",
+          "if": [
+            {
+              "cond": "enemy_move_is",
+              "value": "charge"
+            },
+            {
+              "cond": "bey_level_below",
+              "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
             }
           ],
           "do": [
@@ -160,7 +276,7 @@
             },
             {
               "op": "enemy_lose_stability",
-              "amount": 10
+              "amount": 15
             }
           ],
           "if": [
@@ -196,11 +312,69 @@
           "if": [
             {
               "cond": "enemy_move_is",
+              "value": "attack"
+            },
+            {
+              "cond": "bey_level_at_least",
+              "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
+            }
+          ],
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "when": "on_attack_hit",
+          "_name": "Longinus Strike",
+          "if": [
+            {
+              "cond": "enemy_move_is",
               "value": "defense"
             },
             {
               "cond": "bey_level_at_least",
               "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
+            }
+          ],
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "when": "on_attack_hit",
+          "_name": "Longinus Strike",
+          "if": [
+            {
+              "cond": "enemy_move_is",
+              "value": "charge"
+            },
+            {
+              "cond": "bey_level_at_least",
+              "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
             }
           ],
           "do": [
@@ -220,7 +394,7 @@
             },
             {
               "op": "enemy_lose_stability",
-              "amount": 10
+              "amount": 15
             }
           ],
           "if": [
@@ -256,11 +430,69 @@
           "if": [
             {
               "cond": "enemy_move_is",
+              "value": "attack"
+            },
+            {
+              "cond": "bey_level_at_least",
+              "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
+            }
+          ],
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "when": "on_hit",
+          "_name": "Longinus Strike",
+          "if": [
+            {
+              "cond": "enemy_move_is",
               "value": "defense"
             },
             {
               "cond": "bey_level_at_least",
               "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
+            }
+          ],
+          "do": [
+            {
+              "op": "enemy_lose_stability",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "when": "on_hit",
+          "_name": "Longinus Strike",
+          "if": [
+            {
+              "cond": "enemy_move_is",
+              "value": "charge"
+            },
+            {
+              "cond": "bey_level_at_least",
+              "value": 100
+            },
+            {
+              "cond": "enemy_type_not_in",
+              "value": [
+                "Defense"
+              ]
             }
           ],
           "do": [
