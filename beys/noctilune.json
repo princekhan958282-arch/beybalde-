@@ -16,7 +16,84 @@
   "ability": {
     "name": "Lunar Blossom",
     "trigger": "on_clash_loss",
-    "description": "Whenever Noctilune loses a clash, it gains 1 Lunar Petal (max 5). Each Lunar Petal grants +4% ATK and +4% DEF. At 5 petals, Full Bloom restores 15% max HP, cleanses 1 negative effect, and resets Lunar Petals to 0. Full Bloom can activate twice per battle."
+    "description": "Whenever Noctilune loses a clash, it gains 1 Lunar Petal (max 5). Each Lunar Petal grants +4% ATK and +4% DEF. At 5 petals, Full Bloom restores 15% max HP, cleanses 1 negative effect, and resets Lunar Petals to 0. Full Bloom can activate twice per battle.",
+    "rules": [
+      {
+        "when": "on_any_loss",
+        "_name": "Lunar Blossom",
+        "do": [
+          {
+            "op": "stacking_buff",
+            "name": "noctilune_petals",
+            "stats": [
+              "attack",
+              "defense"
+            ],
+            "per_stack_pct": 0.04,
+            "max": 5
+          }
+        ]
+      },
+      {
+        "when": "on_any_loss",
+        "_name": "Full Bloom",
+        "if": [
+          {
+            "cond": "counter_at_least",
+            "name": "noctilune_petals",
+            "value": 5
+          },
+          {
+            "cond": "counter_below",
+            "name": "noctilune_blooms",
+            "value": 2
+          }
+        ],
+        "do": [
+          {
+            "op": "heal_pct",
+            "value": 15
+          },
+          {
+            "op": "cleanse",
+            "count": 1
+          },
+          {
+            "op": "spend_stacks",
+            "name": "noctilune_petals",
+            "label": "Lunar Petal"
+          },
+          {
+            "op": "add_counter",
+            "name": "noctilune_blooms",
+            "max": 2
+          }
+        ]
+      },
+      {
+        "when": "on_special",
+        "_name": "Midnight Butterfly",
+        "do": [
+          {
+            "op": "special_pierce_pct",
+            "value": 20,
+            "_if": [
+              {
+                "cond": "counter_at_least",
+                "name": "noctilune_petals",
+                "value": 5
+              }
+            ]
+          },
+          {
+            "op": "consume_stack_damage_pct",
+            "name": "noctilune_petals",
+            "per_stack": 6,
+            "consume": false
+          }
+        ]
+      }
+    ]
   },
   "special_move": {
     "name": "🌸 Midnight Butterfly",
@@ -26,13 +103,94 @@
     "total_damage": 150,
     "flavour_texts": [
       "🌸 **Midnight Butterfly** — moonlit wings bloom across the arena!"
-    ]
+    ],
+    "damage_formula": {
+      "base": 150,
+      "attack": 0.45
+    }
   },
   "abilities": [
     {
       "name": "Lunar Blossom",
       "trigger": "on_clash_loss",
-      "description": "Whenever Noctilune loses a clash, it gains 1 Lunar Petal (max 5). Each Lunar Petal grants +4% ATK and +4% DEF. At 5 petals, Full Bloom restores 15% max HP, cleanses 1 negative effect, and resets Lunar Petals to 0. Full Bloom can activate twice per battle."
+      "description": "Whenever Noctilune loses a clash, it gains 1 Lunar Petal (max 5). Each Lunar Petal grants +4% ATK and +4% DEF. At 5 petals, Full Bloom restores 15% max HP, cleanses 1 negative effect, and resets Lunar Petals to 0. Full Bloom can activate twice per battle.",
+      "rules": [
+        {
+          "when": "on_any_loss",
+          "_name": "Lunar Blossom",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "noctilune_petals",
+              "stats": [
+                "attack",
+                "defense"
+              ],
+              "per_stack_pct": 0.04,
+              "max": 5
+            }
+          ]
+        },
+        {
+          "when": "on_any_loss",
+          "_name": "Full Bloom",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "noctilune_petals",
+              "value": 5
+            },
+            {
+              "cond": "counter_below",
+              "name": "noctilune_blooms",
+              "value": 2
+            }
+          ],
+          "do": [
+            {
+              "op": "heal_pct",
+              "value": 15
+            },
+            {
+              "op": "cleanse",
+              "count": 1
+            },
+            {
+              "op": "spend_stacks",
+              "name": "noctilune_petals",
+              "label": "Lunar Petal"
+            },
+            {
+              "op": "add_counter",
+              "name": "noctilune_blooms",
+              "max": 2
+            }
+          ]
+        },
+        {
+          "when": "on_special",
+          "_name": "Midnight Butterfly",
+          "do": [
+            {
+              "op": "special_pierce_pct",
+              "value": 20,
+              "_if": [
+                {
+                  "cond": "counter_at_least",
+                  "name": "noctilune_petals",
+                  "value": 5
+                }
+              ]
+            },
+            {
+              "op": "consume_stack_damage_pct",
+              "name": "noctilune_petals",
+              "per_stack": 6,
+              "consume": false
+            }
+          ]
+        }
+      ]
     }
   ],
   "limited": true,

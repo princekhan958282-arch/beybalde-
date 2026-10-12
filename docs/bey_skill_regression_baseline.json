@@ -1,0 +1,10 @@
+{
+  "beys": {
+    "BB119": {
+      "name": "Noctilune",
+      "migration_sha256": "aff3c466b846f75f8ab6dce1d0eadb9a81c0cf0e1d7bcaca4ea8217898137d42",
+      "sha256": "d865a61f0bc2ab565063e321c63c23c5ca9aa15637eed2be2d58958165d00a80",
+      "reason": "Authorized implementation of Lunar Blossom and Midnight Butterfly; stats, component totals and ownership identity preserved."
+    }
+  }
+}

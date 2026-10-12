@@ -1251,27 +1251,25 @@ class AbilityEngine:
                 mx    = int(op.get("max", 99))
                 cur   = self.counters.get((key, cname), 0)
                 if cur < mx:
-                    stat = op.get("stat", "attack")
-                    # A stack can be worth a PERCENTAGE of the blade's own base
-                    # stat ("each Conquest Stack: +4% ATK"). int(0.04) is 0, so
-                    # those blades stacked nothing at all.
-                    pct  = op.get("per_stack_pct")
-                    if pct is not None:
-                        pct  = float(pct)
-                        pct  = pct if pct <= 1 else pct / 100
-                        base = (self.session.blades.get(key) or {}).get("stats") or {}
-                        per  = int(round(float(base.get(stat, 0)) * pct))
-                    else:
-                        per = int(op.get("per_stack", val))
+                    stats = op.get("stats") or [op.get("stat", "attack")]
+                    pct = op.get("per_stack_pct")
+                    base = (self.session.blades.get(key) or {}).get("stats") or {}
                     self.counters[(key, cname)] = cur + 1
-                    if per:
-                        # Tagged with the counter's own name so `spend_stacks`
-                        # can revoke exactly these and nothing else. A stack
-                        # that can be spent has to be able to be un-granted.
-                        self.st.add_buff(key, stat, per, 99,
-                                         source=f"stack:{cname}")
+                    parts = []
+                    # One shared stack can grant several stats. All grants use
+                    # the same source so spending it removes the whole bonus.
+                    for stat in dict.fromkeys(stats):
+                        if pct is not None:
+                            fraction = float(pct)
+                            fraction = fraction if fraction <= 1 else fraction / 100
+                            per = int(round(float(base.get(stat, 0)) * fraction))
+                        else:
+                            per = int(op.get("per_stack", val))
+                        if per:
+                            self.st.add_buff(key, stat, per, 99, source=f"stack:{cname}")
+                        parts.append(f"+{per} {stat}")
                     logs.append(f"🔺 **{ab_name}** — stack {cur+1}/{mx} "
-                                f"(+{per} {stat})!")
+                                f"({', '.join(parts)})!")
             elif kind == "stack_scaled_lifesteal_pct":
                 # Lifesteal that TRACKS a counter exactly, rather than the
                 # plain `lifesteal_pct` op's "highest value ever granted, for
@@ -1311,8 +1309,11 @@ class AbilityEngine:
                     add = math.ceil(dmg_dealt * pct / 100)
                     if add > 0:
                         dmg_dealt += add
-                    self.counters[(key, cname)] = 0
-                    logs.append(f"🌸 **{ab_name}** — consumed {cur} stack(s) "
+                    consume = op.get("consume", True)
+                    if consume:
+                        self.counters[(key, cname)] = 0
+                    action = "consumed" if consume else "used"
+                    logs.append(f"🌸 **{ab_name}** — {action} {cur} stack(s) "
                                 f"for +{add} damage ({pct:g}%)!")
             elif kind == "consume_stack_burst_enemy_hp_pct":
                 # A finisher scaled to a percentage of the ENEMY's CURRENT hp
