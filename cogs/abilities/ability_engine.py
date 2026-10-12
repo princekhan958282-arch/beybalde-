@@ -1400,7 +1400,11 @@ class AbilityEngine:
                                 f"{int(op.get('turns', val or 1))} turn(s)!")
             elif kind == "ignore_defense":
                 self.st.set_duration("ignore_defense_turns", key, int(op.get("turns", val or 1)))
-                logs.append(f"🗡️ **{ab_name}** — attacks pierce defense!")
+                # Re-arming pierce on the attack that already used it should
+                # not repeat AttackManager's applied-effect announcement.
+                applied = move == MOVE_ATTACK and getattr(self.session, "_damage_bypass", {}).get(key, False)
+                if not applied:
+                    logs.append(f"🗡️ **{ab_name}** — Defense Pierce granted!")
             elif kind == "undodgeable":
                 # An attack that simply cannot be avoided. Dodge is the one
                 # defensive layer that zeroes a hit outright, so an ability
