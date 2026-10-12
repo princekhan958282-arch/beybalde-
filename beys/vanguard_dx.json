@@ -11,7 +11,7 @@
     "defense": 70,
     "stamina": 106,
     "special": 115,
-    "hp": 109
+    "hp": 79
   },
   "ability": {
     "name": "Vanguard Overdrive",
@@ -217,7 +217,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 49,
+    "hp": 35,
     "attack": 47,
     "defense": 32,
     "stamina": 48

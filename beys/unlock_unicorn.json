@@ -12,7 +12,7 @@
     "defense": 112,
     "stamina": 82,
     "special": 100,
-    "hp": 112
+    "hp": 80
   },
   "ability": {
     "name": "Unicorn Reversal",
@@ -179,7 +179,7 @@
     ]
   },
   "main_frame": {
-    "hp": 50,
+    "hp": 36,
     "attack": 32,
     "defense": 50,
     "stamina": 37

@@ -11,7 +11,7 @@
     "defense": 160,
     "stamina": 90,
     "special": 100,
-    "hp": 128
+    "hp": 84
   },
   "ability": {
     "name": "Barrier Blades",
@@ -51,7 +51,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 58,
+    "hp": 38,
     "attack": 34,
     "defense": 72,
     "stamina": 40

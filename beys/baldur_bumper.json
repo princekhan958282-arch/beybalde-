@@ -11,7 +11,7 @@
     "defense": 98,
     "stamina": 88,
     "special": 75,
-    "hp": 111
+    "hp": 80
   },
   "ability": {
     "name": "Divine Shield",
@@ -43,7 +43,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 50,
+    "hp": 36,
     "attack": 21,
     "defense": 44,
     "stamina": 40

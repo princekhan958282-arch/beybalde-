@@ -11,7 +11,7 @@
     "defense": 47,
     "stamina": 83,
     "special": 110,
-    "hp": 80
+    "hp": 73
   },
   "ability": {
     "name": "Valkyrie Ascension",
@@ -52,7 +52,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 36,
+    "hp": 33,
     "attack": 51,
     "defense": 21,
     "stamina": 37

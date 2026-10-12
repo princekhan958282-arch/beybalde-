@@ -71,7 +71,9 @@ XP_BASE = 8
 
 STATS = ("hp", "attack", "defense", "stamina", "special")
 
-# Growth per level, by type. These are the archetypes as specified.
+# HP grows more slowly than combat stats: with 70–100 stock base HP,
+# level 100 reaches 2,010–2,910 battle HP at 15 HP per stat, including IVs.
+# Defense retains the strongest HP growth; combat-stat growth is unchanged.
 #
 # `special` was added later. It used to be excluded from STATS, so it was the
 # one stat that never grew — and since damage_rules.resolve_special read a
@@ -79,10 +81,10 @@ STATS = ("hp", "attack", "defense", "stamina", "special")
 # would have changed nothing. Both halves are needed; see resolve_special.
 # Attack archetypes grow it fastest, matching how they already lead on attack.
 GROWTH = {
-    "attack":  {"hp": 1.5, "attack": 3.0, "defense": 0.8, "stamina": 1.2, "special": 2.6},
-    "defense": {"hp": 2.8, "attack": 1.0, "defense": 3.0, "stamina": 1.5, "special": 1.6},
-    "stamina": {"hp": 2.2, "attack": 1.3, "defense": 1.5, "stamina": 3.2, "special": 1.8},
-    "balance": {"hp": 2.0, "attack": 2.0, "defense": 2.0, "stamina": 2.0, "special": 2.0},
+    "attack":  {"hp": 0.25, "attack": 3.0, "defense": 0.8, "stamina": 1.2, "special": 2.6},
+    "defense": {"hp": 0.45, "attack": 1.0, "defense": 3.0, "stamina": 1.5, "special": 1.6},
+    "stamina": {"hp": 0.40, "attack": 1.3, "defense": 1.5, "stamina": 3.2, "special": 1.8},
+    "balance": {"hp": 0.35, "attack": 2.0, "defense": 2.0, "stamina": 2.0, "special": 2.0},
 }
 DEFAULT_GROWTH = GROWTH["balance"]
 
@@ -150,6 +152,23 @@ def stat_at(base: float, growth: float, level: int, iv: int) -> int:
     return int(min(STAT_CAP, math.floor(raw)))
 
 
+def level_base_stats(blade: dict) -> dict:
+    """Resolve base HP for legacy/new custom allocations without rewriting saves.
+
+    Custom creators still spend their 395 points. Their HP allocation maps
+    proportionally from the legal 20–335 range to the same 70–100 base HP
+    range as official Beys, rather than bypassing the new HP balance.
+    """
+    base = dict(blade.get("stats") or {})
+    if blade.get("id") == "CUSTOM" and "hp" in base:
+        from utils.custom_bey import STAT_MIN, STAT_TOTAL
+        allocation_max = STAT_TOTAL - 3 * STAT_MIN
+        fraction = max(0.0, min(1.0, (float(base["hp"]) - STAT_MIN)
+                               / (allocation_max - STAT_MIN)))
+        base["hp"] = round(70 + 30 * fraction)
+    return base
+
+
 def stats_at(blade: dict, level: int, ivs: Optional[dict] = None) -> dict[str, int]:
     """Every stat for a blade at a level.
 
@@ -157,7 +176,7 @@ def stats_at(blade: dict, level: int, ivs: Optional[dict] = None) -> dict[str, i
     through unchanged rather than dropped — losing one here would silently
     disarm whatever reads it.
     """
-    base = dict(blade.get("stats") or {})
+    base = level_base_stats(blade)
     g = growth_for(blade)
     ivs = ivs or {}
     out = dict(base)

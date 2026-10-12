@@ -5,7 +5,7 @@
   "type": "Attack",
   "spin_direction": "Right",
   "stats": {
-    "hp": 145,
+    "hp": 87,
     "attack": 155,
     "defense": 80,
     "stamina": 110,
@@ -89,7 +89,7 @@
   },
   "description": "Switch between Attack and Counter modes on ;info before battle.",
   "main_frame": {
-    "hp": 65,
+    "hp": 39,
     "attack": 70,
     "defense": 36,
     "stamina": 50
@@ -110,7 +110,7 @@
       "spin_direction": "Right",
       "type": "Attack",
       "stats": {
-        "hp": 145,
+        "hp": 87,
         "attack": 155,
         "defense": 80,
         "stamina": 110,
@@ -176,7 +176,7 @@
       "spin_direction": "Right",
       "type": "Defense",
       "stats": {
-        "hp": 145,
+        "hp": 87,
         "attack": 80,
         "defense": 155,
         "stamina": 110,

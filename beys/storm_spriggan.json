@@ -12,7 +12,7 @@
     "defense": 78,
     "stamina": 78,
     "special": 82,
-    "hp": 104
+    "hp": 78
   },
   "ability": {
     "name": "Spriggan Layer",
@@ -137,7 +137,7 @@
     }
   ],
   "main_frame": {
-    "hp": 47,
+    "hp": 36,
     "attack": 33,
     "defense": 35,
     "stamina": 35

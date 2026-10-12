@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558073674752336013/1791543848421.png?ex=6acac56f&is=6ac973ef&hm=45620033d3088a184c304c1ee86c31661934e197c043246bf4744ed892a774de&",
   "description": "Abyss Fang: Attack type with two unique abilities.",
   "stats": {
-    "hp": 157,
+    "hp": 90,
     "attack": 180,
     "defense": 20,
     "stamina": 111,
@@ -86,7 +86,7 @@
   "_registry_order": 147,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 71,
+    "hp": 40,
     "attack": 81,
     "defense": 9,
     "stamina": 50

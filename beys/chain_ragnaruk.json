@@ -12,7 +12,7 @@
     "defense": 95,
     "stamina": 128,
     "special": 110,
-    "hp": 129
+    "hp": 84
   },
   "ability": {
     "name": "Chain Absorption",
@@ -70,7 +70,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 58,
+    "hp": 38,
     "attack": 32,
     "defense": 43,
     "stamina": 58

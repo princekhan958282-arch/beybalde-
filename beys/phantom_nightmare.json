@@ -13,7 +13,7 @@
     "defense": 115,
     "stamina": 112,
     "special": 145,
-    "hp": 125
+    "hp": 83
   },
   "ability": {
     "name": "Phantom Energy",
@@ -113,7 +113,7 @@
     ]
   },
   "main_frame": {
-    "hp": 56,
+    "hp": 37,
     "attack": 54,
     "defense": 52,
     "stamina": 50

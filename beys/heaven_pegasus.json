@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438411981815940/58faa42aee191cf0ee7237a2a79609df.jpg?ex=6acb705f&is=6aca1edf&hm=ce6cd1ba8b66e58721abd3e5d966f7c7fcb5fbc5ba0bb3583c92bc68ded82429&",
   "description": "Heaven Pegasus: Stamina type with two unique battle abilities.",
   "stats": {
-    "hp": 145,
+    "hp": 87,
     "attack": 95,
     "defense": 110,
     "stamina": 155,
@@ -96,7 +96,7 @@
   "_registry_order": 162,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 65,
+    "hp": 39,
     "attack": 43,
     "defense": 50,
     "stamina": 70

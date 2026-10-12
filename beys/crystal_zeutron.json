@@ -11,7 +11,7 @@
     "defense": 80,
     "stamina": 125,
     "special": 95,
-    "hp": 126
+    "hp": 83
   },
   "ability": {
     "name": "Crystal Balance",
@@ -86,7 +86,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 57,
+    "hp": 37,
     "attack": 32,
     "defense": 36,
     "stamina": 56

@@ -11,7 +11,7 @@
     "defense": 110,
     "stamina": 150,
     "special": 120,
-    "hp": 139
+    "hp": 86
   },
   "special_move": {
     "name": "Blazing Eternal Storm",
@@ -75,7 +75,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 63,
+    "hp": 38,
     "attack": 40,
     "defense": 50,
     "stamina": 68

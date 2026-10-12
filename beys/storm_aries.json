@@ -11,7 +11,7 @@
     "defense": 91,
     "stamina": 98,
     "special": 72,
-    "hp": 121
+    "hp": 82
   },
   "ability": {
     "name": "Wind Control",
@@ -42,7 +42,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 55,
+    "hp": 36,
     "attack": 25,
     "defense": 41,
     "stamina": 44

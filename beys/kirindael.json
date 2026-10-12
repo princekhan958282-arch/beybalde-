@@ -12,7 +12,7 @@
     "defense": 103,
     "stamina": 113,
     "special": 160,
-    "hp": 123
+    "hp": 82
   },
   "special_requires": {
     "counter": "purifier_charge",
@@ -143,7 +143,7 @@
     }
   ],
   "main_frame": {
-    "hp": 55,
+    "hp": 36,
     "attack": 55,
     "defense": 47,
     "stamina": 51

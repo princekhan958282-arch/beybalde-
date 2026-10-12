@@ -11,7 +11,7 @@
     "defense": 117,
     "stamina": 92,
     "special": 110,
-    "hp": 114
+    "hp": 80
   },
   "ability": {
     "name": "Zeta Overdrive",
@@ -55,7 +55,7 @@
   ],
   "spin_direction": "Dual",
   "main_frame": {
-    "hp": 51,
+    "hp": 36,
     "attack": 48,
     "defense": 53,
     "stamina": 42

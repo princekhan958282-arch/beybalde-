@@ -11,7 +11,7 @@
     "defense": 89,
     "stamina": 74,
     "special": 70,
-    "hp": 106
+    "hp": 78
   },
   "ability": {
     "name": "Earth Fortress",
@@ -41,7 +41,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 48,
+    "hp": 36,
     "attack": 34,
     "defense": 40,
     "stamina": 33

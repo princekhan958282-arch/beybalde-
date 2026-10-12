@@ -11,7 +11,7 @@
     "defense": 108,
     "stamina": 88,
     "special": 100,
-    "hp": 115
+    "hp": 81
   },
   "ability": {
     "name": "Afterburn Blitz",
@@ -45,7 +45,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 52,
+    "hp": 37,
     "attack": 25,
     "defense": 48,
     "stamina": 40

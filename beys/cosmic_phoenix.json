@@ -15,7 +15,7 @@
     "defense": 110,
     "stamina": 118,
     "special": 148,
-    "hp": 128
+    "hp": 84
   },
   "special_requires": {
     "cooldown_name": "phoenix_nova_cd",
@@ -218,7 +218,7 @@
     }
   ],
   "main_frame": {
-    "hp": 58,
+    "hp": 38,
     "attack": 54,
     "defense": 50,
     "stamina": 53

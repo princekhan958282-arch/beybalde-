@@ -12,7 +12,7 @@
     "defense": 96,
     "stamina": 102,
     "special": 130,
-    "hp": 112
+    "hp": 80
   },
   "special_move": {
     "name": "Turbo Valkyrie Whip",
@@ -54,7 +54,7 @@
     }
   ],
   "main_frame": {
-    "hp": 50,
+    "hp": 36,
     "attack": 60,
     "defense": 43,
     "stamina": 46

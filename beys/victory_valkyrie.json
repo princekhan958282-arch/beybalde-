@@ -12,7 +12,7 @@
     "defense": 48,
     "stamina": 70,
     "special": 76,
-    "hp": 96
+    "hp": 76
   },
   "ability": {
     "name": "Energy Layer",
@@ -87,7 +87,7 @@
     }
   ],
   "main_frame": {
-    "hp": 43,
+    "hp": 34,
     "attack": 42,
     "defense": 22,
     "stamina": 32

@@ -11,7 +11,7 @@
     "defense": 50,
     "stamina": 68,
     "special": 105,
-    "hp": 97
+    "hp": 76
   },
   "ability": {
     "name": "Reverse Dragon",
@@ -78,7 +78,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 43,
+    "hp": 34,
     "attack": 44,
     "defense": 22,
     "stamina": 30

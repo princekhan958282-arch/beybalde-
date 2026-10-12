@@ -12,7 +12,7 @@
     "defense": 101,
     "stamina": 121,
     "special": 116,
-    "hp": 134
+    "hp": 85
   },
   "special_move": {
     "name": "Levitation Launch",
@@ -85,7 +85,7 @@
     }
   ],
   "main_frame": {
-    "hp": 60,
+    "hp": 39,
     "attack": 22,
     "defense": 45,
     "stamina": 55

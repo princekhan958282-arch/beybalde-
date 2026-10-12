@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069145793331200/afccbc032fe2d1a876b86292aebebdef.jpg?ex=6acac137&is=6ac96fb7&hm=c05e908949f72388b2eb782fd2abe99ffc7f504641a8949356da36d0578dd993&",
   "description": "Black Valkyrie: Attack type with two unique abilities.",
   "stats": {
-    "hp": 125,
+    "hp": 83,
     "attack": 139,
     "defense": 68,
     "stamina": 100,
@@ -89,7 +89,7 @@
   "_registry_order": 140,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 56,
+    "hp": 37,
     "attack": 63,
     "defense": 30,
     "stamina": 45

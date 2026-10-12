@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558494859390615613/Blast_Jinnius.png?ex=6acba4f1&is=6aca5371&hm=33294ffebf1fdfc7b0774b3b1bc09eb8e33e3762a98249f1ecb80152bf9dcede&",
   "description": "A Defense Bey whose cyclone barrier preserves stability while counterattacks destabilize its opponent.",
   "stats": {
-    "hp": 155,
+    "hp": 90,
     "attack": 85,
     "defense": 155,
     "stamina": 110,
@@ -170,7 +170,7 @@
   "_registry_order": 164,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 70,
+    "hp": 40,
     "attack": 38,
     "defense": 70,
     "stamina": 50

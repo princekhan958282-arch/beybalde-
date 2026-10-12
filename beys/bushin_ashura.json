@@ -11,7 +11,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438193013985340/cd2fcb4051ab5851bfef286cddb887b0.jpg?ex=6acb702b&is=6aca1eab&hm=76ce3a33eb4c23850cdefa0348166637979ae914aec97b836fd9dc33cc310671&",
   "description": "Bushin Ashura: Defense type with two unique battle abilities.",
   "stats": {
-    "hp": 150,
+    "hp": 89,
     "attack": 85,
     "defense": 145,
     "stamina": 115,
@@ -99,7 +99,7 @@
   "_registry_order": 157,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 68,
+    "hp": 41,
     "attack": 38,
     "defense": 65,
     "stamina": 52

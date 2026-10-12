@@ -16,7 +16,7 @@
     "defense": 70,
     "stamina": 120,
     "special": 155,
-    "hp": 165
+    "hp": 92
   },
   "ability": {
     "name": "Prismatic Rebirth",
@@ -249,7 +249,7 @@
     "tint": "#180810"
   },
   "main_frame": {
-    "hp": 74,
+    "hp": 42,
     "attack": 70,
     "defense": 32,
     "stamina": 54

@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069202710171728/16c2762d8c450bbc87090d3007346cd7.jpg?ex=6acac145&is=6ac96fc5&hm=cb222bfcadc0d9c337978d5f96d4130cd449b443a7000ab6083a789c3fa89d0a&",
   "description": "Legend Spriggan: Balance type with two unique abilities.",
   "stats": {
-    "hp": 140,
+    "hp": 86,
     "attack": 125,
     "defense": 115,
     "stamina": 115,
@@ -78,7 +78,7 @@
   "_registry_order": 145,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 63,
+    "hp": 38,
     "attack": 56,
     "defense": 52,
     "stamina": 52

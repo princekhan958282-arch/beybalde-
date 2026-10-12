@@ -11,7 +11,7 @@
     "defense": 64,
     "stamina": 82,
     "special": 85,
-    "hp": 101
+    "hp": 77
   },
   "ability": {
     "name": "Beast Charge",
@@ -44,7 +44,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 47,
     "defense": 29,
     "stamina": 37

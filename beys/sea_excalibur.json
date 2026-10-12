@@ -11,7 +11,7 @@
     "defense": 74,
     "stamina": 69,
     "special": 105,
-    "hp": 99
+    "hp": 77
   },
   "ability": {
     "name": "Frozen Last Stand",
@@ -59,7 +59,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 51,
     "defense": 33,
     "stamina": 31

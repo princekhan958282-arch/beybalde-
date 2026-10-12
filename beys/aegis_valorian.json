@@ -15,7 +15,7 @@
     "defense": 124,
     "stamina": 116,
     "special": 118,
-    "hp": 118
+    "hp": 81
   },
   "special_move": {
     "name": "👑 Valorian Judgment",
@@ -207,7 +207,7 @@
         "defense": 124,
         "stamina": 116,
         "special": 118,
-        "hp": 118
+        "hp": 81
       },
       "special_move": {
         "name": "👑 Valorian Judgment",
@@ -230,7 +230,7 @@
         "defense": 148,
         "stamina": 122,
         "special": 112,
-        "hp": 126
+        "hp": 83
       },
       "special_move": {
         "name": "👑 Valorian Judgment",
@@ -246,7 +246,7 @@
     }
   },
   "main_frame": {
-    "hp": 53,
+    "hp": 37,
     "attack": 56,
     "defense": 56,
     "stamina": 52

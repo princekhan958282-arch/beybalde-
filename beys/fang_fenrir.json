@@ -11,7 +11,7 @@
     "defense": 56,
     "stamina": 68,
     "special": 70,
-    "hp": 90
+    "hp": 75
   },
   "ability": {
     "name": "Wolf Fang Assault",
@@ -41,7 +41,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 40,
+    "hp": 33,
     "attack": 39,
     "defense": 25,
     "stamina": 30

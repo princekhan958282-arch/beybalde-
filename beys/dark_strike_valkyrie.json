@@ -11,7 +11,7 @@
     "defense": 38,
     "stamina": 60,
     "special": 125,
-    "hp": 92
+    "hp": 75
   },
   "ability": {
     "name": "Shadow Shredder",
@@ -105,7 +105,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 42,
+    "hp": 33,
     "attack": 50,
     "defense": 17,
     "stamina": 27

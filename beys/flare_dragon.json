@@ -12,7 +12,7 @@
     "defense": 50,
     "stamina": 78,
     "special": 115,
-    "hp": 97
+    "hp": 76
   },
   "ability": {
     "name": "Solar Flare",
@@ -87,7 +87,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 43,
+    "hp": 34,
     "attack": 47,
     "defense": 22,
     "stamina": 35

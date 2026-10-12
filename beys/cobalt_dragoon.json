@@ -11,7 +11,7 @@
     "defense": 61,
     "stamina": 72,
     "special": 115,
-    "hp": 104
+    "hp": 78
   },
   "ability": {
     "name": "Dragonic Break",
@@ -53,7 +53,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 47,
+    "hp": 36,
     "attack": 55,
     "defense": 27,
     "stamina": 32

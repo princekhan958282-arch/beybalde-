@@ -11,7 +11,7 @@
     "defense": 98,
     "stamina": 104,
     "special": 120,
-    "hp": 109
+    "hp": 79
   },
   "ability": {
     "name": "Void Reversal",
@@ -36,7 +36,7 @@
     }
   ],
   "main_frame": {
-    "hp": 49,
+    "hp": 35,
     "attack": 51,
     "defense": 44,
     "stamina": 47

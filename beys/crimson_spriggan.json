@@ -11,7 +11,7 @@
     "defense": 151,
     "stamina": 104,
     "special": 115,
-    "hp": 123
+    "hp": 82
   },
   "ability": {
     "name": "Iron Rebirth",
@@ -121,7 +121,7 @@
   ],
   "spin_direction": "Dual",
   "main_frame": {
-    "hp": 55,
+    "hp": 36,
     "attack": 34,
     "defense": 68,
     "stamina": 47

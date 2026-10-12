@@ -12,7 +12,7 @@
     "defense": 118,
     "stamina": 90,
     "special": 110,
-    "hp": 114
+    "hp": 80
   },
   "ability": {
     "name": "Wing Guard",
@@ -70,7 +70,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 51,
+    "hp": 36,
     "attack": 40,
     "defense": 53,
     "stamina": 40

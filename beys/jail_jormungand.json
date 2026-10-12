@@ -13,7 +13,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438065507410013/08b09dcc75cd9a94ed349a53eee9bdc9.jpg?ex=6acb700d&is=6aca1e8d&hm=83d8826e6b4d14b7fcdf115285d041adfd984548fc350b0fc051b64992be1833&",
   "description": "Jail Jormungand: Stamina type with two unique battle abilities.",
   "stats": {
-    "hp": 150,
+    "hp": 89,
     "attack": 80,
     "defense": 135,
     "stamina": 100,
@@ -101,7 +101,7 @@
   "_registry_order": 155,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 68,
+    "hp": 41,
     "attack": 36,
     "defense": 61,
     "stamina": 45

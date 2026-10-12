@@ -50,6 +50,7 @@ jobs:
           python -m unittest tools.test_custom_bey_v2
           python -m unittest tools.test_custom_bey_balance
           python -m unittest tools.test_physical_components
+          python -m unittest tools.test_hp_balance
       - name: PvP, Boss, Story, inventory controls and battle snapshots
         run: python tools/test_component_battles.py
       - name: Startup registration without a Discord login

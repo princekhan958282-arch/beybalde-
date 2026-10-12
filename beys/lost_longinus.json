@@ -11,7 +11,7 @@
     "defense": 88,
     "stamina": 96,
     "special": 110,
-    "hp": 118
+    "hp": 81
   },
   "ability": {
     "name": "Dragon Metal Power",
@@ -55,7 +55,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 53,
+    "hp": 37,
     "attack": 58,
     "defense": 40,
     "stamina": 43

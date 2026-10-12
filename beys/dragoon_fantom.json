@@ -11,7 +11,7 @@
     "defense": 54,
     "stamina": 59,
     "special": 100,
-    "hp": 87
+    "hp": 74
   },
   "ability": {
     "name": "Dragon Smash",
@@ -44,7 +44,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 39,
+    "hp": 34,
     "attack": 53,
     "defense": 24,
     "stamina": 27

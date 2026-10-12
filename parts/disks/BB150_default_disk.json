@@ -4,7 +4,7 @@
   "category": "disk",
   "type": "disk",
   "stats": {
-    "hp": 40,
+    "hp": 24,
     "attack": 43,
     "defense": 22,
     "stamina": 30

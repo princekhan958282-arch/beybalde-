@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069193138774036/e3356eb76eee5236510bb5e6c5ecd82e.jpg?ex=6acac143&is=6ac96fc3&hm=d238f3b10c79453389fe74fdd444f09e17eaf969d9edc10c4536b4458be56137&",
   "description": "Dragon Circle: Stamina type with two unique abilities.",
   "stats": {
-    "hp": 140,
+    "hp": 86,
     "attack": 98,
     "defense": 108,
     "stamina": 136,
@@ -75,7 +75,7 @@
   "_registry_order": 144,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 63,
+    "hp": 38,
     "attack": 44,
     "defense": 48,
     "stamina": 61

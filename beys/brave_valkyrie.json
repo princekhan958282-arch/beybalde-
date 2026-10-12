@@ -11,7 +11,7 @@
     "defense": 62,
     "stamina": 90,
     "special": 130,
-    "hp": 92
+    "hp": 75
   },
   "ability": {
     "name": "Last Stand",
@@ -63,7 +63,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 42,
+    "hp": 33,
     "attack": 49,
     "defense": 28,
     "stamina": 40

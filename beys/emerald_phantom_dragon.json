@@ -11,7 +11,7 @@
     "defense": 113,
     "stamina": 121,
     "special": 90,
-    "hp": 131
+    "hp": 84
   },
   "ability": {
     "name": "Phantom Guard",
@@ -47,7 +47,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 59,
+    "hp": 38,
     "attack": 30,
     "defense": 51,
     "stamina": 55

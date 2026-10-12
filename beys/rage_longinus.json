@@ -11,7 +11,7 @@
     "defense": 45,
     "stamina": 72,
     "special": 120,
-    "hp": 92
+    "hp": 75
   },
   "ability": {
     "name": "Rage Engine",
@@ -112,7 +112,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 42,
+    "hp": 33,
     "attack": 48,
     "defense": 20,
     "stamina": 32

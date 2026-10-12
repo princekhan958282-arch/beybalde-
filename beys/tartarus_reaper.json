@@ -11,7 +11,7 @@
     "defense": 129,
     "stamina": 122,
     "special": 125,
-    "hp": 122
+    "hp": 82
   },
   "special_move": {
     "name": "Judgment of the Reaper",
@@ -174,7 +174,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 55,
+    "hp": 36,
     "attack": 57,
     "defense": 58,
     "stamina": 55

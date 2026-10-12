@@ -11,7 +11,7 @@
     "defense": 70,
     "stamina": 50,
     "special": 100,
-    "hp": 101
+    "hp": 77
   },
   "ability": {
     "name": "Angled Smash Ring",
@@ -41,7 +41,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 50,
     "defense": 32,
     "stamina": 22

@@ -11,7 +11,7 @@
     "defense": 40,
     "stamina": 50,
     "special": 95,
-    "hp": 85
+    "hp": 74
   },
   "ability": {
     "name": "Xtreme Dash (X-Dash)",
@@ -41,7 +41,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 38,
+    "hp": 34,
     "attack": 45,
     "defense": 18,
     "stamina": 22

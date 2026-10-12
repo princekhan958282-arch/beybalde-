@@ -16,7 +16,7 @@
     "defense": 66,
     "stamina": 114,
     "special": 145,
-    "hp": 143
+    "hp": 87
   },
   "special_move": {
     "name": "Silver Radiance",
@@ -290,7 +290,7 @@
     }
   ],
   "main_frame": {
-    "hp": 65,
+    "hp": 39,
     "attack": 71,
     "defense": 30,
     "stamina": 51

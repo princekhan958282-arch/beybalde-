@@ -11,7 +11,7 @@
     "defense": 100,
     "stamina": 100,
     "special": 145,
-    "hp": 116
+    "hp": 81
   },
   "ability": {
     "name": "Requiem Spirit",
@@ -116,7 +116,7 @@
   ],
   "spin_direction": "Dual",
   "main_frame": {
-    "hp": 52,
+    "hp": 37,
     "attack": 45,
     "defense": 45,
     "stamina": 45

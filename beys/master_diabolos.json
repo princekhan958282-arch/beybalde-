@@ -13,7 +13,7 @@
     "defense": 100,
     "stamina": 103,
     "special": 120,
-    "hp": 110
+    "hp": 79
   },
   "spin_modes": {
     "Right": {
@@ -25,7 +25,7 @@
         "defense": 100,
         "stamina": 103,
         "special": 120,
-        "hp": 110
+        "hp": 79
       },
       "special_move": {
         "name": "Master Smash",
@@ -50,7 +50,7 @@
         "defense": 115,
         "stamina": 106,
         "special": 112,
-        "hp": 110
+        "hp": 79
       },
       "special_move": {
         "name": "Master Upper",
@@ -175,7 +175,7 @@
     ]
   },
   "main_frame": {
-    "hp": 50,
+    "hp": 35,
     "attack": 61,
     "defense": 45,
     "stamina": 47

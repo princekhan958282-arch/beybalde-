@@ -94,7 +94,8 @@ def bey_level_and_stats(profile: dict, blade: dict) -> tuple[int, dict]:
     a flat trainer multiplier while every other mode used the per-type growth
     curve. Never raises: an unreadable profile degrades to level 1.
     """
-    printed = dict(blade.get("stats") or {})
+    from utils import bey_levels as BL
+    printed = BL.level_base_stats(blade)
     try:
         from utils import bey_levels as BL
         name = blade.get("name")

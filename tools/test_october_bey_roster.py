@@ -54,10 +54,10 @@ class RosterData(unittest.TestCase):
                             get_beyblade('Ultimate Valkyrie (Black Edition)')['id'])
         self.assertEqual({k: get_beyblade('Abyss Fang')['stats'][k]
                           for k in ('hp', 'attack', 'defense', 'stamina')},
-                         {'hp': 157, 'attack': 180, 'defense': 20, 'stamina': 111})
+                         {'hp': 90, 'attack': 180, 'defense': 20, 'stamina': 111})
         self.assertEqual({k: get_beyblade('Deathscyth Longinus')['stats'][k]
                           for k in ('hp', 'attack', 'defense', 'stamina')},
-                         {'hp': 170, 'attack': 150, 'defense': 120, 'stamina': 100})
+                         {'hp': 93, 'attack': 150, 'defense': 120, 'stamina': 100})
 
     def test_both_regulus_modes_survive_components_and_are_selectable(self):
         canonical = get_beyblade('Shelter Regulus')

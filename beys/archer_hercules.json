@@ -11,7 +11,7 @@
     "defense": 74,
     "stamina": 136,
     "special": 75,
-    "hp": 123
+    "hp": 82
   },
   "ability": {
     "name": "Endless Spin",
@@ -41,7 +41,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 55,
+    "hp": 36,
     "attack": 22,
     "defense": 33,
     "stamina": 61

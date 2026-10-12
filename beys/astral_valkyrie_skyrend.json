@@ -15,7 +15,7 @@
     "defense": 104,
     "stamina": 132,
     "special": 140,
-    "hp": 145
+    "hp": 87
   },
   "button_profile": {
     "special": {
@@ -147,7 +147,7 @@
     }
   ],
   "main_frame": {
-    "hp": 65,
+    "hp": 39,
     "attack": 58,
     "defense": 47,
     "stamina": 60

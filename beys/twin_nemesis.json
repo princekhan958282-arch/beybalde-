@@ -12,7 +12,7 @@
     "defense": 121,
     "stamina": 118,
     "special": 130,
-    "hp": 126
+    "hp": 83
   },
   "special_move": {
     "name": "Twin Fang Devour",
@@ -69,7 +69,7 @@
     }
   ],
   "main_frame": {
-    "hp": 57,
+    "hp": 37,
     "attack": 56,
     "defense": 55,
     "stamina": 53

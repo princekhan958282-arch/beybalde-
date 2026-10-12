@@ -11,7 +11,7 @@
     "defense": 70,
     "stamina": 76,
     "special": 90,
-    "hp": 101
+    "hp": 77
   },
   "ability": {
     "name": "Cyber Boost",
@@ -54,7 +54,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 48,
     "defense": 32,
     "stamina": 34

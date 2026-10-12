@@ -13,7 +13,7 @@
     "defense": 74,
     "stamina": 104,
     "special": 150,
-    "hp": 132
+    "hp": 84
   },
   "ability": {
     "name": "Blazing Ascension",
@@ -151,7 +151,7 @@
     ]
   },
   "main_frame": {
-    "hp": 60,
+    "hp": 38,
     "attack": 68,
     "defense": 33,
     "stamina": 47

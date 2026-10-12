@@ -9,7 +9,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438014005551104/f78d2f76e56d182f4b1d270eceff1300.jpg?ex=6acb7000&is=6aca1e80&hm=7eda91ae46cbba0b6406814281830c220b85f17d35354c147dd9c160db045d6a&",
   "description": "Silver Valkyrie: Attack type with two unique battle abilities.",
   "stats": {
-    "hp": 135,
+    "hp": 85,
     "attack": 155,
     "defense": 75,
     "stamina": 110,
@@ -97,7 +97,7 @@
   "_registry_order": 151,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 61,
+    "hp": 39,
     "attack": 70,
     "defense": 34,
     "stamina": 50

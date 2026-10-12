@@ -11,7 +11,7 @@
     "defense": 78,
     "stamina": 74,
     "special": 85,
-    "hp": 109
+    "hp": 79
   },
   "ability": {
     "name": "Reaper Rush",
@@ -41,7 +41,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 49,
+    "hp": 35,
     "attack": 45,
     "defense": 35,
     "stamina": 33

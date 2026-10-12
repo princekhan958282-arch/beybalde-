@@ -12,7 +12,7 @@
     "defense": 112,
     "stamina": 65,
     "special": 170,
-    "hp": 150
+    "hp": 89
   },
   "ability": {
     "name": "Sakura Requiem",
@@ -98,7 +98,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 68,
+    "hp": 41,
     "attack": 60,
     "defense": 50,
     "stamina": 29

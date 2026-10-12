@@ -11,7 +11,7 @@
     "defense": 140,
     "stamina": 120,
     "special": 110,
-    "hp": 128
+    "hp": 84
   },
   "ability": {
     "name": "Infinite Lock",
@@ -43,7 +43,7 @@
   ],
   "spin_direction": "Dual",
   "main_frame": {
-    "hp": 58,
+    "hp": 38,
     "attack": 36,
     "defense": 63,
     "stamina": 54

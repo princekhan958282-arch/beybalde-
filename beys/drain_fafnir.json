@@ -12,7 +12,7 @@
     "defense": 92,
     "stamina": 128,
     "special": 108,
-    "hp": 124
+    "hp": 83
   },
   "special_move": {
     "name": "Nothing Break",
@@ -47,7 +47,7 @@
     }
   ],
   "main_frame": {
-    "hp": 56,
+    "hp": 37,
     "attack": 33,
     "defense": 42,
     "stamina": 58

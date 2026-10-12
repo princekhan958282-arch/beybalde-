@@ -12,7 +12,7 @@
     "defense": 121,
     "stamina": 111,
     "special": 145,
-    "hp": 111
+    "hp": 80
   },
   "special_move": {
     "name": "Vortex Judgment: Cataclysm Break",
@@ -218,7 +218,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 50,
+    "hp": 36,
     "attack": 55,
     "defense": 55,
     "stamina": 50

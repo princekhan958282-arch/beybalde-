@@ -11,7 +11,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438047354458223/2b8b8ee57c66b0ed673ad510c2d98b9a.jpg?ex=6acb7008&is=6aca1e88&hm=207616dd64ac213dde214972590cde0742c3d45a38462ad767286063e0e18ffd&",
   "description": "Judgement Joker: Balance type with two unique battle abilities.",
   "stats": {
-    "hp": 140,
+    "hp": 86,
     "attack": 140,
     "defense": 115,
     "stamina": 110,
@@ -99,7 +99,7 @@
   "_registry_order": 154,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 63,
+    "hp": 38,
     "attack": 63,
     "defense": 52,
     "stamina": 50

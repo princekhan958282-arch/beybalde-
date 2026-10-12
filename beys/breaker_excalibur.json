@@ -11,7 +11,7 @@
     "defense": 70,
     "stamina": 80,
     "special": 130,
-    "hp": 106
+    "hp": 78
   },
   "ability": {
     "name": "Sword Sharpening",
@@ -121,7 +121,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 48,
+    "hp": 36,
     "attack": 50,
     "defense": 32,
     "stamina": 36

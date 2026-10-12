@@ -11,7 +11,7 @@
     "defense": 81,
     "stamina": 98,
     "special": 74,
-    "hp": 107
+    "hp": 79
   },
   "ability": {
     "name": "Random Defense",
@@ -45,7 +45,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 48,
+    "hp": 35,
     "attack": 35,
     "defense": 37,
     "stamina": 44

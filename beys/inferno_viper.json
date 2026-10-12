@@ -11,7 +11,7 @@
     "defense": 130,
     "stamina": 60,
     "special": 130,
-    "hp": 111
+    "hp": 80
   },
   "special_move": {
     "name": "Hellfire Dragon Breaker",
@@ -81,7 +81,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 50,
+    "hp": 36,
     "attack": 54,
     "defense": 58,
     "stamina": 27

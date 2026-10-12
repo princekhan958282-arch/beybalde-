@@ -22,6 +22,7 @@ from cogs.economy.shop import PARTS_CATALOG, PurchaseError, apply_part_purchase,
 BASELINE = json.loads((ROOT / 'docs/component_migration_baseline.json').read_text())
 
 BEY_CORRECTIONS = json.loads((ROOT / 'docs/bey_skill_regression_baseline.json').read_text())['beys']
+HP_CORRECTIONS = json.loads((ROOT / 'docs/hp_balance_regression_baseline.json').read_text())['beys']
 SKILL_CORRECTIONS = json.loads((ROOT / 'docs/avatar_skill_regression_baseline.json').read_text())['avatars']
 DRANZER_ADDITIONS = {f'BB{132+i}': name for i, name in enumerate(
     ('Dranzer G', 'Black Dranzer', 'Dranzer F', 'Dranzer V', 'Dranzer V2', 'Dranzer GT', 'Dranzer MS'))}
@@ -67,6 +68,10 @@ class MigrationTests(unittest.TestCase):
                         self.assertEqual(correction['migration_sha256'], expected_hash)
                         self.assertEqual(correction['name'], value['name'])
                         expected_hash = correction['sha256']
+                    hp_correction = HP_CORRECTIONS.get(value['id']) if kind == 'bey' else None
+                    if hp_correction:
+                        self.assertEqual(hp_correction['previous_sha256'], expected_hash)
+                        expected_hash = hp_correction['sha256']
                     self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
         for folder, number in (('beys', 169), ('avatars', 54), ('parts/disks', 187), ('parts/drivers', 186)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)

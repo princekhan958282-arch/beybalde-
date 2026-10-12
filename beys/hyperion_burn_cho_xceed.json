@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438403547070464/ef6f7c9630ec8039166ba8fde298e0fc.jpg?ex=6acb705d&is=6aca1edd&hm=acba9171061943913657a83eb4cb54a2d4c182ff729ec9476379fa442da65e83&",
   "description": "Hyperion Burn Cho Xceed: Attack type with two unique battle abilities.",
   "stats": {
-    "hp": 150,
+    "hp": 89,
     "attack": 170,
     "defense": 80,
     "stamina": 120,
@@ -96,7 +96,7 @@
   "_registry_order": 163,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 68,
+    "hp": 41,
     "attack": 76,
     "defense": 36,
     "stamina": 54
