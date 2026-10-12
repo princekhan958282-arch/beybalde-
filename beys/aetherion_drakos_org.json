@@ -1,0 +1,148 @@
+{
+  "name": "Aetherion Drakos org",
+  "type": "Stamina",
+  "rarity": "Exclusive",
+  "spin_direction": "Right",
+  "image_url": "",
+  "description": "The original Aetherion Drakos org, earned by defeating its randomly spawned boss. Full base stats and signature abilities.",
+  "stats": {
+    "attack": 120,
+    "defense": 155,
+    "stamina": 112,
+    "special": 155,
+    "hp": 200
+  },
+  "abilities": [
+    {
+      "name": "Astral Ascendance",
+      "trigger": "passive",
+      "description": "Gains a Star every round, up to 6. Each Star adds +4 ATK and speeds its gauge. A hit worth 2.6% of its health knocks 2 Stars loose — **pressure is the only answer.**",
+      "chain": [],
+      "passive_atk_bonus": 16,
+      "stamina_per_turn": 10,
+      "rules": [
+        {
+          "when": "passive",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "stars",
+              "stat": "attack",
+              "per_stack": 4,
+              "max": 6
+            }
+          ]
+        },
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reset_counter",
+              "name": "stars"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Crystalline Aegis",
+      "trigger": "passive",
+      "description": "3 crystal layers. Each absorbs 35% of one incoming hit and then shatters, regrowing every 4 rounds. Chip damage is wasted on it; commit or don't bother.",
+      "chain": [],
+      "passive_dmg_reduction": 22,
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reduce_damage_pct",
+              "value": 35
+            }
+          ]
+        },
+        {
+          "when": "passive",
+          "chance": 0.25,
+          "do": [
+            {
+              "op": "shield",
+              "value": 30
+            },
+            {
+              "op": "log",
+              "text": "🛡️ **Crystalline Aegis** — a layer regrows."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "AETHERION OVERDRIVE",
+    "description": "Every shard, every star, spent at once. Nothing is held back.",
+    "hits": 7,
+    "damage_per_hit": 53,
+    "total_damage": 372,
+    "true_damage": true
+  },
+  "booster_exclusive": false,
+  "card_theme": {
+    "accent": "#4d9fff",
+    "glow": "#0b3ea8",
+    "tint": "#060e22"
+  },
+  "id": "BB165",
+  "generation": "Original Boss",
+  "boss_only": true,
+  "boss_source": "drakos",
+  "aliases": [
+    "drakos"
+  ],
+  "_registry_order": 165,
+  "default_parts": {
+    "disk": "BB165_default_disk",
+    "driver": "BB165_default_driver"
+  },
+  "ability": {
+    "name": "Astral Ascendance",
+    "trigger": "passive",
+    "description": "Gains a Star every round, up to 6. Each Star adds +4 ATK and speeds its gauge. A hit worth 2.6% of its health knocks 2 Stars loose — **pressure is the only answer.**",
+    "chain": [],
+    "passive_atk_bonus": 16,
+    "stamina_per_turn": 10,
+    "rules": [
+      {
+        "when": "passive",
+        "do": [
+          {
+            "op": "stacking_buff",
+            "name": "stars",
+            "stat": "attack",
+            "per_stack": 4,
+            "max": 6
+          }
+        ]
+      },
+      {
+        "when": "on_take_damage",
+        "do": [
+          {
+            "op": "reset_counter",
+            "name": "stars"
+          }
+        ]
+      }
+    ]
+  },
+  "main_frame": {
+    "hp": 90,
+    "attack": 54,
+    "defense": 70,
+    "stamina": 50
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

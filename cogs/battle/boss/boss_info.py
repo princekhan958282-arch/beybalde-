@@ -281,7 +281,7 @@ def build_embed(prof: dict, compact: bool = False) -> discord.Embed:
     e.add_field(
         name="Boss data",
         value=(f"❤️ HP **{prof['hp']:,}**\n"
-               f"🎯 {prof.get('difficulty', '—')}\n"
+               "🎯 IQ 2\n"
                f"🌀 {prof.get('spin', '—')} spin"),
         inline=True,
     )
@@ -311,8 +311,7 @@ def build_embed(prof: dict, compact: bool = False) -> discord.Embed:
                     inline=False,
                 )
 
-    e.set_footer(text="Boss-only · can't be caught, bought, traded or spawned  "
-                      f"•  ;boss {prof['key']} to fight it")
+    e.set_footer(text="Challenge a random boss spawn · Victory awards the original Bey")
     return e
 
 

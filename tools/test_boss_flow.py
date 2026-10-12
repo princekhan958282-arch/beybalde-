@@ -123,7 +123,7 @@ class BossFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stats["Attack"], f"{tiers.scale_attack(base_atk * 1.05, 'nightmare'):.0f}")
         self.assertIn("1,000,000", stats["Entry"])
         self.assertIn("1,000,000", tiers.summary_line("nightmare", "argus"))
-        self.assertIn("boss copy", stats["Reward"])
+        self.assertIn("original Bey", stats["Reward"])
         self.assertEqual(state["tier"], "Nightmare")
         self.assertIsNotNone(pillow.render_lobby_pillow(state))
 

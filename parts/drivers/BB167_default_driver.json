@@ -1,0 +1,18 @@
+{
+  "id": "BB167_default_driver",
+  "name": "LIONHEART SOVEREIGN org Signature Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 55,
+    "attack": 32,
+    "defense": 51,
+    "stamina": 35
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB167",
+  "_registry_order": 1167
+}

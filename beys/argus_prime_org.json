@@ -1,0 +1,462 @@
+{
+  "name": "ARGUS PRIME org",
+  "type": "Attack",
+  "rarity": "Exclusive",
+  "spin_direction": "Right",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538405554756517939/1786766896617.png?ex=6a828f52&is=6a813dd2&hm=ae86e21af79315adff421f7c5579bdfbf04f8c1263ac4129d081bd91ba86e0c6&",
+  "description": "The original ARGUS PRIME org, earned by defeating its randomly spawned boss. Full base stats and signature abilities.",
+  "stats": {
+    "attack": 130,
+    "defense": 87,
+    "stamina": 109,
+    "special": 130,
+    "hp": 200
+  },
+  "abilities": [
+    {
+      "name": "Hundred-Eyed Vigil",
+      "description": "Gain one Eye each round, up to 6. Each Eye grants 10% base ATK and 10% critical chance. Taking damage closes two Eyes.",
+      "trigger": "passive",
+      "chain": [],
+      "crit_chance": 60,
+      "rules": [
+        {
+          "when": "passive",
+          "do": [
+            {
+              "op": "add_counter",
+              "name": "argus_eyes",
+              "amount": 1,
+              "max": 6
+            }
+          ]
+        },
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "argus_eyes",
+              "value": 1
+            },
+            {
+              "cond": "counter_below",
+              "name": "argus_eyes",
+              "value": 2
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 10,
+              "turns": 1
+            },
+            {
+              "op": "crit_chance",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "argus_eyes",
+              "value": 2
+            },
+            {
+              "cond": "counter_below",
+              "name": "argus_eyes",
+              "value": 3
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 20,
+              "turns": 1
+            },
+            {
+              "op": "crit_chance",
+              "value": 20
+            }
+          ]
+        },
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "argus_eyes",
+              "value": 3
+            },
+            {
+              "cond": "counter_below",
+              "name": "argus_eyes",
+              "value": 4
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 30,
+              "turns": 1
+            },
+            {
+              "op": "crit_chance",
+              "value": 30
+            }
+          ]
+        },
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "argus_eyes",
+              "value": 4
+            },
+            {
+              "cond": "counter_below",
+              "name": "argus_eyes",
+              "value": 5
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 40,
+              "turns": 1
+            },
+            {
+              "op": "crit_chance",
+              "value": 40
+            }
+          ]
+        },
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "argus_eyes",
+              "value": 5
+            },
+            {
+              "cond": "counter_below",
+              "name": "argus_eyes",
+              "value": 6
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 50,
+              "turns": 1
+            },
+            {
+              "op": "crit_chance",
+              "value": 50
+            }
+          ]
+        },
+        {
+          "when": "passive",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "argus_eyes",
+              "value": 6
+            },
+            {
+              "cond": "counter_below",
+              "name": "argus_eyes",
+              "value": 7
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 60,
+              "turns": 1
+            },
+            {
+              "op": "crit_chance",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "consume_counter",
+              "name": "argus_eyes",
+              "amount": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Aegis of the Sleepless",
+      "description": "Once per battle below 65% HP, become invulnerable for 5 turns.",
+      "trigger": "passive",
+      "chain": [],
+      "rules": [
+        {
+          "when": "passive",
+          "once": "battle",
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.65
+            }
+          ],
+          "do": [
+            {
+              "op": "invulnerable",
+              "turns": 5
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "AEGIS OF THE SLEEPLESS",
+    "description": "A hundred eyes close at once — and nothing that follows reaches what is behind them.",
+    "hits": 1,
+    "damage_per_hit": 201,
+    "total_damage": 201,
+    "true_damage": true
+  },
+  "booster_exclusive": false,
+  "card_theme": {
+    "accent": "#ffb300",
+    "glow": "#a35a00",
+    "tint": "#1b1206"
+  },
+  "id": "BB166",
+  "generation": "Original Boss",
+  "boss_only": true,
+  "boss_source": "argus",
+  "aliases": [
+    "argus"
+  ],
+  "_registry_order": 166,
+  "default_parts": {
+    "disk": "BB166_default_disk",
+    "driver": "BB166_default_driver"
+  },
+  "ability": {
+    "name": "Hundred-Eyed Vigil",
+    "description": "Gain one Eye each round, up to 6. Each Eye grants 10% base ATK and 10% critical chance. Taking damage closes two Eyes.",
+    "trigger": "passive",
+    "chain": [],
+    "crit_chance": 60,
+    "rules": [
+      {
+        "when": "passive",
+        "do": [
+          {
+            "op": "add_counter",
+            "name": "argus_eyes",
+            "amount": 1,
+            "max": 6
+          }
+        ]
+      },
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "counter_at_least",
+            "name": "argus_eyes",
+            "value": 1
+          },
+          {
+            "cond": "counter_below",
+            "name": "argus_eyes",
+            "value": 2
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "attack",
+            "pct": 10,
+            "turns": 1
+          },
+          {
+            "op": "crit_chance",
+            "value": 10
+          }
+        ]
+      },
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "counter_at_least",
+            "name": "argus_eyes",
+            "value": 2
+          },
+          {
+            "cond": "counter_below",
+            "name": "argus_eyes",
+            "value": 3
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "attack",
+            "pct": 20,
+            "turns": 1
+          },
+          {
+            "op": "crit_chance",
+            "value": 20
+          }
+        ]
+      },
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "counter_at_least",
+            "name": "argus_eyes",
+            "value": 3
+          },
+          {
+            "cond": "counter_below",
+            "name": "argus_eyes",
+            "value": 4
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "attack",
+            "pct": 30,
+            "turns": 1
+          },
+          {
+            "op": "crit_chance",
+            "value": 30
+          }
+        ]
+      },
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "counter_at_least",
+            "name": "argus_eyes",
+            "value": 4
+          },
+          {
+            "cond": "counter_below",
+            "name": "argus_eyes",
+            "value": 5
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "attack",
+            "pct": 40,
+            "turns": 1
+          },
+          {
+            "op": "crit_chance",
+            "value": 40
+          }
+        ]
+      },
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "counter_at_least",
+            "name": "argus_eyes",
+            "value": 5
+          },
+          {
+            "cond": "counter_below",
+            "name": "argus_eyes",
+            "value": 6
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "attack",
+            "pct": 50,
+            "turns": 1
+          },
+          {
+            "op": "crit_chance",
+            "value": 50
+          }
+        ]
+      },
+      {
+        "when": "passive",
+        "if": [
+          {
+            "cond": "counter_at_least",
+            "name": "argus_eyes",
+            "value": 6
+          },
+          {
+            "cond": "counter_below",
+            "name": "argus_eyes",
+            "value": 7
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "attack",
+            "pct": 60,
+            "turns": 1
+          },
+          {
+            "op": "crit_chance",
+            "value": 60
+          }
+        ]
+      },
+      {
+        "when": "on_take_damage",
+        "do": [
+          {
+            "op": "consume_counter",
+            "name": "argus_eyes",
+            "amount": 2
+          }
+        ]
+      }
+    ]
+  },
+  "main_frame": {
+    "hp": 90,
+    "attack": 58,
+    "defense": 39,
+    "stamina": 49
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

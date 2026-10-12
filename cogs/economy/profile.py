@@ -1350,8 +1350,10 @@ class ProfileCog(commands.Cog, name="Profile"):
                 from cogs.battle.boss import boss_info as _bi
                 _prof = _bi.find_strict(name)
                 if _prof is not None:
-                    return await _bi.send_info(
-                        ctx, _prof, as_copy=_bi.wants_copy(name))
+                    if _bi.wants_copy(name):
+                        return await _bi.send_info(ctx, _prof, as_copy=True)
+                    # Originals are registry Beys now; use normal levels and parts.
+                    name = _prof["name"]
             except Exception:
                 pass
 

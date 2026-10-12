@@ -261,4 +261,4 @@ def summary_line(key: Optional[str], boss_key: Optional[str] = None) -> str:
     price = "free" if not entry else f"🪙 {entry:,}"
     return (f"{t['emoji']} **{t['label']}** — {price}  ·  "
             f"❤️ ×{t['hp_mult']:g}  ·  ⚔️ ×{t['atk_mult']:g}  ·  "
-            f"👑 1 in {t['perfect_odds']:,}")
+            "🌀 Original Bey · IQ 2")

@@ -1,0 +1,200 @@
+{
+  "name": "NEMESIS ÆTHERION org",
+  "type": "Balance",
+  "rarity": "Exclusive",
+  "spin_direction": "Dual",
+  "image_url": "",
+  "description": "The original NEMESIS ÆTHERION org, earned by defeating its randomly spawned boss. Full base stats and signature abilities.",
+  "stats": {
+    "attack": 146,
+    "defense": 165,
+    "stamina": 130,
+    "special": 165,
+    "hp": 200
+  },
+  "abilities": [
+    {
+      "name": "Twin Crowns",
+      "trigger": "passive",
+      "description": "Alternates stance every round. **Wrath** grants +25 ATK and ignores 60% of your defence; **Judgement** grants +30 DEF and reflects 20 damage. Read the stance or pay for it.",
+      "chain": [],
+      "passive_atk_bonus": 18,
+      "ignore_def_pct": 30,
+      "defense_boost": 18,
+      "reflect_damage": 12,
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "ignore_defense",
+              "turns": 1
+            },
+            {
+              "op": "bonus_damage_pct",
+              "value": 15
+            }
+          ]
+        },
+        {
+          "when": "on_defense_win",
+          "do": [
+            {
+              "op": "reflect_flat",
+              "value": 12
+            },
+            {
+              "op": "buff",
+              "stat": "defense",
+              "value": 18,
+              "turns": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Law of Retribution",
+      "trigger": "passive",
+      "description": "Banks 15% of all damage it takes as **Debt** (max 400). Its next Special adds the entire ledger to its damage. Spamming attacks arms it.",
+      "chain": [],
+      "passive_dmg_reduction": 10,
+      "bonus_damage": 14,
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "debt",
+              "stat": "attack",
+              "per_stack": 6,
+              "max": 8
+            }
+          ]
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "bonus_damage_pct",
+              "value": 30
+            },
+            {
+              "op": "log",
+              "text": "⚖️ **Law of Retribution** — the ledger comes due!"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ætheric Ascension",
+      "trigger": "passive",
+      "description": "Below 40% HP **or** after 10 rounds, both crowns wake: +20% stats, double gauge gain, and its two Ultimates unlock. Once per battle.",
+      "chain": [],
+      "passive_atk_bonus": 12,
+      "defense_boost": 12,
+      "rules": [
+        {
+          "when": "on_low_hp",
+          "once": "battle",
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.4
+            }
+          ],
+          "do": [
+            {
+              "op": "buff_all_pct",
+              "value": 20,
+              "turns": 4
+            },
+            {
+              "op": "log",
+              "text": "✨ **Ætheric Ascension** — both crowns wake!"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "ÆTHERION: TOTAL ECLIPSE",
+    "description": "Both crowns wake at once. Everything you dealt, returned.",
+    "hits": 5,
+    "damage_per_hit": 93,
+    "total_damage": 467,
+    "true_damage": false
+  },
+  "booster_exclusive": false,
+  "card_theme": {
+    "accent": "#c77dff",
+    "glow": "#6a0dad",
+    "tint": "#150920"
+  },
+  "id": "BB168",
+  "generation": "Original Boss",
+  "boss_only": true,
+  "boss_source": "nemesis",
+  "aliases": [
+    "nemesis"
+  ],
+  "_registry_order": 168,
+  "default_parts": {
+    "disk": "BB168_default_disk",
+    "driver": "BB168_default_driver"
+  },
+  "ability": {
+    "name": "Twin Crowns",
+    "trigger": "passive",
+    "description": "Alternates stance every round. **Wrath** grants +25 ATK and ignores 60% of your defence; **Judgement** grants +30 DEF and reflects 20 damage. Read the stance or pay for it.",
+    "chain": [],
+    "passive_atk_bonus": 18,
+    "ignore_def_pct": 30,
+    "defense_boost": 18,
+    "reflect_damage": 12,
+    "rules": [
+      {
+        "when": "on_attack_win",
+        "do": [
+          {
+            "op": "ignore_defense",
+            "turns": 1
+          },
+          {
+            "op": "bonus_damage_pct",
+            "value": 15
+          }
+        ]
+      },
+      {
+        "when": "on_defense_win",
+        "do": [
+          {
+            "op": "reflect_flat",
+            "value": 12
+          },
+          {
+            "op": "buff",
+            "stat": "defense",
+            "value": 18,
+            "turns": 2
+          }
+        ]
+      }
+    ]
+  },
+  "main_frame": {
+    "hp": 90,
+    "attack": 66,
+    "defense": 74,
+    "stamina": 58
+  },
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}

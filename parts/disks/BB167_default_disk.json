@@ -1,0 +1,18 @@
+{
+  "id": "BB167_default_disk",
+  "name": "LIONHEART SOVEREIGN org Core Disk",
+  "category": "disk",
+  "type": "disk",
+  "stats": {
+    "hp": 55,
+    "attack": 33,
+    "defense": 51,
+    "stamina": 35
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB167",
+  "_registry_order": 1167
+}
