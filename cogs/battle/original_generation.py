@@ -295,7 +295,9 @@ class OriginalGeneration:
             self.action_bonus[key] = bonus
         if self.effect(key, 'vulcan') and self.s.moves[other] == 'defense' and first:
             logs.extend(self.s.stability_manager._apply(other, -5))
-        return math.floor(damage * (1 + bonus) + 1e-9)
+        # With no rider this adapter must not truncate the shared formula
+        # before ability bonuses or critical multiplication have run.
+        return math.floor(damage * (1 + bonus) + 1e-9) if bonus else damage
 
     def preprocess(self, key, other, stats):
         """Remove a buff before formula evaluation, retaining the bonus rider."""

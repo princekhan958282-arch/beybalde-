@@ -166,10 +166,8 @@ class DefenseManager:
             d[mkey] = max(0, pierce_turns - 1)
             return ostats, logs   # full pierce already handled defensive stats
 
-        # 1b. PARTIAL defense pierce. Separate from the full pierce above,
-        # which returns early and nullifies the counter — this one only shaves
-        # the stat, so a 50% pierce is genuinely half of a full pierce instead
-        # of most of one. It stacks with (runs before) buffs and shatter.
+        # Partial pierce approaches the SAME endpoint as full pierce. Shaving
+        # the entire stat let amplified 100% pierce reintroduce DEF=0.
         try:
             pierce_pct = ab_eng.pierce_pct(mkey, mblade)
         except Exception:                                # noqa: BLE001
@@ -177,7 +175,11 @@ class DefenseManager:
         if pierce_pct > 0:
             ostats = dict(ostats)
             before = int(ostats.get("defense", 50))
-            ostats["defense"] = max(0, int(round(before * (1 - pierce_pct / 100))))
+            if attacker_stats is None:
+                from .purification import effective_stats
+                attacker_stats = effective_stats(self.session, mkey)
+            neutral = max(1, min(before, max(1, attacker_stats.get('attack', 50))))
+            ostats["defense"] = before - (before - neutral) * pierce_pct / 100
             if ostats["defense"] != before:
                 logs.append(
                     f"  🗡️ **Defense Pierce** — {mblade['name']} cuts through "

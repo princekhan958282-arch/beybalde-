@@ -107,7 +107,10 @@ class DomainTests(unittest.TestCase):
         s.ability._heal('e',100,[],'Test')
         self.assertEqual(s.hp['e'],1075)
         s.ability.lifesteal_pct['e']=100
-        s.ability.apply('e','p',s.blades['e'],s.blades['p'],'attack','win',100,0)
+        damage, counter, _ = s.ability.apply('e','p',s.blades['e'],s.blades['p'],'attack','win',100,0)
+        self.assertEqual(s.hp['e'],1075)  # Lifesteal waits for actual HP damage.
+        am_for(s).apply_pair_results('e','p',s.blades['e'],s.blades['p'],
+            'attack','charge',damage,counter,'win',0,0,'mirror')
         self.assertEqual(s.hp['e'],1150)
         baseline=session()
         baseline.hp['e']=1000

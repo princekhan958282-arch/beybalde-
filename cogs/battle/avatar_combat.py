@@ -92,7 +92,7 @@ def apply_defence_break(session, key: str, ostats: dict) -> tuple[dict, list[str
 
 # ── Nth-hit rider ────────────────────────────────────────────────────────────
 
-def nth_hit_bonus(session, key: str, total_attack: float) -> tuple[int, list[str]]:
+def nth_hit_bonus(session, key: str, total_attack: float, *, count_hit=True) -> tuple[int, list[str]]:
     """Count this hit and return the bonus damage when it is the Nth."""
     av = _av(session, key)
     if av is None or av.nth_hit_interval <= 0:
@@ -101,8 +101,10 @@ def nth_hit_bonus(session, key: str, total_attack: float) -> tuple[int, list[str
     if counts is None:
         counts = {}
         session._avatar_hit_counts = counts
-    counts[key] = counts.get(key, 0) + 1
-    bonus = av.nth_hit_bonus(counts[key], total_attack)
+    next_count = counts.get(key, 0) + 1
+    if count_hit:
+        counts[key] = next_count
+    bonus = av.nth_hit_bonus(next_count, total_attack)
     if bonus <= 0:
         return 0, []
     return bonus, [f"  ⛓️ **Avatar** — every {av.nth_hit_interval}th strike! "

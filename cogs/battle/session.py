@@ -428,6 +428,7 @@ class BattleSession:
         #                   moving.
         self.npc_controller = npc_controller
         self.payout = bool(payout)
+        self.defer_landed_hit_effects = False
         self.spend_energy = bool(ranked if spend_energy is None else spend_energy)
 
         self.bot     = bot
@@ -1148,6 +1149,8 @@ class BattleSession:
                     )
             except Exception:
                 pass
+        finally:
+            self.defer_landed_hit_effects = False
         return
 
     async def __resolve_round_body(self) -> None:
@@ -1285,6 +1288,7 @@ class BattleSession:
 
         # ── Damage resolution (delegated to AttackManager) ──────────────────
         am = self.attack_manager
+        self.defer_landed_hit_effects = True
 
         dmg_p1, counter_p1, matchup_p1, atk_logs_p1 = am.resolve_pair(
             k1, k2, m1, m2, b1, b2, s1, s2
@@ -1312,6 +1316,7 @@ class BattleSession:
             dmg_p2, counter_p2, matchup_p2,
         )
         round_log.extend(hp_logs)
+        self.defer_landed_hit_effects = False
         dmg_p1 = am.committed_damage[k1]
         dmg_p2 = am.committed_damage[k2]
         for key, move in ((k1, m1), (k2, m2)):
