@@ -16,7 +16,6 @@ Responsibilities
   • Type modifier application — outgoing ATK bonus + incoming DEF mitigation
   • Defense-pierce / shatter-stack pre-processing
   • Solar Flare bonus consumption
-  • Attack-type counter announcement (Attack vs Stamina 1.2×)
   • Special move resolution (multi-hit loop + per-hit procs)
   • Gauge updates post-attack
   • HP application and counter-hit HP application
@@ -254,8 +253,8 @@ class AttackManager:
         # reductions — announce it so the player sees the effect.
         if piercing_defense and omove != MOVE_DEFENSE:
             logs.append(
-                f"  🎯 **Defense Pierce** — {mblade['name']} ignores "
-                f"{oblade['name']}'s passive defenses!"
+                f"  🎯 **Defense Pierce** — {mblade['name']} bypasses "
+                f"{oblade['name']}'s defense!"
             )
 
         # ── Solar Flare bonus ─────────────────────────────────────────────────
@@ -327,25 +326,12 @@ class AttackManager:
         Handles:
           • Normal move damage (p1 → p2 and p2 → p1)
           • Counter-hit reflections
-          • Attack-beats-Stamina counter announcements
         """
         logs: list[str] = []
         hp   = self.session.hp
-        p1, p2 = self.session.players
-
-        # ── Counter-beats-Stamina announcements ───────────────────────────────
-        if m1 == MOVE_ATTACK and m2 == MOVE_STAMINA:
-            logs.append(
-                f"💥 **Counter!** {p1.display_name} attacks while "
-                f"{p2.display_name} is recovering — "
-                f"1.2× bonus damage applied! (total: **{dmg_p1}**)"
-            )
-        if m2 == MOVE_ATTACK and m1 == MOVE_STAMINA:
-            logs.append(
-                f"💥 **Counter!** {p2.display_name} attacks while "
-                f"{p1.display_name} is recovering — "
-                f"1.2× bonus damage applied! (total: **{dmg_p2}**)"
-            )
+        # Attack-vs-Stamina's advantage is already in calc_damage and the
+        # "super effective" move summary. Repeating a pre-commit total here
+        # disagrees with actual HP lost on lethal, dodged or resisted hits.
 
         # ── Apply normal move damage ──────────────────────────────────────────
         # Avatar immortality is checked here, at the one place HP actually

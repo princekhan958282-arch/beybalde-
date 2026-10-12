@@ -154,9 +154,8 @@ class DefenseManager:
             # inflated by treating the opponent as having 0 DEF.
             ostats["_real_defense"] = ostats.get("defense", 50)
             ostats["defense"]       = 1  # Safe denominator for the core formula
-            logs.append(
-                f"  🎯 **Defense Pierce** — {mblade['name']} ignores all defense!"
-            )
+            # AttackManager announces the applied pierce once, after it
+            # knows the opponent's move and whether a counter was nullified.
             d = self.session.status.ignore_defense_turns
             d[mkey] = max(0, pierce_turns - 1)
             return ostats, logs   # pierce already zeroed DEF; skip buff/shatter
