@@ -167,6 +167,8 @@ class DamageFilter:
 
     def defensive(self, mover_key, other_key, mover_blade, other_blade,
                   move, dmg_dealt, is_first_hit=True):
+        from . import requiem
+        move = requiem.damage_move(self.session, mover_key, move)
         logs = []
         og = getattr(self.session, "original_generation", None)
         if og and move == "attack" and og.effect(mover_key, "tiger_claw") and not og.split_running and dmg_dealt > 0:
@@ -313,6 +315,8 @@ class DamageFilter:
         logs:      list[str],
     ) -> int:
         """Apply timed ATK buffs and dmg_amp stacks; returns adjusted dmg_dealt."""
+        from . import requiem
+        move = requiem.damage_move(self.session, mover_key, move)
         sm = self._sm
 
         # Timed ATK buff from active_buffs list
