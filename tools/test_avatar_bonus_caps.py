@@ -58,7 +58,7 @@ class BonusCaps(unittest.IsolatedAsyncioTestCase):
         upgraded = scaled_card(p, card)
         self.assertEqual(upgraded['skills'][0]['bonuses']['nth_hit_interval'], 3)
         self.assertEqual(upgraded['skills'][1]['bonuses']['defence_break_rounds'], 3)
-        self.assertEqual(upgraded['skills'][1]['bonuses']['defence_break_max'], 1)
+        self.assertAlmostEqual(upgraded['skills'][1]['bonuses']['defence_break_max'], .836)
         self.assertIn('Every 3 hits', skill_description(card, 1, 10))
 
     async def test_flat_gains_are_added_once_and_cap_scales_with_bey(self):

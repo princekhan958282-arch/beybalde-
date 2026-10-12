@@ -54,7 +54,7 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(AP.skill_level(p, AID, 'storm'), 1)
         self.mutate(lambda p: AP._ensure(p, AID).update(level=4, skills={'storm': 6}))
         self.assertEqual(AP.card_level(self.read(), AID), 4)
-        self.assertEqual(AP.skill_level(self.read(), AID, 'storm'), 6)
+        self.assertEqual(AP.skill_level(self.read(), AID, 'storm'), 5)
 
     def test_duplicate_copy_is_separate_from_owned_equipped_card(self):
         for _ in range(5):

@@ -47,6 +47,7 @@ Public API (unchanged — session.py / attack_manager.py need no edits):
 from __future__ import annotations
 
 import math
+import hashlib
 import random
 from typing import Any
 
@@ -247,6 +248,9 @@ class AbilityEngine:
 
     def _get_abilities(self, blade: dict, key: str = "") -> list[dict]:
         """All ability dicts of a blade (respecting disabled flags)."""
+        if blade.get("custom"):
+            from utils.custom_bey import balanced_definition
+            blade = balanced_definition(blade)
         abs_ = blade.get("abilities") or []
         if key and self.ability_2_disabled.get(key) and len(abs_) > 1:
             return [abs_[0]] + list(abs_[2:])
@@ -262,10 +266,17 @@ class AbilityEngine:
         blade in opposite forms.
         """
         name = blade.get("name", "?")
+        if blade.get("custom"):
+            # Same-named player designs must compile their own preset rules.
+            signature = repr((blade.get("abilities"), blade.get("custom_meta")))
+            name += "#custom:" + hashlib.sha256(signature.encode()).hexdigest()
         mode = blade.get("active_spin_mode")
         if mode:
             name = f"{name}#{mode}"
         if name not in self._compiled:
+            if blade.get("custom"):
+                from utils.custom_bey import balanced_definition
+                blade = balanced_definition(blade)
             rules: list[dict] = []
             # `_ab_index` was never written by either path, so the
             # ability_2_disabled filter below matched nothing and the whole
@@ -763,6 +774,14 @@ class AbilityEngine:
             return boosted
         return damage
 
+    def _bounded_shield(self, key: str, amount: int, op: dict) -> int:
+        """Optional authored cap; existing shield operations remain unchanged."""
+        if "cap_max_hp_pct" not in op:
+            return amount
+        maximum = self.session.max_hp_per_player.get(key) or self.session.max_hp or 0
+        cap = math.floor(maximum * float(op["cap_max_hp_pct"]) / 100)
+        return max(0, min(amount, cap - self.st.get_shield(key)))
+
     def _run_ops(self, rule: dict, ab_name: str, key: str, okey: str,
                  move: str, dmg_dealt: int, dmg_taken: int,
                  logs: list[str], matchup: str = "") -> tuple[int, int]:
@@ -918,10 +937,12 @@ class AbilityEngine:
                 self.session.hp[key] = self.session.hp.get(key, 0) - int(val)
                 logs.append(f"🩸 **{ab_name}** — {int(val)} recoil damage.")
             elif kind == "prime_bonus":
-                self.primed_bonus[key] = self.primed_bonus.get(key, 0) + int(val)
+                total = self.primed_bonus.get(key, 0) + int(val)
+                self.primed_bonus[key] = min(total, int(op["cap"])) if "cap" in op else total
                 logs.append(f"🔆 **{ab_name}** — next Special primed (+{int(val)})!")
             elif kind == "prime_hit_bonus":
-                self.primed_hit_bonus[key] = self.primed_hit_bonus.get(key, 0) + int(val)
+                total = self.primed_hit_bonus.get(key, 0) + int(val)
+                self.primed_hit_bonus[key] = min(total, int(op["cap"])) if "cap" in op else total
                 logs.append(f"🔆 **{ab_name}** — next Attack or Special primed (+{int(val)})!")
 
             # ── incoming damage / defense ────────────────────────────────────
@@ -1000,8 +1021,9 @@ class AbilityEngine:
                     dmg_taken += int(val)
                     logs.append(f"🪞 **{ab_name}** — reflected {int(val)} damage!")
             elif kind == "shield":
-                self.st.add_shield(key, int(val))
-                logs.append(f"🛡️ **{ab_name}** — gained a {int(val)} HP shield!")
+                amount = self._bounded_shield(key, int(val), op)
+                self.st.add_shield(key, amount)
+                logs.append(f"🛡️ **{ab_name}** — gained a {amount} HP shield!")
             elif kind == "shield_pct":
                 # A shield worth a PERCENTAGE rather than a flat number. `shield`
                 # takes an int, so a blade asking for "10% of current HP" had to
@@ -1012,6 +1034,7 @@ class AbilityEngine:
                         else (self.session.max_hp_per_player.get(key)
                               or self.session.max_hp or 0))
                 amount = math.ceil(max(0, base) * float(val) / 100)
+                amount = self._bounded_shield(key, amount, op)
                 if amount > 0:
                     self.st.add_shield(key, amount)
                     logs.append(f"🛡️ **{ab_name}** — gained a {amount} HP shield "

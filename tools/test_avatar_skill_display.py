@@ -35,31 +35,31 @@ class SkillDisplayTests(unittest.TestCase):
         embed = build_avatar_embed(self.card, owned=True, level=3,
                                    skill_levels=levels, active_skill_slot=1)
         skills = next(f.value for f in embed.fields if 'Skills' in f.name)
-        self.assertIn('27.84%', skills)
+        self.assertIn('25.2%', skills)
         self.assertIn('+4 ATK / +4 DEF / +4 STM', skills)
         self.assertNotIn('Attack increased by 24%', skills)
         preview = skill_preview(self.card, 1, 3, 4)
-        self.assertIn('27.84%', preview)
-        self.assertIn('29.76%', preview)
+        self.assertIn('25.2%', preview)
+        self.assertIn('25.8%', preview)
         self.assertNotIn('×', preview)
 
     def test_rule_effects_scale_but_gates_chances_and_counters_do_not(self):
         daigo = next(c for c in avatar_engine.get_all_avatars() if c['name'] == 'Daigo Kurogami')
-        self.assertIn('29% more damage', skill_description(daigo, 2, 3))
+        self.assertIn('26.25% more damage', skill_description(daigo, 2, 3))
         self.assertIn('below 40% HP', skill_description(daigo, 2, 3))
         self.assertEqual(skill_description(daigo, 3, 3), daigo['skills'][2]['description'])
         ken = next(c for c in avatar_engine.get_all_avatars() if c['name'] == 'Ken Midori')
         text = skill_description(ken, 2, 3)
         self.assertIn('40% chance', text)
-        self.assertIn('drain 1.74', text)
+        self.assertIn('drain 1.58', text)
 
     def test_special_flags_and_integer_effects_remain_readable(self):
         dyrroth = next(c for c in avatar_engine.get_all_avatars() if c['name'] == 'Dyrroth')
         self.assertIn('Every 3 hits', skill_description(dyrroth, 1, 3))
-        self.assertIn('23.2%', skill_description(dyrroth, 1, 3))
-        self.assertIn('46.4–88.16%', skill_description(dyrroth, 2, 3))
+        self.assertIn('21%', skill_description(dyrroth, 1, 3))
+        self.assertIn('42–79.8%', skill_description(dyrroth, 2, 3))
         self.assertIn('first 3 rounds', skill_description(dyrroth, 2, 3))
-        self.assertIn('128.76%', skill_description(dyrroth, 3, 3))
+        self.assertIn('116.55%', skill_description(dyrroth, 3, 3))
         self.assertIn('full Attack stat', skill_description(dyrroth, 3, 3))
 
     def test_roster_descriptions_do_not_mutate_battle_data(self):
@@ -89,18 +89,18 @@ class SkillDisplayUITests(unittest.IsolatedAsyncioTestCase):
     async def test_view_skill_and_upgrade_receipt_show_real_effects(self):
         await self.view.view_skill.callback(self.interaction)
         embed = self.interaction.response.send_message.call_args.kwargs['embed']
-        self.assertIn('27.84%', embed.description)
-        self.assertIn('29.76%', embed.fields[-1].value)
+        self.assertIn('25.2%', embed.description)
+        self.assertIn('25.8%', embed.fields[-1].value)
         async def mutate(owner, fn):
             return fn(self.profile)
         with patch.object(UI, 'mutate_user', AsyncMock(side_effect=mutate)):
             await self.view.skill_up.callback(self.interaction)
         text = self.interaction.followup.send.call_args.args[0]
         self.assertIn('Lv3 → Lv4', text)
-        self.assertIn('27.84%', text)
-        self.assertIn('29.76%', text)
+        self.assertIn('25.2%', text)
+        self.assertIn('25.8%', text)
         self.assertNotIn('×', text)
-        self.assertIn('29.76%', next(f.value for f in self.view.details_embed.fields if 'Skills' in f.name))
+        self.assertIn('25.8%', next(f.value for f in self.view.details_embed.fields if 'Skills' in f.name))
 
     async def test_repeated_refreshes_clear_old_panel_and_preserve_fallback(self):
         self.view.message = SimpleNamespace(edit=AsyncMock())
@@ -119,7 +119,7 @@ class SkillDisplayUITests(unittest.IsolatedAsyncioTestCase):
             kwargs = self.view.message.edit.call_args.kwargs
             self.assertEqual(kwargs['attachments'], [])
             text = '\n'.join(f.value for f in kwargs['embed'].fields)
-            self.assertIn('27.84%', text)
+            self.assertIn('25.2%', text)
             self.assertNotIn('×', text)
 
 

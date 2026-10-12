@@ -485,8 +485,8 @@ async def equipped_blade(user_id: int) -> tuple[Optional[dict], Optional[dict]]:
     if profile.get("active_custom_bey"):
         custom = profile.get("custom_bey")
         if isinstance(custom, dict):
-            from copy import deepcopy
-            return deepcopy(custom), None
+            from utils.custom_bey import balanced_definition
+            return balanced_definition(custom), None
     cid = profile.get("active_copy")
     if cid:
         for c in (profile.get("boss_copies") or []):

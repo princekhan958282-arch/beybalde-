@@ -123,7 +123,7 @@ class V4Tests(unittest.TestCase):
         self.assertEqual(AC.stages(p,AID),3)
         self.assertEqual(AC.stars(p,AID),7)
         self.assertEqual(AP.card_level(p,AID),4)
-        self.assertEqual(AP.skill_level(p,AID,'storm'),6)
+        self.assertEqual(AP.skill_level(p,AID,'storm'),5)
         self.assertEqual(AC.spare_copies(p,AID),1)
 
     def test_new_duplicate_keep_and_sell_only_touch_reward(self):

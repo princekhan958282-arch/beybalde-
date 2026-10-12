@@ -4,6 +4,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from tools import sim_story as H
+import discord
+from discord.ext import commands
+from cogs.battle.battle import BattleCog
 from cogs.ui.panels import PanelCommands
 from cogs.avatar import avatar_engine
 from cogs.avatar import avatar_skills as AS
@@ -30,15 +33,23 @@ class BattleOptions(unittest.IsolatedAsyncioTestCase):
             payout=False, bey_level=level, avatars_enabled=avatars)
 
     async def test_slash_forwards_options(self):
-        cog = PanelCommands(SimpleNamespace())
+        cog = BattleCog(SimpleNamespace())
         interaction, player = object(), object()
-        with patch.object(cog, '_run', new=AsyncMock()) as run:
-            await PanelCommands.battle.callback(cog, interaction, player, 50, False)
-        run.assert_awaited_once_with(interaction, 'battle', opponent=player,
+        with patch('cogs.ui.invoke.run_prefix_command', new=AsyncMock()) as run:
+            await BattleCog.battle_challenge.callback(cog, interaction, player, 50, False)
+        run.assert_awaited_once_with(interaction, cog.battle, bot=cog.bot,
+                                    visibility='public', opponent=player,
                                     mode='casual', bey_level=50, avatars=False)
-        options = {p.name: p for p in PanelCommands.battle.parameters}
+        options = {p.name: p for p in BattleCog.battle_challenge.parameters}
         self.assertEqual(options['bey_level'].min_value, 1)
         self.assertEqual(options['bey_level'].max_value, 100)
+
+    async def test_battle_registers_without_panels_and_has_no_duplicate(self):
+        async with commands.Bot(command_prefix=';', intents=discord.Intents.none()) as bot:
+            await bot.add_cog(BattleCog(bot))
+            self.assertIsNotNone(bot.tree.get_command('battle'))
+            await bot.add_cog(PanelCommands(bot))
+            self.assertEqual(sum(c.name == 'battle' for c in bot.tree.get_commands()), 1)
 
     async def test_fixed_levels_apply_stats_hp_special_and_formula_level(self):
         for level in (1, 50, 100):

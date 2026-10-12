@@ -8,6 +8,7 @@ on:
       - 'parts/**'
       - 'utils/**'
       - 'cogs/avatar/**'
+      - 'cogs/custom_bey.py'
       - 'cogs/battle/session.py'
       - 'cogs/battle/**'
       - 'cogs/abilities/**'
@@ -47,6 +48,7 @@ jobs:
         run: |
           python -m unittest tools.test_character_components
           python -m unittest tools.test_custom_bey_v2
+          python -m unittest tools.test_custom_bey_balance
           python -m unittest tools.test_physical_components
       - name: PvP, Boss, Story, inventory controls and battle snapshots
         run: python tools/test_component_battles.py
@@ -67,6 +69,7 @@ jobs:
           python tools/test_special_avatar_pipeline.py
           python tools/test_special_defense.py
           python tools/test_original_generation.py
+          python -m unittest tools.test_avatar_skill_cap tools.test_battle_slash_options
           python tools/test_avatar_roster.py
           python -m unittest tools.test_avatar_progression
           python -m unittest tools.test_avatar_action_menu

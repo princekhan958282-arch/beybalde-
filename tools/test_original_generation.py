@@ -296,7 +296,7 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
             for slot in (1, 2, 3):
                 s = await self.build(ch, skill_level=10)
                 og, logs = self.activate(s, slot, move='special' if ch == 'tyson' and slot == 3 else 'attack')
-                self.assertAlmostEqual(og.stat_multiplier('101', 'defense'), 1 + C.EMPOWER_PERCENT_STEP * 9)
+                self.assertAlmostEqual(og.stat_multiplier('101', 'defense'), 1 + C.EMPOWER_PERCENT_STEP * (C.MAX_SKILL_LEVEL - 1))
                 s.round += C.EMPOWER_ROUNDS
                 self.assertIsNone(og.effect('101', 'skill_empower'))
 
