@@ -132,6 +132,7 @@ class DefenseManager:
         mblade: dict,
         oblade: dict,
         ostats: dict,
+        attacker_stats: dict | None = None,
     ) -> tuple[dict, list[str]]:
         """Adjust defender stats before calc_damage runs.
 
@@ -146,19 +147,24 @@ class DefenseManager:
         logs   = []
         ab_eng = self.session.ability
 
-        # 1. Defense-pierce: attacker's ability zeroes out defender DEF
+        # 1. Full pierce removes defensive advantage, not the denominator.
         pierce_turns = self.session.status.get_duration("ignore_defense_turns", mkey)
         if pierce_turns > 0:
             ostats = dict(ostats)
-            # Save the real DEF BEFORE zeroing so deficit_bleed isn't
-            # inflated by treating the opponent as having 0 DEF.
             ostats["_real_defense"] = ostats.get("defense", 50)
-            ostats["defense"]       = 1  # Safe denominator for the core formula
+            if attacker_stats is None:
+                from .purification import effective_stats
+                attacker_stats = effective_stats(self.session, mkey)
+            # Neutralize DEF above ATK, preserving an already favorable
+            # matchup. DEF=1 made a Lv100 pierce hit hundreds of times harder
+            # than a normal hit. Counter/type bypass remains in AttackManager.
+            ostats["defense"] = max(1, min(
+                ostats["_real_defense"], max(1, attacker_stats.get("attack", 50))))
             # AttackManager announces the applied pierce once, after it
             # knows the opponent's move and whether a counter was nullified.
             d = self.session.status.ignore_defense_turns
             d[mkey] = max(0, pierce_turns - 1)
-            return ostats, logs   # pierce already zeroed DEF; skip buff/shatter
+            return ostats, logs   # full pierce already handled defensive stats
 
         # 1b. PARTIAL defense pierce. Separate from the full pierce above,
         # which returns early and nullifies the counter — this one only shaves

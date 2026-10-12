@@ -151,7 +151,7 @@ class AttackManager:
 
         # ── Pre-process defender stats (pierce / shatter / def buff) ──────────
         ostats, pre_logs = self.session.defense_manager.preprocess_defender_stats(
-            mkey, okey, mblade, oblade, ostats
+            mkey, okey, mblade, oblade, ostats, attacker_stats=mstats
         )
         logs.extend(pre_logs)
 
@@ -188,9 +188,8 @@ class AttackManager:
 
         # ── Ignore Defense: suppress the counter-hit when piercing defense ────
         # When defense is pierced the counter is nullified and we announce once.
-        # Previously this only fired when dmg_taken > 0, but when preprocess
-        # zeroes DEF the gate threshold drops to 0 meaning calc_damage never
-        # generates a counter — dmg_taken is always 0, so the log never printed.
+        # Announce the applied bypass even when another effect has already
+        # suppressed the counter. Full pierce preserves a safe stat ratio.
         # Now we announce unconditionally whenever piercing is active and the
         # opponent used Defense, then clear any residual counter just in case.
         if piercing_defense:
@@ -201,8 +200,7 @@ class AttackManager:
                     f"{oblade['name']}'s Defense! Counter NULLIFIED!"
                 )
             elif dmg_taken > 0:
-                # Shouldn't happen (pierce zeroes DEF so no counter is generated)
-                # but guard it anyway.
+                # A bypassed counter must never survive this pairing.
                 dmg_taken = 0
 
         # ── Defender's counter bonus ─────────────────────────────────────────
