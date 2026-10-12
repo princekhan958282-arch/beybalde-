@@ -68,9 +68,9 @@ CI provisions an isolated MySQL 8 service and runs the same transaction tests th
 
 ## Per-Bey avatar bonus limits
 
-Permanent avatar ATK, DEF, STM and HP bonuses add flat gains plus a percentage of the stat before avatar bonuses. Each avatar has its own `stat_bonus_cap` in its JSON definition; 100% is the hard maximum, not a shared cap. Each combined bonus is capped at that avatar’s percentage of the Bey stat. HP uses the starting battle HP pool after Bey levels and parts are resolved, before avatar bonuses and type passives. Card and battle calculations read the same per-avatar cap; `AVATAR_STAT_BONUS_CAP` enforces the hard maximum. Stored stars and purchased levels are preserved; excess bonuses are capped only when applied. Skill upgrades scale magnitudes without changing hit intervals or effect durations.
+Permanent avatar ATK, DEF and STM bonuses add flat gains plus a percentage of the stat before avatar bonuses. Each avatar has its own `stat_bonus_cap` in its JSON definition; 100% is the hard maximum, not a shared cap. Each combined bonus is capped at that avatar’s percentage of the Bey stat. Avatar flat and percentage maximum-HP bonuses are disabled for every card, star, level and skill selection. Card and battle calculations read the same per-avatar cap; `AVATAR_STAT_BONUS_CAP` enforces the hard maximum. Stored stars and purchased levels are preserved; excess bonuses are capped only when applied. Skill upgrades scale magnitudes without changing hit intervals or effect durations.
 
-Individual caps reserve less permanent stat growth for kits with strong crit, Special amplification, control, damage resistance or survival effects. Stat-focused kits receive more room. These are authored balance settings, not runtime formulas based on rarity. The cap covers permanent ATK/DEF/STM/HP bonuses; timed skill effects and Special damage keep their existing mechanics.
+Individual caps reserve less permanent stat growth for kits with strong crit, Special amplification, control, damage resistance or survival effects. Stat-focused kits receive more room. These are authored balance settings, not runtime formulas based on rarity. The cap covers permanent ATK/DEF/STM bonuses; timed skill effects and Special damage keep their existing mechanics.
 
 | Avatar | Combined stat bonus cap |
 |---|---:|
@@ -136,3 +136,5 @@ Individual caps reserve less permanent stat growth for kits with strong crit, Sp
 ### Skill balance limit
 
 All avatars cap skills at level 5. Skill effect multipliers are 1.00, 1.025, 1.05, 1.075 and 1.10 (10% total increase at maximum). Existing stored levels above 5 are clamped when read without changing ownership or historical spending. Upgrades stop at 5. Timers, costs, stack counts and triggers stay unchanged. `/battle` registers with the battle cog independently of the optional UI panels; boot sync or an owner `;sync` registers it with Discord.
+
+Avatar HP removal applies to PvP, Story, Boss and card/shop displays. Legacy HP fields remain readable but contribute zero. Healing, shields and explicit revival skills still use the Bey’s own maximum HP.

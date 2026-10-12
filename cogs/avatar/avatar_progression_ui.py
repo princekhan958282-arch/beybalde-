@@ -55,11 +55,10 @@ def progression_embed(profile, card, slot=1):
         flat = block.get(key + '_flat', 0) + gain[stat] + sg[stat] + selected[stat]
         pct = block.get(key + '_percent', 0)
         totals.append(f"{stat.upper()}: +{flat:g} flat, +{number(pct * 100)}%")
-    totals.append(f"HP: +{block.get('hp_flat', 0):g} flat, +{number(block.get('hp_percent', 0) * 100)}%")
     e.add_field(name='Total avatar stats (current skill selection)', value='\n'.join(totals), inline=False)
     e.add_field(name='Bey bonus limit',
-                value=f"This avatar's combined ATK / DEF / STM / HP bonuses cap at +{C.avatar_bonus_cap(card):.0%} "
-                      "of each equipped Bey stat (HP uses its starting battle pool). Flat gains and percentages add together; "
+                value=f"This avatar's combined ATK / DEF / STM bonuses cap at +{C.avatar_bonus_cap(card):.0%} "
+                      "of each equipped Bey stat. Flat gains and percentages add together; "
                       "skill percentages do not multiply star or level gains.", inline=False)
     fed = AC.stages(profile, aid)
     if star < C.MAX_STARS:

@@ -121,6 +121,7 @@ def permanent_bonuses(avatar, owned=False, equipped=False, level=1, stars=1):
         for stat, key in [('attack','attack_flat'),('defense','defence_flat'),('stamina','stamina_flat')]:
             out[key] = (_number(out.get(key)) + gain[stat]
                         + C.star_stat_total(stars))
+    out.update(hp_flat=0.0, hp_percent=0.0)
     return out
 
 

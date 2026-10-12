@@ -153,7 +153,7 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         expected = math.floor(pool * passive_stat_multiplier(npc_blade['type'], 'hp'))
         self.assertEqual(s.hp[str(npc.id)], expected)
 
-    async def test_avatar_hp_applies_once_after_conversion_and_card_matches(self):
+    async def test_avatar_hp_is_disabled_after_conversion_and_card_matches(self):
         from cogs.avatar import avatar_engine, AvatarBonuses
         from utils.loadout import battle_pool, effective_blade
         import math
@@ -162,7 +162,7 @@ class ComponentBattleTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(avatar_engine, 'get_battle_bonuses', new=AsyncMock(return_value=bonus)):
             s = await self.pvp()
             displayed = await battle_pool(701, self.raw)
-        expected = math.floor(int(effective['stats']['hp'] * 15 * 1.10 + 50)
+        expected = math.floor(int(effective['stats']['hp'] * 15)
                               * passive_stat_multiplier(self.raw['type'], 'hp'))
         self.assertEqual(s.hp['701'], expected)
         self.assertEqual(displayed, expected)

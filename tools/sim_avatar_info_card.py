@@ -47,10 +47,10 @@ class CardTests(unittest.TestCase):
 
     def test_permanent_bonuses_match_growth_and_exclude_skills(self):
         bonuses = C.permanent_bonuses(YUKI, owned=True, level=3)
-        self.assertEqual(bonuses, {'hp_flat': 0, 'hp_percent': .03, 'attack_flat': 9, 'defence_flat': 27, 'stamina_flat': 9})
-        self.assertEqual(C.permanent_bonuses(YUKI), {'hp_flat': 0, 'hp_percent': .03})
+        self.assertEqual(bonuses, {'hp_flat': 0, 'hp_percent': 0, 'attack_flat': 9, 'defence_flat': 27, 'stamina_flat': 9})
+        self.assertEqual(C.permanent_bonuses(YUKI), {'hp_flat': 0, 'hp_percent': 0})
         passive = {**YUKI, 'skills': []}  # Compatibility with cards without skills
-        self.assertEqual(C.permanent_bonuses(passive), passive['bonuses'])
+        self.assertEqual(C.permanent_bonuses(passive), dict(passive['bonuses'],hp_flat=0,hp_percent=0))
 
     def test_stars_draw_to_right_of_name_and_add_owned_stats(self):
         original = ImageDraw.ImageDraw.polygon
@@ -94,8 +94,9 @@ class CardTests(unittest.TestCase):
             return original(draw, xy, text, *args, **kwargs)
         with patch.object(C, '_art', return_value=None), patch.object(ImageDraw.ImageDraw, 'text', record):
             self.assertIsNotNone(C.render_avatar_info_card(YUKI, owned=True, level=3, active_skill_slot=1))
-        for value in ['+9', '+27', '+9', '+3%', 'Steadfast Guard', 'Second Wind', 'Calm Foundation', '25', '50', '75']:
+        for value in ['+9', '+27', '+9', 'Steadfast Guard', 'Second Wind', 'Calm Foundation', '25', '50', '75']:
             self.assertIn(value, drawn)
+        self.assertNotIn('+3%',drawn)
         self.assertNotIn(YUKI['description'], drawn)
 
     def test_corrupt_fields_and_long_names(self):

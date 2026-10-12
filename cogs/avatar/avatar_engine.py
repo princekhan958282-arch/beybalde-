@@ -97,8 +97,8 @@ class AvatarBonuses:
     multi_hit_extra_hits:   bool = False  # +MULTI_HIT_EXTRA_HITS hits
 
     # HP
-    hp_flat:    float = 0.0   # bonus HP added at battle start (e.g. +50 HP)
-    hp_percent: float = 0.0   # percent bonus to starting HP (e.g. 0.10 = +10%)
+    hp_flat:    float = 0.0   # legacy compatibility field; no maximum-HP bonus
+    hp_percent: float = 0.0   # legacy compatibility field; no maximum-HP bonus
 
     # Resistance
     resistance_damage_percent: float = 0.0   # reduces all incoming damage
@@ -179,9 +179,8 @@ class AvatarBonuses:
         return (base_damage + self.special_move_flat) * (1.0 + self.special_move_percent)
 
     def apply_hp_bonus(self, base_hp: float) -> float:
-        """Add HP once, capped against the pool before avatar bonuses."""
-        pct = min(self.HP_PERCENT_CAP, max(0.0, self.hp_percent))
-        return self._apply_stat_bonus(base_hp, self.hp_flat, pct)
+        """Avatars no longer add flat or percentage maximum HP."""
+        return base_hp
 
     def apply_damage_resistance(self, incoming_damage: float) -> float:
         """Reduce incoming damage by resistance percent."""
@@ -224,8 +223,8 @@ class AvatarBonuses:
     # and makes the ceiling one number to change again later.
     DODGE_CAP = 0.05
 
-    # HP shares the combined stat ceiling, including flat and percent gains.
-    from .avatar_config import AVATAR_STAT_BONUS_CAP as HP_PERCENT_CAP
+    # Kept for older readers; maximum-HP bonuses are disabled for all avatars.
+    HP_PERCENT_CAP = 0.0
 
     def roll_dodge(self) -> bool:
         """Roll whether this avatar dodges an incoming attack.
@@ -260,7 +259,6 @@ class AvatarBonuses:
             self.stability_flat, self.stability_percent,
             self.charge_flat, self.charge_percent,
             self.special_move_flat, self.special_move_percent,
-            self.hp_flat, self.hp_percent,
             self.crit_percent,
             self.dodge_chance, self.counter_chance,
             self.multi_hit_power_double, self.multi_hit_extra_hits,
@@ -493,11 +491,8 @@ class AvatarEngine:
             charge_percent=b.get("charge_percent", 0.0),
             special_move_flat=b.get("special_move_flat", 0.0),
             special_move_percent=b.get("special_move_percent", 0.0),
-            hp_flat=b.get("hp_flat", 0.0),
-            # Capped at load for the same reason dodge is: the number a card
-            # DISPLAYS in the shop must be the number that reaches the pool.
-            hp_percent=min(AvatarBonuses.HP_PERCENT_CAP,
-                           max(0.0, float(b.get("hp_percent", 0.0) or 0.0))),
+            hp_flat=0.0,
+            hp_percent=0.0,
             crit_percent=b.get("crit_percent", 0.0),
             # Capped at load, so the number a card DISPLAYS is the number that
             # actually rolls. Capping only inside roll_dodge would leave the

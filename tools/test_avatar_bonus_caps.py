@@ -86,15 +86,15 @@ class BonusCaps(unittest.IsolatedAsyncioTestCase):
             for method in ('apply_attack_bonus', 'apply_defence_bonus', 'apply_stamina_bonus'):
                 self.assertAlmostEqual(getattr(av, method)(100), 100 * (1 + cap), msg=card['name'])
             av.hp_flat = 100000
-            self.assertAlmostEqual(av.apply_hp_bonus(2000), 2000 * (1 + cap))
+            self.assertAlmostEqual(av.apply_hp_bonus(2000), 2000)
         self.assertGreater(len(caps), 1)
         self.assertEqual(AvatarBonuses(attack_flat=10000, stat_bonus_cap=12).apply_attack_bonus(100), 200)
 
-    async def test_hp_flat_and_percent_share_cap(self):
-        self.assertEqual(AvatarBonuses(hp_flat=100, hp_percent=.1).apply_hp_bonus(2000), 2300)
+    async def test_hp_flat_and_percent_are_disabled(self):
+        self.assertEqual(AvatarBonuses(hp_flat=100, hp_percent=.1).apply_hp_bonus(2000), 2000)
         for pool in (0, 100, 2000):
-            self.assertEqual(AvatarBonuses(hp_flat=10000, hp_percent=.5).apply_hp_bonus(pool), 2 * pool)
-            self.assertEqual(AvatarBonuses(hp_percent=12).apply_hp_bonus(pool), 2 * pool)
+            self.assertEqual(AvatarBonuses(hp_flat=10000, hp_percent=.5).apply_hp_bonus(pool), pool)
+            self.assertEqual(AvatarBonuses(hp_percent=12).apply_hp_bonus(pool), pool)
 
     async def test_hp_cap_matches_pvp_boss_and_display(self):
         from unittest.mock import AsyncMock, patch
@@ -109,9 +109,9 @@ class BonusCaps(unittest.IsolatedAsyncioTestCase):
             capped, _, _ = await self.build()
             shown = await battle_pool(101, capped.blades['101'])
             boss, _ = await BB._player_fighter(101)
-        self.assertAlmostEqual(capped.max_hp_per_player['101'], 2 * base.max_hp_per_player['101'], delta=1)
+        self.assertAlmostEqual(capped.max_hp_per_player['101'], base.max_hp_per_player['101'], delta=1)
         self.assertEqual(shown, capped.max_hp_per_player['101'])
-        self.assertEqual(boss.max_hp, 2 * plain_boss.max_hp)
+        self.assertEqual(boss.max_hp, plain_boss.max_hp)
 
 
 if __name__ == '__main__':

@@ -209,8 +209,6 @@ def format_bonuses_summary(bonuses: dict) -> str:
         ("counter_chance",           "Counter Chance", "percent"),
         ("resistance_damage_percent","DMG Resistance", "percent"),
         ("resistance_status_chance", "Status Resist",  "percent"),
-        ("hp_flat",                  "HP",             "flat"),
-        ("hp_percent",               "HP",             "percent"),
     ]
 
     for key, label, kind in stat_map:

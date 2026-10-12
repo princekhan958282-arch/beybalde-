@@ -278,44 +278,27 @@ def active_skill(profile: dict, avatar: Optional[dict]) -> Optional[dict]:
 
 # ── Bonus filtering ───────────────────────────────────────────────────────────
 
-# Bonuses that belong to the CARD rather than to the skill in play. Everything
-# else is zeroed and re-supplied by the active skill; these are carried across
-# from the card's own block whatever is equipped.
-#
-# HP is the case that forced this, and it is not a thing a skill *does* — it is
-# what the avatar *is*, and it has to hold whichever of the three is chosen.
-# Neither of the two ways to write it without this set works:
-#
-#   • at the top level only — zeroed here, so the shop advertises HP the fight
-#     never applies;
-#   • in all three skill blocks — invisible to `build_avatar_embed`, which
-#     renders the card's TOP-LEVEL block (avatar_utils.py:284), so the fight
-#     grants HP the shop cannot show. It also breaks the partition the skill
-#     split relies on: the three blocks are meant to account for every live
-#     top-level key exactly once.
-#
-# `hp_flat` is 0.0 on all nine skill cards today. It is here for consistency,
-# so the next defensive card cannot reintroduce the same split by accident.
-CARD_LEVEL_BONUS_KEYS = frozenset({"hp_percent", "hp_flat"})
+# No maximum-HP bonus survives skill selection. Legacy HP keys remain in
+# the returned shape as zero for compatibility with saved/authored cards.
+CARD_LEVEL_BONUS_KEYS = frozenset()
 
 
 def bonuses_for(avatar: Optional[dict], slot: int) -> dict:
     """The bonus block that applies for one slot.
 
-    A card with no skills returns its whole block unchanged — that is the
-    compatibility guarantee for the 27 avatars this system does not touch.
+    Cards without skills retain their ordinary bonuses; HP bonus fields
+    are always zero.
 
     A card WITH skills returns only the active slice, and explicitly zeroes
     every other key. Returning just the slice would leave the caller merging
     against defaults it cannot see; zeroing keeps the shape identical to the
     card's own block so `get_battle_bonuses` stays a straight field read.
 
-    The exception is `CARD_LEVEL_BONUS_KEYS`, which survive the zeroing — see
-    the note above it for why HP cannot be a per-skill value.
+    HP keys are explicitly zeroed after every path, including skill blocks.
     """
     card = (avatar or {}).get("bonuses") or {}
     if not has_skills(avatar):
-        return dict(card)
+        return dict(card, hp_flat=0.0, hp_percent=0.0)
 
     # `stats_always_on` cards keep their whole statline whatever slot is
     # picked, and their skills carry no stat block at all — the skill is a
@@ -325,7 +308,7 @@ def bonuses_for(avatar: Optional[dict], slot: int) -> dict:
     # Every card written before this flag existed omits it, so all of them go
     # down the narrowing path exactly as before.
     if (avatar or {}).get("stats_always_on"):
-        return dict(card)
+        return dict(card, hp_flat=0.0, hp_percent=0.0)
 
     out = {k: (v if k in CARD_LEVEL_BONUS_KEYS
                else (False if isinstance(v, bool) else 0))
@@ -334,6 +317,7 @@ def bonuses_for(avatar: Optional[dict], slot: int) -> dict:
     if skill:
         for key, val in (skill.get("bonuses") or {}).items():
             out[key] = val
+    out.update(hp_flat=0.0, hp_percent=0.0)
     return out
 
 

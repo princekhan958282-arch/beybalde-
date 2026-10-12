@@ -70,7 +70,7 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(s.avatar_bonuses['101'].attack_flat,34)
         self.assertEqual(s.avatar_bonuses['101'].stamina_flat,18)
         self.assertEqual(s.avatar_bonuses['101'].defence_flat,8)
-        self.assertEqual(s.avatar_bonuses['101'].hp_flat,15)
+        self.assertEqual(s.avatar_bonuses['101'].hp_flat,0)
         self.assertEqual(AS.energy(await H.DB.get_user(101)),0)
         self.assertEqual(AS.active_slot({},s.avatar_cards['101']),0)
 
