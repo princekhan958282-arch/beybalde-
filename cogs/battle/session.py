@@ -1737,6 +1737,14 @@ class BattleSession:
             # be evaluated exactly, with no second profile read and no change
             # to `grant_xp`'s three-tuple.
             if self.payout:
+                # A real PvP clear of the official Void Longinus unlocks
+                # Nemesis. Save it with this winner's existing result write.
+                if (winner.id != loser.id and not self._is_npc(winner.id)
+                        and not self._is_npc(loser.id)
+                        and not getattr(winner, "bot", False)
+                        and not getattr(loser, "bot", False)):
+                    from utils.boss_unlocks import record_pvp_unlock
+                    record_pvp_unlock(w_profile, self.blades.get(str(loser.id)))
                 _w_before = level_from_xp(w_profile.get("xp", 0))
                 await update_user(winner.id, w_profile)
                 wlvl, _, w_up = grant_xp(winner.id, XP_WIN)

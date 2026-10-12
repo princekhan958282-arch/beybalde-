@@ -311,6 +311,9 @@ def build_embed(prof: dict, compact: bool = False) -> discord.Embed:
                     inline=False,
                 )
 
+    if prof["key"] == "nemesis":
+        from utils.boss_unlocks import NEMESIS_REQUIREMENT
+        e.add_field(name="🔒 Unlock requirement", value=NEMESIS_REQUIREMENT, inline=False)
     e.set_footer(text="Challenge a random boss spawn · Victory awards the original Bey")
     return e
 
