@@ -104,6 +104,13 @@ class AttackManager:
         damage_rules.calc_damage).
         """
         logs: list[str] = []
+        self.session.ability.staged_landed_ops.pop(mkey, None)
+        self.session.ability.projected_hit_counters.pop(mkey, None)
+        self.session.ability.hit_counter_before.pop(mkey, None)
+        self.session.ability.staged_reflections.pop(mkey, None)
+        if not hasattr(self, 'pending_nth_hits'):
+            self.pending_nth_hits = {}
+        self.pending_nth_hits.pop(mkey, None)
         from . import requiem
         whip_strike = requiem.button_attack(self.session, mkey, mmove)
 
@@ -240,10 +247,16 @@ class AttackManager:
         # ── Avatar: every Nth strike carries a slice of total Attack ─────────
         if mmove == MOVE_ATTACK and dmg_dealt > 0:
             _nth, _nth_logs = AVC.nth_hit_bonus(
-                self.session, mkey, mstats.get("attack", 0))
+                self.session, mkey, mstats.get("attack", 0),
+                count_hit=not getattr(self.session, 'defer_landed_hit_effects', False))
+            av = AVC._av(self.session, mkey)
+            if (getattr(self.session, 'defer_landed_hit_effects', False)
+                    and av is not None and av.nth_hit_interval > 0):
+                self.pending_nth_hits[mkey] = _nth_logs
             if _nth:
                 dmg_dealt += _nth
-                logs.extend(_nth_logs)
+                if not getattr(self.session, 'defer_landed_hit_effects', False):
+                    logs.extend(_nth_logs)
 
         # ── Crit announcement ─────────────────────────────────────────────────
         if is_crit:
@@ -374,6 +387,7 @@ class AttackManager:
             hp[k2] = remaining
             self.session.ability.dranzer.after_incoming(k2, logs)
             self.committed_damage[k1] = actual
+            self._commit_nth_hit(k1, actual, logs)
             if self.session.ability.pending_critical_rewards.pop(k1, False) and actual > 0:
                 logs.extend(AVC.on_crit(self.session, k1))
             self.session.ability.draciel.committed(k1, k2, m1, actual)
@@ -401,6 +415,7 @@ class AttackManager:
             hp[k1] = remaining
             self.session.ability.dranzer.after_incoming(k1, logs)
             self.committed_damage[k2] = actual
+            self._commit_nth_hit(k2, actual, logs)
             if self.session.ability.pending_critical_rewards.pop(k2, False) and actual > 0:
                 logs.extend(AVC.on_crit(self.session, k2))
             self.session.ability.draciel.committed(k2, k1, m2, actual)
@@ -409,6 +424,15 @@ class AttackManager:
                 extra.committed(k2, k1, m2, actual, logs)
             if tactical is not None:
                 tactical.committed(k2, k1, m2, actual, logs)
+
+        # Commit both simultaneous hits before healing either side. A side
+        # killed by this exchange cannot be revived by ordinary lifesteal.
+        for key in (k1, k2):
+            actual = self.committed_damage[key]
+            self.session.ability.commit_landed_effects(key, actual, logs)
+            self.session.ability.commit_lifesteal(key, actual, logs)
+        for key in (k1, k2):
+            self.session.ability.commit_reflections(key, self.committed_damage[key], logs)
 
         # Tagged terminal HP damage: deliberately does not re-enter abilities,
         # avatar reflection, crit rolls, or the mitigation pipeline.
@@ -421,38 +445,20 @@ class AttackManager:
             logs.append(f"↩️ **Kinetic Counter** — returns **{amount} actual HP damage**!")
 
         # ── Apply counter-hit reflections ─────────────────────────────────────
-        # counter_pN is non-zero only for Attack-vs-Defense hits.
-        # Guard against "mirror" matchup: in a mirror, calc_damage returns
-        # dmg_taken = MIRROR_CHIP_DAMAGE as a symmetric value — that chip is
-        # already applied in the normal damage block above, so applying it
-        # again here would double the chip damage (Bug fix).
-        #
-        # IMPORTANT: counter_p1 and counter_p2 are mutually exclusive in a
-        # correctly resolved round.  If P1 attacked into P2's Defense then
-        # counter_p1 > 0; P2 cannot simultaneously have attacked into P1's
-        # Defense (P2 was on Defense, not Attack).  The explicit mutual-
-        # exclusion guard below makes this guarantee enforced rather than
-        # implicit, preventing any future code path from double-counting.
-        if counter_p1 > 0 and counter_p2 > 0 and not (whip1 and whip2):
-            # Defensive sanity check — should never happen in normal play.
-            # If both counters are somehow non-zero, prefer the larger one
-            # and discard the other to avoid double damage.
-            if counter_p1 >= counter_p2:
-                counter_p2 = 0
-            else:
-                counter_p1 = 0
-
-        if counter_p1 > 0 and (matchup_p1 != "mirror" or whip1):
-            self.session.ability.dranzer.terminal(k1, counter_p1, logs)
+        # Ordinary Attack/Defense counters are mutually exclusive, but
+        # authored reactions can legitimately return damage from both sides
+        # of a mirror. The standard mirror pairing itself returns zero.
+        if counter_p1 > 0:
+            actual = self.session.ability.dranzer.terminal(k1, counter_p1, logs)
             logs.append(
                 f"  🔰 **Counter!** {b1['name']} hits {b2['name']}'s Defense — "
-                f"**{counter_p1} dmg** reflected back at {b1['name']}!"
+                f"**{actual} actual HP damage** reflected back at {b1['name']}!"
             )
-        if counter_p2 > 0 and (matchup_p2 != "mirror" or whip2):
-            self.session.ability.dranzer.terminal(k2, counter_p2, logs)
+        if counter_p2 > 0:
+            actual = self.session.ability.dranzer.terminal(k2, counter_p2, logs)
             logs.append(
                 f"  🔰 **Counter!** {b2['name']} hits {b1['name']}'s Defense — "
-                f"**{counter_p2} dmg** reflected back at {b2['name']}!"
+                f"**{actual} actual HP damage** reflected back at {b2['name']}!"
             )
 
         og = getattr(self.session, "original_generation", None)
@@ -894,20 +900,31 @@ class AttackManager:
             phoenix.special_landed(mkey, okey, hit_n, hit_dmg)
             if phoenix.owned(mkey): self.phoenix_hit_parts[mkey].append(hit_dmg)
 
-            if hit_dmg > 0:
+            if hit_dmg > 0 and not getattr(self.session, 'defer_landed_hit_effects', False):
                 sm.add_gauge(okey, "dmg_taken")
 
             logs.extend(ab_logs)
             if hits > 1:
-                logs.append(f"  💥 **Hit {hit_n + 1}/{hits}** — **{hit_dmg} dmg**")
+                logs.append(f"  💥 **Hit {hit_n + 1}/{hits}** — **{hit_dmg} dmg** before avatar defenses")
 
         if hits > 1:
-            logs.append(f"  🔥 **Total Special Damage: {total_dmg}**")
+            logs.append(f"  🔥 **Special damage before avatar defenses: {total_dmg}**")
 
         from . import requiem
         requiem.cast(self.session, mkey, mblade, logs)
 
         return total_dmg, logs
+
+    def _commit_nth_hit(self, key, actual, logs):
+        pending = getattr(self, 'pending_nth_hits', {})
+        if key not in pending:
+            return
+        lines = pending.pop(key)
+        if actual > 0:
+            counts = getattr(self.session, '_avatar_hit_counts', {})
+            counts[key] = counts.get(key, 0) + 1
+            self.session._avatar_hit_counts = counts
+            logs.extend(lines)
 
     def _apply_passive_reduction(
         self,
@@ -1104,5 +1121,6 @@ class AttackManager:
         # MOVE_SPECIAL: gauge handled per-hit in _resolve_special
 
         # Defender gains gauge from taking damage (attack only)
-        if dmg_dealt > 0 and mmove == MOVE_ATTACK:
+        if (dmg_dealt > 0 and mmove == MOVE_ATTACK
+                and not getattr(self.session, 'defer_landed_hit_effects', False)):
             sm.add_gauge(okey, "dmg_taken")

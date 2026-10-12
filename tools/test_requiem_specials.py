@@ -179,6 +179,41 @@ class RequiemSpecials(unittest.IsolatedAsyncioTestCase):
         await self.turn(s, key, enemy, 'stamina', 'charge')
         self.assertEqual(s.attack_manager.committed_damage[key], 0)
 
+    async def test_whip_button_lifesteal_uses_committed_damage_after_guard_or_dodge(self):
+        # Integration of the Whip button strikes from #257 with #258's
+        # post-commit rewards. Recovery from the selected button remains valid.
+        for reverse in (False, True):
+            for level in (1, 100):
+                for move in ('defense', 'stamina'):
+                    for block in ('shield', 'dodge', None):
+                        with self.subTest(reverse=reverse, level=level, move=move, block=block):
+                            gains = []
+                            for lifesteal in (0, 100):
+                                s, key, enemy = self.session(reverse=reverse, level=level)
+                                await self.turn(s, key, enemy, 'special', 'charge')
+                                s.blades[key]['abilities'] = []
+                                s.blades[key]['ability'] = {}
+                                s.ability._compiled.clear()
+                                s.ability.lifesteal_pct[key] = lifesteal
+                                s.hp[key] = 5000
+                                if block == 'shield':
+                                    s.status.add_shield(enemy, 100000)
+                                elif block == 'dodge':
+                                    s.avatar_bonuses[enemy] = replace(NULL_BONUSES, dodge_chance=1)
+                                # The runtime caps dodge probability, so force
+                                # the roll rather than assuming 100% bypasses it.
+                                with patch.object(type(NULL_BONUSES), 'roll_dodge',
+                                                  return_value=block == 'dodge'):
+                                    await self.turn(s, key, enemy, move, 'charge')
+                                damage = s.attack_manager.committed_damage[key]
+                                gains.append(s.hp[key] - 5000)
+                                self.assertFalse(s.ability.pending_lifesteal_hits.get(key))
+                                if block:
+                                    self.assertEqual(damage, 0)
+                                else:
+                                    self.assertGreater(damage, 0)
+                            self.assertEqual(gains[1] - gains[0], damage)
+
     async def test_both_whip_defense_strikes_keep_both_guard_counters(self):
         s, key, enemy = self.session()
         s.blades[enemy] = copy.deepcopy(s.blades[key])

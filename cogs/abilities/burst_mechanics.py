@@ -191,7 +191,9 @@ class BurstMechanics:
             reduction += 20
         if d.get('sphere_until', -1) == self.round():
             reduction += d.get('sphere_reduction', 0)
-        return math.ceil(damage * (1 - min(90, reduction) / 100))
+        # An inactive guard is an identity transform. Do not round every
+        # roster hit upward merely because this adapter is installed.
+        return math.ceil(damage * (1 - min(90, reduction) / 100)) if reduction else damage
 
     def absorbed(self, key, amount, logs):
         d = self.data(key)

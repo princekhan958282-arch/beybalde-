@@ -152,6 +152,14 @@ class AbilityEngine:
         self.regen_per_turn: dict[str, int]         = {}   # key -> stamina/turn
         self.hp_regen_per_turn: dict[str, int]      = {}   # key -> hp/turn
         self.pending_critical_rewards: dict[str, bool] = {}
+        self.pending_lifesteal_hits: dict[str, list] = {}
+        self.pending_landed_hits: dict[str, list] = {}
+        self.staged_landed_ops: dict[str, list] = {}
+        self.pending_hit_once: set[tuple] = set()
+        self.projected_hit_counters: dict[str, dict] = {}
+        self.hit_counter_before: dict[str, dict] = {}
+        self.staged_reflections: dict[str, list] = {}
+        self.pending_reflection_hits: dict[str, list] = {}
         self.heal_per_drain: dict[str, int]         = {}   # key -> HP healed per stamina drained
         self.crit_chance_bonus: dict[str, float]    = {}   # key -> engine-side crit prob
         self.crit_damage_mult:  dict[str, float]    = {}   # key -> crit multiplier (default 1.5)
@@ -295,6 +303,9 @@ class AbilityEngine:
                 for _r in _src:
                     _r["_ab_index"] = _i
                 rules.extend(_src)
+            for rid, rule in enumerate(rules):
+                if rule.get('cooldown'):
+                    rule['_cooldown_name'] = f'rule:{name}:{rid}'
             self._compiled[name] = list(enumerate(rules))
         out = self._compiled[name]
         # honour ability_2 disable for rule sets too (rules tagged with _ab_index)
@@ -691,7 +702,10 @@ class AbilityEngine:
         # still initialize the kit; existing buffs/windows keep their duration.
         if when != "setup" and self.st.is_silenced(key):
             return False
-        if rule.get("once") == "battle" and (key, rid) in self.once_fired:
+        if rule.get("once") == "battle" and ((key, rid) in self.once_fired or (key, rid) in self.pending_hit_once):
+            return False
+        cooldown_name = rule.get('_cooldown_name')
+        if cooldown_name and self.cooldowns.get((key, cooldown_name), 0) > 0:
             return False
         # threshold triggers: if the rule has no own conditions, enforce defaults
         thr = _THRESHOLD_DEFAULTS.get(when)
@@ -710,6 +724,8 @@ class AbilityEngine:
             return False
         if rule.get("once") == "battle":
             self.once_fired.add((key, rid))
+        if cooldown_name:
+            self.cooldowns[(key, cooldown_name)] = int(rule['cooldown'])
         return True
 
     # =========================================================================
@@ -726,6 +742,56 @@ class AbilityEngine:
         self.session.hp[key], gained = recover_hp(before, max_hp, amount)
         if gained > 0:
             logs.append(f"💚 **{label}** — healed **{gained}** HP!")
+
+    def commit_lifesteal(self, key: str, actual: float, logs: list[str]) -> None:
+        """Heal from committed hit damage, bounded by actual HP removed."""
+        remaining = max(0, actual)
+        healing = 0.0
+        for damage, pct in self.pending_lifesteal_hits.pop(key, []):
+            landed = min(remaining, damage)
+            healing += landed * pct / 100
+            remaining -= landed
+        if healing > 0:
+            self._heal(key, math.ceil(healing), logs, 'Lifesteal')
+
+    def commit_landed_effects(self, key: str, actual: float, logs: list[str]) -> None:
+        """Successful-hit rewards follow shields, dodge and overkill bounds."""
+        remaining = max(0, actual)
+        for damage, jobs in self.pending_landed_hits.pop(key, []):
+            landed = min(remaining, damage)
+            remaining -= landed
+            if landed <= 0:
+                continue
+            if (getattr(self.session, 'defer_landed_hit_effects', False)
+                    and (getattr(self.session, 'moves', {}) or {}).get(key) in (MOVE_ATTACK, MOVE_SPECIAL)):
+                self.session.stamina_manager.add_gauge(self._other_key(key), 'dmg_taken')
+            for rule, name, other, blade, move, matchup in jobs:
+                if '_landed_once' in rule:
+                    self.once_fired.add((key, rule['_landed_once']))
+                if rule.get('_avatar'):
+                    purification.mark(self.session, key, ('skill', name), logs)
+                self._run_ops(rule, name, key, other, move, landed, 0, logs, matchup)
+        self.pending_hit_once = {token for token in self.pending_hit_once if token[0] != key}
+        self.projected_hit_counters.pop(key, None)
+        self.hit_counter_before.pop(key, None)
+
+    def commit_reflections(self, key, actual, logs):
+        hits = self.pending_reflection_hits.pop(key, [])
+        engine = getattr(self.session, 'type_gimmicks', None)
+        if engine and engine.returns_damage(key, self._other_key(key),
+                                           (getattr(self.session, 'moves', {}) or {}).get(key)):
+            return  # Exact Kinetic return replaces other returned damage.
+        remaining = max(0, actual)
+        for damage, entries in hits:
+            landed = min(remaining, damage)
+            remaining -= landed
+            if landed <= 0:
+                continue
+            for kind, value, label in entries:
+                amount = math.ceil(landed * value / 100) if kind == 'reflect_pct' else int(value)
+                reflected = self.dranzer.terminal(key, amount, logs)
+                if reflected > 0:
+                    logs.append(f'🪞 **{label}** — reflected **{reflected} actual HP damage**!')
 
     def amp_mult(self, key: str) -> float:
         """The live `ability_amp` multiplier for this player, or 1.0.
@@ -1019,11 +1085,19 @@ class AbilityEngine:
                     logs.append(f"💨 **{ab_name}** — attack EVADED!")
                 dmg_dealt = 0
             elif kind == "reflect_pct":
+                if (getattr(self.session, 'defer_landed_hit_effects', False)
+                        and rule.get('when') == 'on_take_damage'):
+                    self.staged_reflections.setdefault(okey, []).append((kind, float(val), ab_name))
+                    continue
                 ref = math.ceil(dmg_dealt * float(val) / 100)
                 if ref > 0:
                     dmg_taken += ref
                     logs.append(f"🪞 **{ab_name}** — reflected {ref} damage!")
             elif kind == "reflect_flat":
+                if (getattr(self.session, 'defer_landed_hit_effects', False)
+                        and rule.get('when') == 'on_take_damage'):
+                    self.staged_reflections.setdefault(okey, []).append((kind, float(val), ab_name))
+                    continue
                 if dmg_dealt > 0 and int(val) > 0:
                     dmg_taken += int(val)
                     logs.append(f"🪞 **{ab_name}** — reflected {int(val)} damage!")
@@ -1738,6 +1812,10 @@ class AbilityEngine:
                                 f"(+{per*take} damage)!")
             elif kind == "reset_counter":
                 self.counters[(key, op.get("name", "stacks"))] = 0
+            elif kind == 'ignore_defense_pct' and move == MOVE_SPECIAL:
+                # Triggered pierce belongs to this Special, rather than being
+                # read as an unconditional permanent passive by pierce_pct().
+                self.special_pierce_pct[key] = self.special_pierce_pct.get(key, 0) + float(val)
             elif kind == "special_pierce_pct":
                 # A CONDITIONAL sibling of `special_move.pierce_defense_pct`
                 # (the static, always-on field Phoenix Nova uses). That field
@@ -1849,20 +1927,89 @@ class AbilityEngine:
     #  Trigger dispatch
     # =========================================================================
 
+    def _project_landed_rule(self, rid, rule, name, key, other, blade, move,
+                             matchup, damage, counter, logs):
+        """Project hit damage with local counters; defer rewards to HP commit."""
+        delayed = []
+        modifiers = {'bonus_damage', 'bonus_damage_pct', 'bonus_damage_stat',
+                     'bonus_damage_enemy_hp_pct', 'damage_boost'}
+        for original in rule.get('do', []):
+            if not all(self._check(c, key, other, move, matchup)
+                       for c in original.get('_if', [])):
+                continue
+            op = dict(original)
+            op.pop('_if', None)
+            kind = op.get('op')
+            if kind in modifiers or kind == 'consume_stack_damage_pct':
+                damage, counter = self._run_ops(dict(rule, do=[op]), name,
+                    key, other, move, damage, counter, logs, matchup)
+                if kind == 'consume_stack_damage_pct' and op.get('consume', True):
+                    delayed.append({'op': 'reset_counter', 'name': op.get('name', f'{name}_stacks')})
+                continue
+            delayed.append(op)
+            # Counter-dependent riders must see this candidate hit's counters
+            # in authored order, without awarding them for a dodged hit.
+            if kind == 'stacking_buff':
+                token = (key, op.get('name', f'{name}_stacks'))
+                self.counters[token] = min(int(op.get('max', 99)), self.counters.get(token, 0) + 1)
+            elif kind in ('gain_counter', 'add_counter', 'stack_gain', 'reset_counter'):
+                self._run_ops(dict(rule, do=[op]), name, key, other, move, 0, 0, [], matchup)
+            elif kind == 'counter_burst' and op.get('reset', True):
+                token = (key, op.get('name', 'stacks'))
+                if self.counters.get(token, 0) >= int(op.get('at', 3)):
+                    self.counters[token] = 0
+        queued = dict(rule, do=delayed)
+        if rule.get('once') == 'battle':
+            self.once_fired.discard((key, rid))
+            self.pending_hit_once.add((key, rid))
+            queued['_landed_once'] = rid
+        if rule.get('_cooldown_name'):
+            token = rule['_cooldown_name']
+            self.cooldowns.pop((key, token), None)
+            queued['do'].append({'op': 'start_cooldown', 'name': token, 'turns': rule['cooldown']})
+        self.staged_landed_ops.setdefault(key, []).append((
+            queued, name, other, blade, move, matchup))
+        return damage, counter
+
     def _fire(self, when: str, key: str, okey: str, blade: dict, move: str,
               matchup: str, dmg_dealt: int, dmg_taken: int,
-              logs: list[str]) -> tuple[int, int]:
-        for rid, rule in self._rules_for(blade, key):
-            if self._rule_fires(rid, rule, when, key, okey, move, matchup):
-                if rule.get("_avatar") and when not in ("setup", "passive"):
-                    purification.mark(self.session, key, ("skill", rule.get("_name")), logs)
-                ab_name = rule.get("_name", blade.get("name", "Ability"))
-                dmg_dealt, dmg_taken = self._run_ops(
-                    rule, ab_name, key, okey, move, dmg_dealt, dmg_taken, logs,
-                    matchup)
-                # legacy chain passthrough
-                if rule.get("_chain"):
-                    self.session.chain_handler.queue(key, rule["_chain"])
+              logs: list[str], *, repeat_hit: bool = False) -> tuple[int, int]:
+        rules = self._rules_for(blade, key)
+        deferred = (when in ('on_attack_hit', 'on_hit') and
+                    getattr(self.session, 'defer_landed_hit_effects', False) and
+                    not any(rule.get('_chain') and rule.get('when') == when for _, rule in rules))
+        real_counters = self.counters
+        if deferred:
+            self.counters = self.projected_hit_counters.setdefault(key, dict(real_counters))
+            self.hit_counter_before.setdefault(key, dict(self.counters))
+        try:
+            for rid, rule in rules:
+                if repeat_hit:
+                    # Periodic state runs once per move; passive damage riders
+                    # still apply to every authored Special hit.
+                    if when != 'passive' or rule.get('once'):
+                        continue
+                    rule = dict(rule, do=[op for op in rule.get('do', []) if
+                        op.get('op') in ('bonus_damage', 'bonus_damage_pct',
+                                         'bonus_damage_stat', 'damage_boost')])
+                    if not rule['do']:
+                        continue
+                if not self._rule_fires(rid, rule, when, key, okey, move, matchup):
+                    continue
+                ab_name = rule.get('_name', blade.get('name', 'Ability'))
+                if deferred and not rule.get('_chain'):
+                    dmg_dealt, dmg_taken = self._project_landed_rule(rid, rule,
+                        ab_name, key, okey, blade, move, matchup, dmg_dealt, dmg_taken, logs)
+                else:
+                    if rule.get('_avatar') and when not in ('setup', 'passive'):
+                        purification.mark(self.session, key, ('skill', rule.get('_name')), logs)
+                    dmg_dealt, dmg_taken = self._run_ops(rule, ab_name, key, okey,
+                        move, dmg_dealt, dmg_taken, logs, matchup)
+                    if rule.get('_chain'):
+                        self.session.chain_handler.queue(key, rule['_chain'])
+        finally:
+            if deferred:
+                self.counters = real_counters
         return dmg_dealt, dmg_taken
 
     # =========================================================================
@@ -1901,6 +2048,9 @@ class AbilityEngine:
         hit_move = requiem.damage_move(self.session, mover_key, move)
         if is_first_hit:
             self.pending_critical_rewards.pop(mover_key, None)
+            self.pending_lifesteal_hits[mover_key] = []
+            self.pending_landed_hits[mover_key] = []
+            self.pending_reflection_hits[mover_key] = []
         if move == MOVE_SPECIAL and is_first_hit:
             generated = getattr(self, 'generated_special_damage', None)
             if generated is None:
@@ -1958,7 +2108,8 @@ class AbilityEngine:
             # Mover offensive triggers
             dmg_dealt, dmg_taken = self._fire("passive", mover_key, other_key,
                                               mover_blade, move, matchup,
-                                              dmg_dealt, dmg_taken, logs)
+                                              dmg_dealt, dmg_taken, logs,
+                                              repeat_hit=not is_first_hit)
             # threshold triggers (fire while condition holds)
             # `on_low_stability` and `on_gauge_full` join the threshold family
             # rather than getting dispatch sites of their own. Both read state
@@ -1968,9 +2119,9 @@ class AbilityEngine:
             # means. Firing on_gauge_full from StaminaManager.add_gauge — the
             # obvious-looking spot — is not possible without plumbing a
             # session backref into a manager built with `blades` only.
-            for thr_trg in ("on_low_hp", "on_high_hp",
+            for thr_trg in (("on_low_hp", "on_high_hp",
                             "on_low_stamina", "on_high_stamina",
-                            "on_low_stability", "on_gauge_full"):
+                            "on_low_stability", "on_gauge_full") if is_first_hit else ()):
                 dmg_dealt, dmg_taken = self._fire(thr_trg, mover_key, other_key,
                                                   mover_blade, move, matchup,
                                                   dmg_dealt, dmg_taken, logs)
@@ -1983,19 +2134,19 @@ class AbilityEngine:
             # on_defense_loss fired exactly zero times.
             res   = {"win": "win", "lose": "loss", "lose_grind": "loss",
                      "mirror": "mirror"}.get(matchup)
-            if mname and res:
+            if is_first_hit and mname and res:
                 dmg_dealt, dmg_taken = self._fire(f"on_{mname}_{res}", mover_key,
                                                   other_key, mover_blade, move,
                                                   matchup, dmg_dealt, dmg_taken, logs)
-            if matchup == "win":
+            if is_first_hit and matchup == "win":
                 dmg_dealt, dmg_taken = self._fire("on_any_win", mover_key,
                                                   other_key, mover_blade, move,
                                                   matchup, dmg_dealt, dmg_taken, logs)
-            elif matchup in ("lose", "lose_grind"):
+            elif is_first_hit and matchup in ("lose", "lose_grind"):
                 dmg_dealt, dmg_taken = self._fire("on_any_loss", mover_key,
                                                   other_key, mover_blade, move,
                                                   matchup, dmg_dealt, dmg_taken, logs)
-            if move == MOVE_ATTACK and is_first_hit:
+            if move == MOVE_ATTACK and is_first_hit and dmg_dealt > 0:
                 # Deliberately ONLY on_attack_hit here. `on_hit` is the
                 # per-Special-hit trigger and stays confined to
                 # process_hit_proc — keeping them separate is what stops a
@@ -2020,7 +2171,7 @@ class AbilityEngine:
                 if primed:
                     dmg_dealt += primed
                     logs.append(f"🔆 Primed energy released — +{primed} damage!")
-            if matchup == "mirror":
+            if is_first_hit and matchup == "mirror":
                 dmg_dealt, dmg_taken = self._fire("on_mirror", mover_key,
                                                   other_key, mover_blade, move,
                                                   matchup, dmg_dealt, dmg_taken, logs)
@@ -2128,10 +2279,23 @@ class AbilityEngine:
         if self.last_hit_was_crit and dmg_dealt > 0 and is_first_hit:
             self.pending_critical_rewards[mover_key] = True
 
-        # Lifesteal (generic, set by ops)
+        # Record per-hit rates; healing follows final dodge and HP commit.
         ls = self.lifesteal_pct.get(mover_key, 0.0)
         if ls and dmg_dealt > 0:
-            self._heal(mover_key, math.ceil(dmg_dealt * ls / 100), logs, "Lifesteal")
+            self.pending_lifesteal_hits.setdefault(mover_key, []).append((dmg_dealt, ls))
+        staged = self.staged_landed_ops.pop(mover_key, [])
+        if dmg_dealt > 0:
+            self.pending_landed_hits.setdefault(mover_key, []).append((dmg_dealt, staged))
+        else:
+            for rule, *_ in staged:
+                if '_landed_once' in rule:
+                    self.pending_hit_once.discard((mover_key, rule['_landed_once']))
+            if mover_key in self.hit_counter_before:
+                self.projected_hit_counters[mover_key] = self.hit_counter_before[mover_key]
+        self.hit_counter_before.pop(mover_key, None)
+        reflections = self.staged_reflections.pop(mover_key, [])
+        if dmg_dealt > 0:
+            self.pending_reflection_hits.setdefault(mover_key, []).append((dmg_dealt, reflections))
 
         # Chain resolution once per move
         if is_first_hit and not mover_silenced:
@@ -2182,9 +2346,12 @@ class AbilityEngine:
             except (TypeError, ValueError):              # noqa: BLE001
                 ref = 0
             if ref > 0:
-                dmg_taken += ref
-                logs.append(f"  🪞 **Counter Stance** — {int(win[0])}% of that "
-                            f"hit comes straight back ({ref})!")
+                if getattr(self.session, 'defer_landed_hit_effects', False):
+                    self.staged_reflections.setdefault(akey, []).append(('reflect_pct', float(win[0]), 'Counter Stance'))
+                else:
+                    dmg_taken += ref
+                    logs.append(f"  🪞 **Counter Stance** — {int(win[0])}% of that "
+                                f"hit comes straight back ({ref})!")
 
         if dmg_dealt > 0:
             dmg_dealt, dmg_taken = self._fire("on_take_damage", dkey, akey, dblade,
@@ -2475,7 +2642,14 @@ class AbilityEngine:
     def _passive_pct(self, key: str, blade: dict, want_op: str) -> float:
         """Sum the values of every `want_op` on this blade, amp included."""
         total = 0.0
-        for _rid, rule in self._compiled_for(blade):
+        if self.st.is_silenced(key):
+            return 0.0
+        for _rid, rule in self._rules_for(blade, key):
+            if rule.get('when') not in ('passive', 'setup'):
+                continue
+            if not all(self._check(c, key, self._other_key(key), '', '')
+                       for c in rule.get('if', [])):
+                continue
             for op in rule.get("do") or []:
                 if op.get("op") != want_op:
                     continue

@@ -159,8 +159,10 @@ class RealRounds(unittest.IsolatedAsyncioTestCase):
         n, k = normal.hp[E], kinetic.hp[E]
         await turn(normal, 'special', 'defense')
         await turn(kinetic, 'special', 'defense')
-        self.assertEqual(n - normal.hp[E], 172)
-        self.assertEqual(k - kinetic.hp[E], 120)
+        # Defense's 60% Special guard precedes Defense-type mitigation and
+        # the extra 30% Kinetic resistance; HP floors only after mitigation.
+        self.assertEqual(n - normal.hp[E], 68)
+        self.assertEqual(k - kinetic.hp[E], 48)
         self.assertFalse(kinetic.type_gimmicks.states[P].critical_strike_active)
 
     async def test_true_damage_special_bypasses_type_and_kinetic(self):
@@ -184,7 +186,7 @@ class RealRounds(unittest.IsolatedAsyncioTestCase):
         s.stamina_manager.gauge[P] = 150
         before = s.hp[E]
         await turn(s, 'special', 'defense')
-        self.assertEqual(before - s.hp[E], 520)
+        self.assertEqual(before - s.hp[E], 208)
 
     async def test_kinetic_exact_return_after_avatar_mitigation(self):
         s = self.session()

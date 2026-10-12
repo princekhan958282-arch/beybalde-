@@ -1,0 +1,5981 @@
+{
+  "base_commit": "9acabcca08b890b7c7889d0f83b9c1399d65f6f8",
+  "final_integration_base": "620a0256f6262ec31829008b98bf941c4971a228",
+  "scope": "Real BattleSession round body; fixture stamina/stability reserves; natural owned stats and HP pools.",
+  "before": {
+    "janus_loss_special_attack": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4500,
+          "102": 5469
+        },
+        "hp_after": {
+          "101": 4445,
+          "102": 5326
+        },
+        "damage": {
+          "101": 143,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 23.95,
+            "102": 28.97
+          },
+          "stability": {
+            "101": 985,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 32
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **143** damage.\n**Defense Pierce** \u2014 Janus Bahamut cuts through **50%** of Noctilune's Defense (361 \u2192 180)!\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **55 dmg** reflected back at Janus Bahamut!\n-# Stability -15 \u2192 985  \u2022  Stamina -3.14 \u2192 96.86\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 97.79\n\n**Sundering Edge** \u2014 +19 damage (15%)!"
+      },
+      {
+        "round": 2,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4445,
+          "102": 5326
+        },
+        "hp_after": {
+          "101": 4390,
+          "102": 5183
+        },
+        "damage": {
+          "101": 143,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 23.95,
+            "102": 28.97
+          },
+          "stability": {
+            "101": 985,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 32
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 22.0,
+            "102": 28.35
+          },
+          "stability": {
+            "101": 975.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 30,
+            "102": 64
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **143** damage.\n**Defense Pierce** \u2014 Janus Bahamut cuts through **50%** of Noctilune's Defense (361 \u2192 180)!\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **55 dmg** reflected back at Janus Bahamut!\n-# Stability -10 \u2192 975  \u2022  Stamina -3.14 \u2192 20.81\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 26.76\n\n**Sundering Edge** \u2014 +19 damage (15%)!"
+      },
+      {
+        "round": 3,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4390,
+          "102": 5183
+        },
+        "hp_after": {
+          "101": 4335,
+          "102": 5040
+        },
+        "damage": {
+          "101": 143,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 22.0,
+            "102": 28.35
+          },
+          "stability": {
+            "101": 975.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 30,
+            "102": 64
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 20.05,
+            "102": 27.73
+          },
+          "stability": {
+            "101": 965.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 45,
+            "102": 96
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **143** damage.\n**Defense Pierce** \u2014 Janus Bahamut cuts through **50%** of Noctilune's Defense (361 \u2192 180)!\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **55 dmg** reflected back at Janus Bahamut!\n-# Stability -10 \u2192 965  \u2022  Stamina -3.14 \u2192 18.86\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 26.14\n\n**Sundering Edge** \u2014 +19 damage (15%)!"
+      },
+      {
+        "round": 4,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4335,
+          "102": 5040
+        },
+        "hp_after": {
+          "101": 4280,
+          "102": 4897
+        },
+        "damage": {
+          "101": 143,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 20.05,
+            "102": 27.73
+          },
+          "stability": {
+            "101": 965.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 45,
+            "102": 96
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 18.1,
+            "102": 27.11
+          },
+          "stability": {
+            "101": 955.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 60,
+            "102": 128
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **143** damage.\n**Defense Pierce** \u2014 Janus Bahamut cuts through **50%** of Noctilune's Defense (361 \u2192 180)!\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **55 dmg** reflected back at Janus Bahamut!\n-# Stability -10 \u2192 955  \u2022  Stamina -3.14 \u2192 16.91\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 25.52\n\n**Sundering Edge** \u2014 +19 damage (15%)!"
+      },
+      {
+        "round": 5,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4280,
+          "102": 4897
+        },
+        "hp_after": {
+          "101": 4280,
+          "102": 4375
+        },
+        "damage": {
+          "101": 522,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 18.1,
+            "102": 27.11
+          },
+          "stability": {
+            "101": 955.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 60,
+            "102": 128
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 15.39,
+            "102": 25.11
+          },
+          "stability": {
+            "101": 985.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Special!**\nIt's super effective! Dealt **522** damage!\n**Gatecleaver** \u2014 Janus opens the gate and walks in!\n-# Stability +30 \u2192 985  \u2022  Stamina -4.4 \u2192 13.7\n\n**Noctilune used Charge!**\nSpecial gauge charged up!\n**Noctilune** charges up! Special Gauge: `150/150` (+22)\n-# Stamina -1.5 \u2192 25.61\n\n**6-hit barrage begins!**\n**Sundering Edge** \u2014 +12 damage (15%)!  \u00d76\n**Gatecleaver** \u2014 drained 0.5 stamina!\n**Gatecleaver** \u2014 its kit is AMPLIFIED \u00d72 for 5 turn(s)!\n**Total Special Damage: 522**\n**Hit 1/6** \u2014 **87 dmg**\n**Hit 2/6** \u2014 **87 dmg**\n**Hit 3/6** \u2014 **87 dmg**\n**Hit 4/6** \u2014 **87 dmg**\n**Hit 5/6** \u2014 **87 dmg**\n**Hit 6/6** \u2014 **87 dmg**"
+      },
+      {
+        "round": 6,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4280,
+          "102": 4375
+        },
+        "hp_after": {
+          "101": 4280,
+          "102": 0
+        },
+        "damage": {
+          "101": 4375,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 15.39,
+            "102": 25.11
+          },
+          "stability": {
+            "101": 985.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 13.44,
+            "102": 23.61
+          },
+          "stability": {
+            "101": 985.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt's super effective! Dealt **4375** damage!\n**Defense Pierce** \u2014 Janus Bahamut cuts through **100%** of Noctilune's Defense (361 \u2192 0)!\n-# Stability +0 \u2192 985  \u2022  Stamina -3.14 \u2192 12.25\n\n**Noctilune used Charge!**\nSpecial gauge charged up!\n**Noctilune** charges up! Special Gauge: `150/150` (+0)\n-# Stamina -1.5 \u2192 23.61\n\n**Sundering Edge** \u2014 +20001 damage (30%)!\n**Janus Bahamut** burst the opponent!\n\n\ud83c\udf00 **A** +100 XP \u2192 Level **0**  | +150 \ud83d\udcb0\n\ud83d\udc80 **B** +40 XP \u2192 Level **0**  | +50 \ud83d\udcb0\n\n*Casual match \u2014 no rank score, win rate or streak.*"
+      }
+    ],
+    "master_one_win": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 149.60000000000002,
+            "defense": 100.0,
+            "stamina": 103.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1650,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1650,
+          "102": 1285
+        },
+        "damage": {
+          "101": 155,
+          "102": 0
+        },
+        "stacks": {
+          "101:master": 2,
+          "101:master_def": 2
+        },
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 16.15,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 74.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 8,
+                "rounds_left": 99,
+                "source": "stack:master",
+                "hostile": true
+              },
+              {
+                "stat": "defense",
+                "amount": 8,
+                "rounds_left": 99,
+                "source": "stack:master_def",
+                "hostile": true
+              },
+              {
+                "stat": "attack",
+                "amount": 8,
+                "rounds_left": 99,
+                "source": "stack:master",
+                "hostile": true
+              },
+              {
+                "stat": "defense",
+                "amount": 8,
+                "rounds_left": 99,
+                "source": "stack:master_def",
+                "hostile": true
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 8,
+              "rounds_left": 99,
+              "source": "stack:master",
+              "hostile": true
+            },
+            {
+              "stat": "defense",
+              "amount": 8,
+              "rounds_left": 99,
+              "source": "stack:master_def",
+              "hostile": true
+            },
+            {
+              "stat": "attack",
+              "amount": 8,
+              "rounds_left": 99,
+              "source": "stack:master",
+              "hostile": true
+            },
+            {
+              "stat": "defense",
+              "amount": 8,
+              "rounds_left": 99,
+              "source": "stack:master_def",
+              "hostile": true
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Master Diabolos used Special!**\nIt's super effective! Dealt **155** damage!\n**Master Smash** \u2014 Diabolos drops the hammer!\n**Flippable Master Layer** \u2014 stack 1/4 (+8 attack)!\n**Flippable Master Layer** \u2014 stack 1/4 (+8 defense)!\n**Flippable Master Layer** \u2014 stack 2/4 (+8 attack)!\n**Flippable Master Layer** \u2014 stack 2/4 (+8 defense)!\n-# Stamina -4.4 \u2192 95.6\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**2-hit barrage begins!**\n**Total Special Damage: 155**\n**Hit 1/2** \u2014 **95 dmg**\n**Hit 2/2** \u2014 **60 dmg**"
+      }
+    ],
+    "star_one_round": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 120.0,
+            "defense": 155.0,
+            "stamina": 112.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 3000,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 3000,
+          "102": 1069
+        },
+        "damage": {
+          "101": 371,
+          "102": 0
+        },
+        "stacks": {
+          "101:stars": 6
+        },
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 16.6,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 134.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 4,
+                "rounds_left": 99,
+                "source": "stack:stars",
+                "hostile": true
+              },
+              {
+                "stat": "attack",
+                "amount": 4,
+                "rounds_left": 99,
+                "source": "stack:stars",
+                "hostile": true
+              },
+              {
+                "stat": "attack",
+                "amount": 4,
+                "rounds_left": 99,
+                "source": "stack:stars",
+                "hostile": true
+              },
+              {
+                "stat": "attack",
+                "amount": 4,
+                "rounds_left": 99,
+                "source": "stack:stars",
+                "hostile": true
+              },
+              {
+                "stat": "attack",
+                "amount": 4,
+                "rounds_left": 99,
+                "source": "stack:stars",
+                "hostile": true
+              },
+              {
+                "stat": "attack",
+                "amount": 4,
+                "rounds_left": 99,
+                "source": "stack:stars",
+                "hostile": true
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 4,
+              "rounds_left": 99,
+              "source": "stack:stars",
+              "hostile": true
+            },
+            {
+              "stat": "attack",
+              "amount": 4,
+              "rounds_left": 99,
+              "source": "stack:stars",
+              "hostile": true
+            },
+            {
+              "stat": "attack",
+              "amount": 4,
+              "rounds_left": 99,
+              "source": "stack:stars",
+              "hostile": true
+            },
+            {
+              "stat": "attack",
+              "amount": 4,
+              "rounds_left": 99,
+              "source": "stack:stars",
+              "hostile": true
+            },
+            {
+              "stat": "attack",
+              "amount": 4,
+              "rounds_left": 99,
+              "source": "stack:stars",
+              "hostile": true
+            },
+            {
+              "stat": "attack",
+              "amount": 4,
+              "rounds_left": 99,
+              "source": "stack:stars",
+              "hostile": true
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Aetherion Drakos org used Special!**\nIt's super effective! Dealt **371** damage!\n-# Stamina -3.52 \u2192 96.48\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\nAETHERION OVERDRIVE \u2014 7\u00d753 damage!\n**7-hit barrage begins!**\n**Astral Ascendance** \u2014 stack 1/6 (+4 attack)!\n**Astral Ascendance** \u2014 stack 2/6 (+4 attack)!\n**Astral Ascendance** \u2014 stack 3/6 (+4 attack)!\n**Astral Ascendance** \u2014 stack 4/6 (+4 attack)!\n**Astral Ascendance** \u2014 stack 5/6 (+4 attack)!\n**Astral Ascendance** \u2014 stack 6/6 (+4 attack)!\n**Total Special Damage: 371**\n**Hit 1/7** \u2014 **53 dmg**\n**Hit 2/7** \u2014 **53 dmg**\n**Hit 3/7** \u2014 **53 dmg**\n**Hit 4/7** \u2014 **53 dmg**\n**Hit 5/7** \u2014 **53 dmg**\n**Hit 6/7** \u2014 **53 dmg**\n**Hit 7/7** \u2014 **53 dmg**"
+      }
+    ],
+    "cobalt_dodge": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 148.5,
+            "defense": 61.0,
+            "stamina": 72.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1460,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1466,
+          "102": 1440
+        },
+        "damage": {
+          "101": 0,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 14.6,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 62.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 14,
+                "rounds_left": 98,
+                "source": "",
+                "hostile": false
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 14,
+              "rounds_left": 98,
+              "source": "",
+              "hostile": false
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Cobalt Dragoon used Attack!**\nBut it was blocked!\n-# Stamina -2.95 \u2192 97.05\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**Dragonic Break** \u2014 +13 damage (50.0%)!\n**Lifesteal** \u2014 healed **6** HP!\n**Avatar** \u2014 dodged the hit completely!"
+      }
+    ],
+    "blood_dodge": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 173.8,
+            "defense": 29.0,
+            "stamina": 81.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1565,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1565,
+          "102": 1440
+        },
+        "damage": {
+          "101": 0,
+          "102": 0
+        },
+        "stacks": {
+          "101:unstable": 1,
+          "101:unstable_cost": 1,
+          "101:unstable_stability_cost": 1
+        },
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 15.05,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 62.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 8,
+                "rounds_left": 99,
+                "source": "stack:unstable",
+                "hostile": true
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 8,
+              "rounds_left": 99,
+              "source": "stack:unstable",
+              "hostile": true
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Blood Dragon used Attack!**\nBut it was blocked!\n-# Stamina -3.25 \u2192 96.75\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**Unstable Attack** \u2014 stack 1/10 (+8 attack)!\n**Unstable Attack** \u2014 stack 1/10: attacks now cost +0.3 stamina!\n**Unstable Attack** \u2014 stack 1/10: selected moves now use +1 Stability!\n**Avatar** \u2014 dodged the hit completely!"
+      }
+    ],
+    "cure_cooldown": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1475,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1483,
+          "102": 1325
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 15.0,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 62.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n**Black Cure** \u2014 healed **8** HP!\n-# Stamina -4.4 \u2192 95.6\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5"
+      },
+      {
+        "round": 2,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1483,
+          "102": 1325
+        },
+        "hp_after": {
+          "101": 1491,
+          "102": 1210
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 15.0,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 62.0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 11.07,
+            "102": 13.0
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 124.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n**Black Cure** \u2014 healed **8** HP!\n-# Stamina -4.4 \u2192 10.6\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `112.0/150` (+50)\n-# Stamina -1.5 \u2192 13"
+      },
+      {
+        "round": 3,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1491,
+          "102": 1210
+        },
+        "hp_after": {
+          "101": 1499,
+          "102": 1095
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 11.07,
+            "102": 13.0
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 124.0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 7.14,
+            "102": 11.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n**Black Cure** \u2014 healed **8** HP!\n-# Stamina -4.4 \u2192 6.67\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `150/150` (+26)\n-# Stamina -1.5 \u2192 11.5"
+      },
+      {
+        "round": 4,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1499,
+          "102": 1095
+        },
+        "hp_after": {
+          "101": 1507,
+          "102": 980
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 7.14,
+            "102": 11.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 3.21,
+            "102": 10.0
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n**Black Cure** \u2014 healed **8** HP!\n-# Stamina -4.4 \u2192 2.74\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `150/150` (+0)\n-# Stamina -1.5 \u2192 10"
+      },
+      {
+        "round": 5,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1507,
+          "102": 980
+        },
+        "hp_after": {
+          "101": 1515,
+          "102": 865
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 3.21,
+            "102": 10.0
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 0.47,
+            "102": 8.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n**Black Cure** \u2014 healed **8** HP!\n-# Stamina -4.4 \u2192 0\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `150/150` (+0)\n-# Stamina -1.5 \u2192 8.5"
+      }
+    ],
+    "janus_silence": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4500,
+          "102": 5469
+        },
+        "hp_after": {
+          "101": 4445,
+          "102": 5345
+        },
+        "damage": {
+          "101": 124,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 23.95,
+            "102": 28.97
+          },
+          "stability": {
+            "101": 985,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 32
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 2,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **124** damage.\n**Defense Pierce** \u2014 Janus Bahamut cuts through **50%** of Noctilune's Defense (361 \u2192 180)!\n**Ability Sealed** \u2014 Janus Bahamut's ability is suppressed! (2 turn(s) left)\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **55 dmg** reflected back at Janus Bahamut!\n-# Stability -15 \u2192 985  \u2022  Stamina -3.14 \u2192 96.86\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 97.79"
+      }
+    ],
+    "twin_dodged_reflect": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 128.09199999999998,
+            "defense": 124.993,
+            "stamina": 121.89399999999999,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1440,
+          "102": 1952
+        },
+        "hp_after": {
+          "101": 1424,
+          "102": 1952
+        },
+        "damage": {
+          "101": 0,
+          "102": 0
+        },
+        "stacks": {
+          "101:energy": 1
+        },
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 14.5,
+            "102": 17.09
+          },
+          "stability": {
+            "101": 985,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 62.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 6,
+                "rounds_left": 99,
+                "source": "stack:energy",
+                "hostile": true
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 6,
+              "rounds_left": 99,
+              "source": "stack:energy",
+              "hostile": true
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Victory Valkyrie used Attack!**\nBut it was blocked!\n**Counter!** Victory Valkyrie hits Twin Nemesis's Defense \u2014 **16 dmg** reflected back at Victory Valkyrie!\n-# Stability -15 \u2192 985  \u2022  Stamina -2.55 \u2192 97.45\n\n**Twin Nemesis used Charge!**\nSpecial gauge charged up!\n**Twin Nemesis** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**Energy Layer** \u2014 stack 1/4 (+6 attack)!\n**Beast Alternation** \u2014 damage reduced by 12%!\n**Beast Alternation** \u2014 reflected 16 damage!\n**Avatar** \u2014 dodged the hit completely!"
+      }
+    ],
+    "mirror_reflect_windows": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 158.4,
+            "defense": 111.0,
+            "stamina": 101.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 111.564,
+            "defense": 115.696,
+            "stamina": 113.63,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1680,
+          "102": 1781
+        },
+        "hp_after": {
+          "101": 1674,
+          "102": 1763
+        },
+        "damage": {
+          "101": 18,
+          "102": 6
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 16.05,
+            "102": 16.68
+          },
+          "stability": {
+            "101": 990,
+            "102": 990
+          },
+          "gauge": {
+            "101": 27,
+            "102": 27
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nThey clashed head-on! **18** damage!\n**Defense Pierce** \u2014 Janus Bahamut cuts through **50%** of Noctilune's Defense (115 \u2192 58)!\n-# Stability -10 \u2192 990  \u2022  Stamina -2.67 \u2192 97.33\n\n**Noctilune used Attack!**\nThey clashed head-on! **6** damage!\n-# Stability -10 \u2192 990  \u2022  Stamina -2.18 \u2192 97.82\n\n**Sundering Edge** \u2014 +3 damage (15%)!\n**Counter Stance** \u2014 50% of that hit comes straight back (9)!\n**Counter Stance** \u2014 50% of that hit comes straight back (3)!"
+      }
+    ],
+    "dodged_special_gauge": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 173.8,
+            "defense": 29.0,
+            "stamina": 81.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1665,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1665,
+          "102": 1440
+        },
+        "damage": {
+          "101": 0,
+          "102": 0
+        },
+        "stacks": {
+          "101:unstable": 2,
+          "101:unstable_cost": 2,
+          "101:unstable_stability_cost": 2
+        },
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 15.05,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 74.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 8,
+                "rounds_left": 99,
+                "source": "stack:unstable",
+                "hostile": true
+              },
+              {
+                "stat": "attack",
+                "amount": 8,
+                "rounds_left": 99,
+                "source": "stack:unstable",
+                "hostile": true
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 8,
+              "rounds_left": 99,
+              "source": "stack:unstable",
+              "hostile": true
+            },
+            {
+              "stat": "attack",
+              "amount": 8,
+              "rounds_left": 99,
+              "source": "stack:unstable",
+              "hostile": true
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Blood Dragon used Special!**\nBut it was blocked!\n**Blood Claw** \u2014 +174 damage from its full Attack!\n**Blood Claw** \u2014 -3 stamina!\n-# Stamina -4.4 \u2192 95.6\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**BLOOD CLAW** \u2014 everything it has, all at once!\n**2-hit barrage begins!**\n**Unstable Attack** \u2014 stack 1/10 (+8 attack)!\n**Unstable Attack** \u2014 stack 1/10: attacks now cost +0.3 stamina!\n**Unstable Attack** \u2014 stack 1/10: selected moves now use +1 Stability!\n**Active Buff** \u2014 +**8 ATK** from timed power-up!\n**Unstable Attack** \u2014 stack 2/10 (+8 attack)!\n**Unstable Attack** \u2014 stack 2/10: attacks now cost +0.6 stamina!\n**Unstable Attack** \u2014 stack 2/10: selected moves now use +2 Stability!\n**Total Special Damage: 352**\n**Avatar** \u2014 dodged the hit completely!\n**Hit 1/2** \u2014 **267 dmg**\n**Hit 2/2** \u2014 **85 dmg**"
+      }
+    ]
+  },
+  "after": {
+    "janus_loss_special_attack": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4500,
+          "102": 5469
+        },
+        "hp_after": {
+          "101": 4440,
+          "102": 5397
+        },
+        "damage": {
+          "101": 72,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 23.95,
+            "102": 28.97
+          },
+          "stability": {
+            "101": 990.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 32
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **72** damage.\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **60 actual HP damage** reflected back at Janus Bahamut!\n-# Stability -10 \u2192 990  \u2022  Stamina -3.14 \u2192 96.86\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 97.79\n\n**Sundering Edge** \u2014 +10 damage (15%)!"
+      },
+      {
+        "round": 2,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4440,
+          "102": 5397
+        },
+        "hp_after": {
+          "101": 4380,
+          "102": 5325
+        },
+        "damage": {
+          "101": 72,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 23.95,
+            "102": 28.97
+          },
+          "stability": {
+            "101": 990.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 32
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 22.0,
+            "102": 28.35
+          },
+          "stability": {
+            "101": 980.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 30,
+            "102": 64
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **72** damage.\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **60 actual HP damage** reflected back at Janus Bahamut!\n-# Stability -10 \u2192 980  \u2022  Stamina -3.14 \u2192 20.81\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 26.76\n\n**Sundering Edge** \u2014 +10 damage (15%)!"
+      },
+      {
+        "round": 3,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4380,
+          "102": 5325
+        },
+        "hp_after": {
+          "101": 4320,
+          "102": 5253
+        },
+        "damage": {
+          "101": 72,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 22.0,
+            "102": 28.35
+          },
+          "stability": {
+            "101": 980.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 30,
+            "102": 64
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 20.05,
+            "102": 27.73
+          },
+          "stability": {
+            "101": 970.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 45,
+            "102": 96
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **72** damage.\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **60 actual HP damage** reflected back at Janus Bahamut!\n-# Stability -10 \u2192 970  \u2022  Stamina -3.14 \u2192 18.86\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 26.14\n\n**Sundering Edge** \u2014 +10 damage (15%)!"
+      },
+      {
+        "round": 4,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4320,
+          "102": 5253
+        },
+        "hp_after": {
+          "101": 4260,
+          "102": 5181
+        },
+        "damage": {
+          "101": 72,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 20.05,
+            "102": 27.73
+          },
+          "stability": {
+            "101": 970.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 45,
+            "102": 96
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 18.1,
+            "102": 27.11
+          },
+          "stability": {
+            "101": 960.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 60,
+            "102": 128
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **72** damage.\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **60 actual HP damage** reflected back at Janus Bahamut!\n-# Stability -10 \u2192 960  \u2022  Stamina -3.14 \u2192 16.91\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 25.52\n\n**Sundering Edge** \u2014 +10 damage (15%)!"
+      },
+      {
+        "round": 5,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4260,
+          "102": 5181
+        },
+        "hp_after": {
+          "101": 4260,
+          "102": 4659
+        },
+        "damage": {
+          "101": 522,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 18.1,
+            "102": 27.11
+          },
+          "stability": {
+            "101": 960.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 60,
+            "102": 128
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 15.39,
+            "102": 25.11
+          },
+          "stability": {
+            "101": 990.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Special!**\nIt's super effective! Dealt **522** damage!\n**Gatecleaver** \u2014 Janus opens the gate and walks in!\n-# Stability +30 \u2192 990  \u2022  Stamina -4.4 \u2192 13.7\n\n**Noctilune used Charge!**\nSpecial gauge charged up!\n**Noctilune** charges up! Special Gauge: `150/150` (+22)\n-# Stamina -1.5 \u2192 25.61\n\n**6-hit barrage begins!**\n**Sundering Edge** \u2014 +12 damage (15%)!  \u00d76\n**Gatecleaver** \u2014 drained 0.5 stamina!\n**Gatecleaver** \u2014 its kit is AMPLIFIED \u00d72 for 5 turn(s)!\n**Special damage before avatar defenses: 522**\n**Hit 1/6** \u2014 **87 dmg** before avatar defenses\n**Hit 2/6** \u2014 **87 dmg** before avatar defenses\n**Hit 3/6** \u2014 **87 dmg** before avatar defenses\n**Hit 4/6** \u2014 **87 dmg** before avatar defenses\n**Hit 5/6** \u2014 **87 dmg** before avatar defenses\n**Hit 6/6** \u2014 **87 dmg** before avatar defenses"
+      },
+      {
+        "round": 6,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4260,
+          "102": 4659
+        },
+        "hp_after": {
+          "101": 4260,
+          "102": 4415
+        },
+        "damage": {
+          "101": 244,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 15.39,
+            "102": 25.11
+          },
+          "stability": {
+            "101": 990.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 13.44,
+            "102": 23.61
+          },
+          "stability": {
+            "101": 990.0,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt's super effective! Dealt **244** damage!\n-# Stability +0 \u2192 990  \u2022  Stamina -3.14 \u2192 12.25\n\n**Noctilune used Charge!**\nSpecial gauge charged up!\n**Noctilune** charges up! Special Gauge: `150/150` (+0)\n-# Stamina -1.5 \u2192 23.61\n\n**Sundering Edge** \u2014 +57 damage (30%)!"
+      }
+    ],
+    "master_one_win": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 149.60000000000002,
+            "defense": 100.0,
+            "stamina": 103.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1650,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1650,
+          "102": 1285
+        },
+        "damage": {
+          "101": 155,
+          "102": 0
+        },
+        "stacks": {
+          "101:master": 1,
+          "101:master_def": 1
+        },
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 16.15,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 74.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 8,
+                "rounds_left": 99,
+                "source": "stack:master",
+                "hostile": true
+              },
+              {
+                "stat": "defense",
+                "amount": 8,
+                "rounds_left": 99,
+                "source": "stack:master_def",
+                "hostile": true
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 8,
+              "rounds_left": 99,
+              "source": "stack:master",
+              "hostile": true
+            },
+            {
+              "stat": "defense",
+              "amount": 8,
+              "rounds_left": 99,
+              "source": "stack:master_def",
+              "hostile": true
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Master Diabolos used Special!**\nIt's super effective! Dealt **155** damage!\n**Master Smash** \u2014 Diabolos drops the hammer!\n**Flippable Master Layer** \u2014 stack 1/4 (+8 attack)!\n**Flippable Master Layer** \u2014 stack 1/4 (+8 defense)!\n-# Stamina -4.4 \u2192 95.6\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**2-hit barrage begins!**\n**Special damage before avatar defenses: 155**\n**Hit 1/2** \u2014 **95 dmg** before avatar defenses\n**Hit 2/2** \u2014 **60 dmg** before avatar defenses"
+      }
+    ],
+    "star_one_round": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 120.0,
+            "defense": 155.0,
+            "stamina": 112.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 3000,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 3000,
+          "102": 1069
+        },
+        "damage": {
+          "101": 371,
+          "102": 0
+        },
+        "stacks": {
+          "101:stars": 1
+        },
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 16.6,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 134.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 4,
+                "rounds_left": 99,
+                "source": "stack:stars",
+                "hostile": true
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 4,
+              "rounds_left": 99,
+              "source": "stack:stars",
+              "hostile": true
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Aetherion Drakos org used Special!**\nIt's super effective! Dealt **371** damage!\n-# Stamina -3.52 \u2192 96.48\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\nAETHERION OVERDRIVE \u2014 7\u00d753 damage!\n**7-hit barrage begins!**\n**Astral Ascendance** \u2014 stack 1/6 (+4 attack)!\n**Special damage before avatar defenses: 371**\n**Hit 1/7** \u2014 **53 dmg** before avatar defenses\n**Hit 2/7** \u2014 **53 dmg** before avatar defenses\n**Hit 3/7** \u2014 **53 dmg** before avatar defenses\n**Hit 4/7** \u2014 **53 dmg** before avatar defenses\n**Hit 5/7** \u2014 **53 dmg** before avatar defenses\n**Hit 6/7** \u2014 **53 dmg** before avatar defenses\n**Hit 7/7** \u2014 **53 dmg** before avatar defenses"
+      }
+    ],
+    "cobalt_dodge": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 148.5,
+            "defense": 61.0,
+            "stamina": 72.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1460,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1460,
+          "102": 1440
+        },
+        "damage": {
+          "101": 0,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 14.6,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 50.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 14,
+                "rounds_left": 98,
+                "source": "",
+                "hostile": false
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 14,
+              "rounds_left": 98,
+              "source": "",
+              "hostile": false
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Cobalt Dragoon used Attack!**\nBut it was blocked!\n-# Stamina -2.95 \u2192 97.05\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**Dragonic Break** \u2014 +13 damage (50.0%)!\n**Avatar** \u2014 dodged the hit completely!"
+      }
+    ],
+    "blood_dodge": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 173.8,
+            "defense": 29.0,
+            "stamina": 81.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1565,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1565,
+          "102": 1440
+        },
+        "damage": {
+          "101": 0,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 15.05,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 50.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Blood Dragon used Attack!**\nBut it was blocked!\n-# Stamina -3.25 \u2192 96.75\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**Avatar** \u2014 dodged the hit completely!"
+      }
+    ],
+    "cure_cooldown": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1475,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1483,
+          "102": 1325
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {
+          "101:rule:Cure Black:0": 3
+        },
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 15.0,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 62.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n**Black Cure** \u2014 healed **8** HP!\n-# Stamina -4.4 \u2192 95.6\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5"
+      },
+      {
+        "round": 2,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1483,
+          "102": 1325
+        },
+        "hp_after": {
+          "101": 1483,
+          "102": 1210
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {
+          "101:rule:Cure Black:0": 2
+        },
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 15.0,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 62.0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 11.07,
+            "102": 13.0
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 124.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n-# Stamina -4.4 \u2192 10.6\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `112.0/150` (+50)\n-# Stamina -1.5 \u2192 13"
+      },
+      {
+        "round": 3,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1483,
+          "102": 1210
+        },
+        "hp_after": {
+          "101": 1483,
+          "102": 1095
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {
+          "101:rule:Cure Black:0": 1
+        },
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 11.07,
+            "102": 13.0
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 124.0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 7.14,
+            "102": 11.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n-# Stamina -4.4 \u2192 6.67\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `150/150` (+26)\n-# Stamina -1.5 \u2192 11.5"
+      },
+      {
+        "round": 4,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1483,
+          "102": 1095
+        },
+        "hp_after": {
+          "101": 1483,
+          "102": 980
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 7.14,
+            "102": 11.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 3.21,
+            "102": 10.0
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n-# Stamina -4.4 \u2192 2.74\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `150/150` (+0)\n-# Stamina -1.5 \u2192 10"
+      },
+      {
+        "round": 5,
+        "stats": {
+          "101": {
+            "attack": 137.5,
+            "defense": 87.0,
+            "stamina": 80.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1483,
+          "102": 980
+        },
+        "hp_after": {
+          "101": 1491,
+          "102": 865
+        },
+        "damage": {
+          "101": 115,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {
+          "101:rule:Cure Black:0": 3
+        },
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 3.21,
+            "102": 10.0
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 0.47,
+            "102": 8.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 150
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Cure Black used Special!**\nIt's super effective! Dealt **115** damage!\n**Black Cure** \u2014 the dark heart strikes back!\n**Black Cure** \u2014 healed **8** HP!\n-# Stamina -4.4 \u2192 0\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `150/150` (+0)\n-# Stamina -1.5 \u2192 8.5"
+      }
+    ],
+    "janus_silence": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 529.1,
+            "defense": 230.0,
+            "stamina": 259.0,
+            "level": 100
+          },
+          "102": {
+            "attack": 357.41799999999995,
+            "defense": 361.54999999999995,
+            "stamina": 359.484,
+            "level": 100
+          }
+        },
+        "hp_before": {
+          "101": 4500,
+          "102": 5469
+        },
+        "hp_after": {
+          "101": 4440,
+          "102": 5407
+        },
+        "damage": {
+          "101": 62,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 23.95,
+            "102": 28.97
+          },
+          "stability": {
+            "101": 985,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 32
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 2,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nIt was resisted... **62** damage.\n**Ability Sealed** \u2014 Janus Bahamut's ability is suppressed! (2 turn(s) left)\n**Counter!** Janus Bahamut hits Noctilune's Defense \u2014 **60 actual HP damage** reflected back at Janus Bahamut!\n-# Stability -15 \u2192 985  \u2022  Stamina -3.14 \u2192 96.86\n\n**Noctilune used Defense!**\nIt held its guard!\n-# Stamina -2.21 \u2192 97.79"
+      }
+    ],
+    "twin_dodged_reflect": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 128.09199999999998,
+            "defense": 124.993,
+            "stamina": 121.89399999999999,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1440,
+          "102": 1952
+        },
+        "hp_after": {
+          "101": 1440,
+          "102": 1952
+        },
+        "damage": {
+          "101": 0,
+          "102": 0
+        },
+        "stacks": {
+          "101:energy": 1
+        },
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 14.5,
+            "102": 17.09
+          },
+          "stability": {
+            "101": 990,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 15,
+            "102": 50.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [
+              {
+                "stat": "attack",
+                "amount": 6,
+                "rounds_left": 99,
+                "source": "stack:energy",
+                "hostile": true
+              }
+            ],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [
+            {
+              "stat": "attack",
+              "amount": 6,
+              "rounds_left": 99,
+              "source": "stack:energy",
+              "hostile": true
+            }
+          ],
+          "102": []
+        },
+        "logs": "**Victory Valkyrie used Attack!**\nBut it was blocked!\n-# Stability -10 \u2192 990  \u2022  Stamina -2.55 \u2192 97.45\n\n**Twin Nemesis used Charge!**\nSpecial gauge charged up!\n**Twin Nemesis** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**Energy Layer** \u2014 stack 1/4 (+6 attack)!\n**Beast Alternation** \u2014 damage reduced by 12%!\n**Avatar** \u2014 dodged the hit completely!"
+      }
+    ],
+    "mirror_reflect_windows": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 158.4,
+            "defense": 111.0,
+            "stamina": 101.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 111.564,
+            "defense": 115.696,
+            "stamina": 113.63,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1680,
+          "102": 1781
+        },
+        "hp_after": {
+          "101": 1669,
+          "102": 1768
+        },
+        "damage": {
+          "101": 10,
+          "102": 6
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 16.05,
+            "102": 16.68
+          },
+          "stability": {
+            "101": 995.0,
+            "102": 990
+          },
+          "gauge": {
+            "101": 27,
+            "102": 27
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Janus Bahamut used Attack!**\nThey clashed head-on! **10** damage!\n-# Stability -5 \u2192 995  \u2022  Stamina -2.67 \u2192 97.33\n\n**Noctilune used Attack!**\nThey clashed head-on! **6** damage!\n-# Stability -10 \u2192 990  \u2022  Stamina -2.18 \u2192 97.82\n\n**Sundering Edge** \u2014 +2 damage (15%)!\n**Counter Stance** \u2014 reflected **5 actual HP damage**!\n**Counter Stance** \u2014 reflected **3 actual HP damage**!"
+      }
+    ],
+    "dodged_special_gauge": [
+      {
+        "round": 1,
+        "stats": {
+          "101": {
+            "attack": 173.8,
+            "defense": 29.0,
+            "stamina": 81.0,
+            "level": 1
+          },
+          "102": {
+            "attack": 101.2,
+            "defense": 48.0,
+            "stamina": 70.0,
+            "level": 1
+          }
+        },
+        "hp_before": {
+          "101": 1665,
+          "102": 1440
+        },
+        "hp_after": {
+          "101": 1665,
+          "102": 1440
+        },
+        "damage": {
+          "101": 0,
+          "102": 0
+        },
+        "stacks": {},
+        "cooldowns": {},
+        "avatar_hit_counts": {},
+        "resources_before": {
+          "stamina": {
+            "101": 100,
+            "102": 100
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 0
+          }
+        },
+        "resources_after": {
+          "stamina": {
+            "101": 15.05,
+            "102": 14.5
+          },
+          "stability": {
+            "101": 1000,
+            "102": 1000
+          },
+          "gauge": {
+            "101": 0,
+            "102": 50.0
+          }
+        },
+        "durations": {
+          "101": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          },
+          "102": {
+            "extended_effects": {
+              "windows": [],
+              "marks": [],
+              "echoes": []
+            },
+            "active_buffs": [],
+            "silenced_turns": 0,
+            "ignore_defense_turns": 0,
+            "ignore_invuln_turns": 0,
+            "true_damage_turns": 0,
+            "shield_hp": 0,
+            "invulnerable_turns": 0,
+            "dmg_amp_stacks": 0.0,
+            "burn_stacks": 0,
+            "burn_dmg": 0,
+            "burn_duration": 0,
+            "rage_stacks": 0,
+            "solar_flare_ready": false,
+            "revival_used": false,
+            "dead_armor_triggered": false,
+            "attack_streak": 0,
+            "limit_break_bonus": 0,
+            "special_boost_flat": 0,
+            "post_rebirth_reflect": 0,
+            "deflect_active": false,
+            "deflect_duration": 0,
+            "shatter_stacks": 0,
+            "shatter_triggered": false,
+            "demon_mode_atk_stacks": 0,
+            "demon_mode_active": false,
+            "soul_hunt_streak": 0,
+            "ability_2_disabled": false,
+            "guaranteed_crit_turns": 0,
+            "pre_special_amp": 0.0,
+            "pending_chains": [],
+            "dragoon_reverse_stacks": 0,
+            "imperial_streak": 0,
+            "dragon_last_stand_used": false
+          }
+        },
+        "buffs": {
+          "101": [],
+          "102": []
+        },
+        "logs": "**Blood Dragon used Special!**\nBut it was blocked!\n**Blood Claw** \u2014 +174 damage from its full Attack!\n**Blood Claw** \u2014 -3 stamina!\n-# Stamina -4.4 \u2192 95.6\n\n**Victory Valkyrie used Charge!**\nSpecial gauge charged up!\n**Victory Valkyrie** charges up! Special Gauge: `50.0/150` (+50)\n-# Stamina -1.5 \u2192 98.5\n\n**BLOOD CLAW** \u2014 everything it has, all at once!\n**2-hit barrage begins!**\n**Special damage before avatar defenses: 344**\n**Avatar** \u2014 dodged the hit completely!\n**Hit 1/2** \u2014 **259 dmg** before avatar defenses\n**Hit 2/2** \u2014 **85 dmg** before avatar defenses"
+      }
+    ]
+  },
+  "before_sweep": {
+    "roster_count": 169,
+    "variant_count": 181,
+    "sessions": 1448,
+    "completed": 1448,
+    "errors": [],
+    "max_committed_damage": 1209
+  },
+  "after_sweep": {
+    "roster_count": 169,
+    "variant_count": 181,
+    "sessions": 1448,
+    "completed": 1448,
+    "errors": [],
+    "max_committed_damage": 1209
+  }
+}
