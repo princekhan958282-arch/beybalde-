@@ -31,6 +31,7 @@ from utils.database import get_beyblade, get_user, update_user, mutate_user, gra
 from utils import bey_levels as bcopy_levels
 from utils.mobile_ui import MobileListView
 from utils.embeds import RARITY_EMOJIS, rarity_colour
+from utils.boss_unlocks import nemesis_unlocked, NEMESIS_REQUIREMENT
 
 from . import blade_abilities as bk
 from . import boss_abilities as ab
@@ -112,11 +113,8 @@ DAILY_LIMIT_H  = 2           # hours between attempts at the same boss
 # hours have passed. Stacking a timer on top only punishes the people who paid.
 UNTIMED_BOSSES = frozenset({"argus"})
 
-# NEMESIS is gated behind a Drakos clear. It is the legend-tier boss and the
-# harder of the two by a wide margin, so meeting it first reads as the bot
-# being broken rather than as a challenge. Drakos is the tutorial for the
-# mechanics NEMESIS then punishes you for not knowing.
-BOSS_REQUIRES = {"nemesis": "drakos"}
+# NEMESIS unlocks after a PvP win against the official Void Longinus.
+# Owning that Bey or clearing Drakos does not satisfy this requirement.
 
 
 def _daily_key(key: str) -> str:
@@ -1658,6 +1656,8 @@ class BossEncounterView(discord.ui.View):
         prof = binfo.REGISTRY.get(self.key, {})
         if prof.get("image_url"):
             embed.set_image(url=prof["image_url"])
+        if self.key == "nemesis":
+            embed.add_field(name="🔒 Unlock requirement", value=NEMESIS_REQUIREMENT, inline=False)
         embed.set_footer(text="First eligible challenger hosts • Expires in 5 minutes")
         return embed
 
@@ -1983,12 +1983,8 @@ class BossCog(commands.Cog, name="Boss"):
             return False, "❌ Equip a blade first — `;equip <name>` (or `;start`)."
 
         # Progression lock.
-        need = BOSS_REQUIRES.get(key)
-        if need and need not in set(profile.get("bosses_cleared") or []):
-            need_name = BOSSES.get(need, {}).get("name", need)
-            this_name = BOSSES.get(key, {}).get("name", key)
-            return False, (f"🔒 **{this_name}** is locked.\n"
-                           f"Beat **{need_name}** when it spawns first.")
+        if key == "nemesis" and not nemesis_unlocked(profile):
+            return False, f"🔒 **{BOSSES[key]['name']}** is locked.\n{NEMESIS_REQUIREMENT}"
 
         # Daily limit, persisted so a restart doesn't hand out a free attempt.
         left = daily_remaining(profile, key)
@@ -2158,11 +2154,14 @@ class BossCog(commands.Cog, name="Boss"):
             color=0x9b59b6,
         )
         for key, cfg in BOSSES.items():
+            locked = key == "nemesis" and not nemesis_unlocked(profile)
+            requirement = f"\n🔒 {NEMESIS_REQUIREMENT}" if locked else ""
+            bey_type = binfo.REGISTRY.get(key, {}).get("type", "Balance")
             e.add_field(
-                name=f"{cfg['emoji']} {cfg['name']}{' ✅' if key in cleared else ''}",
+                name=f"{'🔒 ' if locked else ''}{cfg['emoji']} {cfg['name']}{' ✅' if key in cleared else ''}",
                 value=(f"*{cfg['blurb']}*\n"
-                       f"IQ 2 · {cfg['hp']:,} HP · "
-                       f"🪙 {cfg['reward']['coins']:,} + 🎰 {cfg['reward']['casino']:,}"),
+                       f"{bey_type} · IQ 2 · {cfg['hp']:,} HP · "
+                       f"🪙 {cfg['reward']['coins']:,} + 🎰 {cfg['reward']['casino']:,}{requirement}"),
                 inline=False,
             )
         e.set_footer(text="Challenge a random boss spawn  •  IQ 2  •  first clear pays double")

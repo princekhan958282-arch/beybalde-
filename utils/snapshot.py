@@ -86,7 +86,7 @@ SECTIONS: dict[str, tuple[str, ...]] = {
     "economy": ("coins", "last_daily"),     # plus the casino side file
     "ranked": ("rank_score", "ranked_wins", "ranked_losses", "best_streak",
                "win_streak", "beys_caught", "ranked_pairs"),
-    "story": ("story", "story_progress", "league", "bosses_cleared"),
+    "story": ("story", "story_progress", "league", "bosses_cleared", "defeated_void_longinus_pvp"),
     "trainer": ("xp", "level", "wins", "losses", "quests", "achievements"),
 }
 # Which side file each section owns, so restoring `avatars` really does bring
