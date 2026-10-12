@@ -95,9 +95,16 @@ def bey_level_and_stats(profile: dict, blade: dict) -> tuple[int, dict]:
     curve. Never raises: an unreadable profile degrades to level 1.
     """
     from utils import bey_levels as BL
+    # Reloading a cog does not reload its shared utils. A live upload can
+    # therefore pair this new loadout with the pre-HP-balance module.
+    if not callable(getattr(BL, "level_base_stats", None)):
+        import importlib
+        BL = importlib.reload(BL)
+        if not callable(getattr(BL, "level_base_stats", None)):
+            raise RuntimeError("Update utils/bey_levels.py and restart the bot; "
+                               "the deployed leveling module is outdated.")
     printed = BL.level_base_stats(blade)
     try:
-        from utils import bey_levels as BL
         name = blade.get("name")
         if not name:
             return 1, printed

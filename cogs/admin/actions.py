@@ -1584,6 +1584,17 @@ async def _sync_mirror(ctx: ActionCtx) -> Result:
 
 async def do_reload(bot) -> Result:
     """Reload every loaded extension. Shared by `;reload` and the panel."""
+    # Cogs keep module references to the leveling utility; reload it in place
+    # before loading new callers so live HP-balance uploads stay consistent.
+    import importlib
+    from utils import bey_levels
+    try:
+        importlib.reload(bey_levels)
+        if not callable(getattr(bey_levels, "level_base_stats", None)):
+            raise RuntimeError("Update utils/bey_levels.py and restart the bot.")
+    except Exception as exc:
+        return Result(ok=False, embed=_embed("❌ Leveling reload failed", 0xE74C3C,
+                      f"Unable to load the current leveling utility.\n{exc}"[:4000]))
     from utils.character_registry import REGISTRY
     try:
         counts = REGISTRY.refresh()
