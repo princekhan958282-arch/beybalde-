@@ -12,7 +12,7 @@
     "defense": 40,
     "stamina": 117,
     "special": 165,
-    "hp": 134
+    "hp": 85
   },
   "ability": {
     "name": "Ultimate Blade",
@@ -157,7 +157,7 @@
   ],
   "hidden_drop_one_in": 10000000,
   "main_frame": {
-    "hp": 60,
+    "hp": 39,
     "attack": 74,
     "defense": 18,
     "stamina": 53

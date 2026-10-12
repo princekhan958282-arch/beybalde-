@@ -11,7 +11,7 @@
     "defense": 48,
     "stamina": 66,
     "special": 80,
-    "hp": 87
+    "hp": 74
   },
   "ability": {
     "name": "Reaper Slash",
@@ -43,7 +43,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 39,
+    "hp": 34,
     "attack": 48,
     "defense": 22,
     "stamina": 30

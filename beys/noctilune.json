@@ -11,7 +11,7 @@
     "defense": 112,
     "stamina": 110,
     "special": 125,
-    "hp": 115
+    "hp": 81
   },
   "ability": {
     "name": "Lunar Blossom",
@@ -195,7 +195,7 @@
   ],
   "limited": true,
   "main_frame": {
-    "hp": 52,
+    "hp": 37,
     "attack": 48,
     "defense": 50,
     "stamina": 50

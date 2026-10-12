@@ -12,7 +12,7 @@
     "defense": 29,
     "stamina": 81,
     "special": 125,
-    "hp": 111
+    "hp": 80
   },
   "ability": {
     "name": "Unstable Attack",
@@ -203,7 +203,7 @@
     }
   ],
   "main_frame": {
-    "hp": 50,
+    "hp": 36,
     "attack": 71,
     "defense": 13,
     "stamina": 37

@@ -11,7 +11,7 @@
     "defense": 118,
     "stamina": 115,
     "special": 160,
-    "hp": 117
+    "hp": 81
   },
   "ability": {
     "name": "Demon King's Wrath",
@@ -52,7 +52,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 53,
+    "hp": 37,
     "attack": 58,
     "defense": 53,
     "stamina": 52

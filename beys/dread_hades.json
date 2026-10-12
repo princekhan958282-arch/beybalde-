@@ -11,7 +11,7 @@
     "defense": 85,
     "stamina": 130,
     "special": 110,
-    "hp": 128
+    "hp": 84
   },
   "ability": {
     "name": "Soul Reaper",
@@ -49,7 +49,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 58,
+    "hp": 38,
     "attack": 34,
     "defense": 38,
     "stamina": 58

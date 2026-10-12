@@ -12,7 +12,7 @@
     "defense": 47,
     "stamina": 92,
     "special": 152,
-    "hp": 112
+    "hp": 80
   },
   "special_move": {
     "name": "Triple Saber",
@@ -120,7 +120,7 @@
     }
   ],
   "main_frame": {
-    "hp": 50,
+    "hp": 36,
     "attack": 71,
     "defense": 21,
     "stamina": 42

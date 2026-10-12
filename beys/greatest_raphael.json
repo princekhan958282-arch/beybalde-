@@ -9,7 +9,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438178594103380/51fed2fed7746eeb88f228dc1d560461.jpg?ex=6acb7028&is=6aca1ea8&hm=eac25ef2ba3af89c6f1f9a32ee3b147f61a54087f90888a57a16dca3da3cbeeb&",
   "description": "Greatest Raphael: Balance type with two unique battle abilities.",
   "stats": {
-    "hp": 155,
+    "hp": 90,
     "attack": 140,
     "defense": 135,
     "stamina": 130,
@@ -97,7 +97,7 @@
   "_registry_order": 156,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 70,
+    "hp": 40,
     "attack": 63,
     "defense": 61,
     "stamina": 58

@@ -12,7 +12,7 @@
     "defense": 78,
     "stamina": 104,
     "special": 76,
-    "hp": 116
+    "hp": 81
   },
   "abilities": [
     {
@@ -67,7 +67,7 @@
     ]
   },
   "main_frame": {
-    "hp": 52,
+    "hp": 37,
     "attack": 28,
     "defense": 35,
     "stamina": 47

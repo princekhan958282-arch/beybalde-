@@ -11,7 +11,7 @@
     "defense": 110,
     "stamina": 100,
     "special": 100,
-    "hp": 117
+    "hp": 81
   },
   "ability": {
     "name": "Blazing Rebirth",
@@ -51,7 +51,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 53,
+    "hp": 37,
     "attack": 27,
     "defense": 50,
     "stamina": 45

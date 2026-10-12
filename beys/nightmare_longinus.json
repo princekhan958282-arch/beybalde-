@@ -12,7 +12,7 @@
     "defense": 88,
     "stamina": 96,
     "special": 138,
-    "hp": 108
+    "hp": 79
   },
   "special_move": {
     "name": "Dragon Crash",
@@ -61,7 +61,7 @@
     }
   ],
   "main_frame": {
-    "hp": 48,
+    "hp": 35,
     "attack": 64,
     "defense": 40,
     "stamina": 43

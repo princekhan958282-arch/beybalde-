@@ -11,7 +11,7 @@
     "defense": 130,
     "stamina": 130,
     "special": 130,
-    "hp": 122
+    "hp": 82
   },
   "special_move": {
     "name": "Dark Void",
@@ -116,7 +116,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 55,
+    "hp": 36,
     "attack": 58,
     "defense": 58,
     "stamina": 58

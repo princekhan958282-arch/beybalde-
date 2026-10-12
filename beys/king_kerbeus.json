@@ -12,7 +12,7 @@
     "defense": 96,
     "stamina": 76,
     "special": 72,
-    "hp": 104
+    "hp": 78
   },
   "ability": {
     "name": "Chain Blade",
@@ -81,7 +81,7 @@
     }
   ],
   "main_frame": {
-    "hp": 47,
+    "hp": 36,
     "attack": 26,
     "defense": 43,
     "stamina": 34

@@ -11,7 +11,7 @@
     "defense": 65,
     "stamina": 85,
     "special": 135,
-    "hp": 113
+    "hp": 80
   },
   "ability": {
     "name": "Guilty Upper",
@@ -157,7 +157,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 51,
+    "hp": 36,
     "attack": 52,
     "defense": 29,
     "stamina": 38

@@ -12,7 +12,7 @@
     "defense": 87,
     "stamina": 80,
     "special": 115,
-    "hp": 105
+    "hp": 78
   },
   "special_move": {
     "name": "Black Cure",
@@ -53,7 +53,7 @@
     }
   ],
   "main_frame": {
-    "hp": 47,
+    "hp": 36,
     "attack": 56,
     "defense": 39,
     "stamina": 36

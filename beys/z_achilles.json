@@ -11,7 +11,7 @@
     "defense": 104,
     "stamina": 91,
     "special": 100,
-    "hp": 111
+    "hp": 80
   },
   "ability": {
     "name": "Aether Stance",
@@ -78,7 +78,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 50,
+    "hp": 36,
     "attack": 46,
     "defense": 47,
     "stamina": 41

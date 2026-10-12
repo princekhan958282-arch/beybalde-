@@ -12,7 +12,7 @@
     "defense": 74,
     "stamina": 98,
     "special": 74,
-    "hp": 108
+    "hp": 79
   },
   "ability": {
     "name": "Centrifugal Force",
@@ -75,7 +75,7 @@
     }
   ],
   "main_frame": {
-    "hp": 48,
+    "hp": 35,
     "attack": 28,
     "defense": 33,
     "stamina": 44

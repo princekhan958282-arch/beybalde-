@@ -11,7 +11,7 @@
     "defense": 60,
     "stamina": 70,
     "special": 130,
-    "hp": 94
+    "hp": 76
   },
   "ability": {
     "name": "Stardust Driver / Galaxy Nova",
@@ -63,7 +63,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 42,
+    "hp": 34,
     "attack": 58,
     "defense": 27,
     "stamina": 32

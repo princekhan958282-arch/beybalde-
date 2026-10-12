@@ -4,7 +4,7 @@
   "category": "driver",
   "type": "driver",
   "stats": {
-    "hp": 45,
+    "hp": 25,
     "attack": 42,
     "defense": 19,
     "stamina": 33

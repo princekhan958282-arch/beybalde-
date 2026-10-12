@@ -11,7 +11,7 @@
     "defense": 105,
     "stamina": 102,
     "special": 120,
-    "hp": 116
+    "hp": 81
   },
   "ability": {
     "name": "Fallen Knight",
@@ -96,7 +96,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 52,
+    "hp": 37,
     "attack": 50,
     "defense": 47,
     "stamina": 46

@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438368780492890/372015072f2d8d33506c415e2e578f98.jpg?ex=6acb7055&is=6aca1ed5&hm=c366a2a68315de2f97aa2e725d429944d65734f616ceef2dda96b63383913359&",
   "description": "Black Especially: Balance type with two unique battle abilities.",
   "stats": {
-    "hp": 142,
+    "hp": 87,
     "attack": 132,
     "defense": 122,
     "stamina": 115,
@@ -97,7 +97,7 @@
   "_registry_order": 160,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 64,
+    "hp": 39,
     "attack": 60,
     "defense": 55,
     "stamina": 52

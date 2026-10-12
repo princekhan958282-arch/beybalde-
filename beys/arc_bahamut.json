@@ -9,7 +9,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438034989654076/5046bc3f855f018f31fd9b55afc3811f.jpg?ex=6acb7005&is=6aca1e85&hm=2d213a8a43d34e9769fe0ff43c2cac4ff235562b2cfe50593ea763b3b298fc42&",
   "description": "Arc Bahamut: Defense type with two unique battle abilities.",
   "stats": {
-    "hp": 155,
+    "hp": 90,
     "attack": 80,
     "defense": 150,
     "stamina": 110,
@@ -97,7 +97,7 @@
   "_registry_order": 152,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 70,
+    "hp": 40,
     "attack": 36,
     "defense": 68,
     "stamina": 50

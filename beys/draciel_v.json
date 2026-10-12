@@ -12,7 +12,7 @@
     "defense": 120,
     "stamina": 95,
     "special": 90,
-    "hp": 115
+    "hp": 81
   },
   "draciel_kit": "V",
   "ability": {
@@ -48,7 +48,7 @@
     "emoji": "🐢"
   },
   "main_frame": {
-    "hp": 52,
+    "hp": 37,
     "attack": 29,
     "defense": 54,
     "stamina": 43

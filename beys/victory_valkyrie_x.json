@@ -13,7 +13,7 @@
     "defense": 58,
     "stamina": 82,
     "special": 96,
-    "hp": 108
+    "hp": 79
   },
   "ability": {
     "name": "Energy Layer X",
@@ -96,7 +96,7 @@
     }
   ],
   "main_frame": {
-    "hp": 48,
+    "hp": 35,
     "attack": 50,
     "defense": 26,
     "stamina": 37

@@ -11,7 +11,7 @@
     "defense": 75,
     "stamina": 80,
     "special": 110,
-    "hp": 99
+    "hp": 77
   },
   "ability": {
     "name": "Soul Hunt",
@@ -88,7 +88,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 46,
     "defense": 34,
     "stamina": 36

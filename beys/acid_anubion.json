@@ -11,7 +11,7 @@
     "defense": 93,
     "stamina": 76,
     "special": 68,
-    "hp": 100
+    "hp": 77
   },
   "ability": {
     "name": "Orbit Guard",
@@ -43,7 +43,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 29,
     "defense": 42,
     "stamina": 34

@@ -11,7 +11,7 @@
     "defense": 61,
     "stamina": 85,
     "special": 105,
-    "hp": 90
+    "hp": 75
   },
   "ability": {
     "name": "Cosmic Mode",
@@ -45,7 +45,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 40,
+    "hp": 33,
     "attack": 50,
     "defense": 27,
     "stamina": 38

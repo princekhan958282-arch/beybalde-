@@ -12,7 +12,7 @@
     "defense": 135,
     "stamina": 108,
     "special": 128,
-    "hp": 119
+    "hp": 81
   },
   "ability": {
     "name": "Triple Head Retaliation",
@@ -72,7 +72,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 53,
+    "hp": 37,
     "attack": 44,
     "defense": 61,
     "stamina": 48

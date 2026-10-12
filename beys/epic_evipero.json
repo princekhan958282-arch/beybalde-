@@ -11,7 +11,7 @@
     "defense": 88,
     "stamina": 74,
     "special": 65,
-    "hp": 101
+    "hp": 77
   },
   "ability": {
     "name": "Evil Barrier",
@@ -43,7 +43,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 22,
     "defense": 40,
     "stamina": 33

@@ -11,7 +11,7 @@
     "defense": 80,
     "stamina": 90,
     "special": 105,
-    "hp": 108
+    "hp": 79
   },
   "ability": {
     "name": "Dual Spin",
@@ -55,7 +55,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 48,
+    "hp": 35,
     "attack": 45,
     "defense": 36,
     "stamina": 40

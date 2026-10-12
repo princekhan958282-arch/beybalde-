@@ -9,7 +9,7 @@
   "type": "Attack",
   "spin_direction": "Right",
   "stats": {
-    "hp": 155,
+    "hp": 90,
     "attack": 180,
     "defense": 65,
     "stamina": 125,
@@ -83,7 +83,7 @@
   },
   "description": "An Ultimate Attack blade that cuts down its opponent with Dragon Slayer Rupture.",
   "main_frame": {
-    "hp": 70,
+    "hp": 40,
     "attack": 81,
     "defense": 29,
     "stamina": 56

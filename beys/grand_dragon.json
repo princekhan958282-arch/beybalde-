@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438396706295888/19585799a874a62d6234b5103f52f204.jpg?ex=6acb705c&is=6aca1edc&hm=10d2b53f6d5b65d4f3b7a3f0a87e210541b1451a33ecd70031345baf4ec7ed95&",
   "description": "Grand Dragon: Attack type with two unique battle abilities.",
   "stats": {
-    "hp": 145,
+    "hp": 87,
     "attack": 160,
     "defense": 75,
     "stamina": 115,
@@ -96,7 +96,7 @@
   "_registry_order": 161,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 65,
+    "hp": 39,
     "attack": 72,
     "defense": 34,
     "stamina": 52

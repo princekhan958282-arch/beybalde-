@@ -11,7 +11,7 @@
     "defense": 31,
     "stamina": 92,
     "special": 120,
-    "hp": 92
+    "hp": 75
   },
   "ability": {
     "name": "Bloody Squall",
@@ -209,7 +209,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 42,
+    "hp": 33,
     "attack": 50,
     "defense": 14,
     "stamina": 42

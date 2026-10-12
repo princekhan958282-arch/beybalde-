@@ -11,7 +11,7 @@
     "defense": 189,
     "stamina": 154,
     "special": 178,
-    "hp": 176
+    "hp": 95
   },
   "ability": {
     "name": "Dead Armor",
@@ -92,7 +92,7 @@
   "spin_direction": "Left",
   "hidden_drop_one_in": 1000,
   "main_frame": {
-    "hp": 79,
+    "hp": 43,
     "attack": 55,
     "defense": 85,
     "stamina": 69

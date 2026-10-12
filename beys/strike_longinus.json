@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069179322736660/e7bbdc61d943d96a65a710009e718c07.jpg?ex=6acac13f&is=6ac96fbf&hm=937122008e33fec0a09bf0d097f6cb03fe7d374b83ab06fe68ec61f00190194d&",
   "description": "Strike Longinus: Attack type with two unique abilities.",
   "stats": {
-    "hp": 135,
+    "hp": 85,
     "attack": 155,
     "defense": 75,
     "stamina": 108,
@@ -87,7 +87,7 @@
   "_registry_order": 143,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 61,
+    "hp": 39,
     "attack": 70,
     "defense": 34,
     "stamina": 48

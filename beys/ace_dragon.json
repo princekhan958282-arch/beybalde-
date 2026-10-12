@@ -9,7 +9,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438386853875722/95f19bf13ac292cf9e12d8700c962125.jpg?ex=6acb7059&is=6aca1ed9&hm=520768caab310b07dd29aff3ada90d186d195d22af7f43dd7da5fee4b521e656&",
   "description": "Ace Dragon: Attack type with two unique battle abilities.",
   "stats": {
-    "hp": 140,
+    "hp": 86,
     "attack": 150,
     "defense": 80,
     "stamina": 110,
@@ -97,7 +97,7 @@
   "_registry_order": 159,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 63,
+    "hp": 38,
     "attack": 68,
     "defense": 36,
     "stamina": 50

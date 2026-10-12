@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069169243553792/5ceb66c9f7b017eb13ad1cf2b03de985.jpg?ex=6acac13d&is=6ac96fbd&hm=3996e843f5fe84f092b1aaa30a9c8e705c967273a319af2dfabce020065c5725&",
   "description": "Ultimate Dark Valkyrie: Attack type with two unique abilities.",
   "stats": {
-    "hp": 150,
+    "hp": 89,
     "attack": 170,
     "defense": 66,
     "stamina": 124,
@@ -79,7 +79,7 @@
   "_registry_order": 142,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 68,
+    "hp": 41,
     "attack": 76,
     "defense": 30,
     "stamina": 56

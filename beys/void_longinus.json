@@ -11,7 +11,7 @@
     "defense": 118,
     "stamina": 123,
     "special": 160,
-    "hp": 101
+    "hp": 77
   },
   "special_move": {
     "name": "Void Crash",
@@ -539,7 +539,7 @@
   ],
   "spin_direction": "Left",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 66,
     "defense": 53,
     "stamina": 55

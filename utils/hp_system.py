@@ -14,7 +14,7 @@ Design
   ``derive_hp_stat()`` computes a value from its stats and maps it into its
   type's band, so nothing crashes and no blade fights at 0 HP.
 * PvP and Story max HP is ``hp_stat * 15``, with no fixed base pool.
-  Avatar HP boosts and existing type passives apply after conversion.
+  Existing type passives apply after conversion; avatar HP boosts are disabled.
 
 Every existing damage number, heal amount and % threshold in the engine stays
 valid — only the size of the pool changes.
@@ -26,29 +26,25 @@ import math
 HP_PER_STAT = 15
 
 # ── Global hard limits (nothing may ever escape these) ───────────────────────
-HP_STAT_MIN      = 80
-HP_STAT_MAX      = 150
+HP_STAT_MIN      = 70
+HP_STAT_MAX      = 100
 HP_STAT_BASELINE = 100      # missing blade fallback: 1500 battle HP
 
 # ── Per-type HP bands ────────────────────────────────────────────────────────
 # (floor, ceiling) for each type. This is the primary balance dial.
 #
-#   Attack   80–130   widest spread: rushdown blades stay fragile, but the
-#                     heavy hitters can now take a punch.
-#   Balance  106–122  the middle.
-#   Defense  100–128  compressed — walls no longer trivialise a match.
-#   Stamina  119–139  outlasts by design.
+# Stock base HP is 70–100; level growth is tuned independently in bey_levels.
 TYPE_HP_BAND: dict[str, tuple[int, int]] = {
-    "Attack":  (80, 130),
-    "Balance": (106, 122),
-    "Defense": (100, 128),
-    "Stamina": (119, 139),
+    "Attack":  (70, 100),
+    "Balance": (78, 100),
+    "Defense": (77, 100),
+    "Stamina": (79, 100),
 }
 _GLOBAL_BAND = (HP_STAT_MIN, HP_STAT_MAX)
 
 # ── Display scale ────────────────────────────────────────────────────────────
 # HP bars normalise over the range actually *reachable* across all types, not
-# the global 80–150 hard limit. Derived from the bands, so retuning
+# the global 70–100 base range. Derived from the bands, so retuning
 # TYPE_HP_BAND above automatically retunes every bar — nothing to hand-sync.
 # Cross-type comparable (a Stamina wall out-bars an Attack blade) while still
 # letting the strongest blade in the game fill the bar.
@@ -77,7 +73,7 @@ def band_for(blade_type) -> tuple[int, int]:
 
 def clamp_hp_stat(value, blade_type=None) -> int:
     """Force a value into the legal band — the type's band when known,
-    otherwise the global 80–150."""
+    otherwise the global 70–100."""
     lo, hi = band_for(blade_type) if blade_type is not None else _GLOBAL_BAND
     try:
         v = int(round(float(value)))

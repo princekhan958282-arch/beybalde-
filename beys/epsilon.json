@@ -11,7 +11,7 @@
     "defense": 43,
     "stamina": 65,
     "special": 175,
-    "hp": 135
+    "hp": 85
   },
   "ability": {
     "name": "Boss Breaker",
@@ -42,7 +42,7 @@
   "spawnable": false,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 61,
+    "hp": 39,
     "attack": 56,
     "defense": 19,
     "stamina": 29

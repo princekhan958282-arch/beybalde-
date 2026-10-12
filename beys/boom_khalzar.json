@@ -11,7 +11,7 @@
     "defense": 75,
     "stamina": 80,
     "special": 120,
-    "hp": 99
+    "hp": 77
   },
   "ability": {
     "name": "SwitchStrike: Extending Claws",
@@ -99,7 +99,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 61,
     "defense": 34,
     "stamina": 36

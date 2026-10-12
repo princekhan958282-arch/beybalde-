@@ -11,7 +11,7 @@
     "defense": 70,
     "stamina": 50,
     "special": 95,
-    "hp": 101
+    "hp": 77
   },
   "ability": {
     "name": "Ignition Drive",
@@ -43,7 +43,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 45,
+    "hp": 35,
     "attack": 45,
     "defense": 32,
     "stamina": 22

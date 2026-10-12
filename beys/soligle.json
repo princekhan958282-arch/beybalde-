@@ -11,7 +11,7 @@
     "defense": 90,
     "stamina": 115,
     "special": 170,
-    "hp": 128
+    "hp": 84
   },
   "abilities": [
     {
@@ -76,7 +76,7 @@
   },
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 58,
+    "hp": 38,
     "attack": 56,
     "defense": 40,
     "stamina": 52

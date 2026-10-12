@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558069158363660388/c84d8366a504886bce939674d8276778.jpg?ex=6acac13a&is=6ac96fba&hm=98df93ec2a3c37b8acc40b5b9eb69b9b2505e475dec1dfe64460828d7cd8f5f8&",
   "description": "Black Brave Valkyrie: Attack type with two unique abilities.",
   "stats": {
-    "hp": 138,
+    "hp": 86,
     "attack": 152,
     "defense": 74,
     "stamina": 116,
@@ -113,7 +113,7 @@
   "_registry_order": 141,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 62,
+    "hp": 38,
     "attack": 68,
     "defense": 33,
     "stamina": 52

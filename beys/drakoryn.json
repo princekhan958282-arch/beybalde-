@@ -15,7 +15,7 @@
     "defense": 190,
     "stamina": 88,
     "special": 150,
-    "hp": 189
+    "hp": 97
   },
   "special_move": {
     "name": "🔥 Dragon's Ruin",
@@ -273,7 +273,7 @@
     }
   ],
   "main_frame": {
-    "hp": 85,
+    "hp": 43,
     "attack": 45,
     "defense": 86,
     "stamina": 40

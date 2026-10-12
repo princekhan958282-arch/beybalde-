@@ -11,7 +11,7 @@
     "defense": 96,
     "stamina": 91,
     "special": 95,
-    "hp": 120
+    "hp": 82
   },
   "ability": {
     "name": "Aero Strike",
@@ -43,7 +43,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 54,
+    "hp": 36,
     "attack": 47,
     "defense": 43,
     "stamina": 41

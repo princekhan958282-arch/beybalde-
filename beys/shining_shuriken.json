@@ -12,7 +12,7 @@
     "defense": 128,
     "stamina": 77,
     "special": 125,
-    "hp": 69
+    "hp": 70
   },
   "ability": {
     "name": "Counter Point",
@@ -119,7 +119,7 @@
     }
   ],
   "main_frame": {
-    "hp": 31,
+    "hp": 32,
     "attack": 66,
     "defense": 58,
     "stamina": 35

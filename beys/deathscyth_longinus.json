@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558073688426020915/1791543495863.png?ex=6acac572&is=6ac973f2&hm=d2ead141e777cf10b5d37f51eb9150ed6a5808930e7b974896a3f0c7fc5fd9e6&",
   "description": "Deathscyth Longinus: Attack type with two unique abilities.",
   "stats": {
-    "hp": 170,
+    "hp": 93,
     "attack": 150,
     "defense": 120,
     "stamina": 100,
@@ -95,7 +95,7 @@
   "_registry_order": 148,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 76,
+    "hp": 41,
     "attack": 68,
     "defense": 54,
     "stamina": 45

@@ -17,7 +17,7 @@
     "defense": 161,
     "stamina": 112,
     "special": 130,
-    "hp": 145
+    "hp": 87
   },
   "ability": {
     "name": "Divine",
@@ -109,7 +109,7 @@
     ]
   },
   "main_frame": {
-    "hp": 65,
+    "hp": 39,
     "attack": 40,
     "defense": 73,
     "stamina": 50

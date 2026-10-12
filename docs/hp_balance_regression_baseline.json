@@ -1,0 +1,664 @@
+{
+  "beys": {
+    "BB060": {
+      "name": "Ferro Fengriff",
+      "previous_sha256": "68f7f43864564c9b757b16bbfdc656ead4e7d1e971060a9837625f3cb45b4ee1",
+      "sha256": "8294c6d06b625bb3b5a0b7941bfb040f27d27117e417d6fa29b2203cfa5ad9c1"
+    },
+    "BB034": {
+      "name": "Tempest Dragon",
+      "previous_sha256": "c77710a00539e3e341f717f97fffc126ae9cdf6a3dbe22a4b5769bee74b43e67",
+      "sha256": "dfb1e67c3386f33f5fcbe2f974c7b9dbb6844d6d630cb807a2c58036c214b2e6"
+    },
+    "BB094": {
+      "name": "Drain Fafnir",
+      "previous_sha256": "3e06bd80884f490a3ba55c7548964ab47acf1ed3420776f2df228b839a80655e",
+      "sha256": "63c0bcc65d6875f42238394944d9fa264851b8e3ce7c40773b0584507ef31920"
+    },
+    "BB121": {
+      "name": "Phantom X",
+      "previous_sha256": "e2be57d6c96f1f0bd160b6005e57e6db74c24e153dd07a35893cb2ff7240fc95",
+      "sha256": "215881edab653621140b8481171f2e534109968d0db2453fd425782228aa7b4e"
+    },
+    "BB012": {
+      "name": "Vanguard DX",
+      "previous_sha256": "34e9b30ca09e435fd8bf4ed3c43de329196d3dc29ff6e71cc358eb6722074d7e",
+      "sha256": "95b84c16d8e43e2c2f2d5d6ce5c1be31cbef3906fab951f45bdb1806a07d2876"
+    },
+    "BB061": {
+      "name": "Epic Evipero",
+      "previous_sha256": "f2f510e4b27f6d3625173d2f6859579ed2c8d407be3afc4a263c410bf2faef64",
+      "sha256": "88f850059a2b9ad84bf573fe72174abe1c6413e6b4e9d7fbf9e6deb6e1a37f5a"
+    },
+    "BB043": {
+      "name": "Dranzer",
+      "previous_sha256": "556820dbf64b436ba18e1bdb024d57016ae4127a7665714b5cb12c1eb6cd3a09",
+      "sha256": "490aa49eb41746b4f62c8e5f2b71166d2ae2da6158920564278826d71b0638a4"
+    },
+    "BB009": {
+      "name": "Dead Phoenix",
+      "previous_sha256": "d0f093f360ecddb76a93d0d7563335e792270e492520d8bd13738f9156472762",
+      "sha256": "77d5ded4ee1425ef159678938c12da287ca92cd1edf81f61c1bdb84babc5c424"
+    },
+    "BB021": {
+      "name": "Eternal Blaze Garuda",
+      "previous_sha256": "caf4243a4a3f0435f08319ee289dc27b614b42663a66bf78c3ab15c1320ffc09",
+      "sha256": "d12ec149ce2df24b44bf42efd79ad98e4c8dd9446a0e1b53a174e177e2e8fdc6"
+    },
+    "BB065": {
+      "name": "Baldur Bumper",
+      "previous_sha256": "5c7097094370f4de1dc5d067a37de1798d8252a892e9a51689e4a4a7a6a66637",
+      "sha256": "ef40e0afb04cb333801e62c9d5461959854f9f4ee9ecaf4c20a56a221c780eae"
+    },
+    "BB086": {
+      "name": "Storm Spriggan X",
+      "previous_sha256": "91656c78082028646bbcb2fdf72e0afa641945c880afbbef684f7d657101af31",
+      "sha256": "31ea5f30a316805c2a8b3fef5b2f08f81cb637015f5fe48254ccc8f3c4542311"
+    },
+    "BB056": {
+      "name": "Quitziko",
+      "previous_sha256": "483b5d44a441438d57dcd3781f63b2e80d223301481d3082292fda5b46e77e39",
+      "sha256": "c56095ed2b593a5b70355133bb93faf09f589691a22df3a4c577cd7087e1b508"
+    },
+    "BB064": {
+      "name": "Dark Deathscyther",
+      "previous_sha256": "51d04f017484876ff686d2989e997c815d2d6918dc2c20e6ee8ddbb29e65603d",
+      "sha256": "faa0aeff2d09f05a945b8ee29bc3a5653882cf37b4af638c3757e911ff27e8db"
+    },
+    "BB010": {
+      "name": "Cosmic Pegasus",
+      "previous_sha256": "d128c5f73903a59e73b785f8000b3dfc8d2c40e7b83c4efde7513f3cd2a53b7e",
+      "sha256": "6a7fc7fcc76a441f857098d9544a8f47922d8bcb05a2b098c9ba4eab48942e1d"
+    },
+    "BB028": {
+      "name": "Dread Hades",
+      "previous_sha256": "e9d872358d5328ddc0e5a4ed9511b9bb4a19c32e469e9115847b3e1d713739e3",
+      "sha256": "680b9d815a14607588d56ea1c88924bf8cc0729ff544e0dfe88e5985ebcee7bd"
+    },
+    "BB105": {
+      "name": "Omni Odax",
+      "previous_sha256": "50688713ed6bcf3958f8a2c7687ad331cf9d51513179733ef6cdc9af2b1b5c4b",
+      "sha256": "20ecc0eac08c572f6b8f28555c0298b734373c43f8259501d5d3c112ed591b95"
+    },
+    "BB040": {
+      "name": "Dynamite Kerbeus",
+      "previous_sha256": "17866f026c415899cc3888ea248ad4a6b9bf451151a4d21de627b3c5a16e186d",
+      "sha256": "1601b074bea9d196a52384b4b7c71df728fc6804dff32fbf773950c089948509"
+    },
+    "BB119": {
+      "name": "Noctilune",
+      "previous_sha256": "d865a61f0bc2ab565063e321c63c23c5ca9aa15637eed2be2d58958165d00a80",
+      "sha256": "b16b5af4a7864e7406711c248f41e6eb8295a4eeab5c9c59f875f37ae9c95363"
+    },
+    "BB128": {
+      "name": "Draciel V2",
+      "previous_sha256": "43051d86e0ed37fb143a7789ac292524093d64c907809c2b1d04637c51e74726",
+      "sha256": "c1ab814bfeab8079338d677f2fbc7e5672ca1c3541301cc5832077fd29eabafe"
+    },
+    "BB067": {
+      "name": "Thermal Pisces",
+      "previous_sha256": "b47efc73c0f69db85df9caaa2cc57993244cb83ef3ae98b0038ba07f8e7b340b",
+      "sha256": "40e3f9b436ce7d42e62e102cb1ba021cfad8ae32ee26b157405907eed7be14e2"
+    },
+    "BB047": {
+      "name": "Super Hyperion",
+      "previous_sha256": "40c52be9ce9d2b675efcc6bbab9cdc66ec3e0dc40ca5a5a4ae1ee5a24f026d2b",
+      "sha256": "f683dde2879cae3d2015dbcc35a202238f3b0b78d5ad60e3488f74dc0b2eddaa"
+    },
+    "BB096": {
+      "name": "Nightmare Longinus",
+      "previous_sha256": "c2ea4c35e6e239f763cd6075c0f942ce6c461fe8e03741510b3b51be80da9f34",
+      "sha256": "04f519dd8eeea07c1d89dd193e01e17d43a3256075bca77052c79ede8d798727"
+    },
+    "BB087": {
+      "name": "Master Diabolos",
+      "previous_sha256": "c55eaaf601828779f5baf3bb858e7953f0a455bf46de2d81edb3435ab67d044e",
+      "sha256": "9c96386c10f21044a60d282196f36dedbee54445c400f64512a958e94698bdd3"
+    },
+    "BB125": {
+      "name": "Cure White",
+      "previous_sha256": "3dcf2a0116d31b6f4e507dd4332498c0bd5fd3f658c3a78a652eb3fd90a406b5",
+      "sha256": "bf6423e86b6e7ba905a21758859755ba8e61f6c16b9ab5eebd1484d39aeb0a39"
+    },
+    "BB015": {
+      "name": "Dark Achilles",
+      "previous_sha256": "b3b6408dd1fecb3b44dec7f784561788f3c211e2764264e28fd419c5292aa31a",
+      "sha256": "48d4ae0881984d7a66976354ae34d371577369d6ab4e1f74fd0d6a114084e210"
+    },
+    "BB078": {
+      "name": "Breaker Excalibur",
+      "previous_sha256": "96f15241c068361d3f85d16cb1e3cb1b336b3416f7b086c16891df171932ba58",
+      "sha256": "18450f209cb2c0170da301a545e350c031eb08fa8b781adf253409879e3ee42c"
+    },
+    "BB018": {
+      "name": "Ronin Dragoon",
+      "previous_sha256": "8ba5eaf3f181c90e714ec413cf4466258aee5e07486eb3d218f21083ebbd057d",
+      "sha256": "f36e2736fc89c3c8277c22084687a4b05c6901dcecbc7b0f2de66f8662e4febc"
+    },
+    "BB013": {
+      "name": "Dark Strike Valkyrie",
+      "previous_sha256": "efefa9f10eb49e2a79a7767c572f31f843437940209a3d3ee5c768e893544019",
+      "sha256": "27c50b0a98ab48df80ba2a4972a63fd7951e001db86ee60693641ea9df2ff183"
+    },
+    "BB116": {
+      "name": "Hermiblaze",
+      "previous_sha256": "fccf657f05e88ccbc6abb7f012bccc95626ff3d9287c3191b6f2f5594e848c86",
+      "sha256": "bbd59d6f7fbd453c0846c575a4bbfe82efbc73a70fe5924cf6c7d2c7d9e020e2"
+    },
+    "BB114": {
+      "name": "Astral Valkyrie — Starbreaker",
+      "previous_sha256": "3ac2c1f2f299f3ab773a3b6164108086c06da6d7deb4c427f74bf4abd59ea079",
+      "sha256": "62d7d6ca85d1bf1a043ee4302ba6b03531efa1d5ac6c577fa3d1710c41acc86b"
+    },
+    "BB130": {
+      "name": "Draciel MS",
+      "previous_sha256": "565822b2ec07c16312df76ba62f7199cd8a0bb3460fd03dedd7735c46d5557d8",
+      "sha256": "31952d1d3fa14c8335f7b1f5e2a7cb91183d83511673665cbab5554042604011"
+    },
+    "BB019": {
+      "name": "Excalibur Ascendant",
+      "previous_sha256": "91a3b5b54cda066052a6d49e2db556022f45016508cfa0840fbd4906af2404b5",
+      "sha256": "a881eda177d5f004744c4cf0c07933f83c6088d161bd73edfd0cf3b1a9ef9d83"
+    },
+    "BB102": {
+      "name": "Deep Caynox",
+      "previous_sha256": "6d2940f95c801bbd8faa0255a6a212281f8be64cacd61fb5a3ee4801ae280d25",
+      "sha256": "5d0ba46e51dfc952ca35abe6a049252833a2a77063add1b980142b91d8b56c79"
+    },
+    "BB055": {
+      "name": "Crystal Zeutron",
+      "previous_sha256": "794945133c9d3205473bdfb7e5bcaa608abcf75ed8642e24da064f8b90c8a883",
+      "sha256": "66d345e435a8a8634f8e72f4229d282f56a6881c5eadde6a63a37c3ced79ad40"
+    },
+    "BB098": {
+      "name": "Wild Wyvern",
+      "previous_sha256": "122cf6b5f173829442ab56c135ef758927f270702e3379750a0cb50944456e9d",
+      "sha256": "8bc59f090df4c56e98e11d572075ebce713dbeee484b6ff0418115160ce8222c"
+    },
+    "BB016": {
+      "name": "Trypio",
+      "previous_sha256": "1fce2db769a3fb27d9b35b255df8bfe5393d2dcbb14a04ea8d16310cee237264",
+      "sha256": "f4af92454f48dbfadb14b98e39638ccf8464862b04d56cf78147bfef46db9de6"
+    },
+    "BB118": {
+      "name": "Abyss Drakon",
+      "previous_sha256": "5210611b30a756b1afdaa7edee396987159317a41fe0cdc2f8427999ba4cdda8",
+      "sha256": "0db4fbef0707a49957b9897969e41d38279de97f32e57f48b2f85f13e52d5945"
+    },
+    "BB006": {
+      "name": "Guilty Longinus",
+      "previous_sha256": "64baa81d7bcc28808d7f643d6ed5088e926c7145be164b67d52062cd6908af91",
+      "sha256": "09ae7927c55103e565857ad3238cd4d99f704042330a6ee8e9584bce4201124d"
+    },
+    "BB120": {
+      "name": "Phantom Nightmare",
+      "previous_sha256": "b5e2b5293f1c38605a41ced5c371d64deddaecdc90ce805ad0dbdea8d27d8783",
+      "sha256": "906bf7661c4d093f76db0bea10ff3df06b85a8d3760f0f71a57cb686602e8e16"
+    },
+    "BB123": {
+      "name": "Epsilon",
+      "previous_sha256": "3054e60bc4cb082c490f603dcb6d1cab98481a09a378a5ce21ab4b4543250129",
+      "sha256": "0cee7705bd9b586f4f7a048be670219155e107b8b3acd3aeb49be5baa312d090"
+    },
+    "BB090": {
+      "name": "Shining Shuriken",
+      "previous_sha256": "645290a16a1b31b452d454b86548610c700bc233e2386803647cce75e50044d1",
+      "sha256": "a052fa1ff788327b2cf6c8a822382a5ac5205b896072b622690ac8384aab2c30"
+    },
+    "BB126": {
+      "name": "Draciel F",
+      "previous_sha256": "2eaab84539cfad305bc28512afda8ae2e61e226f6fae9f03e0606651fbe3de28",
+      "sha256": "3ca909439851e3c602698db1abf4f18c41cc2c687d1e48c147ecb1d8d4223ee8"
+    },
+    "BB048": {
+      "name": "Bahamut Blitz",
+      "previous_sha256": "8dcad882e0b439b9087b2ead22c7da4f0c5a955c8832bf4366f5bde7b753ce46",
+      "sha256": "d296078b4588e825aec9ef11b27df388a3bb37afb848a6a5e67f7173ba3f46b0"
+    },
+    "BB108": {
+      "name": "Aegis Valorian",
+      "previous_sha256": "7e062d6723d2f4e72bb42bbcc862a380236c6ce06d35f3658f4f4ee72cf8f5b2",
+      "sha256": "af288a05afde84ae932d46e2e2ffd0854219cdb984e3cf589a1a8b28be54c426"
+    },
+    "BB007": {
+      "name": "Brave Valkyrie",
+      "previous_sha256": "08aa69674d37fafb81ef8825d9aad431da88a4cb8f0e4335dd0c1705352362e5",
+      "sha256": "e85a1f407ccb31464399368c4d62a7352ad786ab4018338a689f1799a7b92b69"
+    },
+    "BB124": {
+      "name": "Cure Black",
+      "previous_sha256": "751640f513ef65043038bd5802d856a6bfef5ec914be195d9983c6ab431ecc27",
+      "sha256": "52ddec3ecf68387ef671415ed56117a498592f529daab0bb81b69eb5fd33c72b"
+    },
+    "BB088": {
+      "name": "Ultimate Valkyrie",
+      "previous_sha256": "f44a6cd0cb28744d0edb3d871384293cec6fdb8f362fc594fda67c583b18502b",
+      "sha256": "c652af7678beeb415d1c3901a0e0fc63ccad866af0e68128ad5794673097af69"
+    },
+    "BB115": {
+      "name": "Astral Valkyrie — Skyrend",
+      "previous_sha256": "738042a493c2beaebee00d6900d012586121878f5b1b14b48c8c4d68d55c9cc2",
+      "sha256": "e58b0ea0b4e30fbdef49e7d50d4e62e9e4faabe77752fa6a10c873aa86cc8fdc"
+    },
+    "BB036": {
+      "name": "Flare Dragon",
+      "previous_sha256": "733565aa86848fbf8bb8ec5d216483d6ac9891dc2ace95f3dcc832d1c1590cdc",
+      "sha256": "d75d0572ee39de0bb7eb0126920aa9769225f9dd28ebde4e7c67758c4710205f"
+    },
+    "BB011": {
+      "name": "Cho-Z Spriggan",
+      "previous_sha256": "29b4d9a1399597b4e6bd8c7ecccb2f1f7964d6aca4e69df4de1cb18316636e96",
+      "sha256": "8a20430040921e73f9994bd7cec70b9c9db7c408713648b04bc6a90d8dc60760"
+    },
+    "BB063": {
+      "name": "Deathscyther",
+      "previous_sha256": "67e33b7151393954b6c99cf13e62b063dcc81a7f4dd9ab8e0dc06317bce280ee",
+      "sha256": "ecd66fac03ffc569fcb80e0c79fc66d69958c2a7cc83ef40c09961b9eebc084b"
+    },
+    "BB091": {
+      "name": "Blood Dragon",
+      "previous_sha256": "ebe078e4968872807da0f0f3a8c24beac2f938a6837b2c95652169c8d059f821",
+      "sha256": "063272977729fc57861f58832d3b7f9f7f2f2bdbbddd702e81ebeffebdcda871"
+    },
+    "BB070": {
+      "name": "Cobalt Dragoon",
+      "previous_sha256": "6562c4c1a0e75f5543f294d1912af3b38084a3179ab4aa74dd2c6610b9a9e323",
+      "sha256": "c812bd031462af4d81bfe04cd5366c9fed5b16cce76f7c71a9600d31a0b27a85"
+    },
+    "BB107": {
+      "name": "Artemis Roze",
+      "previous_sha256": "6ccad63e69cc98d25c645c70a02a6907ee8b35e9359024a7fbddd921fdaae8ed",
+      "sha256": "1267bd134386ae3b8c42ad98f8f97dcb39d07c42f34ff1c906ba3056129dcea2"
+    },
+    "BB041": {
+      "name": "Azeroth Veyrath",
+      "previous_sha256": "7e4978fc0c70cd2baa7239814dddfe7285df2969b049a5288a2d988a1f19f241",
+      "sha256": "18e4e0060145c3972f65f15abe7e114415642f9b2f76a1584bf2d03677f6eb7d"
+    },
+    "BB103": {
+      "name": "Deep Caynox ELT",
+      "previous_sha256": "e368d3a0c3a040a8ff8a725bb471f44a998607a71b7360991e8489a7641c4c20",
+      "sha256": "115a5fe4a5821bac02dfb2cb90585599692efb8439d886bfb0abb493fbc77e90"
+    },
+    "BB112": {
+      "name": "Drakoryn",
+      "previous_sha256": "c08041f8d07c52e02ae1374401ea06452463fb6f5646559bef1badfaeb923c39",
+      "sha256": "9139ad53738cb93897a69dd55e4e6879432cf6ff87fbdded6a8f9dd59ca21fb3"
+    },
+    "BB122": {
+      "name": "Achilles CX",
+      "previous_sha256": "aa7667e4c6f925c861524b0a105afb36ceba941688edb5c717498cef2e9586d7",
+      "sha256": "3ca74f4547f4a401f79808a8bf711b5cb7ae4f62597a07e75f6ce8ebc8ea8264"
+    },
+    "BB089": {
+      "name": "Ultimate Valkyrie (Black Edition)",
+      "previous_sha256": "4ae0a206c474efa0bd544bae2a8ef2dedbcbccc59cc9da7b33db781d9d3765dc",
+      "sha256": "c59d383a8794031545440eaaf035ea38af972462ac515eb84428ff18f18ee599"
+    },
+    "BB095": {
+      "name": "Geist Fafnir",
+      "previous_sha256": "0390aefe49d778b51970bf8bd5a858dd93d490c084e8ccd27af7c819f80297d3",
+      "sha256": "bd1615a7416a469be8ae09262a27b8954bfbaf51a7c5d0e92f66decdd6a0e160"
+    },
+    "BB075": {
+      "name": "Alter Cognite",
+      "previous_sha256": "eadfac64269b015da074eac52599436780f1edc768a8357c784f59732dc9eed3",
+      "sha256": "49361e43aeecee5e48ccbd8912ce3f90b86f9995654de1efec6ed6ef14ba1ef8"
+    },
+    "BB099": {
+      "name": "Drain Fafnir (Black Edition)",
+      "previous_sha256": "716c07caba35a57e06a970dbcddb436941d837d77c870be54e55736f16e8118c",
+      "sha256": "aa46e7dda559d0372cf22fdc4122541bf289e5a68af57c8482a70da2956285bd"
+    },
+    "BB005": {
+      "name": "Imperial Dragon",
+      "previous_sha256": "cd815b2ee111622b709b88254dc5445b74491e3dff83ed1782e9500895de7c85",
+      "sha256": "7bac43f97eab129f05678ff0ebd9ef3a875f3596a6de3d079a166b8e41e5166f"
+    },
+    "BB057": {
+      "name": "Lost Longinus",
+      "previous_sha256": "490d25565ed0b61fa29313c96e38be092e8531e7a3a368625895423edef8d190",
+      "sha256": "909f762a3a06a75043a54e8825959ed35a1d3e0a7955d66a11d2aed16e56c058"
+    },
+    "BB111": {
+      "name": "Azure Drakonyx",
+      "previous_sha256": "2e149b2d0bbe2d3bfdc06c31a3d93decec0ffa2792d91e64c65ac266cfdef9c9",
+      "sha256": "f64e0a0876141e49e8cdb55df53e27a4d994a35ccfe53e1faa58bda750728100"
+    },
+    "BB037": {
+      "name": "Wind Knight",
+      "previous_sha256": "6e4dfa15ae528250dd33dbbd2700314f335370865e42ea1b7f84c3c47b1efc7a",
+      "sha256": "c96565309278ea5d2cbc86027f814f23204b000d6d8ef1d0651711a37a542ffb"
+    },
+    "BB097": {
+      "name": "Cho-Z Achilles",
+      "previous_sha256": "a36740304d55b32829029b6d566b8a39391ba3a60c50aa37c0e2dab6443d81af",
+      "sha256": "0aa0fd1ebe98905a4dc513151e56c1f09b70f64162505337a9981b89988270a6"
+    },
+    "BB052": {
+      "name": "Big Bang Genesis",
+      "previous_sha256": "41f706732bfaec407f7cb7cafb805f6375c3c8d9f7649fa615236a64545dfc46",
+      "sha256": "9b3f020cc8cd104ee2ed9d4b493e6c582181dd155836444edb6e42ac4959b1c6"
+    },
+    "BB081": {
+      "name": "Rising Ragnaruk",
+      "previous_sha256": "9b6fcfa1664c6f0ecd1254157649510c49dce06f0461a3fee0aa60118dac2d0e",
+      "sha256": "b4c0797e0a9d493a041774865a506c3d5b4f256f79a45eb55870b68919884911"
+    },
+    "BB038": {
+      "name": "Cyclone Valkyrie",
+      "previous_sha256": "d2105bb2ae0efe11e52cf0f5cae0a73014abd07e9479f8f5e0e5f15eaa8bf4a7",
+      "sha256": "c054adacc3ab49a362300d99052c518ad0d7fd21e978be3e27763ddea49efcdc"
+    },
+    "BB049": {
+      "name": "DranSword",
+      "previous_sha256": "9ede288f503e2bd2f529c098ac849a22686b20eb496be089e3ab9eaadfb5ead3",
+      "sha256": "542a4749218bda3328f5c98ff29ffe2f0a72b6c9d8336d463c893a94d2592d33"
+    },
+    "BB084": {
+      "name": "Victory Valkyrie",
+      "previous_sha256": "f32ce227266a0959f232c99c00873f460f729f50aba6f14102565d9720bb70bf",
+      "sha256": "3d78063578e305f32138d69a030df8fe00faedf1e0f3519d11d6dc07c15d0829"
+    },
+    "BB002": {
+      "name": "Savior Valkyrie",
+      "previous_sha256": "6834f188bde8edc9fe0b801e6b73cfaf43a3d3e5948b7a7f805cbef397cc4711",
+      "sha256": "d161668d1a0db8f539925d3b153682c35592a4a21ab9188ff99f2d56e9bdf0de"
+    },
+    "BB100": {
+      "name": "Twin Nemesis",
+      "previous_sha256": "e23368bb2c87bbc2550be6941546343551f78132c6f93953782a0033ebbcf7e5",
+      "sha256": "33a337b0ceac835aa217c56dd2e10eb1451492033524a854286ae359b5dd18c7"
+    },
+    "BB020": {
+      "name": "Inferno Viper",
+      "previous_sha256": "07f9b3e816002fe624fcef81cf2d0c648f196d9b12d357b6574b5633c604f94f",
+      "sha256": "77fd5710b21d222de43ff3dcae50f740aefacac33c34f9ae581312b5df2e4a7f"
+    },
+    "BB059": {
+      "name": "Fang Fenrir",
+      "previous_sha256": "8d6f999719769c93d5f4199ed929a4cc367cb16ecf9096ca81578e1633bc7b93",
+      "sha256": "2278b6c62d510846333977ee4f49f431350d2fa8740c7bfc8cbc9a424e6bcfcc"
+    },
+    "BB031": {
+      "name": "Curse Satan",
+      "previous_sha256": "7d57b8885e05112b7a4c87a48212bf926a28a33b80787b9fee98ded50f2d5d7a",
+      "sha256": "c3e78c645ba3d8c7e702e0ff038d103e2c8c11f0459811378b31c982ab27fa50"
+    },
+    "BB069": {
+      "name": "Dark Wolf",
+      "previous_sha256": "84b3cbce285f75f6d4faa68675e7d93f230ee8e6f103e2f94a0b52dd1db9e89e",
+      "sha256": "a107894b25f48a04a75c88d228f40e172de723106b12afeda0d2cb9a47887bf3"
+    },
+    "BB039": {
+      "name": "Chain Ragnaruk",
+      "previous_sha256": "d8509ebc9e8e24cad2d365d3db76d1eec4b697eb72036da35613167ee4726769",
+      "sha256": "a62eb5d4dba83c295512c2731bed4c2eb488cb9e04be87f3f58b872ddb9fad45"
+    },
+    "BB014": {
+      "name": "Hollow Deathscyther",
+      "previous_sha256": "6470a23218f88ea61022e5ebf9bd0add7ed4acc82c8cdd7bce1901cb1e81e36f",
+      "sha256": "133843d0fbb19105f5be071b93b56e725f9178859aedb2a3c10ce3b4eb328202"
+    },
+    "BB053": {
+      "name": "Prime Apocalypse",
+      "previous_sha256": "7e6b4663983997cd2098906542e4063fe0c873f17c245d25bc736e227e21304f",
+      "sha256": "eaa75098f150f6d8e0f1568270c40affd4f3927f905dfc5453d26c18e308b87e"
+    },
+    "BB026": {
+      "name": "Myth Evo Dragon D5",
+      "previous_sha256": "82b0142ed321dcf6678b8593f45e04aec22f2eff00703279574448c2b655a486",
+      "sha256": "141896dff59c9f4c6fe73b8d1daf006d79e5e67beb3174d068a1c2b8ab92d26e"
+    },
+    "BB077": {
+      "name": "Tartarus Reaper",
+      "previous_sha256": "bfd3030d703838fc58bc17fc77652816fae30884de80eeed8e4d1c6d1da50c61",
+      "sha256": "696abaa2e268f4bc7da994c63206c7e07f6de55454874548d59bdd2a698482ac"
+    },
+    "BB073": {
+      "name": "Hazard Cognite",
+      "previous_sha256": "44ac98976b52bb16de04e789290c68d36e857b190f977ce4f16a77a8a16a2491",
+      "sha256": "62f8e39e5579fb023d599a1561a4a59d084cf49062471ff075abebe0e4bc3a16"
+    },
+    "BB076": {
+      "name": "Sea Excalibur",
+      "previous_sha256": "22ec23ffa464169fea15fa1178572b851125f1e5768a776afae74011ac63fbae",
+      "sha256": "f374436174e6129c7021793339f5137beff4751f35f8ff64b830579ca3e6fc64"
+    },
+    "BB117": {
+      "name": "Xeno Xcalius",
+      "previous_sha256": "ac534375a9900e4a04eff2fbdfe4ee07147a776c08fd962299235f2a03bf9124",
+      "sha256": "996a4ffb76ca076f49e36d95fbd956674d79398f69921dd863f0a05fc215f86d"
+    },
+    "BB129": {
+      "name": "Draciel G",
+      "previous_sha256": "e74fd22af3b84bfb6a26f1c22614bb9adba99392f414877fe15f6b489c292e16",
+      "sha256": "70984605f12a9f1bec6cbcb3bc32ab5990d6d8595408fca582a254abaee1c1fd"
+    },
+    "BB110": {
+      "name": "Cosmic Phoenix",
+      "previous_sha256": "75877c20db744d214d3f29373e643ae72eb2799197abe1149deab3611b5749e7",
+      "sha256": "434daf7358aee9dd61a770951116ed284d7e634a0116230c022b69193dabc6ef"
+    },
+    "BB071": {
+      "name": "Aero Pegasus",
+      "previous_sha256": "04bb9155d115526c4591b8f0f1638ed69b1d2377c284f3610bf25569be73cbd9",
+      "sha256": "92d528116002594dbf6cc8eed3bb848c6e91eeef1ef5ebc41400780373cd408b"
+    },
+    "BB_SAKURA_BLADE": {
+      "name": "Sakura Blade",
+      "previous_sha256": "b61c1d5256da0f1b566a2a7e5c61577608a21b6ac3116aa95d4d8efc5c454988",
+      "sha256": "6d57c90b712dc7a81a4559e0984a45abaa64cf41f6d877c3bd22e203ef0d6f82"
+    },
+    "BB045": {
+      "name": "Infinity Achilles",
+      "previous_sha256": "74a2852d7066fbb9ad2ab5b048262d8795b0008b3a9f51c759b36bc2079ced4b",
+      "sha256": "4100941de866aae7cae552f8f047f6130b52fe720648a25f42043924cde388b4"
+    },
+    "BB093": {
+      "name": "Cho-Z Valkyrie",
+      "previous_sha256": "b68e45d0bd1d5aac2d9867b9a78979f282991e236223b4333ecd6b35013881b1",
+      "sha256": "b5ccc9c83a8d2f3891d74f1cb494a628c9f03c61572b119ca693b5c117d0c046"
+    },
+    "BB109": {
+      "name": "Kirindael",
+      "previous_sha256": "5da25474d3c5e8425406b8eb9837fc9448f853ec33498f8f69fea34e5c36305d",
+      "sha256": "c46c6c870408dabe10b5629347caf6f47636a9dc5372273f68938cbbde396126"
+    },
+    "BB032": {
+      "name": "Death Diabolos",
+      "previous_sha256": "ad209c2a7abad97e1aaa7cd4b99a1f614354359371ee713e4044d4f115aabeb2",
+      "sha256": "2e972ba30c38990861330ed3c38a1296a621b0f63e4c394f53362f9acdd96eae"
+    },
+    "BB050": {
+      "name": "Emerald Phantom Dragon",
+      "previous_sha256": "d4fe58cc0389b9a0c2a9e668f1eb08340dc8e0f7cde557e63a99987679a0890c",
+      "sha256": "16d845efac8596f2546b96ff4f186df65f18c690c9ea31db1f84b59ebf30477e"
+    },
+    "BB044": {
+      "name": "Boom Khalzar",
+      "previous_sha256": "1d9fe4c9b9fdf75acf3561627fe8d21190609bf9fa7294f04227ae42feeb463e",
+      "sha256": "d99e147f2bd00d4b81983e5582fdb272db3ddfabc8b30927cadbf45ff4abc2be"
+    },
+    "BB023": {
+      "name": "Spriggan Requiem",
+      "previous_sha256": "6e149777e2934f9800a516ffe9654319ee582117a16c860588c5d78cff4a3293",
+      "sha256": "6327109643c6784bb0aa57aa905b6965bf8355e2df951fa0a4d853dc416ddeae"
+    },
+    "BB074": {
+      "name": "Acid Anubion",
+      "previous_sha256": "74f3d23c01797356d2dab48112390f48c93a30a9559b136550891bfb84ce9da4",
+      "sha256": "5cac3b50b1c1fb21e419895820c7e546964a48b8b3794b4a79482e6a6e3d543c"
+    },
+    "BB058": {
+      "name": "Giga Gaianon",
+      "previous_sha256": "0e3ef6dc35e59ed2e6471412ee3e30400a70302a6bb8878730d2e040936643e6",
+      "sha256": "7e20d2408a58c765f5fd4f8005d1ede9d61dbd90654810298b4da32ea5832a7a"
+    },
+    "BB054": {
+      "name": "Archer Hercules",
+      "previous_sha256": "06cfb06429875af0393023b310418e4a1908e94824626124d65ba77b7b6a705c",
+      "sha256": "f31233ff9621f3e82fb8f15c2c9386db87f9bb10bd3c59257da3071dd075fad7"
+    },
+    "BB051": {
+      "name": "Hell Salamander",
+      "previous_sha256": "eda4226d127fd4a8d4082b7fabcb69ff91a41746d19775e2121f8842c9fcc2e9",
+      "sha256": "afd782af407aafa7ef73adf267b37a8176ecf5f8d1a9e5e81a9f461cb1c0fdc2"
+    },
+    "BB025": {
+      "name": "Void Dragon Zephyros",
+      "previous_sha256": "153bfbc8d24fecabb16bb68df95c2bd21491d8238a0757111a9e0c48af62eeba",
+      "sha256": "177f2089a91fa86dc6aa87aa5978ec21ca97f015b4a9b488419ab59510f115b8"
+    },
+    "BB068": {
+      "name": "Storm Aries",
+      "previous_sha256": "e855e95597e169627f9cd7035ce2504662dcd7d40db8180c41f86dafdedd40e8",
+      "sha256": "64552c17f57db7fc7bd7990bf008a1e3ba29b3587e838e0cbb52268fdf61b99c"
+    },
+    "BB017": {
+      "name": "Z Achilles",
+      "previous_sha256": "67d57804a6358e0e0b18052d2d36921b9fea9de12adda86a9f58851308146bc1",
+      "sha256": "b4cb0642c9bcf621337a7fcb0113153a99916f9f2b0743e688a40aab0f42a4ca"
+    },
+    "BB104": {
+      "name": "Heaven's Ring",
+      "previous_sha256": "23d4a8103a75a3c419d085dc86c960cb24249dac0ed566e2e26ede09f0f49a2f",
+      "sha256": "eeca82798f057dad71da0c297522b0938c7abfa71c7cad33d7ec978c2b125aed"
+    },
+    "BB082": {
+      "name": "King Kerbeus",
+      "previous_sha256": "37830a8ba5a3a87ce8081f05b7d2f8dd26534939d3d78d27200bc754dfc18334",
+      "sha256": "7ab7a45256bcfd7d3bf9f5e273f5b267b9234592b77d910dc58a38d263a0cbfe"
+    },
+    "BB131": {
+      "name": "Unlock Unicorn",
+      "previous_sha256": "1b6bebcd797a22655d740cd48fcdf5953a9017ee40ce9956ac51984d8d0c5d46",
+      "sha256": "4eeebdc0c8fa49ed9351420b2ac946fa8aceaf59886539752b57ab80f203d580"
+    },
+    "BB079": {
+      "name": "Void Longinus",
+      "previous_sha256": "26ff8ac9ad5597c90f3dc8a74222c3d6849dd5a4211ad69845e500f5093c6b9c",
+      "sha256": "4a5b28e9bdb993c40deafb24e596e1614c5d1a5bad08b4d426560c085624d635"
+    },
+    "BB004": {
+      "name": "Dynamite Belial",
+      "previous_sha256": "7779122bb2410813fc06b7cf2d4a6fadbcb9e1770001f5fe30c3ef78d86d3596",
+      "sha256": "2ae74800c91b8f2539817d41915b00fd7c650f867b0849d7e62a4c112057e1e2"
+    },
+    "BB092": {
+      "name": "Janus Bahamut",
+      "previous_sha256": "36f226d7dd9259ae06fd15911444ed86f93d987a7bfc886d37e8ac1a804f7cc1",
+      "sha256": "0336f374dd5c274b8c6c447bcaf245b1949808724acc4bae3f0ec960a22b2fd9"
+    },
+    "BB027": {
+      "name": "Revive Phoenix",
+      "previous_sha256": "d6fa435cf178a8014f480467a6ad70e26663770a366287566b844874afff57b4",
+      "sha256": "104ab541451bcb570b720a06e8dacef3f89578f192dcbce4fe6c2bed85084e1b"
+    },
+    "BB001": {
+      "name": "Bloody Longinus",
+      "previous_sha256": "7fc217c0446786f8b2d723f27c02419cd0079379916668975b80b90b65567d76",
+      "sha256": "952013ab4514dcae944ce5abf5b91f4c2eb319486e8a99b0533373fb0ee26a66"
+    },
+    "BB127": {
+      "name": "Draciel V",
+      "previous_sha256": "82264ef5615729bbb61d509e3287c1112a06e1bbe0218cdc57f91645c9faee6e",
+      "sha256": "52b1ea55d3ff0aa2a019dbccb1e328bdf58b75aa4adb6841a15c90737a54b0f2"
+    },
+    "BB008": {
+      "name": "Vanish Fafnir",
+      "previous_sha256": "5870b2419508a77c320c91c9b3570aa0847321a770218d7766c62d534a7d4f75",
+      "sha256": "d1224df9a19442cbd27f9d1fad3356f2800e180564487d09535c364ce4413735"
+    },
+    "BB024": {
+      "name": "Crimson Spriggan",
+      "previous_sha256": "d4cc93bc92c5802cbb8f848bd01caf33b279a258e5a00ea22d6f87028bc7482a",
+      "sha256": "fc66a784f5bf57161b678d3a14c116d99fd320c786ce508a0f86c1f2deb9b1ef"
+    },
+    "BB003": {
+      "name": "Rage Longinus",
+      "previous_sha256": "3fb80e792e173a5a859414662d98d62ccd6b493953f896bca92de9399cedbaa5",
+      "sha256": "35b3b663ebc0baf12781c23895b4493ed713ad9c6e7aa697799b74c29be09b39"
+    },
+    "BB033": {
+      "name": "Soligle",
+      "previous_sha256": "e632749c4626836b4752ef6fbd464aa7282dde158bed52fd745ead1f42374b45",
+      "sha256": "f22348434a6e9f26de84a0d510d3ded55d451852c8bbd50c7644d38f8cf9120b"
+    },
+    "BB046": {
+      "name": "Variant Lucifer",
+      "previous_sha256": "be7d874db79f42a44098c00ed1563852578e4085e7fcd5173d6f84a887fbe198",
+      "sha256": "c451af906c22038d28c2b276a9d3e5c34c7e5de2dbeecc7105b120380c966567"
+    },
+    "BB080": {
+      "name": "Aetherion Vortex",
+      "previous_sha256": "8cd46109dcf01ae25402ef15260f368f823560d4847793c777da6c26bbe2764c",
+      "sha256": "33cbb947f45f6fa44eca82e84f90df22fc6fcb27e0c2d2e27c546f05914a7932"
+    },
+    "BB029": {
+      "name": "Shadow Ragnarok",
+      "previous_sha256": "6e9b29d1f994975c3dff6f9d3e843c40e9e2352329b0b4e89b4916447f802ccb",
+      "sha256": "48301bbdf5ff88b64e083590ae73d7eda7506cdeebe36b306f5ea1423b21fc1b"
+    },
+    "BB035": {
+      "name": "Lord Spriggan",
+      "previous_sha256": "03370a40a50db986b807f184eab4c0a647a6d7118fa89314c8d2129cc6a18deb",
+      "sha256": "6e010bd3352f1c0688d3dc502254d84958d79954ea6529e39c0a53a7a0ca5789"
+    },
+    "BB066": {
+      "name": "Beast Behemoth",
+      "previous_sha256": "8f9456318aacc94c622f2f247aee7669bb649fa6cc45fedb0b29dbac1e96cb1a",
+      "sha256": "bc6939d487b651d8a340e3b14d7c7325d10dfacec2ab2793f850dba0acccac36"
+    },
+    "BB085": {
+      "name": "Victory Valkyrie X",
+      "previous_sha256": "447c1d430e12f7366ef517525cc583e459eee6f8d60c5f508ad490997bd26a02",
+      "sha256": "8b35788a5b66d9d8ff2c3a818d157844e71a43a464dc03f9cf2c4c6d7fafd9d7"
+    },
+    "BB113": {
+      "name": "Radiant Valkyrie",
+      "previous_sha256": "f43f8ba34bfb81daa418e631a624889054678003ffc6000186f4380a65a837df",
+      "sha256": "4f3fd061a73d4f06bef23589fe65b5e8a55182600cf2b8de9875b8796c1aa540"
+    },
+    "BB083": {
+      "name": "Storm Spriggan",
+      "previous_sha256": "4d94b776c3ebd37cca77e55d14e916c3651b5ad056904e6cab7ced8a654db816",
+      "sha256": "6612f058c37ba3144c16ddf90d73e50b973dd508e71e165f13d97017929f381e"
+    },
+    "BB030": {
+      "name": "Jet Wyvern",
+      "previous_sha256": "4e29f7804ecd3c64422d736b84e2e17e6db47cc65a7babbaefc4167bf2af9197",
+      "sha256": "715b1f7d6669a9ca2b4d6e01cc00cca365196239a53aeabe89b087550a705ed9"
+    },
+    "BB062": {
+      "name": "Dragoon Fantom",
+      "previous_sha256": "79123515e680432f6743ba104848ee26cd1f1612b2cf0df990e1ded6fd4b6887",
+      "sha256": "dbc866fcb72a02d50e0261d6786ddd06e996a13795780094407a4a768ba33c30"
+    },
+    "BB042": {
+      "name": "Galaxy Pegasus",
+      "previous_sha256": "b3f226746c6d6d673b17df2d371d153ebbe882dfbd9b60c8a64456c8924f834c",
+      "sha256": "30034ec80824a03b4dbe48fe7884cce7120b92b3964631b2da51fc1d14e7e508"
+    },
+    "BB106": {
+      "name": "Hyper Horusood",
+      "previous_sha256": "5401d90361299e2471edb4405400300d7de432ba2cbcbd3a874e475ae7ce5b8f",
+      "sha256": "2510fa06601ccaee31ceb37201d61c23dcd2bcaabec5ea4e6f5f5553acfe33e9"
+    },
+    "BB072": {
+      "name": "Cyber Valkyrie",
+      "previous_sha256": "f2a1808e87d85dd707f4690087de0bd1575aadaf9f22129f6311c09ef768f17f",
+      "sha256": "221f928cbd9b5d32c7491f7e46292c601f2a1037afe4c05b967882bbb556eadf"
+    },
+    "BB101": {
+      "name": "Surge Xcalius",
+      "previous_sha256": "00a230434c1f79f91412ad7687ccfdd17db03339345f35a15ed79f5d633ab370",
+      "sha256": "ef6ad79c125003c26020dbe81899e382533e50e6608d49430e4d8e58dee6d111"
+    },
+    "BB022": {
+      "name": "Shadow Dragon King",
+      "previous_sha256": "62b61e025107c37f55a2df41047f0b35e203b4d80958df19b680f8f53cb00ed6",
+      "sha256": "e59ca60c95cd05b54cd6cf902efbdf2a70ea24c781bcf7b570015ddeaf1a5e0b"
+    }
+  }
+}

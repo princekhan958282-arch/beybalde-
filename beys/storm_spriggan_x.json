@@ -13,7 +13,7 @@
     "defense": 94,
     "stamina": 90,
     "special": 102,
-    "hp": 118
+    "hp": 81
   },
   "ability": {
     "name": "Spriggan Layer X",
@@ -146,7 +146,7 @@
     }
   ],
   "main_frame": {
-    "hp": 53,
+    "hp": 37,
     "attack": 40,
     "defense": 42,
     "stamina": 40

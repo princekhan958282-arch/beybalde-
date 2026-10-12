@@ -11,7 +11,7 @@
     "defense": 80,
     "stamina": 89,
     "special": 82,
-    "hp": 109
+    "hp": 79
   },
   "ability": {
     "name": "Time Shift",
@@ -43,7 +43,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 49,
+    "hp": 35,
     "attack": 38,
     "defense": 36,
     "stamina": 40

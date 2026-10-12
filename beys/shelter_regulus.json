@@ -8,7 +8,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558073657555681330/1791543968558.png?ex=6acac56b&is=6ac973eb&hm=d0d7edc01b0a06dbe6c38ca405872eb851583396614584c7fcf69f6154f5be5a&",
   "description": "A lion with selectable Attack and Defense modes. Choose a mode on ;info before battle.",
   "stats": {
-    "hp": 140,
+    "hp": 86,
     "attack": 130,
     "defense": 75,
     "stamina": 110,
@@ -79,7 +79,7 @@
   "_registry_order": 146,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 63,
+    "hp": 38,
     "attack": 58,
     "defense": 34,
     "stamina": 50
@@ -100,7 +100,7 @@
       "spin_direction": "Right",
       "type": "Attack",
       "stats": {
-        "hp": 140,
+        "hp": 86,
         "attack": 130,
         "defense": 75,
         "stamina": 110,
@@ -156,7 +156,7 @@
       "spin_direction": "Right",
       "type": "Defense",
       "stats": {
-        "hp": 140,
+        "hp": 86,
         "attack": 75,
         "defense": 130,
         "stamina": 110,

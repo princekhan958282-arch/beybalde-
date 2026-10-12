@@ -11,7 +11,7 @@
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1558438376162721822/7ade6968c540247974fe13c78bd3dad7.jpg?ex=6acb7057&is=6aca1ed7&hm=2be10075b1c1361fc99f2d77d2cd1c3acc575d7e770fdc26f298ffc6a58963c9&",
   "description": "Orb Engaard: Defense type with two unique battle abilities.",
   "stats": {
-    "hp": 145,
+    "hp": 87,
     "attack": 75,
     "defense": 135,
     "stamina": 110,
@@ -99,7 +99,7 @@
   "_registry_order": 158,
   "booster_exclusive": false,
   "main_frame": {
-    "hp": 65,
+    "hp": 39,
     "attack": 34,
     "defense": 61,
     "stamina": 50

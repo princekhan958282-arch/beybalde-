@@ -17,7 +17,7 @@
     "defense": 111,
     "stamina": 101,
     "special": 118,
-    "hp": 112
+    "hp": 80
   },
   "special_move": {
     "name": "Gatecleaver",
@@ -109,7 +109,7 @@
         "defense": 111,
         "stamina": 101,
         "special": 118,
-        "hp": 112
+        "hp": 80
       },
       "special_move": {
         "name": "Gatecleaver",
@@ -201,7 +201,7 @@
         "defense": 144,
         "stamina": 101,
         "special": 118,
-        "hp": 112
+        "hp": 80
       },
       "special_move": {
         "name": "Threshold Judgment",
@@ -291,7 +291,7 @@
     }
   },
   "main_frame": {
-    "hp": 50,
+    "hp": 36,
     "attack": 65,
     "defense": 50,
     "stamina": 45

@@ -12,7 +12,7 @@
     "defense": 130,
     "stamina": 96,
     "special": 104,
-    "hp": 128
+    "hp": 84
   },
   "special_move": {
     "name": "Wyvern Wing Guard",
@@ -47,7 +47,7 @@
     }
   ],
   "main_frame": {
-    "hp": 58,
+    "hp": 38,
     "attack": 35,
     "defense": 58,
     "stamina": 43

@@ -15,7 +15,7 @@
     "defense": 88,
     "stamina": 96,
     "special": 138,
-    "hp": 118
+    "hp": 81
   },
   "special_move": {
     "name": "🐉 Celestial Dragon Breaker",
@@ -214,7 +214,7 @@
     }
   ],
   "main_frame": {
-    "hp": 53,
+    "hp": 37,
     "attack": 68,
     "defense": 40,
     "stamina": 43

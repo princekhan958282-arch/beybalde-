@@ -11,7 +11,7 @@
     "defense": 78,
     "stamina": 115,
     "special": 105,
-    "hp": 130
+    "hp": 84
   },
   "ability": {
     "name": "Shadow Accumulation",
@@ -47,7 +47,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 58,
+    "hp": 38,
     "attack": 27,
     "defense": 35,
     "stamina": 52

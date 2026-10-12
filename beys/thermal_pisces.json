@@ -11,7 +11,7 @@
     "defense": 69,
     "stamina": 101,
     "special": 80,
-    "hp": 120
+    "hp": 82
   },
   "ability": {
     "name": "Distortion Illusion",
@@ -43,7 +43,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 54,
+    "hp": 36,
     "attack": 27,
     "defense": 31,
     "stamina": 45

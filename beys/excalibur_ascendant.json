@@ -11,7 +11,7 @@
     "defense": 90,
     "stamina": 110,
     "special": 150,
-    "hp": 113
+    "hp": 80
   },
   "special_move": {
     "name": "Excalibur Triple Strike",
@@ -80,7 +80,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 51,
+    "hp": 36,
     "attack": 72,
     "defense": 40,
     "stamina": 50

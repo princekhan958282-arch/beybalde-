@@ -11,7 +11,7 @@
     "defense": 50,
     "stamina": 95,
     "special": 135,
-    "hp": 104
+    "hp": 78
   },
   "ability": {
     "name": "Draconic Ascension",
@@ -45,7 +45,7 @@
   ],
   "spin_direction": "Right",
   "main_frame": {
-    "hp": 47,
+    "hp": 36,
     "attack": 52,
     "defense": 22,
     "stamina": 43
