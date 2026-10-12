@@ -48,15 +48,17 @@ class BattleLogConsistency(unittest.TestCase):
 
     def test_lethal_hit_summary_has_actual_hp_loss_and_no_projected_counter_total(self):
         s, (damage,counter,matchup,logs) = self.battle(refresh=True)
-        self.assertGreater(damage,1563)
+        # Keep this a lethal hit without depending on the old DEF=1 pierce bug.
+        s.hp[E] = 153
+        self.assertGreater(damage,153)
         hp_logs = s.attack_manager.apply_pair_results(P,E,s.blades[P],s.blades[E],
             'attack','stamina',damage,counter,matchup,0,0,'lose')
-        self.assertEqual(s.attack_manager.committed_damage[P],1563)
+        self.assertEqual(s.attack_manager.committed_damage[P],153)
         self.assertEqual(s.hp[E],0)
         summary = '\n'.join(s.attack_manager.build_round_summary(*s.players,P,E,
             'attack','stamina',s.attack_manager.committed_damage[P],0,
             matchup,'lose',logs+hp_logs))
-        self.assertIn('Dealt **1563** damage',summary)
+        self.assertIn('Dealt **153** damage',summary)
         self.assertEqual(summary.count('Defense Pierce'),1)
         self.assertNotIn('bonus damage applied',summary)
         self.assertNotIn('total:',summary)

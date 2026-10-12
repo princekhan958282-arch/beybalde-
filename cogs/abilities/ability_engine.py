@@ -151,6 +151,7 @@ class AbilityEngine:
         self.lifesteal_pct: dict[str, float]        = {}   # key -> pct of dmg healed
         self.regen_per_turn: dict[str, int]         = {}   # key -> stamina/turn
         self.hp_regen_per_turn: dict[str, int]      = {}   # key -> hp/turn
+        self.pending_critical_rewards: dict[str, bool] = {}
         self.heal_per_drain: dict[str, int]         = {}   # key -> HP healed per stamina drained
         self.crit_chance_bonus: dict[str, float]    = {}   # key -> engine-side crit prob
         self.crit_damage_mult:  dict[str, float]    = {}   # key -> crit multiplier (default 1.5)
@@ -683,6 +684,12 @@ class AbilityEngine:
     def _rule_fires(self, rid: int, rule: dict, when: str, key: str, okey: str,
                     move: str, matchup: str) -> bool:
         if rule.get("when") != when:
+            return False
+        # Direct dispatch (round boundaries, Charge and defender reactions)
+        # bypasses apply()'s offensive silence gate. Check the rule owner here
+        # before rolling chance or consuming once-per-battle state. Setup must
+        # still initialize the kit; existing buffs/windows keep their duration.
+        if when != "setup" and self.st.is_silenced(key):
             return False
         if rule.get("once") == "battle" and (key, rid) in self.once_fired:
             return False
@@ -1890,6 +1897,8 @@ class AbilityEngine:
     ) -> tuple[int, int, list[str]]:
         """Route one move through the full generic trigger pipeline."""
         logs: list[str] = []
+        if is_first_hit:
+            self.pending_critical_rewards.pop(mover_key, None)
         if move == MOVE_SPECIAL and is_first_hit:
             generated = getattr(self, 'generated_special_damage', None)
             if generated is None:
@@ -2073,10 +2082,6 @@ class AbilityEngine:
             logs.extend(defensive_logs)
             evaded = dmg_dealt == 0 and any("EVADED" in l for l in defensive_logs)
 
-        if self.last_hit_was_crit and dmg_dealt > 0 and is_first_hit:
-            from cogs.battle import avatar_combat
-            logs.extend(avatar_combat.on_crit(self.session, mover_key))
-
         # Defender reactive triggers (blocked only by evasion, not mover silence)
         if not evaded and dmg_dealt > 0:
             dmg_dealt, dmg_taken = self._fire_defensive(
@@ -2112,6 +2117,11 @@ class AbilityEngine:
             mover_key, other_key, move, dmg_dealt, logs,
             true_damage=self.damage_filter.is_true_damage(mover_key, move))
         dmg_dealt = self.dranzer.mitigate(other_key, move, dmg_dealt, logs)
+
+        # A rolled critical is not a landed hit. Reward only after final
+        # avatar dodge/resistance and HP commit in AttackManager.
+        if self.last_hit_was_crit and dmg_dealt > 0 and is_first_hit:
+            self.pending_critical_rewards[mover_key] = True
 
         # Lifesteal (generic, set by ops)
         ls = self.lifesteal_pct.get(mover_key, 0.0)

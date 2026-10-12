@@ -855,7 +855,18 @@ def legacy_convert(ab: dict) -> list[dict]:
 
     # chain passthrough (ChainHandler is already fully generic)
     if isinstance(ab.get("chain"), list):
-        _ch = _dedupe_chain(ab["chain"], rules)
+        # Legacy defense recoil also appears as an always/reflect chain with
+        # the same flat value. The recoil op already deals that hit; queuing
+        # the duplicate chain incorrectly grants permanent reflect on every
+        # later hit, even while the owner is attacking or charging.
+        chain = [step for step in ab["chain"] if not (
+            isinstance(step, dict) and trigger == "on_defense_win"
+            and ab.get("recoil_damage", 0) > 0
+            and step.get("condition") == "always"
+            and step.get("effect") == "reflect"
+            and step.get("value") == ab["recoil_damage"]
+            and not step.get("once") and not step.get("duration"))]
+        _ch = _dedupe_chain(chain, rules)
         # Folding a chain step's `once` onto a legacy op only takes effect if
         # that op's rule carries it — but promoting it to the whole rule froze
         # every OTHER op sharing that rule too. Brave Valkyrie's "+40% damage

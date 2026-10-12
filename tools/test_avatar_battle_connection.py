@@ -97,6 +97,10 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
                 "101", "102", s.blades["101"], s.blades["102"],
                 "attack", "win", 100, 0)
         self.assertEqual(damage, 200)
+        self.assertEqual(s.stamina_manager.gauge.get("101", 0), 0)
+        logs.extend(s.attack_manager.apply_pair_results(
+            "101", "102", s.blades["101"], s.blades["102"],
+            "attack", "stamina", damage, 0, "win", 0, 0, "lose"))
         self.assertEqual(s.stamina_manager.gauge["101"], 50)
         self.assertTrue(any("critical hit charges" in line for line in logs))
 
@@ -109,8 +113,12 @@ class AvatarConnectionTests(unittest.IsolatedAsyncioTestCase):
         s.moves = {"101": "attack", "102": "stamina"}
         s.type_gimmicks.start_round()
         s.type_gimmicks.begin_round(s.moves, started=True)
-        s.ability.apply("101", "102", s.blades["101"], s.blades["102"],
-                        "attack", "win", 100, 0)
+        damage, counter, _ = s.ability.apply("101", "102", s.blades["101"], s.blades["102"],
+                                            "attack", "win", 100, 0)
+        self.assertEqual(s.stamina_manager.gauge.get("101", 0), 0)
+        s.attack_manager.apply_pair_results(
+            "101", "102", s.blades["101"], s.blades["102"],
+            "attack", "stamina", damage, counter, "win", 0, 0, "lose")
         self.assertEqual(s.stamina_manager.gauge["101"], 50)
 
     async def test_no_avatar_keeps_base_stats_and_gauge(self):
