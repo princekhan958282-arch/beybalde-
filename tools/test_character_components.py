@@ -21,6 +21,7 @@ from cogs.economy.shop import PARTS_CATALOG, PurchaseError, apply_part_purchase,
 
 BASELINE = json.loads((ROOT / 'docs/component_migration_baseline.json').read_text())
 
+BEY_CORRECTIONS = json.loads((ROOT / 'docs/bey_skill_regression_baseline.json').read_text())['beys']
 SKILL_CORRECTIONS = json.loads((ROOT / 'docs/avatar_skill_regression_baseline.json').read_text())['avatars']
 DRANZER_ADDITIONS = {f'BB{132+i}': name for i, name in enumerate(
     ('Dranzer G', 'Black Dranzer', 'Dranzer F', 'Dranzer V', 'Dranzer V2', 'Dranzer GT', 'Dranzer MS'))}
@@ -58,7 +59,7 @@ class MigrationTests(unittest.TestCase):
                 # Includes complete abilities, transformations, skills, images,
                 # shop metadata, cooldowns and every other original field.
                 with self.subTest(kind=kind, id=value['id'], name=value['name']):
-                    correction = SKILL_CORRECTIONS.get(value['id']) if kind == 'avatar' else None
+                    correction = (SKILL_CORRECTIONS if kind == 'avatar' else BEY_CORRECTIONS).get(value['id'])
                     expected_hash = expected['sha256']
                     if correction:
                         self.assertEqual(correction['migration_sha256'], expected_hash)
