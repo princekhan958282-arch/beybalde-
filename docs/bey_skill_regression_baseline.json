@@ -15,8 +15,8 @@
     "BB023": {
       "name": "Spriggan Requiem",
       "migration_sha256": "3a837a40d36340d11c682d556b1307d2bd362b151adedd60f34e241fa31f6313",
-      "sha256": "1a3d13753af6d5fb38226c221264caf93f1c2584a2578c7d709360c00b2e16bb",
-      "reason": "Authorized Requiem Whip three-turn ATK conversion and Requiem Zone two-turn Attack absorption; Special descriptions and default Whip synchronized. Base stats, component totals, identity and ownership preserved."
+      "sha256": "6e149777e2934f9800a516ffe9654319ee582117a16c860588c5d78cff4a3293",
+      "reason": "Authorized Requiem Whip three-turn ATK conversion with Attack strikes on Defense/Stamina while preserving guard and recovery, plus Zone two-turn absorption; base stats, component totals, identity and ownership preserved."
     }
   }
 }

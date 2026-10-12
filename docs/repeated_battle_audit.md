@@ -118,3 +118,21 @@ the new regressions establish live-round behavior and successful-hit timing.
 - Local live MySQL verification is deferred to the CI service-backed checks.
 
 No merge or live Discord deployment was performed.
+
+## Compatibility update after PR #257
+
+Integrated main `4fdbd06` (Requiem Whip Defense/Stamina strikes) into the
+audit branch. Resolved the AttackManager conflict by retaining per-move
+reward-state cleanup and post-commit HP accounting alongside Whip's added
+strikes. Both guard counters and authored two-sided reflections remain valid;
+the obsolete mutual-exclusion/mirror suppression is not restored.
+
+Added a live-round regression crossing both seats, levels 1/100, Defense and
+Stamina buttons, and shield/dodge/landed outcomes. Whip lifesteal equals actual
+committed damage at the fixture's 100% rate, grants nothing for blocked/dodged
+strikes, and preserves the selected button's ordinary recovery.
+
+Reran the workflow's local regression commands: 647 unittest cases passed,
+5 live-MySQL cases skipped without a local service URL (652 total), plus the
+workflow's simulation scripts. Compilation and diff whitespace checks passed.
+This updates the existing PR branch only; no merge into main or deployment.

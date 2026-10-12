@@ -111,6 +111,8 @@ class AttackManager:
         if not hasattr(self, 'pending_nth_hits'):
             self.pending_nth_hits = {}
         self.pending_nth_hits.pop(mkey, None)
+        from . import requiem
+        whip_strike = requiem.button_attack(self.session, mkey, mmove)
 
         # ── Non-combat moves: no damage, but abilities STILL run ─────────────
         # Gauge for STAMINA/CHARGE is already added by session._resolve_round_inner.
@@ -123,7 +125,7 @@ class AttackManager:
         # calc_damage already classifies these moves (Stamina beats Defense,
         # loses to Attack, mirrors everything else), so ask it for the matchup
         # and run the pipeline with zero damage.
-        if mmove in (MOVE_STAMINA, MOVE_CHARGE):
+        if mmove in (MOVE_STAMINA, MOVE_CHARGE) and not whip_strike:
             _, _, matchup, _ = calc_damage(mmove, mstats, ostats, mblade, omove)
             _, _, ab_logs = self.session.ability.apply(
                 mkey, okey, mblade, oblade, mmove, matchup, 0, 0
@@ -175,6 +177,12 @@ class AttackManager:
         dmg_dealt, dmg_taken, matchup, is_crit = calc_damage(
             mmove, mstats, ostats, mblade, omove
         )
+        if whip_strike:
+            # Damage uses Attack's power/math; owner triggers and all original
+            # guard/recovery/cost effects still see the chosen button.
+            dmg_dealt, dmg_taken, _, _ = calc_damage(
+                MOVE_ATTACK, mstats, ostats, mblade, omove)
+            logs.append(f"⚔️ **Requiem Whip** — {mmove.title()} also delivers an Attack strike!")
         if mmove == MOVE_ATTACK:
             dmg_dealt = self.session.ability.dranzer.attack_bonus(mkey, dmg_dealt)
 
@@ -340,6 +348,9 @@ class AttackManager:
         """
         logs: list[str] = []
         hp   = self.session.hp
+        from . import requiem
+        whip1 = requiem.button_attack(self.session, k1, m1)
+        whip2 = requiem.button_attack(self.session, k2, m2)
         # Attack-vs-Stamina's advantage is already in calc_damage and the
         # "super effective" move summary. Repeating a pre-commit total here
         # disagrees with actual HP lost on lethal, dodged or resisted hits.
@@ -357,7 +368,7 @@ class AttackManager:
         engine = getattr(self.session, "type_gimmicks", None)
         returned = []
         self.committed_damage = {k1: 0, k2: 0}
-        if m1 not in (MOVE_STAMINA, MOVE_CHARGE):
+        if m1 not in (MOVE_STAMINA, MOVE_CHARGE) or whip1:
             dmg_p1, _ctr, _avl = AVC.absorb_incoming(self.session, k2, k1, dmg_p1)
             logs.extend(_avl)
             if _ctr and not (engine and engine.returns_damage(k1, k2, m1)):
@@ -385,7 +396,7 @@ class AttackManager:
                 extra.committed(k1, k2, m1, actual, logs)
             if tactical is not None:
                 tactical.committed(k1, k2, m1, actual, logs)
-        if m2 not in (MOVE_STAMINA, MOVE_CHARGE):
+        if m2 not in (MOVE_STAMINA, MOVE_CHARGE) or whip2:
             dmg_p2, _ctr, _avl = AVC.absorb_incoming(self.session, k1, k2, dmg_p2)
             logs.extend(_avl)
             if _ctr and not (engine and engine.returns_damage(k2, k1, m2)):
@@ -491,6 +502,7 @@ class AttackManager:
           └──────────────────────────────────┘
         """
         # ── Move label helpers ────────────────────────────────────────────────
+        from . import requiem
         MOVE_SHORT = {
             MOVE_ATTACK:  "Attack",
             MOVE_DEFENSE: "Defense",
@@ -518,6 +530,10 @@ class AttackManager:
                 out.append("Special gauge charged up!")
             elif move == MOVE_STAMINA:
                 out.append("It braced and recovered stamina!")
+                if dmg > 0:
+                    out.append(f"Its Whip strike dealt **{dmg}** damage!")
+            elif move == MOVE_DEFENSE and requiem.button_attack(self.session, key, move):
+                out.append(f"It held its guard and its Whip strike dealt **{dmg}** damage!")
             elif move == MOVE_DEFENSE and dmg <= 0:
                 out.append("Its guard was outmaneuvered!" if matchup in ("lose", "lose_grind")
                            else "It held its guard!")
