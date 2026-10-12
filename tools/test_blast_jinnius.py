@@ -27,7 +27,7 @@ class BlastJinnius(unittest.TestCase):
         self.assertEqual(b['id'],'BB164')
         self.assertEqual(b['type'],'Defense')
         self.assertEqual(b['rarity'],'Legendary')
-        self.assertEqual(len(load_beys()),165)
+        self.assertEqual(len(load_beys()),169)
         self.assertEqual(b['ability'],b['abilities'][0])
         self.assertEqual(len(b['abilities']),2)
         self.assertIn('Blast_Jinnius.png',b['image_url'])

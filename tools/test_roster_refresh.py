@@ -51,11 +51,11 @@ class RosterRefreshTests(unittest.TestCase):
         saved = {path: path.read_bytes() for path in paths}
         for path in paths:
             path.unlink()
-        self.assertEqual(len(self.registry.load("bey")), 164)
+        self.assertEqual(len(self.registry.load("bey")), 168)
         for path, content in saved.items():
             path.write_bytes(content)
         self.assertIsNone(self.registry.find_bey("Blast Jinnius"))
-        self.assertEqual(self.registry.refresh()["bey"], 165)
+        self.assertEqual(self.registry.refresh()["bey"], 169)
         self.assertEqual(self.registry.find_bey("Blast Jinnius")["id"], "BB164")
         self.assertEqual(self.registry.find_bey("Jambo Jamunter")["name"], "Jail Jormungand")
         from cogs.economy.profile import BeyListView, fuzzy_find_beyblade
@@ -84,7 +84,7 @@ class RosterRefreshTests(unittest.TestCase):
         with patch("utils.character_registry.REGISTRY", self.registry):
             result = asyncio.run(do_reload(bot))
         self.assertTrue(result.ok)
-        self.assertIn("165 Beys", result.embed.description)
+        self.assertIn("169 Beys", result.embed.description)
         bot.reload_extension.assert_awaited_once_with("test.cog")
 
     def test_reload_failure_preserves_cogs(self):
@@ -113,7 +113,7 @@ class RosterRefreshTests(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         self.assertEqual(json.loads(backups[0].read_text())["id"], "BB155")
         self.assertEqual(player.read_text(), '{"player": "keep me"}')
-        self.assertEqual(self.registry.refresh()["bey"], 165)
+        self.assertEqual(self.registry.refresh()["bey"], 169)
 
     def test_bad_archives_change_nothing(self):
         app = self.root / "app.py"
