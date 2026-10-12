@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import io
 import ipaddress
+from pathlib import Path
+from urllib.parse import quote
 import aiohttp
 from PIL import Image
 import discord
@@ -15,6 +17,29 @@ from utils.custom_bey import ABILITY_PRESETS, ABILITY_BUDGET, CUSTOM_TRIGGERS, S
 
 ABILITY_EFFECT_CATALOG = tuple(ABILITY_PRESETS)
 ABILITY_EFFECTS_PER_PAGE = 10
+ASSETS_ROOT = Path(__file__).resolve().parents[1] / "assets"
+ASSET_IMAGE_BASE = "https://raw.githubusercontent.com/princekhan958282-arch/beybalde-/main/assets/"
+
+
+async def asset_image_url(value):
+    """Validate a deployed asset and return a URL Discord can display."""
+    relative = str(value).strip().replace("\\", "/")
+    if relative.startswith("assets/"):
+        relative = relative[len("assets/"):]
+    root = ASSETS_ROOT.resolve()
+    path = (root / relative).resolve()
+    if not relative or Path(relative).is_absolute() or not path.is_relative_to(root):
+        raise CustomBeyError("Choose an image inside assets, for example assets/beys/my_bey.png.")
+    if path.suffix.lower() not in (".png", ".webp"):
+        raise CustomBeyError("Assets photos must be transparent PNG/WebP images.")
+    try:
+        if path.stat().st_size > 8 * 1024 * 1024:
+            raise CustomBeyError("Image must be at most 8 MB.")
+        data = await asyncio.to_thread(path.read_bytes)
+    except OSError as exc:
+        raise CustomBeyError("Photo not found. Add it to the repository assets folder and deploy it first.") from exc
+    await validate_image_bytes(data)
+    return ASSET_IMAGE_BASE + quote(path.relative_to(root).as_posix(), safe="/")
 
 def _summary(blade):
     blade=balanced_definition(blade)
@@ -208,7 +233,7 @@ async def validate_image_url(url):
 
 class BuilderTextModal(discord.ui.Modal):
     def __init__(self, builder, kind):
-        titles={"name":"Set Bey Name","stats":"Set Bey Stats","special":"Set Special Move","image_url":"Set Image URL","ability_name":"Name Ability"}
+        titles={"name":"Set Bey Name","stats":"Set Bey Stats","special":"Set Special Move","image_url":"Set Image URL","image_asset":"Set Assets Photo","ability_name":"Name Ability"}
         super().__init__(title=titles[kind])
         self.builder=builder; self.kind=kind
         if kind=="name":
@@ -227,6 +252,9 @@ class BuilderTextModal(discord.ui.Modal):
             for item in (self.special_name,self.damage,self.effect): self.add_item(item)
         elif kind=="image_url":
             self.value=discord.ui.TextInput(label="Direct image URL",placeholder="https://...",max_length=400)
+            self.add_item(self.value)
+        elif kind=="image_asset":
+            self.value=discord.ui.TextInput(label="Photo path inside assets",placeholder="assets/beys/my_bey.png",max_length=400)
             self.add_item(self.value)
         else:
             self.value=discord.ui.TextInput(label="Ability name",placeholder="Dragon Rage",max_length=32)
@@ -252,8 +280,10 @@ class BuilderTextModal(discord.ui.Modal):
                 if effect not in SPECIAL_EFFECTS: raise CustomBeyError("Special effect must be none, heal, or shield.")
                 self.builder.draft["special_name"]=str(self.special_name).strip()
                 self.builder.draft["special_damage"]=damage; self.builder.draft["special_effect"]=effect
-            elif self.kind=="image_url":
+            elif self.kind in ("image_url", "image_asset"):
                 value=str(self.value).strip()
+                if self.kind=="image_asset":
+                    value=await asset_image_url(value)
                 if not value.startswith(("http://","https://")): raise CustomBeyError("Enter a valid http/https image URL.")
                 await validate_image_url(value)
                 self.builder.draft["image"]=value
@@ -416,13 +446,15 @@ class ImageChoiceView(ModernPanel):
     def __init__(self,builder):
         super().__init__(timeout=120); self.builder=builder
         self.control("Image URL",self.url)
+        self.control("Assets Photo",self.asset)
         self.control("Upload Image",self.upload,style=discord.ButtonStyle.primary)
-        self.display(content="## Custom Bey Photo\nUpload or link a background-removed transparent PNG/WebP. Maximum 8 MB / 16 megapixels.")
+        self.display(content="## Custom Bey Photo\nUse an image URL, a photo already in the repository assets folder, or a Discord upload. Choose a background-removed transparent PNG/WebP. Maximum 8 MB / 16 megapixels.")
     async def interaction_check(self,i):
         if i.user.id!=self.builder.owner_id:
             await i.response.send_message("❌ This image setup belongs to another player.",ephemeral=True); return False
         return True
     async def url(self,i): await i.response.send_modal(BuilderTextModal(self.builder,"image_url"))
+    async def asset(self,i): await i.response.send_modal(BuilderTextModal(self.builder,"image_asset"))
     async def upload(self,i):
         await i.response.send_message("📤 Upload **one image** in this channel within 60 seconds. I will use its Discord attachment URL.",ephemeral=True)
         def check(m): return m.author.id==i.user.id and m.channel.id==i.channel.id and bool(m.attachments)
@@ -578,6 +610,7 @@ class CustomBeyCog(commands.Cog):
                 "• Select one compatible trigger per ability. Abilities have a 3-round cooldown. Revival arms once per battle.\n"
                 "• Special base damage **80–140**; secondary effect: none, heal, shield.\n"
                 "• Photo must be a **background-removed transparent PNG/WebP**, at most **8 MB / 16 megapixels**.\n"
+                "• Image options: **Image URL**, **Assets Photo** (for example `assets/beys/my_bey.png`), or **Upload Image**. Assets must be committed to main and deployed first.\n"
                 "• One Custom Bey per player. Owner approval required; approved Beys enter inventory at Level 1.\n"
                 "• Create in any server; approval requests go to the central review channel.\n"
                 "• Owner: use **;setcustom #channel** to save that channel for all servers."),ephemeral=True)
