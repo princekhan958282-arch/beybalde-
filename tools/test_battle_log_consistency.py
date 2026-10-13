@@ -84,12 +84,15 @@ class BattleLogConsistency(unittest.TestCase):
             'attack', attacker, normal_defender, blade, 'stamina')
         pierced, _, _, _ = calc_damage(
             'attack', attacker, pierced_defender, blade, 'stamina')
-        no_def = dict(pierced_defender, defense=1)
+        # Pierce should remove the boss's excessive DEF, not set DEF to 1
+        # (which makes the formula explode into thousands of damage).
+        neutral_defender = dict(pierced_defender, defense=attacker['attack'])
         expected, _, _, _ = calc_damage(
-            'attack', attacker, no_def, blade, 'stamina')
+            'attack', attacker, neutral_defender, blade, 'stamina')
 
         self.assertGreater(pierced, normal)
         self.assertEqual(pierced, expected)
+        self.assertLess(pierced, 500)
 
     def test_damage_math_still_applies_attack_advantage_once(self):
         s, _ = self.battle(pierce=0)
