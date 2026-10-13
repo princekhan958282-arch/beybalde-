@@ -52,7 +52,7 @@ from . import gemini
 BASE_PLAYER_HP = 2000
 TURN_SECONDS   = 60
 BOSS_AI_DIFFICULTY = "veteran"  # IQ 2, independent of stat/reward tier.
-BOSS_SPAWN_CHANCE = 0.05       # One roll per natural wild-spawn activity cycle.
+BOSS_SPAWN_CHANCE = 1 / 10_000_000_000  # Nemesis encounter: 1 in 10 billion per natural spawn cycle.
 BOSS_SPAWN_SECONDS = 300       # Five minutes to challenge a random encounter.
 log = logging.getLogger("beyblade_bot.boss")
 
