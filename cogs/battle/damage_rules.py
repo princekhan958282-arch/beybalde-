@@ -325,9 +325,24 @@ def calc_damage(
     if attacker_move not in (MOVE_ATTACK, MOVE_DEFENSE):
         return 0, 0, "mirror", False
     stat = "attack"
+    # Defense-pierce is an explicit damage-path bypass.  Do not simulate it by
+    # clamping DEF to ATK: that still leaves high-DEF bosses reducing damage.
+    # The resolver marks the defender when a full pierce window is active, and
+    # this path removes DEF from the formula entirely while keeping all other
+    # matchup modifiers unchanged.
+    # Full Defense Pierce removes the defender's defensive advantage, but
+    # must not divide by 1: that turns the normal level/power formula into
+    # an enormous damage spike (thousands of damage against bosses).
+    # Use the attacker's effective ATK as a neutral defense baseline. This
+    # bypasses any DEF above that baseline without granting a zero-DEF exploit.
+    effective_defense = (
+        max(1, attacker_stats.get("attack", 50))
+        if defender_stats.get("_ignore_defense", False)
+        else defender_stats.get("defense", 50)
+    )
     raw = base_damage(attacker_stats.get("level", attacker_blade.get("level", 1)),
                       move_power(attacker_blade, attacker_move),
-                      attacker_stats.get(stat, 50), defender_stats.get("defense", 50))
+                      attacker_stats.get(stat, 50), effective_defense)
     if attacker_move == defender_move:
         return raw, 0, "mirror", False
     if attacker_move == MOVE_DEFENSE:

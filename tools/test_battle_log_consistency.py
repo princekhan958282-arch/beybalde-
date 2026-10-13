@@ -49,16 +49,16 @@ class BattleLogConsistency(unittest.TestCase):
     def test_lethal_hit_summary_has_actual_hp_loss_and_no_projected_counter_total(self):
         s, (damage,counter,matchup,logs) = self.battle(refresh=True)
         # Keep this a lethal hit without depending on the old DEF=1 pierce bug.
-        s.hp[E] = 153
-        self.assertGreater(damage,153)
+        s.hp[E] = 100
+        self.assertGreater(damage,100)
         hp_logs = s.attack_manager.apply_pair_results(P,E,s.blades[P],s.blades[E],
             'attack','stamina',damage,counter,matchup,0,0,'lose')
-        self.assertEqual(s.attack_manager.committed_damage[P],153)
+        self.assertEqual(s.attack_manager.committed_damage[P],100)
         self.assertEqual(s.hp[E],0)
         summary = '\n'.join(s.attack_manager.build_round_summary(*s.players,P,E,
             'attack','stamina',s.attack_manager.committed_damage[P],0,
             matchup,'lose',logs+hp_logs))
-        self.assertIn('Dealt **153** damage',summary)
+        self.assertIn('Dealt **100** damage',summary)
         self.assertEqual(summary.count('Defense Pierce'),1)
         self.assertNotIn('bonus damage applied',summary)
         self.assertNotIn('total:',summary)
@@ -72,6 +72,27 @@ class BattleLogConsistency(unittest.TestCase):
         self.assertEqual(s.attack_manager.committed_damage[P],0)
         self.assertEqual(s.hp[E],1563)
         self.assertFalse(any('bonus damage applied' in line for line in hp_logs))
+
+    def test_full_pierce_bypasses_high_defense_denominator(self):
+        blade = {'name': 'Excalibur Ascendant', 'stats': {'attack': 160}}
+        attacker = {'level': 100, 'attack': 160, 'defense': 100, 'stamina': 100}
+        normal_defender = {'level': 100, 'attack': 100, 'defense': 999, 'stamina': 100}
+        pierced_defender = dict(normal_defender)
+        pierced_defender['_ignore_defense'] = True
+
+        normal, _, _, _ = calc_damage(
+            'attack', attacker, normal_defender, blade, 'stamina')
+        pierced, _, _, _ = calc_damage(
+            'attack', attacker, pierced_defender, blade, 'stamina')
+        # Pierce should remove the boss's excessive DEF, not set DEF to 1
+        # (which makes the formula explode into thousands of damage).
+        neutral_defender = dict(pierced_defender, defense=attacker['attack'])
+        expected, _, _, _ = calc_damage(
+            'attack', attacker, neutral_defender, blade, 'stamina')
+
+        self.assertGreater(pierced, normal)
+        self.assertEqual(pierced, expected)
+        self.assertLess(pierced, 500)
 
     def test_damage_math_still_applies_attack_advantage_once(self):
         s, _ = self.battle(pierce=0)
