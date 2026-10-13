@@ -73,6 +73,24 @@ class BattleLogConsistency(unittest.TestCase):
         self.assertEqual(s.hp[E],1563)
         self.assertFalse(any('bonus damage applied' in line for line in hp_logs))
 
+    def test_full_pierce_bypasses_high_defense_denominator(self):
+        blade = {'name': 'Excalibur Ascendant', 'stats': {'attack': 160}}
+        attacker = {'level': 100, 'attack': 160, 'defense': 100, 'stamina': 100}
+        normal_defender = {'level': 100, 'attack': 100, 'defense': 999, 'stamina': 100}
+        pierced_defender = dict(normal_defender)
+        pierced_defender['_ignore_defense'] = True
+
+        normal, _, _, _ = calc_damage(
+            'attack', attacker, normal_defender, blade, 'stamina')
+        pierced, _, _, _ = calc_damage(
+            'attack', attacker, pierced_defender, blade, 'stamina')
+        no_def = dict(pierced_defender, defense=1)
+        expected, _, _, _ = calc_damage(
+            'attack', attacker, no_def, blade, 'stamina')
+
+        self.assertGreater(pierced, normal)
+        self.assertEqual(pierced, expected)
+
     def test_damage_math_still_applies_attack_advantage_once(self):
         s, _ = self.battle(pierce=0)
         stats = {'level':100,'attack':1000,'defense':200}
