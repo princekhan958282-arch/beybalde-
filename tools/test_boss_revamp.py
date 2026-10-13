@@ -102,9 +102,9 @@ class Encounters(unittest.IsolatedAsyncioTestCase):
         cog = bb.BossCog(SimpleNamespace())
         channel = SimpleNamespace(guild=SimpleNamespace(id=10), send=AsyncMock())
         # Fail the Nemesis roll, pass the ordinary encounter roll.
-        with patch.object(bb.random, 'random', side_effect=[1.0, 0.0]), \\
-             patch.object(bb.random, 'choice', return_value='drakos'):
-            await cog.on_beycord_spawn_cycle(channel)
+        with patch.object(bb.random, 'random', side_effect=[1.0, 0.0]):
+            with patch.object(bb.random, 'choice', return_value='drakos'):
+                await cog.on_beycord_spawn_cycle(channel)
         self.assertEqual(channel.send.await_count, 1)
         self.assertEqual(cog._encounters[10].key, 'drakos')
         cog._encounters[10].stop()
