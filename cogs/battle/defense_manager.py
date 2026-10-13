@@ -152,6 +152,7 @@ class DefenseManager:
         if pierce_turns > 0:
             ostats = dict(ostats)
             ostats["_real_defense"] = ostats.get("defense", 50)
+            ostats["_ignore_defense"] = True
             if attacker_stats is None:
                 from .purification import effective_stats
                 attacker_stats = effective_stats(self.session, mkey)
