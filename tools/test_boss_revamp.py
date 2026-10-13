@@ -96,6 +96,19 @@ class Originals(unittest.TestCase):
 
 
 class Encounters(unittest.IsolatedAsyncioTestCase):
+    async def test_nemesis_is_one_in_ten_billion_without_nerfing_other_bosses(self):
+        self.assertEqual(bb.NEMESIS_SPAWN_CHANCE, 1 / 10_000_000_000)
+        self.assertEqual(bb.BOSS_SPAWN_CHANCE, 0.05)
+        cog = bb.BossCog(SimpleNamespace())
+        channel = SimpleNamespace(guild=SimpleNamespace(id=10), send=AsyncMock())
+        # Fail the Nemesis roll, pass the ordinary encounter roll.
+        with patch.object(bb.random, 'random', side_effect=[1.0, 0.0]), \\
+             patch.object(bb.random, 'choice', return_value='drakos'):
+            await cog.on_beycord_spawn_cycle(channel)
+        self.assertEqual(channel.send.await_count, 1)
+        self.assertEqual(cog._encounters[10].key, 'drakos')
+        cog._encounters[10].stop()
+
     async def test_fixed_iq_at_all_bosses_and_tiers(self):
         for key in bb.BOSSES:
             for tier in bb.btiers.ORDERED:
