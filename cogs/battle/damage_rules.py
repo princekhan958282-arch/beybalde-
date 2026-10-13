@@ -330,8 +330,13 @@ def calc_damage(
     # The resolver marks the defender when a full pierce window is active, and
     # this path removes DEF from the formula entirely while keeping all other
     # matchup modifiers unchanged.
+    # Full Defense Pierce removes the defender's defensive advantage, but
+    # must not divide by 1: that turns the normal level/power formula into
+    # an enormous damage spike (thousands of damage against bosses).
+    # Use the attacker's effective ATK as a neutral defense baseline. This
+    # bypasses any DEF above that baseline without granting a zero-DEF exploit.
     effective_defense = (
-        1
+        max(1, attacker_stats.get("attack", 50))
         if defender_stats.get("_ignore_defense", False)
         else defender_stats.get("defense", 50)
     )
