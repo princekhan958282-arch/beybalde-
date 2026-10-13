@@ -52,7 +52,8 @@ from . import gemini
 BASE_PLAYER_HP = 2000
 TURN_SECONDS   = 60
 BOSS_AI_DIFFICULTY = "veteran"  # IQ 2, independent of stat/reward tier.
-BOSS_SPAWN_CHANCE = 1 / 10_000_000_000  # Nemesis encounter: 1 in 10 billion per natural spawn cycle.
+BOSS_SPAWN_CHANCE = 0.05       # Ordinary boss encounter chance per natural spawn cycle.
+NEMESIS_SPAWN_CHANCE = 1 / 10_000_000_000  # Nemesis: 1 in 10 billion per natural spawn cycle.
 BOSS_SPAWN_SECONDS = 300       # Five minutes to challenge a random encounter.
 log = logging.getLogger("beyblade_bot.boss")
 
@@ -1795,12 +1796,22 @@ class BossCog(commands.Cog, name="Boss"):
 
     @commands.Cog.listener()
     async def on_beycord_spawn_cycle(self, channel):
-        if BOSS_SYSTEM_LOCKED or random.random() >= BOSS_SPAWN_CHANCE:
+        if BOSS_SYSTEM_LOCKED:
             return
+
+        # Nemesis is a separate ultra-rare roll. Keep the existing 5% encounter
+        # rate for the other bosses instead of making the entire boss system
+        # effectively disappear when Nemesis is set to 1 in 10 billion.
+        if random.random() < NEMESIS_SPAWN_CHANCE:
+            key = "nemesis"
+        else:
+            if random.random() >= BOSS_SPAWN_CHANCE:
+                return
+            key = random.choice(tuple(k for k in BOSSES if k != "nemesis"))
+
         async with self._encounter_lock:
             if channel.guild.id in self._encounters:
                 return
-            key = random.choice(tuple(BOSSES))
             view = BossEncounterView(self, channel.guild.id, key)
             self._encounters[channel.guild.id] = view
             try:
