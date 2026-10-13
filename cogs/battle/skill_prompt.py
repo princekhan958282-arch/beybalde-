@@ -73,7 +73,9 @@ async def participants(players) -> list[tuple[object, dict]]:
             if not avatar_id:
                 continue
             avatar = avatar_engine.get_avatar(avatar_id)
-            if AS.has_skills(avatar) and not avatar.get("active_battle_skills"):
+            # Original Generation cards also need the pre-battle choice. Their three
+            # energy-based skills remain available through the in-battle picker.
+            if AS.has_skills(avatar):
                 out.append((member, avatar))
         except Exception as exc:                         # noqa: BLE001
             log.debug("skill prompt skipped %s: %s", member, exc)
