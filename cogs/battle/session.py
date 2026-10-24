@@ -1324,6 +1324,8 @@ class BattleSession:
                 other_key = k2 if key == k1 else k1
                 other_move = m2 if key == k1 else m1
                 was_attacked = (other_move in (MOVE_ATTACK, MOVE_SPECIAL)) or (am.committed_damage.get(key, 0) > 0)
+                if requiem.active(self, key, 'whip'):
+                    was_attacked = False
                 round_log.extend(sm.apply_stamina_action(
                     key, self.hp, self.type_mods.get(key),
                     attacked=was_attacked,
