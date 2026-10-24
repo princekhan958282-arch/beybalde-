@@ -518,7 +518,8 @@ def blocked_reason(user, bot=None):
         uid = getattr(user, "id", None)
         # The owner is never locked out — the panel that turns maintenance mode
         # OFF is itself a command, so gating it would be a one-way door.
-        if uid == A.MASTER_ID:
+        admin_ids = getattr(A, "ADMIN_IDS", {A.MASTER_ID})
+        if uid in admin_ids or uid == A.MASTER_ID:
             return None
         rec = A.banned(uid)
         if rec:

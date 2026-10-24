@@ -47,7 +47,9 @@ def _is_owner(user) -> bool:
     # for the same reason: `cogs.admin.actions` must not be a package-load-time
     # dependency of `cogs.updates`.
     from cogs.admin import actions as A
-    return getattr(user, "id", None) == A.MASTER_ID
+    uid = getattr(user, "id", None)
+    admin_ids = getattr(A, "ADMIN_IDS", {A.MASTER_ID})
+    return uid in admin_ids or uid == A.MASTER_ID
 
 
 # ── Shared with the /update Select menu, so there is exactly one "what does
