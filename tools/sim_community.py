@@ -970,6 +970,76 @@ async def suite() -> None:
           "that failed the first time",
           cog_src.index("apply_roles") < cog_src.index("claim_high_water"))
 
+    # ── 19. cross-server level-up isolation ──────────────────────────────────
+    print("\n── 19. level-ups never cross server boundaries ─────────────────")
+    fake_member = FakeMember(uid=9001, guild=FakeGuild(MAIN))
+    check("_as_id on a Member extracts the guild ID, not the user ID",
+          guard._as_id(fake_member) == MAIN, guard._as_id(fake_member))
+
+    fake_msg = type("FakeMsg", (), {"id": 123456789, "guild": FakeGuild(MAIN)})()
+    check("_as_id on a Message extracts the guild ID, not the message ID",
+          guard._as_id(fake_msg) == MAIN, guard._as_id(fake_msg))
+
+    fake_it = FakeInteraction(guild_id=MAIN)
+    check("_as_id on an Interaction extracts the guild ID",
+          guard._as_id(fake_it) == MAIN, guard._as_id(fake_it))
+
+    class FakeChannel:
+        def __init__(self, cid, guild=None):
+            self.id = int(cid)
+            self.guild = guild
+            self.sent = []
+
+        async def send(self, content=None, **kw):
+            self.sent.append(content)
+
+    main_chan = FakeChannel(8881, guild=FakeGuild(MAIN))
+    other_chan = FakeChannel(8882, guild=FakeGuild(OTHER))
+    channels = {8881: main_chan, 8882: other_chan}
+    bot.get_channel = lambda cid: channels.get(int(cid))
+
+    guard.set_main_guild(MAIN)
+    C.put(C.K_ANNOUNCE, "8881")
+
+    # A level-up in ANOTHER guild must never send to main server's announcement channel
+    other_member = FakeMember(uid=9002, guild=FakeGuild(OTHER))
+    other_source = type("Src", (), {"guild": FakeGuild(OTHER), "channel": other_chan, "user": other_member})()
+    award_other = {"levelled": True, "level": 5, "xp": 100}
+
+    await cog._after_award(other_source, award_other, member=other_member)
+    check("a level-up in another server never posts to the main server's channel",
+          len(main_chan.sent) == 0, main_chan.sent)
+
+    # A level-up in MAIN server DOES post to the main server's channel
+    main_member = FakeMember(uid=9003, guild=FakeGuild(MAIN))
+    main_source = type("Src", (), {"guild": FakeGuild(MAIN), "channel": main_chan, "user": main_member})()
+    award_main = {"levelled": True, "level": 5, "xp": 100}
+
+    await cog._after_award(main_source, award_main, member=main_member)
+    check("a level-up in the main server posts to the main server's channel",
+          len(main_chan.sent) == 1 and "level 5" in str(main_chan.sent[0]), main_chan.sent)
+
+    # In /server panel: announce_here from another guild is refused
+    from cogs.community import panel as PN
+    from cogs.admin import actions as _A
+    panel = PN.ServerView(bot, _A.MASTER_ID, cog.levels)
+    it_other = FakeInteraction(guild_id=OTHER, user_id=_A.MASTER_ID)
+    await panel.announce_here.callback(it_other)
+    check("Announce level-ups here refuses when invoked in another server",
+          bool(it_other.sent and "in the main server" in str(it_other.sent[0].get("content"))),
+          it_other.sent)
+    check("...and does not overwrite the main server's announce channel",
+          C.get(C.K_ANNOUNCE) == "8881", C.get(C.K_ANNOUNCE))
+
+    # Setting main guild to a new server clears the old server's announce channel
+    it_switch = FakeInteraction(guild_id=OTHER, user_id=_A.MASTER_ID)
+    await panel.set_here.callback(it_switch)
+    check("switching the main server clears the stale announce channel from the old server",
+          C.get(C.K_ANNOUNCE) is None, C.get(C.K_ANNOUNCE))
+
+    # Restore main guild back to MAIN
+    guard.set_main_guild(MAIN)
+
 
 def _tick(cx, uid, when) -> bool:
     """One message through chat_xp's gate at time `when`. True = it paid."""

@@ -45,21 +45,27 @@ class NotMainServer(RuntimeError):
 
 
 def _as_id(guild_or_id: Any) -> Optional[int]:
-    """Accept a Guild, a Member's guild, an int, a str, or None."""
+    """Accept a Guild, a Member's guild, a Message's guild, an int, a str, or None."""
     if guild_or_id is None:
         return None
     if isinstance(guild_or_id, int):
         return guild_or_id
     if isinstance(guild_or_id, str):
         return int(guild_or_id) if guild_or_id.isdigit() else None
-    for attr in ("id", "guild_id"):
+    guild = getattr(guild_or_id, "guild", None)
+    if guild is not None:
+        gid = getattr(guild, "id", None)
+        if isinstance(gid, int):
+            return gid
+        if isinstance(gid, str) and gid.isdigit():
+            return int(gid)
+    for attr in ("guild_id", "id"):
         val = getattr(guild_or_id, attr, None)
         if isinstance(val, int):
             return val
         if isinstance(val, str) and val.isdigit():
             return int(val)
-    guild = getattr(guild_or_id, "guild", None)
-    return getattr(guild, "id", None) if guild is not None else None
+    return None
 
 
 def main_guild_id() -> Optional[int]:
@@ -70,6 +76,7 @@ def set_main_guild(guild_or_id: Any) -> Optional[int]:
     gid = _as_id(guild_or_id)
     if gid is None:
         C.put(C.K_MAIN_GUILD, None)
+        C.put(C.K_ANNOUNCE, None)
         return None
     C.put(C.K_MAIN_GUILD, str(gid))
     return gid

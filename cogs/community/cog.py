@@ -328,8 +328,15 @@ class CommunityCog(commands.Cog, name="Community"):
         if not award or not award.get("levelled"):
             return
         gid = guard.main_guild_id()
+        if gid is None:
+            return
         member = member or getattr(source, "user", None) or getattr(
             source, "author", None)
+        source_gid = guard._as_id(source) or guard._as_id(member)
+        if source_gid is not None and source_gid != gid:
+            # Main server only: events originating from another guild must never
+            # leak announcements or roles into the main server.
+            return
         level = int(award.get("level") or 0)
         user_id = getattr(member, "id", None)
 
@@ -339,10 +346,12 @@ class CommunityCog(commands.Cog, name="Community"):
         # grant that failed the first time (missing permission, role above the
         # bot, an API blip).
         if member is not None and getattr(member, "guild", None) is not None:
-            try:
-                await self.levels.apply_roles(gid, member, level)
-            except Exception:                            # noqa: BLE001
-                log.exception("[community] level roles failed")
+            mem_gid = getattr(member.guild, "id", None)
+            if mem_gid is None or mem_gid == gid:
+                try:
+                    await self.levels.apply_roles(gid, member, level)
+                except Exception:                            # noqa: BLE001
+                    log.exception("[community] level roles failed")
 
         # Say it ONCE per level, ever.
         #
@@ -373,9 +382,29 @@ class CommunityCog(commands.Cog, name="Community"):
                           {"user_id": user_id,
                            "level": level, "xp": award.get("xp")})
         chan_id = C.get(C.K_ANNOUNCE)
-        channel = (self.bot.get_channel(int(chan_id)) if chan_id
-                   else getattr(source, "channel", None))
+        channel = None
+        if chan_id:
+            try:
+                target = self.bot.get_channel(int(chan_id))
+                if target is not None:
+                    target_gid = getattr(getattr(target, "guild", None), "id", None)
+                    if target_gid == gid and (source_gid is None or target_gid == source_gid):
+                        channel = target
+            except Exception:
+                pass
+        if channel is None:
+            source_chan = getattr(source, "channel", None)
+            if source_chan is not None:
+                chan_gid = getattr(getattr(source_chan, "guild", None), "id", None)
+                if chan_gid is None or chan_gid == gid:
+                    channel = source_chan
+
         if channel is not None:
+            chan_gid = getattr(getattr(channel, "guild", None), "id", None)
+            if chan_gid is not None and source_gid is not None and chan_gid != source_gid:
+                return
+            if chan_gid is not None and gid is not None and chan_gid != gid:
+                return
             try:
                 await channel.send(
                     f"✨ {getattr(member, 'mention', 'Someone')} reached "
