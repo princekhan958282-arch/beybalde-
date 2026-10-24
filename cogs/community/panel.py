@@ -226,7 +226,11 @@ class ServerView(discord.ui.View):
     async def set_here(self, interaction: discord.Interaction, _b) -> None:
         if not await self.guard(interaction):
             return
-        guard.set_main_guild(interaction.guild_id)
+        old_gid = guard.main_guild_id()
+        new_gid = guard.set_main_guild(interaction.guild_id)
+        if old_gid is not None and new_gid != old_gid:
+            C.put(C.K_ANNOUNCE, None)
+            self.levels.clear_level_roles(new_gid)
         await self.refresh(interaction)
 
     @discord.ui.button(label="XP on/off", emoji="✨", row=2,
@@ -250,6 +254,11 @@ class ServerView(discord.ui.View):
     async def announce_here(self, interaction: discord.Interaction, _b) -> None:
         if not await self.guard(interaction):
             return
+        main = guard.main_guild_id()
+        if main is None or interaction.guild_id != main:
+            return await interaction.response.send_message(
+                "The announcement channel has to be set **in the main server** — a "
+                "channel from anywhere else can't be used there.", ephemeral=True)
         C.put(C.K_ANNOUNCE, str(interaction.channel_id))
         await self.refresh(interaction)
 
