@@ -34,8 +34,7 @@ log = logging.getLogger("beyblade_bot.tournament")
 # working.
 COG_NAME   = "Tournaments"
 
-MASTER_ID  = 956773141265391676
-ADMIN_IDS  = {956773141265391676, 100654502861}
+from ..admin.actions import ADMIN_IDS, MASTER_ID
 ADMIN_ROLE = "Tournament Admin"
 COLOUR     = 0x5865F2
 
@@ -76,7 +75,11 @@ def is_tournament_admin(user) -> bool:
     change mid-tournament.
     """
     uid = getattr(user, "id", None)
-    if uid in ADMIN_IDS or uid == MASTER_ID or is_tournament_hoster(user):
+    try:
+        uid_int = int(uid) if uid is not None else None
+    except (ValueError, TypeError):
+        uid_int = None
+    if uid in ADMIN_IDS or uid_int in ADMIN_IDS or uid == MASTER_ID or uid_int == MASTER_ID or is_tournament_hoster(user):
         return True
     roles = getattr(user, "roles", None) or []
     return any(getattr(r, "name", "") == ADMIN_ROLE for r in roles)

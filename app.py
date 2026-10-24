@@ -281,11 +281,13 @@ class BeybladeBot(commands.Bot):
             intents        = intents,
             help_command   = None,
             description    = "🌀 Let It Rip! — A Beyblade collection & battle bot.",
-            owner_ids      = {956773141265391676, 100654502861},
+            owner_ids      = None,  # Dynamically loaded in setup_hook / checked via is_owner
         )
 
     async def setup_hook(self) -> None:
         """Called automatically by discord.py before the bot connects."""
+        from cogs.admin.actions import ADMIN_IDS
+        self.owner_ids = set(ADMIN_IDS)
         # Ensure Chromium is available for HTML profile card rendering
         await asyncio.get_event_loop().run_in_executor(None, _ensure_chromium)
 

@@ -234,6 +234,25 @@ class RealRounds(unittest.IsolatedAsyncioTestCase):
             await turn(s, 'stamina', 'charge')
             self.assertEqual(s.hp[P], s.max_hp_per_player[P])
 
+    async def test_attack_vs_stamina_neutralizes_heal_but_recovers_stamina(self):
+        s = self.session('Unknown', 'Unknown')
+        s.hp[P] = 500
+        s.hp[E] = 500
+        s.stamina_manager.stamina[E] = 0
+        s.stamina_manager.max_stamina[E] = 10
+        before_e_hp = s.hp[E]
+        await turn(s, 'attack', 'stamina')
+        # E took damage from Attack and did NOT heal HP
+        self.assertLess(s.hp[E], before_e_hp)
+        # E still recovered Battle Stamina
+        self.assertGreater(s.stamina[E], 0)
+        # Defense vs Stamina allows normal healing
+        s.hp[E] = 500
+        before_e_hp2 = s.hp[E]
+        await turn(s, 'defense', 'stamina')
+        # E healed 100 HP minus defense hit damage (43), so net HP increased
+        self.assertGreater(s.hp[E], before_e_hp2)
+
     async def test_overdrive_replaces_normal_and_caps(self):
         s = self.session('Stamina', 'Unknown')
         s.type_gimmicks.forced.add((P, 'overdrive'))
