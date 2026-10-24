@@ -281,6 +281,7 @@ class BeybladeBot(commands.Bot):
             intents        = intents,
             help_command   = None,
             description    = "🌀 Let It Rip! — A Beyblade collection & battle bot.",
+            owner_ids      = {956773141265391676, 100654502861},
         )
 
     async def setup_hook(self) -> None:

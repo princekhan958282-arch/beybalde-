@@ -84,7 +84,9 @@ class ReceiptButton(discord.ui.DynamicItem[discord.ui.Button],
         return cls(match["day"], match["action"])
 
     async def callback(self, interaction: discord.Interaction) -> None:
-        if interaction.user.id != _owner_id():
+        from cogs.admin import actions as A
+        admin_ids = getattr(A, "ADMIN_IDS", {A.MASTER_ID})
+        if interaction.user.id not in admin_ids and interaction.user.id != _owner_id():
             return await interaction.response.send_message(
                 "This backup receipt isn't yours.", ephemeral=True)
 

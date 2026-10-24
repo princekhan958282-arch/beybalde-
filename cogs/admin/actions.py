@@ -67,6 +67,7 @@ from utils.database import (
 log = logging.getLogger("beyblade_bot.admin")
 
 MASTER_ID = 956773141265391676
+ADMIN_IDS = {956773141265391676, 100654502861}
 ADMIN_ROLE = "Tournament Admin"
 
 
@@ -76,7 +77,8 @@ def is_admin(user) -> bool:
     Checked per invocation rather than once at registration, because roles
     change while the bot is running.
     """
-    if getattr(user, "id", None) == MASTER_ID:
+    uid = getattr(user, "id", None)
+    if uid in ADMIN_IDS or uid == MASTER_ID:
         return True
     roles = getattr(user, "roles", None) or []
     return any(getattr(r, "name", "") == ADMIN_ROLE for r in roles)
@@ -283,7 +285,8 @@ class Action:
 
 
 def may_run(action: "Action", user) -> bool:
-    if getattr(user, "id", None) == MASTER_ID:
+    uid = getattr(user, "id", None)
+    if uid in ADMIN_IDS or uid == MASTER_ID:
         return True
     return (not action.owner_only) and is_admin(user)
 
@@ -786,8 +789,9 @@ async def _setrank(ctx: ActionCtx) -> Result:
           "players", needs=("user", "text"),
           confirm="They will be refused by every command in the bot.")
 async def _ban(ctx: ActionCtx) -> Result:
-    if int(ctx.target_id) == MASTER_ID:
-        return Result.fail("❌ You can't ban the owner.")
+    target = int(ctx.target_id)
+    if target in ADMIN_IDS or target == MASTER_ID:
+        return Result.fail("❌ You can't ban an admin/owner.")
     rec = ban_user(ctx.target_id, ctx.text or "", ctx.invoker_id)
     log.info("[admin] %s banned %s: %s", ctx.invoker_id, ctx.target_id,
              rec["reason"])

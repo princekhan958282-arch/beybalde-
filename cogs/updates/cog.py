@@ -32,7 +32,9 @@ COLOUR = 0x5865F2
 
 def _is_owner(user) -> bool:
     from cogs.admin import actions as A
-    return getattr(user, "id", None) == A.MASTER_ID
+    uid = getattr(user, "id", None)
+    admin_ids = getattr(A, "ADMIN_IDS", {A.MASTER_ID})
+    return uid in admin_ids or uid == A.MASTER_ID
 
 
 class NotificationCog(commands.Cog, name="Notifications"):

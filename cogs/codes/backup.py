@@ -44,6 +44,7 @@ from utils.database import USER_STORE, _default_profile, get_user, update_user
 from .code_store import BACKUP_PATH, backup_lock, load, make_code, normalise, save
 
 MASTER_ID = 956773141265391676
+ADMIN_IDS = {956773141265391676, 100654502861}
 
 # Snapshots older than this get refreshed by the background task below, so a
 # code always hands back roughly-current progress even if the player hasn't
@@ -301,7 +302,7 @@ class BackupCog(commands.Cog, name="Backup"):
     @backup.command(name="audit")
     async def backup_audit(self, ctx: commands.Context):
         """Master only — every restore that has happened."""
-        if ctx.author.id != MASTER_ID:
+        if ctx.author.id not in ADMIN_IDS and ctx.author.id != MASTER_ID:
             return
         log = _load()["log"][:15]
         if not log:

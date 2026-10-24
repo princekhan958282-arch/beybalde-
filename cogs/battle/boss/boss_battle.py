@@ -78,6 +78,7 @@ LOCK_EXEMPT = {"copies", "copy", "equipcopy", "sellcopy"}
 
 # Owner bypass, so the rework can be tested on the live bot while it's shut.
 MASTER_ID = 956773141265391676
+ADMIN_IDS = {956773141265391676, 100654502861}
 
 
 class BossSystemLocked(commands.CheckFailure):
@@ -1764,7 +1765,7 @@ class BossCog(commands.Cog, name="Boss"):
             return True
         if ctx.command and ctx.command.name in LOCK_EXEMPT:
             return True
-        if ctx.author.id == MASTER_ID:
+        if ctx.author.id in ADMIN_IDS or ctx.author.id == MASTER_ID:
             return True
         raise BossSystemLocked()
 
@@ -1965,7 +1966,7 @@ class BossCog(commands.Cog, name="Boss"):
         send = interaction.followup.send if interaction.response.is_done() else interaction.response.send_message
         # A picker posted BEFORE the lock still has live buttons until its view
         # times out, so the command gate alone doesn't close every door.
-        if BOSS_SYSTEM_LOCKED and interaction.user.id != MASTER_ID:
+        if BOSS_SYSTEM_LOCKED and interaction.user.id not in ADMIN_IDS and interaction.user.id != MASTER_ID:
             await send(embed=discord.Embed(title=LOCK_TITLE, description=LOCK_MESSAGE,
                                           colour=0x4E5058), ephemeral=True)
             return None
