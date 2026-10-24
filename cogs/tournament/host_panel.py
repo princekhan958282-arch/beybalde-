@@ -63,7 +63,7 @@ class HostPanel(discord.ui.LayoutView):
                 card.add_item(discord.ui.ActionRow(SettingSelect(self.editing, self.config)))
                 card.add_item(discord.ui.ActionRow(PanelButton('Back', 'back')))
         card.add_item(discord.ui.TextDisplay('### Tournament Preview\n' + summary +
-            '\n\n' + self.note + '\n-# Registration is available. Battles and fee collection are deferred.'))
+            '\n\n' + self.note + '\n-# Registration is open for 24h. When full, host is notified to start. Automated matches and prize payouts.'))
         if not self.closed and not editing:
             card.add_item(discord.ui.ActionRow(
                 PanelButton('Confirm Setup', 'confirm', discord.ButtonStyle.success),

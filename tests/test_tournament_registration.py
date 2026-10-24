@@ -26,7 +26,7 @@ def text(view):
 
 @pytest.fixture
 def cog(tmp_path, monkeypatch):
-    bot = NS(is_owner=AsyncMock(return_value=False), add_view=Mock(), get_partial_messageable=Mock())
+    bot = NS(is_owner=AsyncMock(return_value=False), add_view=Mock(), get_partial_messageable=Mock(), get_channel=Mock(return_value=None))
     c = TournamentCog(bot)
     c.draft_store = DraftStore(tmp_path / 'drafts.db')
     c.registration_store = RegistrationStore(c.draft_store)
@@ -75,7 +75,7 @@ async def test_confirm_channel_publish(cog, guild):
     assert p.closed and p.published and not cog.setups
     assert reg.reg.status == 'open'
     assert 'https://discord.com/channels/1/2/3' in text(p)
-    assert {x.label for x in reg.walk_children() if isinstance(x, RegButton)} == {'Join', 'Leave', 'Cancel Registration'}
+    assert {x.label for x in reg.walk_children() if isinstance(x, RegButton)} == {'Join', 'Leave', 'Start Tournament', 'Cancel Registration'}
     assert 'Avatars' in text(reg) and 'Equipped Beyblade' in text(reg)
     assert cog.registration_store.current(1).message_id == 3
     assert not cog.admin_start(1)
@@ -291,3 +291,90 @@ async def test_cancel_write_failure_and_stale_publish(cog, guild, monkeypatch):
     await p.act(i, 'publish')
     assert i.response.send_message.call_args.kwargs['ephemeral']
     assert guild.get_channel(2).send.await_count == 1
+
+async def test_start_button_authorization_and_minimum_players(cog, guild):
+    panel, _ = await published(cog, guild)
+    # Non-host cannot start
+    i_unauthorized = click(uid=999)
+    await panel.act(i_unauthorized, 'start')
+    assert i_unauthorized.response.send_message.call_args.kwargs['ephemeral']
+    assert 'Only the authorized host' in i_unauthorized.response.send_message.call_args.args[0]
+
+    # Host cannot start with < 2 players
+    i_host = click(uid=MASTER_ID)
+    await panel.act(i_host, 'start')
+    assert i_host.response.send_message.call_args.kwargs['ephemeral']
+    assert 'At least 2 players are required' in i_host.response.send_message.call_args.args[0]
+
+    # Join 2 players
+    await panel.act(click(10), 'join')
+    await panel.act(click(11), 'join')
+    assert len(panel.reg.entrants) == 2
+
+    # Now host can start
+    started = False
+    cog.run_v2 = AsyncMock()
+    await panel.act(i_host, 'start')
+    assert panel.reg.status == 'running'
+    assert cog.registration_store.current(1).status == 'running'
+
+async def test_registration_full_notification(cog, guild):
+    panel, _ = await published(cog, guild, DraftConfig(slots=4))
+    ch = guild.get_channel(2)
+    cog.bot.get_channel = Mock(return_value=ch)
+    send_count_before = ch.send.await_count
+    for uid in (10, 11, 12):
+        await panel.act(click(uid, guild=guild), 'join')
+    assert not panel.reg.notified_full
+    await panel.act(click(13, guild=guild), 'join')
+    assert panel.reg.notified_full
+    # Check notification was sent to the channel
+    assert ch.send.await_count > send_count_before
+    last_call_text = ch.send.call_args.args[0]
+    assert 'FULL' in last_call_text and str(MASTER_ID) in last_call_text
+
+async def test_registration_24h_expiration(cog, guild, monkeypatch):
+    panel, _ = await published(cog, guild)
+    import time
+    # Fast forward 25 hours into the future
+    panel.reg.created_at = time.time() - 90000
+    i = click(10)
+    await panel.act(i, 'join')
+    assert i.followup.send.call_args.kwargs['ephemeral']
+    assert 'expired' in i.followup.send.call_args.args[0].lower()
+    assert 10 not in panel.reg.entrants
+
+async def test_entry_fee_deduction_and_refund(cog, guild, monkeypatch):
+    import utils.database as db
+    coins_ledger = {10: 10000, 11: 500}
+    async def fake_get_user(uid):
+        return {'inventory': ['Dranzer S'], 'coins': coins_ledger.get(uid, 0)}
+    async def fake_mutate_user(uid, func):
+        p = {'coins': coins_ledger.get(uid, 0)}
+        func(p)
+        coins_ledger[uid] = p['coins']
+        return coins_ledger[uid]
+
+    monkeypatch.setattr('cogs.tournament.registration.get_user', fake_get_user)
+    monkeypatch.setattr('utils.database.get_user', fake_get_user)
+    monkeypatch.setattr('cogs.tournament.registration.mutate_user', fake_mutate_user)
+    monkeypatch.setattr('utils.database.mutate_user', fake_mutate_user)
+
+    panel, _ = await published(cog, guild, DraftConfig(entry_fee=1000))
+    # Player 11 has only 500 coins -> refused
+    i11 = click(11)
+    await panel.act(i11, 'join')
+    assert i11.followup.send.call_args.kwargs['ephemeral']
+    assert 'need at least 1,000' in i11.followup.send.call_args.args[0]
+    assert coins_ledger[11] == 500
+
+    # Player 10 has 10,000 coins -> joins and 1,000 deducted
+    await panel.act(click(10), 'join')
+    assert 10 in panel.reg.entrants
+    assert coins_ledger[10] == 9000
+
+    # Player 10 leaves -> 1,000 refunded
+    await panel.act(click(10), 'leave')
+    assert 10 not in panel.reg.entrants
+    assert coins_ledger[10] == 10000
+
