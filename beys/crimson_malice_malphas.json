@@ -68,5 +68,17 @@
       "🩸 Crimson Gaze — the target is marked; every smash hit shakes its stamina to the core!"
     ]
   },
-  "hidden_drop_one_in": 1000
+  "hidden_drop_one_in": 1000,
+  "generation": "Burst",
+  "main_frame": {
+    "attack": 145,
+    "defense": 68,
+    "stamina": 92,
+    "special": 135,
+    "hp": 90
+  },
+  "default_parts": {
+    "disk": "BB_MALPHAS_default_disk",
+    "driver": "BB_MALPHAS_default_driver"
+  }
 }
