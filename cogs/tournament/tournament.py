@@ -942,11 +942,32 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             return
 
         p1 = guild.get_member(a) if guild else None
+        if p1 is None and hasattr(self.bot, "get_user"):
+            p1 = self.bot.get_user(a)
+        if p1 is None and hasattr(self.bot, "fetch_user"):
+            try:
+                p1 = await self.bot.fetch_user(a)
+            except Exception:
+                p1 = None
+
         p2 = guild.get_member(b) if guild else None
+        if p2 is None and hasattr(self.bot, "get_user"):
+            p2 = self.bot.get_user(b)
+        if p2 is None and hasattr(self.bot, "fetch_user"):
+            try:
+                p2 = await self.bot.fetch_user(b)
+            except Exception:
+                p2 = None
+
         if p1 is None or p2 is None:
             winner_id = b if p1 is None else a
             self._finish_v2(matches, match, winner_id, mode)
             return
+
+        p1_name = getattr(p1, "display_name", getattr(p1, "name", f"Player {a}"))
+        p2_name = getattr(p2, "display_name", getattr(p2, "name", f"Player {b}"))
+        p1_mention = getattr(p1, "mention", f"<@{a}>")
+        p2_mention = getattr(p2, "mention", f"<@{b}>")
 
         from cogs.battle.battle import _apply_parts
         from cogs.battle.session import BattleSession
@@ -969,7 +990,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             if hasattr(channel, "create_thread") and guild and guild.me:
                 perms = channel.permissions_for(guild.me)
                 if perms.create_public_threads and perms.send_messages_in_threads:
-                    t_name = f"⚔️ R{rnd}: {p1.display_name} vs {p2.display_name}"[:100]
+                    t_name = f"⚔️ R{rnd}: {p1_name} vs {p2_name}"[:100]
                     thread = await channel.create_thread(name=t_name, auto_archive_duration=60)
                     match_channel = thread
         except Exception:
@@ -977,8 +998,8 @@ class TournamentCog(commands.Cog, name=COG_NAME):
 
         await match_channel.send(embed=discord.Embed(
             title=f"⚔️ {reg.config.name} — Round {rnd}",
-            description=(f"{p1.mention} (**{blade1['name']}**)\n"
-                         f"vs {p2.mention} (**{blade2['name']}**)"),
+            description=(f"{p1_mention} (**{blade1['name']}**)\n"
+                         f"vs {p2_mention} (**{blade2['name']}**)"),
             colour=COLOUR
         ))
 
@@ -1014,20 +1035,23 @@ class TournamentCog(commands.Cog, name=COG_NAME):
 
         self._finish_v2(matches, match, winner_id, mode)
 
+        loser_id = b if winner_id == a else a
         p_win = p1 if winner_id == a else p2
         p_lose = p2 if winner_id == a else p1
+        p_win_mention = getattr(p_win, "mention", f"<@{winner_id}>")
+        p_lose_mention = getattr(p_lose, "mention", f"<@{loser_id}>")
 
         if thread:
             try:
-                await thread.send(f"🏆 **{p_win.mention} wins and advances!**")
+                await thread.send(f"🏆 **{p_win_mention} wins and advances!**")
             except Exception:
                 pass
             try:
-                await channel.send(f"⚔️ **Round {rnd} Match Complete:** {p_win.mention} defeated {p_lose.mention}!")
+                await channel.send(f"⚔️ **Round {rnd} Match Complete:** {p_win_mention} defeated {p_lose_mention}!")
             except Exception:
                 pass
         else:
-            await channel.send(f"🏆 **{p_win.mention}** wins round {rnd} against {p_lose.mention}!")
+            await channel.send(f"🏆 **{p_win_mention}** wins round {rnd} against {p_lose_mention}!")
 
     def _finish_v2(self, matches: list[Match], match: Match, winner: Optional[int], mode: str) -> None:
         match.winner = winner
