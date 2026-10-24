@@ -398,6 +398,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         # has exactly one meaning now — cannot join the next lobby.
         self.banned: set[int] = set()
         self._tasks: set = set()
+        self._expiry_task: Optional[asyncio.Task] = None
         # guild_id -> the live panel, so an admin can force-start a lobby whose
         # panel has scrolled out of reach.
         self.panels: dict[int, "TournamentPanel"] = {}
@@ -410,6 +411,54 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             self.registrations[reg.guild_id] = panel
             self._active.update(reg.entrants)
             self.bot.add_view(panel, message_id=reg.message_id)
+        self._expiry_task = self.bot.loop.create_task(self._expiry_monitor())
+
+    async def _expiry_monitor(self):
+        """Monitor open registrations and handle 24-hour expiration."""
+        while not self.bot.is_closed():
+            try:
+                await asyncio.sleep(60)
+                now = time.time()
+                for guild_id, panel in list(self.registrations.items()):
+                    reg = panel.reg
+                    if reg.status == 'open' and now >= reg.created_at + 86400:
+                        async with panel.lock:
+                            if reg.status != 'open':
+                                continue
+                            if len(reg.entrants) >= 2:
+                                reg.status = 'closed'
+                                await asyncio.to_thread(self.registration_store.write, reg)
+                                panel.build()
+                                if panel.message:
+                                    try:
+                                        await panel.message.edit(view=panel, allowed_mentions=discord.AllowedMentions.none())
+                                    except Exception:
+                                        pass
+                                channel = self.bot.get_channel(reg.channel_id)
+                                if channel:
+                                    try:
+                                        await channel.send(
+                                            f"⏰ <@{reg.host_id}>, the 24-hour registration window for **{reg.config.name}** "
+                                            f"has closed with **{len(reg.entrants)}/{reg.config.slots}** players registered!\n"
+                                            f"You can now press the **Start Tournament** button on the registration panel to launch the bracket!"
+                                        )
+                                    except Exception:
+                                        pass
+                            else:
+                                channel = self.bot.get_channel(reg.channel_id)
+                                if channel:
+                                    try:
+                                        await channel.send(
+                                            f"✖️ Registration for **{reg.config.name}** expired: fewer than 2 players joined within 24 hours. "
+                                            f"Registration cancelled and entry fees refunded."
+                                        )
+                                    except Exception:
+                                        pass
+                                await panel.close("Registration expired with fewer than 2 players.")
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                log.exception("[tournament] error in registration expiry monitor")
 
     async def publish_registration(self, host_panel, guild):
         channel = validate_channel(guild, guild.get_channel(host_panel.channel_id))
@@ -461,6 +510,8 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         task.add_done_callback(self._tasks.discard)
 
     async def cog_unload(self):
+        if hasattr(self, '_expiry_task') and self._expiry_task and not self._expiry_task.done():
+            self._expiry_task.cancel()
         for panel in list(self.setups.values()):
             await panel.close("Setup closed because the tournament extension reloaded.")
         for registration in list(self.registrations.values()):
@@ -708,7 +759,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
                          f"vs {p2.mention} (**{blade2['name']}**)"),
             colour=COLOUR))
 
-        bc = self.bot.get_cog("Battle")
+        bc = self.bot.get_cog("Battle") if hasattr(self.bot, "get_cog") else None if hasattr(self.bot, "get_cog") else None
         registry = getattr(bc, "active_battles", None) if bc else None
         winner_id = None
         try:
@@ -799,6 +850,293 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         except Exception:                                # noqa: BLE001
             log.debug("[tournament] bracket post failed", exc_info=True)
 
+    # ── V2 Execution Runner ──────────────────────────────────────────────────
+    async def run_v2(self, reg: Registration, panel: RegistrationPanel) -> None:
+        """Execute a V2 tournament bracket through to the champion ceremony."""
+        try:
+            await self._run_v2(reg, panel)
+        except Exception:                                # noqa: BLE001
+            log.exception("[tournament] V2 tournament execution crashed")
+        finally:
+            for uid in reg.entrants:
+                self._active.discard(uid)
+            if self.registrations.get(reg.guild_id) is panel:
+                self.registrations.pop(reg.guild_id, None)
+            reg.status = 'completed'
+            try:
+                await asyncio.to_thread(self.registration_store.write, reg)
+            except Exception:
+                pass
+            panel.build()
+            if panel.message:
+                try:
+                    await panel.message.edit(view=panel, allowed_mentions=discord.AllowedMentions.none())
+                except Exception:
+                    pass
+
+    async def _run_v2(self, reg: Registration, panel: RegistrationPanel) -> None:
+        channel = self.bot.get_channel(reg.channel_id)
+        guild = self.bot.get_guild(reg.guild_id)
+        if channel is None:
+            return
+
+        blades: dict[int, str] = {}
+        if reg.config.bey_selection == 'Random Beyblade':
+            rng = random.Random()
+            drafted = draft_blades(rng, len(reg.entrants))
+            for uid, b in zip(reg.entrants, drafted):
+                blades[uid] = b["name"] if b else ""
+        else:
+            from cogs.battle.boss.boss_copy import equipped_blade
+            for uid in reg.entrants:
+                blade_obj, _ = await equipped_blade(uid)
+                if blade_obj and blade_obj.get("name"):
+                    blades[uid] = blade_obj["name"]
+                else:
+                    profile = await get_user(uid)
+                    inv = profile.get("inventory") or []
+                    if inv:
+                        blades[uid] = inv[0]
+                    else:
+                        d = draft_blades(random.Random(), 1)
+                        blades[uid] = d[0]["name"] if d and d[0] else "Dranzer S"
+
+        mode = Mode.SINGLE.value
+        if reg.config.format == 'Double Elimination':
+            mode = Mode.DOUBLE.value
+        elif reg.config.format == 'Round Robin':
+            mode = Mode.ROUND_ROBIN.value
+
+        try:
+            matches = brackets.generate(f"t_{reg.guild_id}", list(reg.entrants), mode)
+            brackets.auto_byes(matches, mode, time.time())
+        except ValueError as exc:
+            await channel.send(f"❌ Could not generate bracket: {exc}")
+            return
+
+        first_rnd = min((m.round_no for m in matches), default=1)
+        await self._post_v2_bracket(channel, guild, reg, matches, blades, "Bracket Drawn", first_rnd)
+
+        while not brackets.is_complete(matches, mode):
+            ready = brackets.ready_matches(matches)
+            if not ready:
+                break
+            rnd = min(m.round_no for m in ready)
+            for match in ready:
+                await self._play_v2(channel, guild, reg, match, rnd, blades, matches, mode)
+            await self._post_v2_bracket(channel, guild, reg, matches, blades, f"Round {rnd} Results", rnd)
+
+        champ_id = brackets.champion(matches, mode)
+        standings = self._compute_standings(reg.entrants, matches, champ_id)
+        prizes = await self._award_v2(reg, standings)
+        await self._post_v2_champion(channel, guild, reg, champ_id, standings, prizes)
+
+    async def _play_v2(self, channel, guild, reg: Registration, match: Match,
+                       rnd: int, blades: dict[int, str], matches: list[Match], mode: str) -> None:
+        """Execute one match with thread isolation if supported."""
+        a, b = match.player_a, match.player_b
+        if a is None or b is None:
+            self._finish_v2(matches, match, a if b is None else b, mode)
+            return
+
+        p1 = guild.get_member(a) if guild else None
+        p2 = guild.get_member(b) if guild else None
+        if p1 is None or p2 is None:
+            winner_id = b if p1 is None else a
+            self._finish_v2(matches, match, winner_id, mode)
+            return
+
+        from cogs.battle.battle import _apply_parts
+        from cogs.battle.session import BattleSession
+
+        bname1 = blades.get(a, "")
+        bname2 = blades.get(b, "")
+        raw1 = get_beyblade(bname1) or get_beyblade("Dranzer S")
+        raw2 = get_beyblade(bname2) or get_beyblade("Dranzer S")
+        if not raw1 or not isinstance(raw1, dict):
+            raw1 = {"name": bname1 or "Default Beyblade", "stats": {"attack": 50, "defense": 50, "stamina": 50}, "level": 1}
+        if not raw2 or not isinstance(raw2, dict):
+            raw2 = {"name": bname2 or "Default Beyblade", "stats": {"attack": 50, "defense": 50, "stamina": 50}, "level": 1}
+
+        blade1 = _apply_parts(raw1, await get_user(a))
+        blade2 = _apply_parts(raw2, await get_user(b))
+
+        match_channel = channel
+        thread = None
+        try:
+            if hasattr(channel, "create_thread") and guild and guild.me:
+                perms = channel.permissions_for(guild.me)
+                if perms.create_public_threads and perms.send_messages_in_threads:
+                    t_name = f"⚔️ R{rnd}: {p1.display_name} vs {p2.display_name}"[:100]
+                    thread = await channel.create_thread(name=t_name, auto_archive_duration=60)
+                    match_channel = thread
+        except Exception:
+            match_channel = channel
+
+        await match_channel.send(embed=discord.Embed(
+            title=f"⚔️ {reg.config.name} — Round {rnd}",
+            description=(f"{p1.mention} (**{blade1['name']}**)\n"
+                         f"vs {p2.mention} (**{blade2['name']}**)"),
+            colour=COLOUR
+        ))
+
+        bc = self.bot.get_cog("Battle") if hasattr(self.bot, "get_cog") else None
+        registry = getattr(bc, "active_battles", None) if bc else None
+        winner_id = None
+        try:
+            session = await BattleSession.create(
+                bot=self.bot,
+                channel=match_channel,
+                p1=p1,
+                p2=p2,
+                blade1=blade1,
+                blade2=blade2,
+                avatars_enabled=(reg.config.avatars == "Allowed"),
+                bey_level=(100 if reg.config.level_rule == "Equalized Level 100" else None),
+            )
+            if registry is not None:
+                registry[a] = session
+                registry[b] = session
+            await session.run()
+            winner_id = getattr(session, "winner_id", None)
+        except Exception:
+            log.exception("[tournament] match crashed in V2 runner")
+            await match_channel.send("⚠️ Match error encountered — advancing on a coin flip.")
+        finally:
+            if registry is not None:
+                registry.pop(a, None)
+                registry.pop(b, None)
+
+        if winner_id not in (a, b):
+            winner_id = random.choice((a, b))
+
+        self._finish_v2(matches, match, winner_id, mode)
+
+        p_win = p1 if winner_id == a else p2
+        p_lose = p2 if winner_id == a else p1
+
+        if thread:
+            try:
+                await thread.send(f"🏆 **{p_win.mention} wins and advances!**")
+            except Exception:
+                pass
+            try:
+                await channel.send(f"⚔️ **Round {rnd} Match Complete:** {p_win.mention} defeated {p_lose.mention}!")
+            except Exception:
+                pass
+        else:
+            await channel.send(f"🏆 **{p_win.mention}** wins round {rnd} against {p_lose.mention}!")
+
+    def _finish_v2(self, matches: list[Match], match: Match, winner: Optional[int], mode: str) -> None:
+        match.winner = winner
+        match.loser = match.player_b if winner == match.player_a else match.player_a
+        match.state = MatchState.COMPLETED.value
+        brackets.advance(matches, match, mode)
+
+    def _compute_standings(self, entrants: list[int], matches: list[Match], champion_id: Optional[int]) -> dict[str, Optional[int]]:
+        standings: dict[str, Optional[int]] = {"first": champion_id, "second": None, "third": None}
+        if not champion_id or not matches:
+            return standings
+
+        final_matches = [m for m in matches if m.winner == champion_id]
+        if final_matches:
+            final_match = max(final_matches, key=lambda m: m.round_no)
+            standings["second"] = final_match.loser
+            semi_rnd = final_match.round_no - 1
+            if semi_rnd >= 1:
+                semi_losers = [m.loser for m in matches if m.round_no == semi_rnd and m.loser not in (champion_id, standings["second"]) and m.loser is not None]
+                if semi_losers:
+                    standings["third"] = semi_losers[0]
+        return standings
+
+    async def _award_v2(self, reg: Registration, standings: dict[str, Optional[int]]) -> dict[int, int]:
+        num_entrants = max(1, len(reg.entrants))
+        base_pot = PRIZE_PER_ENTRANT * num_entrants
+        fee_pot = reg.config.entry_fee * num_entrants
+        total_pot = base_pot + fee_pot
+
+        first_id = standings.get("first")
+        second_id = standings.get("second")
+        third_id = standings.get("third")
+
+        payouts: dict[int, int] = {}
+        if len(reg.entrants) == 2 or not second_id:
+            if first_id:
+                payouts[first_id] = total_pot
+        elif len(reg.entrants) < 8 or not third_id:
+            if first_id:
+                payouts[first_id] = int(total_pot * 0.70)
+            if second_id:
+                payouts[second_id] = total_pot - payouts.get(first_id, 0)
+        else:
+            if first_id:
+                payouts[first_id] = int(total_pot * 0.70)
+            if second_id:
+                payouts[second_id] = int(total_pot * 0.20)
+            if third_id:
+                payouts[third_id] = total_pot - payouts.get(first_id, 0) - payouts.get(second_id, 0)
+
+        for uid, prize in payouts.items():
+            if prize > 0:
+                try:
+                    await mutate_user(uid, lambda p, a=prize: p.__setitem__("coins", int(p.get("coins", 0)) + a))
+                except Exception:
+                    log.exception("[tournament] failed to pay prize to %s", uid)
+        return payouts
+
+    async def _post_v2_bracket(self, channel, guild, reg: Registration, matches: list[Match],
+                               blades: dict[int, str], label: str, rnd: int) -> None:
+        embed = discord.Embed(
+            title=f"🏆  {reg.config.name} — {label}",
+            colour=COLOUR
+        )
+        round_matches = [m for m in matches if m.round_no == rnd]
+        lines = []
+        for m in round_matches:
+            p1_name = self._name(guild, m.player_a) if m.player_a else "TBD"
+            p2_name = self._name(guild, m.player_b) if m.player_b else ("*bye*" if m.player_b is None else "TBD")
+            b1 = f" ({blades.get(m.player_a, '')})" if m.player_a in blades and blades[m.player_a] else ""
+            b2 = f" ({blades.get(m.player_b, '')})" if m.player_b in blades and blades[m.player_b] else ""
+            if m.winner is not None:
+                w_name = self._name(guild, m.winner)
+                lines.append(f"✅ **{w_name}** won")
+            else:
+                lines.append(f"⚔️ **{p1_name}**{b1} vs **{p2_name}**{b2}")
+        embed.description = "\n".join(lines) if lines else "No matches in this round."
+        try:
+            await channel.send(embed=embed)
+        except Exception:
+            log.exception("[tournament] failed to post v2 bracket")
+
+    async def _post_v2_champion(self, channel, guild, reg: Registration,
+                                champion_id: Optional[int], standings: dict, prizes: dict[int, int]) -> None:
+        embed = discord.Embed(
+            title=f"🏆  {reg.config.name} — Champion Crowned! 🏆",
+            colour=0xF1C40F
+        )
+        if champion_id:
+            c_name = self._name(guild, champion_id)
+            p1_amt = prizes.get(champion_id, 0)
+            lines = [f"🥇 **Champion:** <@{champion_id}> ({c_name}) — 🪙 **{p1_amt:,}** Beycoins!"]
+            sec_id = standings.get("second")
+            if sec_id:
+                p2_amt = prizes.get(sec_id, 0)
+                s_name = self._name(guild, sec_id)
+                lines.append(f"🥈 **Runner-Up:** <@{sec_id}> ({s_name}) — 🪙 **{p2_amt:,}** Beycoins")
+            thd_id = standings.get("third")
+            if thd_id:
+                p3_amt = prizes.get(thd_id, 0)
+                t_name = self._name(guild, thd_id)
+                lines.append(f"🥉 **3rd Place:** <@{thd_id}> ({t_name}) — 🪙 **{p3_amt:,}** Beycoins")
+            embed.description = "\n".join(lines)
+            embed.set_footer(text=f"Format: {reg.config.format} · {len(reg.entrants)} Entrants")
+            try:
+                await channel.send(content=f"🎉 Congratulations to <@{champion_id}> for winning **{reg.config.name}**!", embed=embed)
+            except Exception:
+                pass
+        else:
+            await channel.send("The tournament ended without a champion.")
+
     # ── admin hooks, called by cogs/admin/actions.py ──────────────────────────
     async def admin_announce(self, channel, author, note: str = "") -> bool:
         """Open a tournament and post the panel into `channel`.
@@ -834,7 +1172,12 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         return self.lobbies.get(guild_id)
 
     def admin_start(self, guild_id: int) -> bool:
-        """Force-start the open lobby. False when there is nothing to start."""
+        """Force-start the open lobby or V2 registration. False when there is nothing to start."""
+        registration = self.registrations.get(guild_id)
+        if registration is not None and registration.reg.status in ('open', 'closed') and len(registration.reg.entrants) >= 2:
+            registration.reg.status = 'running'
+            self._spawn(self.run_v2(registration.reg, registration))
+            return True
         lobby = self.lobbies.get(guild_id)
         view = self.panels.get(guild_id)
         if not lobby or not view or lobby.started or len(lobby.entrants) < MIN_PLAYERS:

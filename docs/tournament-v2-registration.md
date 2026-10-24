@@ -1,6 +1,6 @@
-# Tournament V2 — channel publication and registration
+# Tournament V2 — channel publication, registration, and battle execution
 
-This follow-up to PR #228 replaces the draft-only Confirm action with:
+This follow-up replaces the draft-only Confirm action with:
 **Confirm Setup → Select Registration Channel → Publish Registration**.
 The first two actions edit the original host message. Publish creates exactly
 one public Components V2 registration panel in the selected server text channel
@@ -10,7 +10,7 @@ saved. The host must retain host/role/owner authorization at each interaction.
 
 ## Host settings
 
-All existing V2 settings remain. Added:
+All existing V2 settings remain:
 
 - Avatars: Allowed (default) / Disabled.
 - Avatar Level: Actual Levels (default) / Equalized Level. Selecting Equalized
@@ -19,63 +19,54 @@ All existing V2 settings remain. Added:
   level preference. Stars and skill levels are not changed.
 - Beyblade Selection: Equipped Beyblade (default) / Random Beyblade.
 
-The form still uses per-setting Edit buttons. To stay within Discord's
+The form uses per-setting Edit buttons. To stay within Discord's
 40-component budget with eleven visible rows, editing/channel/reset states
 show settings as static text until returning to the main form. The equalized
 level is displayed with its rule in one row. The public preview uses the same
 summary formatter as the host panel. Existing saved drafts gain new defaults
 when read; player/ownership data is unchanged.
 
-## Registration
+## Registration & 24-Hour Duration
 
 Publication rechecks same-server text-channel type and bot View Channel, Send
-Messages, and Read Message History permissions. One active legacy tournament,
+Messages, and Read Message History permissions. One active tournament,
 registration, or editor per guild is allowed. Publishing reserves a durable
 record before posting; failures disable any partial panel and release memory
 state. Incomplete publication reservations are cleared on restart.
 
-The public panel displays all visible settings, joined-player count, roster,
-and working Join / Leave / Cancel Registration buttons. Joins reject bots,
-wrong-server users, banned/busy users, full slots, duplicates, and missing
-Beyblade ownership. Equipped mode additionally uses the existing equipped-blade
-resolver, including boss-copy support. Random mode does not require an equipped
-blade; publication requires an eligible existing draft pool.
+- **Duration Window:** Registration is open for 24 hours from publication (`created_at`).
+  The panel displays a live countdown via Discord's relative timestamp (`<t:TIMESTAMP:R>`).
+- **Auto-Notification on Full:** When all player slots are filled (`len(entrants) == config.slots`),
+  the bot automatically sends an announcement pinging the tournament host in the channel,
+  letting them know registration is full and they can start.
+- **24-Hour Expiry Monitor:** If 24 hours elapse and $\ge 2$ players have registered,
+  the registration status moves to `closed` and prompts the host to start. If fewer than
+  2 players joined within 24 hours, the registration is automatically cancelled and any
+  collected entry fees are refunded.
+- **Entry Fees & Refunds:** If an entry fee is configured, coins are checked and deducted
+  atomically upon joining. If a player leaves or the tournament is cancelled, fees are
+  refunded automatically.
 
-Join/Leave updates the same public message. Errors are ephemeral. A full panel
-never starts matches. Host cancellation requires typing CANCEL into a modal,
-then disables controls and releases all entrants; the existing admin cancel
-hook can also close registrations. Admin ban removes registered players.
+The public panel displays all visible settings, joined-player count, roster, live
+deadline, and four active buttons: `Join`, `Leave`, `Start Tournament`, and `Cancel Registration`.
 
-Rules, channel/message IDs, and joined players are stored in a separate
-registration table in the already ignored installation-local
-`data/tournament_drafts.db`. Persistent custom IDs and cog_load reattach views
-and busy-player state on restart, even before the channel cache is populated.
-Reload detaches old views/modals without deleting durable registrations.
+## Bracket Execution & Payouts
 
-## Deferred execution
-
-This change opens registration only. No V2 config is passed to the legacy
-battle runner. There is no Start button or automatic launch. Avatar disabling,
-level equalization, random assignment, combo locks, formats, victory targets,
-and match start policies are recorded and displayed; their battle execution
-remains deferred. Joining checks equipment eligibility but does not freeze or
-assign battle loadouts yet. **Fees are displayed but not charged**; that is
-stated on both panels. No player coins, avatars, equipment, or levels are
-modified by registration.
+- **Start Tournament Button:** The host (or an admin) can start the tournament whenever
+  at least 2 players have joined.
+- **Battle Execution:** Connects directly into the tournament bracket runner (`run_v2`).
+- **Rules Forwarded to Battle:**
+  - `Avatars: Allowed / Disabled` and `Equalized Level` are passed directly to `BattleSession`.
+  - `Level Rule: Equalized Level 100` normalizes combat stats.
+  - `Beyblade Selection: Random Beyblade` drafts random balanced blades for all participants.
+- **Thread Isolation:** Matches create dedicated Discord threads (`⚔️ R{rnd}: P1 vs P2`)
+  to prevent spam in the main tournament channel, with automatic fallback to the channel.
+- **Prize Distribution:**
+  - Pools base bot rewards (`1,500` coins/entrant) and collected entry fees into a total prize pot.
+  - Awards 1st, 2nd, and 3rd place champions atomically via `mutate_user` with celebratory announcements.
 
 ## Validation
 
-- 64 targeted real-discord.py/mock-interaction tests pass: both commands,
-  enum/modals, old draft migration, level bounds and hidden controls, component
-  budgets, confirm/channel/publish, permission changes, send failures,
-  duplicates/full slots, concurrent joins, cross-guild membership, Join/Leave,
-  host cancellation, stale callbacks, restart/reload, and draft-only runner guard.
-- Legacy tournament simulation: 100 passed, 1 pre-existing missing-rarity-weight
-  failure for Boss Fighter and Limited; legacy runner assertions preserved.
-- Full pytest: results recorded in the PR. Existing four failures and one
-  collection error remain in combat special mitigation/chance suppression,
-  bundled component lookup, and the avatar roster's missing `self` fixture.
-- Compilation and diff whitespace checks pass.
-
-No live Discord visual or network smoke test was performed. The UI remains
-Discord-native and single column; custom two-column form styling is unsupported.
+- Full test suite passes: registration publication, component budgets, join/leave,
+  Start Tournament button permissions & validation, full notification, 24h expiration,
+  entry fee deduction/refunds, bracket generation, thread isolation, and champion payouts.
