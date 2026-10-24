@@ -15,16 +15,16 @@ from cogs.core import onboarding as ONB
 class TestAdminAuth(unittest.TestCase):
     def setUp(self):
         self.master_user = SimpleNamespace(id=956773141265391676, roles=[])
-        self.new_admin_user = SimpleNamespace(id=100654502861, roles=[])
+        self.new_admin_user = SimpleNamespace(id=1006545028614729808, roles=[])
         self.random_user = SimpleNamespace(id=123456789012, roles=[])
 
     def test_admin_ids_contains_both(self):
         self.assertIn(956773141265391676, A.ADMIN_IDS)
-        self.assertIn(100654502861, A.ADMIN_IDS)
+        self.assertIn(1006545028614729808, A.ADMIN_IDS)
         self.assertIn(956773141265391676, TM.ADMIN_IDS)
-        self.assertIn(100654502861, TM.ADMIN_IDS)
+        self.assertIn(1006545028614729808, TM.ADMIN_IDS)
         self.assertIn(956773141265391676, BC.ADMIN_IDS)
-        self.assertIn(100654502861, BC.ADMIN_IDS)
+        self.assertIn(1006545028614729808, BC.ADMIN_IDS)
 
     def test_is_admin_check(self):
         self.assertTrue(A.is_admin(self.master_user))

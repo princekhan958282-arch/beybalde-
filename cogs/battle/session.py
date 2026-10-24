@@ -1321,8 +1321,14 @@ class BattleSession:
         dmg_p2 = am.committed_damage[k2]
         for key, move in ((k1, m1), (k2, m2)):
             if move == MOVE_STAMINA and self.hp[key] > 0:
+                other_key = k2 if key == k1 else k1
+                other_move = m2 if key == k1 else m1
+                was_attacked = (other_move in (MOVE_ATTACK, MOVE_SPECIAL)) or (am.committed_damage.get(key, 0) > 0)
+                if requiem.active(self, key, 'whip'):
+                    was_attacked = False
                 round_log.extend(sm.apply_stamina_action(
                     key, self.hp, self.type_mods.get(key),
+                    attacked=was_attacked,
                     max_hp=self.max_hp_per_player[key], gimmicks=self.type_gimmicks))
                 _, recovery, _ = self.type_gimmicks.recovery(key, sm._sta_stat(key))
                 round_log.extend(self.stability_manager._apply(key, recovery))

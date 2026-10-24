@@ -67,8 +67,21 @@ from utils.database import (
 log = logging.getLogger("beyblade_bot.admin")
 
 MASTER_ID = 956773141265391676
-ADMIN_IDS = {956773141265391676, 100654502861}
 ADMIN_ROLE = "Tournament Admin"
+
+
+def _get_admin_ids() -> set[int]:
+    ids = {MASTER_ID, 1006545028614729808}
+    raw = os.getenv("ADMIN_IDS") or os.getenv("CO_OWNER_ID")
+    if raw:
+        for chunk in raw.replace(",", " ").split():
+            chunk = chunk.strip()
+            if chunk.isdigit():
+                ids.add(int(chunk))
+    return ids
+
+
+ADMIN_IDS = _get_admin_ids()
 
 
 def is_admin(user) -> bool:
@@ -78,7 +91,12 @@ def is_admin(user) -> bool:
     change while the bot is running.
     """
     uid = getattr(user, "id", None)
-    if uid in ADMIN_IDS or uid == MASTER_ID:
+    try:
+        uid_int = int(uid) if uid is not None else None
+    except (ValueError, TypeError):
+        uid_int = None
+    admin_ids = _get_admin_ids()
+    if uid in admin_ids or uid_int in admin_ids or uid == MASTER_ID or uid_int == MASTER_ID:
         return True
     roles = getattr(user, "roles", None) or []
     return any(getattr(r, "name", "") == ADMIN_ROLE for r in roles)
@@ -286,7 +304,12 @@ class Action:
 
 def may_run(action: "Action", user) -> bool:
     uid = getattr(user, "id", None)
-    if uid in ADMIN_IDS or uid == MASTER_ID:
+    try:
+        uid_int = int(uid) if uid is not None else None
+    except (ValueError, TypeError):
+        uid_int = None
+    admin_ids = _get_admin_ids()
+    if uid in admin_ids or uid_int in admin_ids or uid == MASTER_ID or uid_int == MASTER_ID:
         return True
     return (not action.owner_only) and is_admin(user)
 
@@ -790,7 +813,12 @@ async def _setrank(ctx: ActionCtx) -> Result:
           confirm="They will be refused by every command in the bot.")
 async def _ban(ctx: ActionCtx) -> Result:
     target = int(ctx.target_id)
-    if target in ADMIN_IDS or target == MASTER_ID:
+    try:
+        target_int = int(target) if target is not None else None
+    except (ValueError, TypeError):
+        target_int = None
+    admin_ids = _get_admin_ids()
+    if target in admin_ids or target_int in admin_ids or target == MASTER_ID or target_int == MASTER_ID:
         return Result.fail("❌ You can't ban an admin/owner.")
     rec = ban_user(ctx.target_id, ctx.text or "", ctx.invoker_id)
     log.info("[admin] %s banned %s: %s", ctx.invoker_id, ctx.target_id,
