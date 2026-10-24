@@ -4,15 +4,15 @@
   "category": "driver",
   "type": "driver",
   "stats": {
-    "hp": 24,
-    "attack": 32,
-    "defense": 51,
-    "stamina": 35
+    "hp": 25,
+    "attack": 40,
+    "defense": 19,
+    "stamina": 25
   },
   "compatibility": {},
   "source": "beyblade_default",
   "shop_available": false,
   "tradable": false,
   "bey_id": "BB_MALPHAS",
-  "_registry_order": 1168
+  "_registry_order": 1169
 }

@@ -52,7 +52,7 @@ class MigrationTests(unittest.TestCase):
     def test_every_record_and_every_original_field_is_preserved(self):
         for kind, entries in (('bey', load_beys().values()), ('avatar', load_avatars()['avatars'])):
             baseline = BASELINE['beys' if kind == 'bey' else 'avatars']
-            additions = {**DRANZER_ADDITIONS, **OCTOBER_ADDITIONS, **BURST_ADDITIONS, **FOUR_BURST_ADDITIONS, **BOSS_ORIGINAL_ADDITIONS, 'BB164': 'Blast Jinnius'} if kind == 'bey' else {}
+            additions = {**DRANZER_ADDITIONS, **OCTOBER_ADDITIONS, **BURST_ADDITIONS, **FOUR_BURST_ADDITIONS, **BOSS_ORIGINAL_ADDITIONS, 'BB164': 'Blast Jinnius', 'BB_MALPHAS': 'Crimson Malice Malphas'} if kind == 'bey' else {}
             self.assertEqual({v['id'] for v in entries}, set(baseline) | set(additions))
             for value in entries:
                 if value['id'] in additions:
@@ -73,7 +73,7 @@ class MigrationTests(unittest.TestCase):
                         self.assertEqual(hp_correction['previous_sha256'], expected_hash)
                         expected_hash = hp_correction['sha256']
                     self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
-        for folder, number in (('beys', 169), ('avatars', 54), ('parts/disks', 187), ('parts/drivers', 186)):
+        for folder, number in (('beys', 170), ('avatars', 54), ('parts/disks', 188), ('parts/drivers', 187)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
         for folder in ('beys', 'avatars'):
             self.assertFalse(any(p.is_dir() for p in (ROOT / folder).iterdir()))

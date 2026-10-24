@@ -5,14 +5,14 @@
   "type": "disk",
   "stats": {
     "hp": 25,
-    "attack": 33,
-    "defense": 51,
-    "stamina": 35
+    "attack": 40,
+    "defense": 19,
+    "stamina": 25
   },
   "compatibility": {},
   "source": "beyblade_default",
   "shop_available": false,
   "tradable": false,
   "bey_id": "BB_MALPHAS",
-  "_registry_order": 1168
+  "_registry_order": 1169
 }
