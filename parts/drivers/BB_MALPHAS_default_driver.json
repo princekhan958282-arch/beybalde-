@@ -1,0 +1,18 @@
+{
+  "id": "BB_MALPHAS_default_driver",
+  "name": "Crimson Malice Malphas Signature Driver",
+  "category": "driver",
+  "type": "driver",
+  "stats": {
+    "hp": 25,
+    "attack": 40,
+    "defense": 19,
+    "stamina": 25
+  },
+  "compatibility": {},
+  "source": "beyblade_default",
+  "shop_available": false,
+  "tradable": false,
+  "bey_id": "BB_MALPHAS",
+  "_registry_order": 1169
+}

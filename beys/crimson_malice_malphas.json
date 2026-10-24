@@ -1,0 +1,89 @@
+{
+  "id": "BB_MALPHAS",
+  "name": "Crimson Malice Malphas",
+  "rarity": "Rare",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1563411175197253693/6f7c6330d53dd22e32e29584502c1d44.jpg?ex=6add879e&is=6adc361e&hm=08318037dc77bddf89437a08d57775f02077189c4aa17861496d1d749f4fb311&",
+  "description": "A ruthless crimson Attack-type Beyblade that grows stronger with every successful thorn strike.",
+  "stats": {
+    "attack": 145,
+    "defense": 68,
+    "stamina": 92,
+    "special": 135,
+    "hp": 90
+  },
+  "ability": {
+    "name": "Vile Thorns",
+    "trigger": "on_attack_win",
+    "description": "Each successful attack grants one Vile Thorns stack, increasing Attack by 20%, up to three stacks per battle.",
+    "rules": [
+      {
+        "when": "on_attack_win",
+        "do": [
+          {
+            "op": "gain_counter",
+            "name": "vile_thorns",
+            "amount": 1,
+            "max": 3,
+            "label": "Vile Thorns",
+            "emoji": "🌹"
+          }
+        ],
+        "_name": "Vile Thorns"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Vile Thorns",
+      "trigger": "on_attack_win",
+      "description": "Each successful attack grants one stack, up to three stacks per battle; each stack adds 20% Attack.",
+      "rules": [
+        {
+          "when": "on_attack_win",
+          "do": [
+            {
+              "op": "gain_counter",
+              "name": "vile_thorns",
+              "amount": 1,
+              "max": 3,
+              "label": "Vile Thorns",
+              "emoji": "🌹"
+            }
+          ],
+          "_name": "Vile Thorns — Stack"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Crimson Gaze",
+    "hits": 1,
+    "damage_per_hit": 135,
+    "total_damage": 135,
+    "description": "For five rounds, Malphas locks onto the opponent's center of gravity. Smash attacks deal double impact recoil, and direct contact reduces the opponent's Stamina by 30%.",
+    "flavour_texts": [
+      "🩸 Crimson Gaze — the target is marked; every smash hit shakes its stamina to the core!"
+    ]
+  },
+  "hidden_drop_one_in": 1000,
+  "generation": "Burst",
+  "main_frame": {
+    "hp": 40,
+    "attack": 65,
+    "defense": 30,
+    "stamina": 42
+  },
+  "default_parts": {
+    "disk": "BB_MALPHAS_default_disk",
+    "driver": "BB_MALPHAS_default_driver"
+  },
+  "_registry_order": 169,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}
