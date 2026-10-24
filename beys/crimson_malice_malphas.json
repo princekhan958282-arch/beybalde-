@@ -1,7 +1,7 @@
 {
-  "id": "BB165",
+  "id": "BB_MALPHAS",
   "name": "Crimson Malice Malphas",
-  "rarity": "Legendary",
+  "rarity": "Rare",
   "type": "Attack",
   "spin_direction": "Right",
   "burst_height": "Mid",
@@ -67,5 +67,6 @@
     "flavour_texts": [
       "🩸 Crimson Gaze — the target is marked; every smash hit shakes its stamina to the core!"
     ]
-  }
+  },
+  "hidden_drop_one_in": 1000
 }
