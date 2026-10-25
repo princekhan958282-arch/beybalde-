@@ -16,7 +16,44 @@
   "ability": {
     "name": "Boss Breaker",
     "trigger": "passive",
-    "description": "Against Boss Beys, Epsilon deals +25% damage. Each Attack win in a boss battle builds +8% base ATK, up to 3 stacks (+24%). These bonuses are inactive against normal Beys."
+    "description": "Against Boss Beys, Epsilon deals +25% damage. Each Attack win in a boss battle builds +8% base ATK, up to 3 stacks (+24%). These bonuses are inactive against normal Beys.",
+    "rules": [
+      {
+        "when": "setup",
+        "if": [
+          {
+            "cond": "is_boss"
+          }
+        ],
+        "do": [
+          {
+            "op": "dmg_amp",
+            "value": 25
+          }
+        ],
+        "_name": "Boss Breaker — Output"
+      },
+      {
+        "when": "on_attack_win",
+        "if": [
+          {
+            "cond": "is_boss"
+          }
+        ],
+        "do": [
+          {
+            "op": "stacking_buff",
+            "name": "boss_breaker_atk",
+            "stats": [
+              "attack"
+            ],
+            "per_stack_pct": 0.08,
+            "max": 3
+          }
+        ],
+        "_name": "Boss Breaker — Attack Stacking"
+      }
+    ]
   },
   "special_move": {
     "name": "Epsilon Overdrive",
@@ -34,7 +71,44 @@
     {
       "name": "Boss Breaker",
       "trigger": "passive",
-      "description": "Against Boss Beys, Epsilon deals +25% damage. Each Attack win in a boss battle builds +8% base ATK, up to 3 stacks (+24%). These bonuses are inactive against normal Beys."
+      "description": "Against Boss Beys, Epsilon deals +25% damage. Each Attack win in a boss battle builds +8% base ATK, up to 3 stacks (+24%). These bonuses are inactive against normal Beys.",
+      "rules": [
+        {
+          "when": "setup",
+          "if": [
+            {
+              "cond": "is_boss"
+            }
+          ],
+          "do": [
+            {
+              "op": "dmg_amp",
+              "value": 25
+            }
+          ],
+          "_name": "Boss Breaker — Output"
+        },
+        {
+          "when": "on_attack_win",
+          "if": [
+            {
+              "cond": "is_boss"
+            }
+          ],
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "boss_breaker_atk",
+              "stats": [
+                "attack"
+              ],
+              "per_stack_pct": 0.08,
+              "max": 3
+            }
+          ],
+          "_name": "Boss Breaker — Attack Stacking"
+        }
+      ]
     }
   ],
   "shop_exclusive": true,
@@ -57,5 +131,6 @@
     "strategy": "authorized_45_27_5_27_5",
     "rounding": "largest_remainder_frame_disk_driver_tiebreak",
     "version": 2
-  }
+  },
+  "spin_direction": "Right"
 }

@@ -57,7 +57,7 @@
         "_name": "Achilles Z — Defense"
       },
       {
-        "when": "on_any_action",
+        "when": "turn_start",
         "if": [
           {
             "cond": "counter_at_least",
@@ -67,7 +67,7 @@
         ],
         "do": [
           {
-            "op": "damage_amp",
+            "op": "dmg_amp",
             "value": 15,
             "turns": 2
           },
@@ -124,7 +124,7 @@
           "_name": "Achilles Z — Defense"
         },
         {
-          "when": "on_any_action",
+          "when": "turn_start",
           "if": [
             {
               "cond": "counter_at_least",
@@ -134,7 +134,7 @@
           ],
           "do": [
             {
-              "op": "damage_amp",
+              "op": "dmg_amp",
               "value": 15,
               "turns": 2
             },

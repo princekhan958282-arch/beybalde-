@@ -3,7 +3,7 @@
   "type": "Balance",
   "rarity": "Exclusive",
   "spin_direction": "Dual",
-  "image_url": "",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1538565822400827452/f61b5a67f0ec747cec4736c7111b4e44.jpg?ex=6a832495&is=6a81d315&hm=a19f219c94f5bcb383ead467982cd3edec3cd4b6eb2c170f06125adc047895e5&",
   "description": "The original NEMESIS ÆTHERION org, earned by defeating its randomly spawned boss. Full base stats and signature abilities.",
   "stats": {
     "attack": 146,
@@ -196,5 +196,6 @@
     "strategy": "authorized_45_27_5_27_5",
     "rounding": "largest_remainder_frame_disk_driver_tiebreak",
     "version": 2
-  }
+  },
+  "burst_height": "Mid"
 }

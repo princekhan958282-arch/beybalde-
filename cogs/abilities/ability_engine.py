@@ -700,6 +700,9 @@ class AbilityEngine:
             return (self.session.blades.get(okey, {}).get("type", "")).lower() == str(v).lower()
         if c == "my_type_is":
             return (self.session.blades.get(key, {}).get("type", "")).lower() == str(v).lower()
+        if c == "is_boss":
+            foe = (getattr(self.session, "blades", {}) or {}).get(okey, {})
+            return bool(getattr(self.session, "is_boss", False) or foe.get("rarity") in ("Boss", "Exclusive") or "boss" in foe.get("name", "").lower())
         if c in ("stability_above_pct", "stability_below_pct",
                  "enemy_stability_below_pct", "enemy_stability_above_pct"):
             # Normalize percentage values (> 1 becomes fraction)
@@ -1194,8 +1197,9 @@ class AbilityEngine:
             elif kind == "heal_pct":
                 max_hp = self.session.max_hp_per_player.get(key) or self.session.max_hp
                 self._heal(key, math.ceil(max_hp * float(val) / 100), logs, ab_name)
-            elif kind == "lifesteal_pct":
-                self.lifesteal_pct[key] = max(self.lifesteal_pct.get(key, 0.0), float(val))
+            elif kind in ("lifesteal_pct", "lifesteal"):
+                ls_val = float(op.get("value") or op.get("percent") or op.get("pct") or val)
+                self.lifesteal_pct[key] = max(self.lifesteal_pct.get(key, 0.0), ls_val)
             elif kind == "revive":
                 self.revive_pool[key] = max(self.revive_pool.get(key, 0), int(val))
             elif kind == "revive_pct":
@@ -1492,13 +1496,15 @@ class AbilityEngine:
                         break
             elif kind == "start_cooldown":
                 self.cooldowns[(key, op.get("name", ""))] = int(op.get("turns", val or 1))
-            elif kind == "dmg_amp":
+            elif kind in ("dmg_amp", "damage_amp"):
                 # `turns` makes the amp TEMPORARY. add_dmg_amp is a permanent
                 # accumulator with no expiry, so "+25% for 5 turns" could only
                 # be written as "+25% forever" — an Overdrive that never ends
                 # is not an Overdrive. The expiry is tracked here and swept by
                 # tick_dmg_amps() at end of round.
                 amt = float(val)
+                if amt > 1:
+                    amt /= 100.0
                 self.st.add_dmg_amp(key, amt)
                 turns = int(op.get("turns", 0) or 0)
                 if turns > 0:
@@ -1878,6 +1884,8 @@ class AbilityEngine:
                                 f"(+{per*take} damage)!")
             elif kind == "reset_counter":
                 self.counters[(key, op.get("name", "stacks"))] = 0
+            elif kind == "counter_damage_pct":
+                pass  # Passive op queried via AbilityEngine.counter_damage_pct()
             elif kind == 'ignore_defense_pct' and move == MOVE_SPECIAL:
                 # Triggered pierce belongs to this Special, rather than being
                 # read as an unconditional permanent passive by pierce_pct().
