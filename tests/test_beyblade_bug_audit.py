@@ -244,5 +244,31 @@ class TestBeybladeBugAudit(unittest.TestCase):
                     self.assertEqual(op["value"], 0.3)
 
 
+
+    def test_11_excalibur_ascendant_special_and_overdrive(self):
+        """Excalibur Ascendant must have ignores_defense and true_damage on special, and true_damage_turns on Overdrive."""
+        path = ROOT / "beys" / "excalibur_ascendant.json"
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        sm = data["special_move"]
+        self.assertTrue(sm.get("ignores_defense"))
+        self.assertTrue(sm.get("true_damage"))
+        self.assertNotIn("Draciel", sm.get("description", ""))
+        self.assertIn("Excalibur Ascendant", sm.get("description", ""))
+
+        od = [a for a in data["abilities"] if a.get("name") == "Internal Overdrive"][0]
+        ops = od["rules"][0]["do"]
+        self.assertTrue(any(op.get("op") == "true_damage_turns" for op in ops))
+        self.assertTrue(any(op.get("op") == "ignore_defense" for op in ops))
+
+        from cogs.battle.damage_rules import calc_damage
+        atk_stats = {"level": 1, "attack": 160, "defense": 90, "stamina": 110}
+        def_stats = {"level": 1, "attack": 50, "defense": 90, "stamina": 80, "_ignore_defense": True}
+        dmg, counter, matchup, _ = calc_damage("attack", atk_stats, def_stats, data, "defense")
+        self.assertEqual(matchup, "win")
+        self.assertEqual(counter, 0)
+        self.assertGreater(dmg, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
