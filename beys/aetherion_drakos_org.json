@@ -3,7 +3,7 @@
   "type": "Stamina",
   "rarity": "Exclusive",
   "spin_direction": "Right",
-  "image_url": "",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1535977406840438944/Firefly_1.png?ex=6a79b9ee&is=6a78686e&hm=d28b4d5b60875b375f74bbaeeed7d1f26d1a9854e18bf23da92761b357f5fc60&",
   "description": "The original Aetherion Drakos org, earned by defeating its randomly spawned boss. Full base stats and signature abilities.",
   "stats": {
     "attack": 120,
@@ -144,5 +144,6 @@
     "strategy": "authorized_45_27_5_27_5",
     "rounding": "largest_remainder_frame_disk_driver_tiebreak",
     "version": 2
-  }
+  },
+  "burst_height": "Mid"
 }

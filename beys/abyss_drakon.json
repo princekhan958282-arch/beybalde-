@@ -16,7 +16,29 @@
   "ability": {
     "name": "Void Reversal",
     "trigger": "on_any_action",
-    "description": "Abyss Drakon remembers the opponent's last successful action. If that same action is used again within 2 rounds, it creates a Void Copy and retaliates with a corrupted effect. Attack reflects 40% of damage dealt as bonus damage; Defense steals 20% of DEF used for 1 round; Stamina steals 3 Stamina; Charge gains 50% of the Charge gained; Special grants Void Seal, reducing the enemy's next Special damage by 30%. The same action type can trigger Void Reversal only once every 3 rounds."
+    "description": "Abyss Drakon remembers the opponent's last successful action. If that same action is used again within 2 rounds, it creates a Void Copy and retaliates with a corrupted effect. Attack reflects 40% of damage dealt as bonus damage; Defense steals 20% of DEF used for 1 round; Stamina steals 3 Stamina; Charge gains 50% of the Charge gained; Special grants Void Seal, reducing the enemy's next Special damage by 30%. The same action type can trigger Void Reversal only once every 3 rounds.",
+    "rules": [
+      {
+        "when": "on_take_damage",
+        "do": [
+          {
+            "op": "reflect_pct",
+            "value": 40
+          }
+        ],
+        "_name": "Void Reversal — Retaliation"
+      },
+      {
+        "when": "on_stamina_win",
+        "do": [
+          {
+            "op": "drain_stamina",
+            "value": 3
+          }
+        ],
+        "_name": "Void Reversal — Stamina Siphon"
+      }
+    ]
   },
   "special_move": {
     "name": "Nightmare Rift",
@@ -32,7 +54,29 @@
     {
       "name": "Void Reversal",
       "trigger": "on_any_action",
-      "description": "Abyss Drakon remembers the opponent's last successful action. If that same action is used again within 2 rounds, it creates a Void Copy and retaliates with a corrupted effect. Attack reflects 40% of damage dealt as bonus damage; Defense steals 20% of DEF used for 1 round; Stamina steals 3 Stamina; Charge gains 50% of the Charge gained; Special grants Void Seal, reducing the enemy's next Special damage by 30%. The same action type can trigger Void Reversal only once every 3 rounds."
+      "description": "Abyss Drakon remembers the opponent's last successful action. If that same action is used again within 2 rounds, it creates a Void Copy and retaliates with a corrupted effect. Attack reflects 40% of damage dealt as bonus damage; Defense steals 20% of DEF used for 1 round; Stamina steals 3 Stamina; Charge gains 50% of the Charge gained; Special grants Void Seal, reducing the enemy's next Special damage by 30%. The same action type can trigger Void Reversal only once every 3 rounds.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reflect_pct",
+              "value": 40
+            }
+          ],
+          "_name": "Void Reversal — Retaliation"
+        },
+        {
+          "when": "on_stamina_win",
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 3
+            }
+          ],
+          "_name": "Void Reversal — Stamina Siphon"
+        }
+      ]
     }
   ],
   "main_frame": {
@@ -51,5 +95,6 @@
     "strategy": "authorized_45_27_5_27_5",
     "rounding": "largest_remainder_frame_disk_driver_tiebreak",
     "version": 2
-  }
+  },
+  "spin_direction": "Right"
 }

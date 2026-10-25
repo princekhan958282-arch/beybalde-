@@ -41,6 +41,10 @@ def validate(op):
     cfg.setdefault('name', kind)
     if not isinstance(cfg['name'], str) or not 1 <= len(cfg['name']) <= 80:
         raise ValueError('name must be a nonempty string up to 80 characters')
+    if 'percent' in cfg and 'pct' not in cfg:
+        cfg['pct'] = cfg.pop('percent')
+    if 'max' in cfg and 'cap' not in cfg:
+        cfg['cap'] = cfg.pop('max')
     for field in ('turns', 'delay', 'threshold', 'count'):
         if field in cfg:
             value = number(cfg[field], 1, 99)

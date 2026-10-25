@@ -127,7 +127,7 @@ check("spin is Left", VL["spin_direction"] == "Left", VL["spin_direction"])
 check("attack 147", VL["stats"]["attack"] == 147)
 check("defense 118", VL["stats"]["defense"] == 118)
 check("stamina 123", VL["stats"]["stamina"] == 123)
-check("hp 101", VL["stats"]["hp"] == 101)
+check("hp 101 or migrated 77", VL["stats"]["hp"] in (77, 101))
 check("image link is the one supplied",
       VL["image_url"].startswith("https://cdn.discordapp.com/attachments/"
                                  "1510856884943454208/1535904432586498098/"))

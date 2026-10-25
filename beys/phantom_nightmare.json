@@ -25,23 +25,24 @@
         "do": [
           {
             "op": "damage_storage",
-            "percent": 20,
-            "max": 60,
-            "name": "phantom_energy"
+            "name": "phantom_energy",
+            "pct": 20,
+            "cap": 60
           }
         ],
         "_name": "Phantom Energy — Damage Storage"
       },
       {
-        "when": "on_turn",
+        "when": "turn_start",
         "do": [
           {
             "op": "delayed_echo",
             "source": "phantom_energy",
             "delay": 2,
-            "percent": 50,
             "protected": true,
-            "consume_released": true
+            "consume_released": true,
+            "pct": 50,
+            "cap": 60
           }
         ],
         "_name": "Phantom Energy — Delayed Echo"
@@ -59,23 +60,24 @@
           "do": [
             {
               "op": "damage_storage",
-              "percent": 20,
-              "max": 60,
-              "name": "phantom_energy"
+              "name": "phantom_energy",
+              "pct": 20,
+              "cap": 60
             }
           ],
           "_name": "Phantom Energy — Damage Storage"
         },
         {
-          "when": "on_turn",
+          "when": "turn_start",
           "do": [
             {
               "op": "delayed_echo",
               "source": "phantom_energy",
               "delay": 2,
-              "percent": 50,
               "protected": true,
-              "consume_released": true
+              "consume_released": true,
+              "pct": 50,
+              "cap": 60
             }
           ],
           "_name": "Phantom Energy — Delayed Echo"
@@ -91,9 +93,9 @@
           "when": "on_special",
           "do": [
             {
-              "op": "lifesteal",
-              "percent": 25,
-              "source": "actual_hp_damage"
+              "op": "lifesteal_pct",
+              "source": "actual_hp_damage",
+              "value": 25
             }
           ],
           "_name": "Phantom Dragon — Lifesteal"

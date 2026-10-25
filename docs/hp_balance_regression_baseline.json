@@ -183,7 +183,7 @@
     "BB118": {
       "name": "Abyss Drakon",
       "previous_sha256": "5210611b30a756b1afdaa7edee396987159317a41fe0cdc2f8427999ba4cdda8",
-      "sha256": "0db4fbef0707a49957b9897969e41d38279de97f32e57f48b2f85f13e52d5945"
+      "sha256": "ace0d354dd437a1a3782cf108773ccb64f3ae4ae2379dda1f36a875f041760ad"
     },
     "BB006": {
       "name": "Guilty Longinus",
@@ -193,12 +193,12 @@
     "BB120": {
       "name": "Phantom Nightmare",
       "previous_sha256": "b5e2b5293f1c38605a41ced5c371d64deddaecdc90ce805ad0dbdea8d27d8783",
-      "sha256": "906bf7661c4d093f76db0bea10ff3df06b85a8d3760f0f71a57cb686602e8e16"
+      "sha256": "29e5dfea1fa868bbfa02799cc5dbe9e90c23612a87139528b00a400bfddaf1df"
     },
     "BB123": {
       "name": "Epsilon",
       "previous_sha256": "3054e60bc4cb082c490f603dcb6d1cab98481a09a378a5ce21ab4b4543250129",
-      "sha256": "0cee7705bd9b586f4f7a048be670219155e107b8b3acd3aeb49be5baa312d090"
+      "sha256": "c74c3c3488f3fbd016a7764f8cfb19a9a0b7e7f36bddd7dff867e4811538a731"
     },
     "BB090": {
       "name": "Shining Shuriken",
@@ -288,7 +288,7 @@
     "BB122": {
       "name": "Achilles CX",
       "previous_sha256": "aa7667e4c6f925c861524b0a105afb36ceba941688edb5c717498cef2e9586d7",
-      "sha256": "3ca74f4547f4a401f79808a8bf711b5cb7ae4f62597a07e75f6ce8ebc8ea8264"
+      "sha256": "a047bcc7475cc2efbf27602ac27e245b31f4b7886c9fd36d7832190ac3421f2b"
     },
     "BB089": {
       "name": "Ultimate Valkyrie (Black Edition)",
