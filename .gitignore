@@ -37,3 +37,4 @@ backups/
 data/tournament_drafts.db*
 
 data/admin_state.json
+.pytest_cache/

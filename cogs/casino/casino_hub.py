@@ -75,7 +75,7 @@ class CasinoHub(commands.Cog):
         import json
         async with casino_wallet._lock:
             try:
-                with open(casino_wallet.WALLET_FILE) as f:
+                with open(casino_wallet.WALLET_FILE, encoding="utf-8") as f:
                     data = json.load(f)
             except Exception:
                 data = {}

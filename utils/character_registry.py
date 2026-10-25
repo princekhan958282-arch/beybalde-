@@ -212,7 +212,7 @@ class _AuthoredStream(io.StringIO):
                 raise ValueError("authored update cannot silently remove characters")
             for path, entry in staged:
                 if path.exists():
-                    old = json.loads(path.read_text())
+                    old = json.loads(path.read_text(encoding="utf-8"))
                     if old["id"] != entry["id"]:
                         raise ValueError(f"filename collision at {path}")
                 existing = next((v for v in current.values() if v["id"] == entry["id"]), None)

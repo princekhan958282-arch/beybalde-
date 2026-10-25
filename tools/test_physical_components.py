@@ -217,7 +217,11 @@ class TransactionTests(unittest.IsolatedAsyncioTestCase):
         await DB.update_user(2, profile('Draciel F'))
         self.shop=ShopCog(None)
     async def asyncTearDown(self):
-        self.patch.stop();self.temp.cleanup()
+        self.patch.stop(); self.store.close();
+        try:
+            self.temp.cleanup()
+        except Exception:
+            pass
     def ctx(self,uid):
         return SimpleNamespace(author=SimpleNamespace(id=uid,mention=f'<@{uid}>',display_name=str(uid)),send=AsyncMock())
 

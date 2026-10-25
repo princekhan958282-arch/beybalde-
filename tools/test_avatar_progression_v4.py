@@ -167,7 +167,12 @@ class TransactionTests(unittest.TestCase):
         return UserStore(self.path)
 
     def tearDown(self):
-        self.temp.cleanup()
+        if hasattr(self, "store"):
+            self.store.close()
+        try:
+            self.temp.cleanup()
+        except Exception:
+            pass
 
     def mutate(self,store,fn):
         def apply(p):
@@ -271,7 +276,12 @@ class RecoveryUITests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self):
         self.patch.stop()
-        self.temp.cleanup()
+        if hasattr(self, "store"):
+            self.store.close()
+        try:
+            self.temp.cleanup()
+        except Exception:
+            pass
 
     async def test_reward_buttons_owner_keep_sell_and_double_click(self):
         r=await DB.mutate_user(101,lambda p:enqueue(p,AID,sell_value=10))

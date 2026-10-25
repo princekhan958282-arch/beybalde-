@@ -19,11 +19,11 @@ from utils.userstore import UserStore
 from utils.loadout import effective_blade
 from cogs.economy.shop import PARTS_CATALOG, PurchaseError, apply_part_purchase, get_part_stat_deltas
 
-BASELINE = json.loads((ROOT / 'docs/component_migration_baseline.json').read_text())
+BASELINE = json.loads((ROOT / 'docs/component_migration_baseline.json').read_text(encoding="utf-8"))
 
-BEY_CORRECTIONS = json.loads((ROOT / 'docs/bey_skill_regression_baseline.json').read_text())['beys']
-HP_CORRECTIONS = json.loads((ROOT / 'docs/hp_balance_regression_baseline.json').read_text())['beys']
-SKILL_CORRECTIONS = json.loads((ROOT / 'docs/avatar_skill_regression_baseline.json').read_text())['avatars']
+BEY_CORRECTIONS = json.loads((ROOT / 'docs/bey_skill_regression_baseline.json').read_text(encoding="utf-8"))['beys']
+HP_CORRECTIONS = json.loads((ROOT / 'docs/hp_balance_regression_baseline.json').read_text(encoding="utf-8"))['beys']
+SKILL_CORRECTIONS = json.loads((ROOT / 'docs/avatar_skill_regression_baseline.json').read_text(encoding="utf-8"))['avatars']
 DRANZER_ADDITIONS = {f'BB{132+i}': name for i, name in enumerate(
     ('Dranzer G', 'Black Dranzer', 'Dranzer F', 'Dranzer V', 'Dranzer V2', 'Dranzer GT', 'Dranzer MS'))}
 OCTOBER_ADDITIONS = {f'BB{139+i}': name for i, name in enumerate(
@@ -248,14 +248,21 @@ class PersistenceTests(unittest.IsolatedAsyncioTestCase):
         await DB.update_user(701, profile())
     async def asyncTearDown(self):
         self.patch.stop()
-        self.temp.cleanup()
+        self.store.close()
+        try:
+            self.temp.cleanup()
+        except Exception:
+            pass
 
     async def test_restart_keeps_builds_and_all_existing_progress(self):
         await DB.mutate_user(701, lambda p: equip(p, 'Destroy Driver'))
         before = await DB.get_user(701)
         restarted = UserStore(self.store.db_path, str(Path(self.temp.name) / "users.json"))
-        with patch.object(DB, 'USER_STORE', restarted):
-            self.assertEqual(await DB.get_user(701), before)
+        try:
+            with patch.object(DB, 'USER_STORE', restarted):
+                self.assertEqual(await DB.get_user(701), before)
+        finally:
+            restarted.close()
 
     async def test_atomic_purchase_grants_part_and_charges_once(self):
         part = REGISTRY.part('Hyper Driver')

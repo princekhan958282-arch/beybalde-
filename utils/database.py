@@ -98,10 +98,10 @@ def _init_mysql() -> None:
 _init_mysql()
 
 # ── Per-file locks (Bug #1 fix: prevent concurrent read-modify-write corruption) ─
-_users_lock  = threading.Lock()
-_config_lock = threading.Lock()
-_spawn_lock  = threading.Lock()
-_avatar_lock = threading.Lock()
+_users_lock  = threading.RLock()
+_config_lock = threading.RLock()
+_spawn_lock  = threading.RLock()
+_avatar_lock = threading.RLock()
 
 # ── Level system constants ────────────────────────────────────────────────────
 # The curve itself lives in `utils/trainer_levels.py` — a module with no
