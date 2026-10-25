@@ -15,7 +15,7 @@
   },
   "special_move": {
     "name": "Excalibur Triple Strike",
-    "description": "The sacred dragon blade ignites as Draciel launches three world-splitting slashes — each infused with pure draconic resonance!",
+    "description": "The sacred dragon blade ignites as Excalibur Ascendant launches three world-splitting slashes — each infused with pure draconic resonance!",
     "hits": 3,
     "damage_per_hit": 50,
     "total_damage": 150,
@@ -23,7 +23,9 @@
       "⚔️ **Strike 1** — The Excalibur core ignites!",
       "🐉 **Strike 2** — Dragon resonance tears the stadium apart!",
       "✨ **Strike 3** — EXCALIBUR TRIPLE STRIKE — SACRED BLADE FINISH!"
-    ]
+    ],
+    "ignores_defense": true,
+    "true_damage": true
   },
   "abilities": [
     {
@@ -38,7 +40,7 @@
     {
       "name": "Internal Overdrive",
       "trigger": "on_special",
-      "description": "After Excalibur Triple Strike, Excalibur Ascendant enters OVERDRIVE for 4 turns: +30 Attack, enemy Defense ignored entirely, attacks that CANNOT be dodged, guaranteed critical hits, and 20 HP recovered per turn. Nothing interrupts it.",
+      "description": "After Excalibur Triple Strike, Excalibur Ascendant enters OVERDRIVE for 4 turns: +30 Attack, enemy Defense ignored entirely, attacks deal true damage and CANNOT be dodged, guaranteed critical hits, and 20 HP recovered per turn. Nothing interrupts it.",
       "rules": [
         {
           "when": "on_special",
@@ -53,6 +55,10 @@
             },
             {
               "op": "ignore_defense",
+              "turns": 4
+            },
+            {
+              "op": "true_damage_turns",
               "turns": 4
             },
             {

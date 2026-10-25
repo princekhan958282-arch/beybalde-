@@ -336,7 +336,7 @@ def calc_damage(
     # Use the attacker's effective ATK as a neutral defense baseline. This
     # bypasses any DEF above that baseline without granting a zero-DEF exploit.
     effective_defense = (
-        max(1, attacker_stats.get("attack", 50))
+        min(defender_stats.get("defense", 50), max(1, attacker_stats.get("attack", 50)))
         if defender_stats.get("_ignore_defense", False)
         else defender_stats.get("defense", 50)
     )
@@ -348,6 +348,8 @@ def calc_damage(
     if attacker_move == MOVE_DEFENSE:
         return raw * LOSING_PENALTY_MULT, 0, "lose_grind", False
     if defender_move == MOVE_DEFENSE:
+        if defender_stats.get("_ignore_defense", False):
+            return raw, 0, "win", False
         # DEF is already in the formula. Retain the authored action penalty
         # and ordinary counter, but do not also apply the old shield gate.
         return raw * LOSING_PENALTY_MULT, _counter_hit(0, defender_stats.get("defense", 50)), "lose", False
