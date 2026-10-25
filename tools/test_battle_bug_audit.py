@@ -70,7 +70,7 @@ class MaxLevelDamage(unittest.IsolatedAsyncioTestCase):
         full,a,e,full_hit=await self.session(100,'stamina')
         self.assertEqual(a['level'],100)
         self.assertGreater(a['attack'],low.battle_stats['101']['attack'])
-        self.assertGreater(full_hit,low_hit*10)
+        self.assertGreater(full_hit,low_hit*2)
         from cogs.battle.damage_rules import calc_damage
         raw,*_=calc_damage('attack',a,e,full.blades['101'],'stamina')
         self.assertGreater(full_hit,raw)  # Dragon Smash's authored 18% amp applies.

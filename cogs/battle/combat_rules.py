@@ -8,7 +8,7 @@ import math
 
 def base_damage(level, power, attack, defense):
     """One standard formula; preserve precision until HP is committed."""
-    return (((2 * max(1, float(level)) / 5 + 2) * max(0, float(power))
+    return (((20 + 0.3 * max(1, float(level))) * max(0, float(power))
              * max(0, float(attack)) / max(1.0, float(defense))) / 50) + 2
 
 
