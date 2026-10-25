@@ -26,9 +26,14 @@ class RuleBridge:
         self.logs = []
         self.context = c = SimpleNamespace(
             round=max(f.combat_round for f in fighters.values()) + 1,
+            is_boss=any(getattr(f, 'is_boss', False) for f in fighters.values()),
             moves=moves, hp={}, max_hp=max(f.max_hp for f in fighters.values()),
             max_hp_per_player={k: f.max_hp for k, f in fighters.items()},
             blades={k: {'name': f.name, 'type': f.bey_type, 'abilities': [],
+                        'is_boss': getattr(f, 'is_boss', False),
+                        'boss_only': getattr(f, 'is_boss', False),
+                        'rarity': 'Boss' if getattr(f, 'is_boss', False) else (getattr(f, 'ability_blade', {}) or {}).get('rarity', ''),
+                        'boss_source': (getattr(f, 'ability_blade', {}) or {}).get('boss_source'),
                         'stats': {'attack': f.attack, 'defense': f.defense,
                                   'stamina': f.stamina_stat}}
                     for k, f in fighters.items()},

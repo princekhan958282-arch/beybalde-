@@ -150,6 +150,96 @@ MECHANICS: dict[tuple, dict] = {
                      "text": "🛡️ **Crystalline Aegis** — a layer regrows."}]},
         ],
     },
+
+    # ── Argus Prime ───────────────────────────────────────────────────────────
+    ("argus", 0): {
+        "for": "Hundred-Eyed Vigil",   # 👁️ Hundred-Eyed Vigil — eyes open each round for ATK and crit
+        "flat": {"passive_atk_bonus": 20, "crit_chance": 20},
+        "rules": [
+            {"when": "passive",
+             "do": [{"op": "add_counter", "name": "argus_eyes", "amount": 1, "max": 6}]},
+            {"when": "passive",
+             "if": [{"cond": "counter_at_least", "name": "argus_eyes", "value": 1},
+                    {"cond": "counter_below", "name": "argus_eyes", "value": 2}],
+             "do": [{"op": "buff", "stat": "attack", "pct": 10, "turns": 1},
+                    {"op": "crit_chance", "value": 10}]},
+            {"when": "passive",
+             "if": [{"cond": "counter_at_least", "name": "argus_eyes", "value": 2},
+                    {"cond": "counter_below", "name": "argus_eyes", "value": 3}],
+             "do": [{"op": "buff", "stat": "attack", "pct": 20, "turns": 1},
+                    {"op": "crit_chance", "value": 20}]},
+            {"when": "passive",
+             "if": [{"cond": "counter_at_least", "name": "argus_eyes", "value": 3},
+                    {"cond": "counter_below", "name": "argus_eyes", "value": 4}],
+             "do": [{"op": "buff", "stat": "attack", "pct": 30, "turns": 1},
+                    {"op": "crit_chance", "value": 30}]},
+            {"when": "passive",
+             "if": [{"cond": "counter_at_least", "name": "argus_eyes", "value": 4},
+                    {"cond": "counter_below", "name": "argus_eyes", "value": 5}],
+             "do": [{"op": "buff", "stat": "attack", "pct": 40, "turns": 1},
+                    {"op": "crit_chance", "value": 40}]},
+            {"when": "passive",
+             "if": [{"cond": "counter_at_least", "name": "argus_eyes", "value": 5},
+                    {"cond": "counter_below", "name": "argus_eyes", "value": 6}],
+             "do": [{"op": "buff", "stat": "attack", "pct": 50, "turns": 1},
+                    {"op": "crit_chance", "value": 50}]},
+            {"when": "passive",
+             "if": [{"cond": "counter_at_least", "name": "argus_eyes", "value": 6}],
+             "do": [{"op": "buff", "stat": "attack", "pct": 60, "turns": 1},
+                    {"op": "crit_chance", "value": 60}]},
+            {"when": "on_take_damage",
+             "do": [{"op": "consume_counter", "name": "argus_eyes", "amount": 2}]},
+        ],
+    },
+    ("argus", 1): {
+        "for": "Aegis of the Sleepless",   # 🛡️ Aegis of the Sleepless — temporary invulnerability below 65% HP
+        "flat": {"passive_dmg_reduction": 18},
+        "rules": [
+            {"when": "passive", "once": "battle",
+             "if": [{"cond": "hp_below_pct", "value": 0.65}],
+             "do": [{"op": "invulnerable", "turns": 3},
+                    {"op": "log",
+                     "text": "🛡️ **Aegis of the Sleepless** — immune to all damage!"}]},
+        ],
+    },
+
+    # ── Lionheart Sovereign ───────────────────────────────────────────────────
+    ("lionheart", 0): {
+        "for": "Mane of Iron",   # 🛡️ Mane of Iron — plates build on damage, reflect and resist
+        "flat": {"passive_dmg_reduction": 18, "reflect_damage": 15},
+        "rules": [
+            {"when": "on_take_damage",
+             "do": [{"op": "stacking_resist", "name": "lionheart_plates",
+                     "per_stack": 6, "max": 5},
+                    {"op": "reflect_flat", "value": 25}]},
+        ],
+    },
+    ("lionheart", 1): {
+        "for": "Pride's Reprisal",   # 🦁 Pride's Reprisal — bank damage to discharge on special
+        "flat": {"bonus_damage": 18},
+        "rules": [
+            {"when": "on_take_damage",
+             "do": [{"op": "gain_counter", "name": "lionheart_reprisal",
+                     "amount": 22, "max": 520}]},
+            {"when": "on_special",
+             "do": [{"op": "consume_counter", "name": "lionheart_reprisal",
+                     "damage_per_stack": 1},
+                    {"op": "log",
+                     "text": "🦁 **Pride's Reprisal** — discharging stored power!"}]},
+        ],
+    },
+    ("lionheart", 2): {
+        "for": "Heart of the Pride",   # 👑 Heart of the Pride — emergency surge below 55% HP
+        "flat": {"heal_per_turn": 8, "passive_dmg_reduction": 15},
+        "rules": [
+            {"when": "passive", "once": "battle",
+             "if": [{"cond": "hp_below_pct", "value": 0.55}],
+             "do": [{"op": "heal_pct", "value": 20},
+                    {"op": "reduce_damage_pct_turns", "value": 35, "turns": 4},
+                    {"op": "log",
+                     "text": "👑 **Heart of the Pride** — sovereign resolve!"}]},
+        ],
+    },
 }
 
 

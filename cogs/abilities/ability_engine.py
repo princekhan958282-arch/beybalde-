@@ -713,7 +713,14 @@ class AbilityEngine:
             return (blades.get(key, {}).get("type", "")).lower() == str(v).lower()
         if c == "is_boss":
             foe = (getattr(self.session, "blades", {}) or {}).get(okey, {})
-            return bool(getattr(self.session, "is_boss", False) or foe.get("rarity") in ("Boss", "Exclusive") or "boss" in foe.get("name", "").lower())
+            return bool(
+                getattr(self.session, "is_boss", False)
+                or foe.get("is_boss", False)
+                or foe.get("boss_only", False)
+                or bool(foe.get("boss_source"))
+                or foe.get("rarity") == "Boss"
+                or "boss" in foe.get("name", "").lower()
+            )
         if c in ("stability_above_pct", "stability_below_pct",
                  "enemy_stability_below_pct", "enemy_stability_above_pct"):
             # Normalize percentage values (> 1 becomes fraction)
@@ -1897,7 +1904,10 @@ class AbilityEngine:
                     logs.append(f"💠 **{ab_name}** — consumed {take} stacks "
                                 f"(+{per*take} damage)!")
             elif kind == "reset_counter":
-                self.counters[(key, op.get("name", "stacks"))] = 0
+                cname = op.get("name", "stacks")
+                self.counters[(key, cname)] = 0
+                if hasattr(self, "st") and hasattr(self.st, "clear_source"):
+                    self.st.clear_source(key, f"stack:{cname}")
             elif kind == "counter_damage_pct":
                 pass  # Passive op queried via AbilityEngine.counter_damage_pct()
             elif kind == 'ignore_defense_pct' and move == MOVE_SPECIAL:

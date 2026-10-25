@@ -19,7 +19,14 @@ def prepare(engine, a, b, moves, logs, *, simulate=False):
         max_hp_per_player={key: f.max_hp for key, f in fighters.items()},
         max_hp=max(a.max_hp, b.max_hp), moves=moves, last_moves=moves,
         round=max(a.combat_round, b.combat_round) + 1,
-        blades={key: f.ability_blade or {'type': f.bey_type} for key, f in fighters.items()},
+        is_boss=any(getattr(f, 'is_boss', False) for f in fighters.values()),
+        blades={key: {
+            **(f.ability_blade or {'name': f.name, 'type': f.bey_type}),
+            'is_boss': getattr(f, 'is_boss', False),
+            'boss_only': getattr(f, 'is_boss', False) or (f.ability_blade or {}).get('boss_only', False),
+            'boss_source': (f.ability_blade or {}).get('boss_source'),
+            'rarity': 'Boss' if getattr(f, 'is_boss', False) else (f.ability_blade or {}).get('rarity', ''),
+        } for key, f in fighters.items()},
         bey_levels={key: f.level for key, f in fighters.items()},
         stamina_manager=SimpleNamespace(
             stamina={key: f.sp for key, f in fighters.items()},
