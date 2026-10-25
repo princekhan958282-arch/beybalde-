@@ -39,7 +39,7 @@
     {
       "name": "Soul Judgement",
       "trigger": "on_take_damage",
-      "description": "Every Attack or Special hit Tartarus Reaper absorbs is weighed and returned: +30 Attack, +25 Defense, +45 Stamina, 59 HP restored, and 0.2 battle stamina recovered. The judgement can only be passed four times per battle.",
+      "description": "Every Attack or Special hit Tartarus Reaper absorbs is weighed and returned: +25 Attack, +25 Defense, +25 Stamina, 25 HP restored, and 0.3 battle stamina recovered. The judgement can only be passed three times per battle.",
       "rules": [
         {
           "when": "on_take_damage",
@@ -52,7 +52,7 @@
             {
               "cond": "counter_below",
               "name": "soul_judgement",
-              "value": 4
+              "value": 3
             }
           ],
           "do": [
@@ -60,8 +60,8 @@
               "op": "stacking_buff",
               "name": "soul_judgement",
               "stat": "attack",
-              "per_stack": 30,
-              "max": 4,
+              "per_stack": 25,
+              "max": 3,
               "turns": 999
             },
             {
@@ -73,16 +73,16 @@
             {
               "op": "buff",
               "stat": "stamina",
-              "amount": 45,
+              "amount": 25,
               "turns": 999
             },
             {
               "op": "heal",
-              "value": 59
+              "value": 25
             },
             {
               "op": "gain_stamina",
-              "value": 0.2
+              "value": 0.3
             }
           ]
         },
@@ -97,7 +97,7 @@
             {
               "cond": "counter_below",
               "name": "soul_judgement",
-              "value": 4
+              "value": 3
             }
           ],
           "do": [
@@ -105,8 +105,8 @@
               "op": "stacking_buff",
               "name": "soul_judgement",
               "stat": "attack",
-              "per_stack": 30,
-              "max": 4,
+              "per_stack": 25,
+              "max": 3,
               "turns": 999
             },
             {
@@ -118,16 +118,16 @@
             {
               "op": "buff",
               "stat": "stamina",
-              "amount": 45,
+              "amount": 25,
               "turns": 999
             },
             {
               "op": "heal",
-              "value": 59
+              "value": 25
             },
             {
               "op": "gain_stamina",
-              "value": 0.2
+              "value": 0.3
             }
           ]
         }

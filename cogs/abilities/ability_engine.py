@@ -301,6 +301,10 @@ class AbilityEngine:
         ):
             if not hasattr(self, attr):
                 setattr(self, attr, default_factory())
+        if not hasattr(self, "session"):
+            self.session = None
+        if not hasattr(self, "st"):
+            self.st = getattr(self.session, "status", None) if self.session else None
 
     # =========================================================================
     #  Rule compilation
@@ -395,17 +399,20 @@ class AbilityEngine:
         Cached per (avatar id, slot) exactly as blade rules cache per form.
         Swallows everything: a malformed card must not stop a battle.
         """
-        og = getattr(self.session, "original_generation", None)
-        if og and og.debuffs.get((key, "skill_seal"), 0) >= getattr(self.session, "round", 1):
+        session = getattr(self, "session", None)
+        if not session:
+            return []
+        og = getattr(session, "original_generation", None)
+        if og and og.debuffs.get((key, "skill_seal"), 0) >= getattr(session, "round", 1):
             return []
         try:
-            card = (getattr(self.session, "avatar_cards", None) or {}).get(key)
+            card = (getattr(session, "avatar_cards", None) or {}).get(key)
             if not card:
                 return []
             skills = card.get("skills") or []
             if not skills:
                 return []
-            slot = (getattr(self.session, "avatar_skill_slots", None)
+            slot = (getattr(session, "avatar_skill_slots", None)
                     or {}).get(key)
             cache_key = f"@avatar:{card.get('id', '?')}#{slot}#{card.get('_skill_levels', [])}"
             if cache_key not in self._compiled:
@@ -488,9 +495,12 @@ class AbilityEngine:
         return True
 
     def _hp_pct(self, key: str) -> float:
-        max_hp = self.session.max_hp_per_player.get(key) or self.session.max_hp or 1
-        cur = self.session.hp.get(key, 0)
-        return max(0.0, min(1.0, cur / max_hp))
+        try:
+            max_hp = (getattr(self.session, "max_hp_per_player", None) or {}).get(key) or getattr(self.session, "max_hp", None) or 1
+            cur = (getattr(self.session, "hp", None) or {}).get(key, 0)
+            return max(0.0, min(1.0, cur / max_hp))
+        except Exception:
+            return 1.0
 
     def _stamina_pct(self, key: str) -> float:
         try:
@@ -664,15 +674,16 @@ class AbilityEngine:
                 return cur < val if "below" in c else cur >= val
             except Exception:
                 return False
+        blades = getattr(self.session, "blades", {}) or {}
         if c == "enemy_spin_is":
             # spin_direction was display-only until now. Same-spin contact
             # behaves nothing like opposite-spin contact, so abilities built
             # around rotation need to read it.
-            _sp = str((self.session.blades.get(okey) or {}).get(
+            _sp = str((blades.get(okey) or {}).get(
                 "spin_direction", "Right")).strip().lower()
             return _sp == str(v).strip().lower()
         if c == "my_spin_is":
-            _sp = str((self.session.blades.get(key) or {}).get(
+            _sp = str((blades.get(key) or {}).get(
                 "spin_direction", "Right")).strip().lower()
             return _sp == str(v).strip().lower()
         if c in ("opposite_spin", "same_spin"):
@@ -685,21 +696,21 @@ class AbilityEngine:
             # A Dual blade counts as neither: it has no fixed rotation until a
             # spin mode is chosen, and `utils.spin_mode` resolves it to a real
             # direction before the session ever sees it.
-            mine = str((self.session.blades.get(key) or {}).get(
+            mine = str((blades.get(key) or {}).get(
                 "spin_direction", "Right")).strip().lower()
-            theirs = str((self.session.blades.get(okey) or {}).get(
+            theirs = str((blades.get(okey) or {}).get(
                 "spin_direction", "Right")).strip().lower()
             if mine not in ("left", "right") or theirs not in ("left", "right"):
                 return False
             return (mine != theirs) if c == "opposite_spin" else (mine == theirs)
         if c == "enemy_type_not_in":
-            _et = str((self.session.blades.get(okey) or {}).get("type", "")).lower()
+            _et = str((blades.get(okey) or {}).get("type", "")).lower()
             return _et not in [str(x).lower()
                                for x in (v if isinstance(v, list) else [v])]
         if c == "enemy_type_is":
-            return (self.session.blades.get(okey, {}).get("type", "")).lower() == str(v).lower()
+            return (blades.get(okey, {}).get("type", "")).lower() == str(v).lower()
         if c == "my_type_is":
-            return (self.session.blades.get(key, {}).get("type", "")).lower() == str(v).lower()
+            return (blades.get(key, {}).get("type", "")).lower() == str(v).lower()
         if c == "is_boss":
             foe = (getattr(self.session, "blades", {}) or {}).get(okey, {})
             return bool(getattr(self.session, "is_boss", False) or foe.get("rarity") in ("Boss", "Exclusive") or "boss" in foe.get("name", "").lower())
@@ -766,7 +777,7 @@ class AbilityEngine:
         # bypasses apply()'s offensive silence gate. Check the rule owner here
         # before rolling chance or consuming once-per-battle state. Setup must
         # still initialize the kit; existing buffs/windows keep their duration.
-        silenced = getattr(self.st, "is_silenced", None)
+        silenced = getattr(getattr(self, "st", None), "is_silenced", None)
         if when != "setup" and callable(silenced) and silenced(key):
             return False
         if rule.get("once") == "battle" and ((key, rid) in self.once_fired or (key, rid) in self.pending_hit_once):
@@ -1340,7 +1351,10 @@ class AbilityEngine:
                 else:
                     _amt = int(op.get("amount", val))
                 _t = int(op.get("turns", 2))
-                self.st.add_buff(key, _stat, _amt, _t, hostile=False)
+                try:
+                    self.st.add_buff(key, _stat, _amt, _t, hostile=False)
+                except TypeError:
+                    self.st.add_buff(key, _stat, _amt, _t)
                 # Debuffs are real (Penta Sword Mode trades DEF and STA for
                 # ATK), so sign the number instead of always prefixing "+" —
                 # that printed "Defense +-20".
@@ -2718,7 +2732,7 @@ class AbilityEngine:
     def _passive_pct(self, key: str, blade: dict, want_op: str) -> float:
         """Sum the values of every `want_op` on this blade, amp included."""
         total = 0.0
-        silenced = getattr(self.st, "is_silenced", None)
+        silenced = getattr(getattr(self, "st", None), "is_silenced", None)
         if callable(silenced) and silenced(key):
             return 0.0
         for _rid, rule in self._rules_for(blade, key):
@@ -2764,7 +2778,8 @@ class AbilityEngine:
 
     # ── misc ──────────────────────────────────────────────────────────────────
     def _other_key(self, key: str) -> str:
-        for k in self.session.hp:
+        hp = getattr(self.session, "hp", {}) or {}
+        for k in hp:
             if k != key:
                 return k
-        return key
+        return "e" if key == "p" else "p"
