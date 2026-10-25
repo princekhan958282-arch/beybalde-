@@ -43,11 +43,11 @@ class RosterRefreshTests(unittest.TestCase):
 
     def test_refresh_loads_new_bey_and_its_new_parts(self):
         bey = self.root / "beys/blast_jinnius.json"
-        entry = json.loads(bey.read_text())
+        entry = json.loads(bey.read_text(encoding="utf-8"))
         # Locate bundled files by ID rather than assuming their filenames.
         paths = [bey] + [p for folder in ("parts/disks", "parts/drivers")
                         for p in (self.root / folder).glob("*.json")
-                        if json.loads(p.read_text())["id"] in entry["default_parts"].values()]
+                        if json.loads(p.read_text(encoding="utf-8"))["id"] in entry["default_parts"].values()]
         saved = {path: path.read_bytes() for path in paths}
         for path in paths:
             path.unlink()
@@ -111,8 +111,8 @@ class RosterRefreshTests(unittest.TestCase):
         self.assertFalse(old.exists())
         backups = list((self.root / ".update_backup").glob("*/beys/jambo_jamunter.json"))
         self.assertEqual(len(backups), 1)
-        self.assertEqual(json.loads(backups[0].read_text())["id"], "BB155")
-        self.assertEqual(player.read_text(), '{"player": "keep me"}')
+        self.assertEqual(json.loads(backups[0].read_text(encoding="utf-8"))["id"], "BB155")
+        self.assertEqual(player.read_text(encoding="utf-8"), '{"player": "keep me"}')
         self.assertEqual(self.registry.refresh()["bey"], 170)
 
     def test_bad_archives_change_nothing(self):
@@ -124,7 +124,7 @@ class RosterRefreshTests(unittest.TestCase):
             with self.subTest(**kwargs), self.archive(**kwargs) as archive:
                 with self.assertRaises(ValueError):
                     self.apply(archive)
-                self.assertEqual(app.read_text(), "# working entry point\n")
+                self.assertEqual(app.read_text(encoding="utf-8"), "# working entry point\n")
                 self.assertTrue(old.exists())
 
     def test_existing_sha_repairs_once_before_becoming_up_to_date(self):

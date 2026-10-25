@@ -26,7 +26,7 @@ class NemesisUnlock(unittest.IsolatedAsyncioTestCase):
             session.npc_controller = SimpleNamespace(key=E, profile={})
         saved = {}
         async def save(uid, profile):
-            saved[str(uid)] = copy.deepcopy(profile)
+            saved[uid] = saved[str(uid)] = copy.deepcopy(profile)
         with patch('cogs.battle.session.update_user', side_effect=save), \
              patch('cogs.battle.session.get_user', AsyncMock(side_effect=lambda uid: copy.deepcopy(session._profile_for(uid)))), \
              patch('cogs.battle.session.grant_xp', return_value=(1, 0, False)), \
@@ -69,7 +69,7 @@ class NemesisUnlock(unittest.IsolatedAsyncioTestCase):
         record_pvp_unlock(profile, get_beyblade('Void Longinus'))
         record_pvp_unlock(profile, get_beyblade('Dranzer'))
         self.assertTrue(nemesis_unlocked(profile))
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             path = directory + '/users.db'
             store = UserStore(path, directory + '/users.json')
             store.put_one('1', profile)

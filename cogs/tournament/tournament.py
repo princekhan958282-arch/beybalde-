@@ -535,7 +535,8 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             self.registrations[reg.guild_id] = panel
             self._active.update(reg.entrants)
             self.bot.add_view(panel, message_id=reg.message_id)
-        self._expiry_task = self.bot.loop.create_task(self._expiry_monitor())
+        loop = getattr(self.bot, "loop", None) or asyncio.get_running_loop()
+        self._expiry_task = loop.create_task(self._expiry_monitor())
 
     async def _expiry_monitor(self):
         """Monitor open registrations and handle 24-hour expiration."""

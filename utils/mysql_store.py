@@ -281,6 +281,16 @@ class MySQLStore:
         self._local.conn = conn
         return conn
 
+    def close(self) -> None:
+        """Close the active connection on this thread, if any."""
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._local.conn = None
+
     def probe(self) -> tuple[bool, str]:
         """Can we actually reach it? Returns (ok, message). Never raises."""
         if not self.cfg:

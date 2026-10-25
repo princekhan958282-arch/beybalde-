@@ -24,14 +24,14 @@ def _load() -> dict:
     if not WALLET_FILE.exists():
         WALLET_FILE.parent.mkdir(parents=True, exist_ok=True)
         return {}
-    with open(WALLET_FILE) as f:
+    with open(WALLET_FILE, encoding="utf-8") as f:
         return json.load(f)
 
 
 def _save(data: dict):
     import os
     tmp = WALLET_FILE.with_suffix(".tmp")
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
     os.replace(tmp, WALLET_FILE)
 

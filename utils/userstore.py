@@ -233,6 +233,16 @@ class UserStore:
             self._local.conn = conn
         return conn
 
+    def close(self) -> None:
+        """Close the active connection on this thread, if any."""
+        conn = getattr(self._local, "conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._local.conn = None
+
     def checkpoint(self) -> None:
         """Fold the WAL back into the main DB file (safe to call any time)."""
         try:

@@ -33,7 +33,15 @@ class StorageTests(unittest.TestCase):
 
     def tearDown(self):
         for p in reversed(self.patches): p.stop()
-        self.temp.cleanup()
+        if hasattr(self, "store") and hasattr(self.store, "close"):
+            try:
+                self.store.close()
+            except Exception:
+                pass
+        try:
+            self.temp.cleanup()
+        except Exception:
+            pass
 
     def mutate(self, fn):
         return DB._mutate_user_sync(101, fn)

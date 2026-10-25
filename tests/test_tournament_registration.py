@@ -155,10 +155,11 @@ async def test_random_does_not_require_equipped_and_fees_not_charged(cog, guild,
     panel, _ = await published(cog, guild, DraftConfig(bey_selection='Random Beyblade', entry_fee=5000, avatars='Disabled'))
     equipped = AsyncMock(return_value=(None, None))
     monkeypatch.setattr('cogs.battle.boss.boss_copy.equipped_blade', equipped)
+    monkeypatch.setattr('cogs.tournament.registration.get_user', AsyncMock(return_value={'inventory': ['test'], 'coins': 10000}))
     await panel.act(click(10), 'join')
     equipped.assert_not_awaited()
     assert panel.reg.entrants == [10]
-    assert '5,000 Beycoins' in text(panel) and 'not charged' in text(panel)
+    assert '5,000 Beycoins' in text(panel) and 'deducted upon joining' in text(panel)
     assert '**Avatar Level:**' not in text(panel)
 
 async def test_cancel_requires_host_confirmation_and_releases(cog, guild):
