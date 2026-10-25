@@ -148,6 +148,7 @@ class RepeatedBattleAudit(unittest.IsolatedAsyncioTestCase):
     async def test_real_successful_blood_hits_keep_authored_stack_cap(self):
         for reverse in (False, True):
             s, a, e = await session('Blood Dragon', level=1, reverse=reverse)
+            s.hp[e] = s.max_hp_per_player[e] = 10000
             for _ in range(5):
                 s.stamina_manager.stamina[a] = 20
                 await round_trace(s, a, e, 'attack', 'defense')
