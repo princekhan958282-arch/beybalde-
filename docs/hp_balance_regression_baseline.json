@@ -343,7 +343,7 @@
     "BB081": {
       "name": "Rising Ragnaruk",
       "previous_sha256": "9b6fcfa1664c6f0ecd1254157649510c49dce06f0461a3fee0aa60118dac2d0e",
-      "sha256": "b4c0797e0a9d493a041774865a506c3d5b4f256f79a45eb55870b68919884911"
+      "sha256": "af637bb63251ae396176dc8c54770c3e7c33a15d0f6c396f51c6558bef7ace2a"
     },
     "BB038": {
       "name": "Cyclone Valkyrie",
@@ -358,7 +358,7 @@
     "BB084": {
       "name": "Victory Valkyrie",
       "previous_sha256": "f32ce227266a0959f232c99c00873f460f729f50aba6f14102565d9720bb70bf",
-      "sha256": "3d78063578e305f32138d69a030df8fe00faedf1e0f3519d11d6dc07c15d0829"
+      "sha256": "54a4ce39eaffd25977f23873d0f84387df7a7275fe22ec944df7d737effa63fb"
     },
     "BB002": {
       "name": "Savior Valkyrie",
@@ -413,7 +413,7 @@
     "BB077": {
       "name": "Tartarus Reaper",
       "previous_sha256": "bfd3030d703838fc58bc17fc77652816fae30884de80eeed8e4d1c6d1da50c61",
-      "sha256": "696abaa2e268f4bc7da994c63206c7e07f6de55454874548d59bdd2a698482ac"
+      "sha256": "df4374f8ecc7e4f8b86f1d38059ee80a51c77fe0ed7c09cf3f9a5bbf8bb99794"
     },
     "BB073": {
       "name": "Hazard Cognite",
@@ -528,7 +528,7 @@
     "BB082": {
       "name": "King Kerbeus",
       "previous_sha256": "37830a8ba5a3a87ce8081f05b7d2f8dd26534939d3d78d27200bc754dfc18334",
-      "sha256": "7ab7a45256bcfd7d3bf9f5e273f5b267b9234592b77d910dc58a38d263a0cbfe"
+      "sha256": "e5b13e23428cb321c160d30cfd28509a75bea61a8006ea2ecbcc2d16ff18ff1c"
     },
     "BB131": {
       "name": "Unlock Unicorn",
@@ -623,7 +623,7 @@
     "BB083": {
       "name": "Storm Spriggan",
       "previous_sha256": "4d94b776c3ebd37cca77e55d14e916c3651b5ad056904e6cab7ced8a654db816",
-      "sha256": "6612f058c37ba3144c16ddf90d73e50b973dd508e71e165f13d97017929f381e"
+      "sha256": "57337272a5964f0dbbab06daab8c97b26ed07f19e74f1d316c42cca78ef2f3c2"
     },
     "BB030": {
       "name": "Jet Wyvern",

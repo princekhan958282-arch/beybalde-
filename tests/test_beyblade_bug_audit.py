@@ -202,6 +202,47 @@ class TestBeybladeBugAudit(unittest.TestCase):
         engine._fire("turn_start", "p", "e", blade_ls, "attack", "neutral", 0, 0, logs)
         self.assertEqual(engine.lifesteal_pct.get("p"), 30.0)
 
+    def test_08_classic_blades_capitalized_spin_direction(self):
+        """Classic blades must have capitalized spin_direction 'Right'."""
+        for fn in ("king_kerbeus.json", "rising_ragnaruk.json", "storm_spriggan.json", "victory_valkyrie.json"):
+            path = ROOT / "beys" / fn
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual(data["spin_direction"], "Right", f"{fn} must have Right spin")
+
+    def test_09_sessionless_compilation_safety(self):
+        """AbilityEngine instantiated via __new__ without a session must compile rules safely."""
+        eng = AbilityEngine.__new__(AbilityEngine)
+        files = list((ROOT / "beys").glob("*.json"))
+        for p in files:
+            with open(p, "r", encoding="utf-8") as f:
+                blade = json.load(f)
+            rules = eng._rules_for(blade, "p")
+            self.assertIsInstance(rules, list)
+
+    def test_10_tartarus_reaper_balance_numbers(self):
+        """Tartarus Reaper Soul Judgement must match balanced spec: +25 buffs, 25 heal, 0.3 sta, 3 cap."""
+        path = ROOT / "beys" / "tartarus_reaper.json"
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        sj = [a for a in data["abilities"] if a.get("name") == "Soul Judgement"][0]
+        self.assertIn("25", sj["description"])
+        self.assertIn("three", sj["description"].lower())
+        for r in sj["rules"]:
+            for c in r.get("if", []):
+                if c.get("cond") == "counter_below":
+                    self.assertEqual(c["value"], 3)
+            for op in r.get("do", []):
+                if op.get("op") == "stacking_buff":
+                    self.assertEqual(op["per_stack"], 25)
+                    self.assertEqual(op["max"], 3)
+                elif op.get("op") == "buff":
+                    self.assertEqual(op["amount"], 25)
+                elif op.get("op") == "heal":
+                    self.assertEqual(op["value"], 25)
+                elif op.get("op") == "gain_stamina":
+                    self.assertEqual(op["value"], 0.3)
+
 
 if __name__ == "__main__":
     unittest.main()
