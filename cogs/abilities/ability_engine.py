@@ -251,12 +251,64 @@ class AbilityEngine:
         self.demon_mode_active     = self.st.demon_mode_active
         self.soul_hunt_streak      = self.st.soul_hunt_streak
 
+    def _ensure_state(self) -> None:
+        """Ensure all internal collections and caches exist.
+
+        Sim harnesses and test stubs frequently construct AbilityEngine via
+        __new__ without calling __init__. This lazy initialization prevents
+        AttributeErrors across every dispatch path.
+        """
+        for attr, default_factory in (
+            ("counters", dict),
+            ("once_fired", set),
+            ("modes", dict),
+            ("primed_bonus", dict),
+            ("primed_hit_bonus", dict),
+            ("primed_crit", dict),
+            ("revive_pool", dict),
+            ("revive_pool_pct", dict),
+            ("special_pierce_pct", dict),
+            ("lifesteal_pct", dict),
+            ("regen_per_turn", dict),
+            ("hp_regen_per_turn", dict),
+            ("pending_critical_rewards", dict),
+            ("pending_lifesteal_hits", dict),
+            ("pending_landed_hits", dict),
+            ("staged_landed_ops", dict),
+            ("pending_hit_once", set),
+            ("projected_hit_counters", dict),
+            ("hit_counter_before", dict),
+            ("staged_reflections", dict),
+            ("pending_reflection_hits", dict),
+            ("heal_per_drain", dict),
+            ("crit_chance_bonus", dict),
+            ("crit_damage_mult", dict),
+            ("extra_special_hits", dict),
+            ("debuff_immune", dict),
+            ("ward_cfg", dict),
+            ("ward_turns", dict),
+            ("zones", list),
+            ("_compiled", dict),
+            ("special_amp_stack", dict),
+            ("timed_dmg_amps", list),
+            ("undodgeable_turns", dict),
+            ("ability_amp", dict),
+            ("reflect_windows", dict),
+            ("resist_windows", dict),
+            ("timed_modes", list),
+            ("cooldowns", dict),
+            ("ability_2_disabled", dict),
+        ):
+            if not hasattr(self, attr):
+                setattr(self, attr, default_factory())
+
     # =========================================================================
     #  Rule compilation
     # =========================================================================
 
     def _get_abilities(self, blade: dict, key: str = "") -> list[dict]:
         """All ability dicts of a blade (respecting disabled flags)."""
+        self._ensure_state()
         if blade.get("custom"):
             from utils.custom_bey import balanced_definition
             blade = balanced_definition(blade)
@@ -274,6 +326,7 @@ class AbilityEngine:
         both — and both players in a mirror match can be holding the same
         blade in opposite forms.
         """
+        self._ensure_state()
         name = blade.get("name", "?")
         if blade.get("custom"):
             # Same-named player designs must compile their own preset rules.
@@ -294,6 +347,8 @@ class AbilityEngine:
             # rules-form abilities the `_name` that legacy_convert already
             # supplies so their log lines name the ability, not the blade.
             for _i, ab in enumerate(blade.get("abilities") or []):
+                if not isinstance(ab, dict):
+                    continue
                 if isinstance(ab.get("rules"), list):
                     _src = [dict(r) for r in ab["rules"] if isinstance(r, dict)]
                     for _r in _src:
@@ -434,14 +489,15 @@ class AbilityEngine:
 
     def _hp_pct(self, key: str) -> float:
         max_hp = self.session.max_hp_per_player.get(key) or self.session.max_hp or 1
-        return self.session.hp.get(key, 0) / max_hp
+        cur = self.session.hp.get(key, 0)
+        return max(0.0, min(1.0, cur / max_hp))
 
     def _stamina_pct(self, key: str) -> float:
         try:
             sm  = self.session.stamina_manager
             cur = sm.stamina.get(key, 0)
             mx  = getattr(sm, "max_stamina", {}).get(key, 100) or 100
-            return cur / mx
+            return max(0.0, min(1.0, cur / mx))
         except Exception:
             return 1.0
 
@@ -461,10 +517,10 @@ class AbilityEngine:
             # fallback keeps older/stub managers working.
             pct = getattr(sm, "pct", None)
             if callable(pct):
-                return pct(key)
+                return max(0.0, min(1.0, float(pct(key))))
             cur = sm.stability.get(key, 0)
             mx = (getattr(sm, "max", {}) or {}).get(key) or 100
-            return cur / mx
+            return max(0.0, min(1.0, cur / mx))
         except Exception:                                # noqa: BLE001
             return 1.0
 
@@ -586,20 +642,26 @@ class AbilityEngine:
             return self.st.get_buff_bonus(okey, stat) < 0
         if c == "not_on_cooldown":
             return self.cooldowns.get((key, cond.get("name", "")), 0) <= 0
-        if c == "stamina_below_pct":
+        if c in ("stamina_below_pct", "stamina_above_pct",
+                 "enemy_stamina_below_pct", "enemy_stamina_above_pct"):
             try:
-                sm  = self.session.stamina_manager
-                cur = sm.stamina.get(key, 0)
-                mx  = getattr(sm, "max_stamina", {}).get(key, 100) or 100
-                return (cur / mx) < float(v)
+                cut = float(v)
+                if cut > 1:
+                    cut /= 100.0
+                target_key = okey if c.startswith("enemy_") else key
+                pct = self._stamina_pct(target_key)
+                return pct < cut if "below" in c else pct >= cut
             except Exception:
                 return False
-        if c == "enemy_stamina_below":
-            # Absolute threshold: true while the ENEMY's current stamina is
-            # below <value> (e.g. 1.5 = can no longer afford an Attack).
+        if c in ("stamina_below", "enemy_stamina_below",
+                 "stamina_at_least", "enemy_stamina_at_least"):
+            # Absolute stamina threshold
             try:
                 sm = self.session.stamina_manager
-                return sm.stamina.get(okey, 0) < float(v)
+                target_key = okey if c.startswith("enemy_") else key
+                cur = sm.stamina.get(target_key, 0)
+                val = float(v)
+                return cur < val if "below" in c else cur >= val
             except Exception:
                 return False
         if c == "enemy_spin_is":
@@ -638,25 +700,26 @@ class AbilityEngine:
             return (self.session.blades.get(okey, {}).get("type", "")).lower() == str(v).lower()
         if c == "my_type_is":
             return (self.session.blades.get(key, {}).get("type", "")).lower() == str(v).lower()
-        if c == "stability_above_pct":
-            return self._stability_pct(key) >= float(v)
-        if c == "stability_below_pct":
-            return self._stability_pct(key) < float(v)
-        if c in ("enemy_stability_below_pct", "enemy_stability_above_pct"):
-            # Same fraction-vs-percentage trap as hp_below_pct above: authors
-            # write "30" meaning 30%, so anything over 1 is normalised down
-            # rather than read as literal 3000%.
-            cut = float(v)
-            if cut > 1:
-                cut /= 100.0
-            pct = self._stability_pct(okey)
-            return pct < cut if "below" in c else pct >= cut
-        if c == "gauge_at_least":
+        if c in ("stability_above_pct", "stability_below_pct",
+                 "enemy_stability_below_pct", "enemy_stability_above_pct"):
+            # Normalize percentage values (> 1 becomes fraction)
+            try:
+                cut = float(v)
+                if cut > 1:
+                    cut /= 100.0
+                target_key = okey if c.startswith("enemy_") else key
+                pct = self._stability_pct(target_key)
+                return pct < cut if "below" in c else pct >= cut
+            except Exception:
+                return False
+        if c in ("gauge_at_least", "gauge_below"):
             # The Special gauge, absolute. `SPECIAL_GAUGE_MAX` is the charged
             # value, so "when Special is charged" is written as that number
             # rather than a fraction nobody would recognise.
             try:
-                return self._gauge(key) >= float(v)
+                cur = self._gauge(key)
+                val = float(v)
+                return cur >= val if c == "gauge_at_least" else cur < val
             except (TypeError, ValueError):
                 return False
         if c == "move_variety_at_least":
@@ -700,7 +763,8 @@ class AbilityEngine:
         # bypasses apply()'s offensive silence gate. Check the rule owner here
         # before rolling chance or consuming once-per-battle state. Setup must
         # still initialize the kit; existing buffs/windows keep their duration.
-        if when != "setup" and self.st.is_silenced(key):
+        silenced = getattr(self.st, "is_silenced", None)
+        if when != "setup" and callable(silenced) and silenced(key):
             return False
         if rule.get("once") == "battle" and ((key, rid) in self.once_fired or (key, rid) in self.pending_hit_once):
             return False
@@ -717,7 +781,7 @@ class AbilityEngine:
             if side == "above" and not pct >= cut:
                 return False
         for cond in rule.get("if") or []:
-            if not self._check(cond, key, okey, move, matchup):
+            if not isinstance(cond, dict) or not self._check(cond, key, okey, move, matchup):
                 return False
         ch = rule.get("chance")
         if ch is not None and random.random() >= float(ch):
@@ -859,6 +923,8 @@ class AbilityEngine:
                  move: str, dmg_dealt: int, dmg_taken: int,
                  logs: list[str], matchup: str = "") -> tuple[int, int]:
         for op_index, op in enumerate(rule.get("do") or []):
+            if not isinstance(op, dict):
+                continue
             kind = op.get("op")
             # Per-OP gate, as distinct from the rule-level `if`. One rule often
             # needs half its ops gated and half not — "every hit builds a stack,
@@ -872,7 +938,7 @@ class AbilityEngine:
             # is why nothing looked wrong — but the next one to use it would
             # have shipped an ability that ignores its own condition.
             gate = op.get("_if")
-            if gate and not all(self._check(c, key, okey, move, matchup)
+            if gate and not all(isinstance(c, dict) and self._check(c, key, okey, move, matchup)
                                 for c in gate):
                 continue
             if kind == 'burst_mechanic':
@@ -1974,6 +2040,7 @@ class AbilityEngine:
     def _fire(self, when: str, key: str, okey: str, blade: dict, move: str,
               matchup: str, dmg_dealt: int, dmg_taken: int,
               logs: list[str], *, repeat_hit: bool = False) -> tuple[int, int]:
+        self._ensure_state()
         rules = self._rules_for(blade, key)
         deferred = (when in ('on_attack_hit', 'on_hit') and
                     getattr(self.session, 'defer_landed_hit_effects', False) and
@@ -2043,6 +2110,7 @@ class AbilityEngine:
         minimum_hit_damage: int = 0,
     ) -> tuple[int, int, list[str]]:
         """Route one move through the full generic trigger pipeline."""
+        self._ensure_state()
         logs: list[str] = []
         from cogs.battle import requiem
         hit_move = requiem.damage_move(self.session, mover_key, move)
@@ -2642,7 +2710,8 @@ class AbilityEngine:
     def _passive_pct(self, key: str, blade: dict, want_op: str) -> float:
         """Sum the values of every `want_op` on this blade, amp included."""
         total = 0.0
-        if self.st.is_silenced(key):
+        silenced = getattr(self.st, "is_silenced", None)
+        if callable(silenced) and silenced(key):
             return 0.0
         for _rid, rule in self._rules_for(blade, key):
             if rule.get('when') not in ('passive', 'setup'):
