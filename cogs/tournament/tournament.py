@@ -11,7 +11,7 @@ import logging
 import random
 import time
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 import discord
 from discord import app_commands
@@ -384,6 +384,124 @@ class StartButton(discord.ui.Button):
         view.cog._spawn(view.cog.run(view))
 
 
+@dataclass
+class ActiveV2Tournament:
+    guild_id: int
+    reg: Registration
+    panel: RegistrationPanel
+    mode: str
+    matches: list[Match]
+    blades: dict[int, str]
+    channel: discord.TextChannel
+    guild: discord.Guild
+    cancelled: bool = False
+    match_events: dict[str, asyncio.Event] = field(default_factory=dict)
+    match_messages: dict[str, Any] = field(default_factory=dict)
+
+
+class AdvancePlayerView(discord.ui.View):
+    def __init__(self, cog: "TournamentCog", active: ActiveV2Tournament, match: Match,
+                 p1: Optional[discord.Member], p2: Optional[discord.Member]):
+        super().__init__(timeout=60)
+        self.cog = cog
+        self.active = active
+        self.match = match
+        p1_name = getattr(p1, "display_name", f"Player {match.player_a}") if p1 else f"Player {match.player_a}"
+        p2_name = getattr(p2, "display_name", f"Player {match.player_b}") if p2 else f"Player {match.player_b}"
+
+        btn1 = discord.ui.Button(label=f"Advance {p1_name[:35]}", style=discord.ButtonStyle.success)
+        btn2 = discord.ui.Button(label=f"Advance {p2_name[:35]}", style=discord.ButtonStyle.success)
+
+        async def cb1(interaction: discord.Interaction):
+            await interaction.response.send_message(f"👑 Force-advanced <@{match.player_a}>.", ephemeral=True)
+            await self.cog.resolve_match(self.active, self.match, match.player_a)
+            self.stop()
+
+        async def cb2(interaction: discord.Interaction):
+            await interaction.response.send_message(f"👑 Force-advanced <@{match.player_b}>.", ephemeral=True)
+            await self.cog.resolve_match(self.active, self.match, match.player_b)
+            self.stop()
+
+        btn1.callback = cb1
+        btn2.callback = cb2
+        self.add_item(btn1)
+        self.add_item(btn2)
+
+
+class TournamentMatchView(discord.ui.View):
+    def __init__(self, cog: "TournamentCog", active: ActiveV2Tournament, match: Match,
+                 p1: Optional[discord.Member], p2: Optional[discord.Member]):
+        super().__init__(timeout=None)
+        self.cog = cog
+        self.active = active
+        self.match = match
+        self.p1 = p1
+        self.p2 = p2
+
+    @discord.ui.button(label="Battle Now", style=discord.ButtonStyle.primary, emoji="⚔️", custom_id="t_match_battle")
+    async def btn_battle(self, interaction: discord.Interaction, button: discord.ui.Button):
+        match = self.match
+        reg = self.active.reg
+        uid = interaction.user.id
+        is_admin = is_tournament_admin(interaction.user) or await self.cog.bot.is_owner(interaction.user)
+        if uid not in (match.player_a, match.player_b, reg.host_id) and not is_admin:
+            return await interaction.response.send_message(
+                "❌ Only match participants, the host, or an admin can start this battle.",
+                ephemeral=True
+            )
+        if match.state == MatchState.COMPLETED.value or match.winner is not None:
+            return await interaction.response.send_message("❌ This match is already completed.", ephemeral=True)
+
+        if self.cog._in_battle(match.player_a) or self.cog._in_battle(match.player_b):
+            return await interaction.response.send_message(
+                "⚠️ One of the players is currently in another battle. Please finish it first.",
+                ephemeral=True
+            )
+
+        button.disabled = True
+        try:
+            await interaction.response.edit_message(view=self)
+        except Exception:
+            pass
+
+        try:
+            msg_text = f"⚔️ **Launching battle!** <@{match.player_a}> vs <@{match.player_b}>, choose your moves below!"
+            if interaction.response.is_done():
+                await interaction.followup.send(msg_text)
+            else:
+                await interaction.response.send_message(msg_text)
+        except Exception:
+            pass
+        self.cog._spawn(self.cog._launch_interactive_match_battle(self.active, match, interaction.channel))
+
+    @discord.ui.button(label="Forfeit", style=discord.ButtonStyle.secondary, emoji="🏳️", custom_id="t_match_forfeit")
+    async def btn_forfeit(self, interaction: discord.Interaction, button: discord.ui.Button):
+        match = self.match
+        uid = interaction.user.id
+        if uid not in (match.player_a, match.player_b):
+            return await interaction.response.send_message("❌ Only match participants can forfeit.", ephemeral=True)
+        if match.state == MatchState.COMPLETED.value or match.winner is not None:
+            return await interaction.response.send_message("❌ This match is already completed.", ephemeral=True)
+
+        winner_id = match.player_b if uid == match.player_a else match.player_a
+        await interaction.response.send_message(
+            f"🏳️ <@{uid}> has forfeited this tournament match. <@{winner_id}> advances!"
+        )
+        await self.cog.resolve_match(self.active, match, winner_id)
+
+    @discord.ui.button(label="Advance Player", style=discord.ButtonStyle.danger, emoji="👑", custom_id="t_match_advance")
+    async def btn_advance(self, interaction: discord.Interaction, button: discord.ui.Button):
+        reg = self.active.reg
+        is_admin = is_tournament_admin(interaction.user) or await self.cog.bot.is_owner(interaction.user)
+        if interaction.user.id != reg.host_id and not is_admin:
+            return await interaction.response.send_message("❌ Only the tournament host or an admin can force-advance a player.", ephemeral=True)
+        if self.match.state == MatchState.COMPLETED.value or self.match.winner is not None:
+            return await interaction.response.send_message("❌ This match is already completed.", ephemeral=True)
+
+        view = AdvancePlayerView(self.cog, self.active, self.match, self.p1, self.p2)
+        await interaction.response.send_message("Select which player should be awarded the win and advance:", view=view, ephemeral=True)
+
+
 class TournamentCog(commands.Cog, name=COG_NAME):
     """Shared command entry point, draft editor, and preserved legacy runner."""
 
@@ -402,6 +520,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         # than a table: with no ELO ledger and no no-show counter left, "banned"
         # has exactly one meaning now — cannot join the next lobby.
         self.banned: set[int] = set()
+        self.active_tournaments: dict[int, "ActiveV2Tournament"] = {}
         self._tasks: set = set()
         self._expiry_task: Optional[asyncio.Task] = None
         # guild_id -> the live panel, so an admin can force-start a lobby whose
@@ -517,6 +636,11 @@ class TournamentCog(commands.Cog, name=COG_NAME):
     async def cog_unload(self):
         if hasattr(self, '_expiry_task') and self._expiry_task and not self._expiry_task.done():
             self._expiry_task.cancel()
+        for active in list(self.active_tournaments.values()):
+            active.cancelled = True
+            for evt in active.match_events.values():
+                evt.set()
+        self.active_tournaments.clear()
         for panel in list(self.setups.values()):
             await panel.close("Setup closed because the tournament extension reloaded.")
         for registration in list(self.registrations.values()):
@@ -588,7 +712,7 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         if guild is None:
             return await send("Use this command in a server.", ephemeral=True)
         live = self.lobbies.get(guild.id)
-        if (live and not live.finished) or guild.id in self.setups or guild.id in self.registrations:
+        if (live and not live.finished) or guild.id in self.setups or guild.id in self.registrations or guild.id in self.active_tournaments:
             return await send("A tournament or setup is already open in this server.", ephemeral=True)
         # Reserve before the first await, preventing simultaneous command opens.
         view = HostPanel(self, guild.id, author.id)
@@ -625,6 +749,81 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             return await interaction.original_response()
         await self.open_panel(send, interaction.guild,
                               interaction.user, interaction.channel)
+
+    @commands.command(name="tourney_win", aliases=["twin", "tournament_win", "t_win"])
+    @commands.guild_only()
+    async def tournament_win_command(self, ctx: commands.Context, member: discord.Member) -> None:
+        """Advance a player in their active tournament match (host/admin only)."""
+        active = self.active_tournaments.get(ctx.guild.id)
+        is_admin = is_tournament_admin(ctx.author) or await self.bot.is_owner(ctx.author)
+        if not active or (ctx.author.id != active.reg.host_id and not is_admin):
+            if is_admin and self.admin_force_win(ctx.guild.id, member.id):
+                return await ctx.send(f"👑 Advanced {member.mention} in their match.")
+            return await ctx.send("❌ Only the tournament host or an admin can advance a player.")
+
+        target_match = None
+        for m in active.matches:
+            if m.state != MatchState.COMPLETED.value and m.winner is None:
+                if member.id in (m.player_a, m.player_b):
+                    target_match = m
+                    break
+
+        if not target_match:
+            return await ctx.send(f"❌ {member.mention} is not in an active, unfinished match in this tournament.")
+
+        await self.resolve_match(active, target_match, member.id)
+        await ctx.send(f"👑 Host has advanced {member.mention} to the next round!")
+
+    @app_commands.command(name="tourney_win", description="Advance a player in their tournament match (host/admin only)")
+    @app_commands.guild_only()
+    async def tournament_win_slash(self, interaction: discord.Interaction, member: discord.Member) -> None:
+        active = self.active_tournaments.get(interaction.guild_id)
+        is_admin = is_tournament_admin(interaction.user) or await self.bot.is_owner(interaction.user)
+        if not active or (interaction.user.id != active.reg.host_id and not is_admin):
+            return await interaction.response.send_message("❌ Only the tournament host or an admin can advance a player.", ephemeral=True)
+
+        target_match = None
+        for m in active.matches:
+            if m.state != MatchState.COMPLETED.value and m.winner is None:
+                if member.id in (m.player_a, m.player_b):
+                    target_match = m
+                    break
+
+        if not target_match:
+            return await interaction.response.send_message(f"❌ {member.mention} is not in an active unfinished match.", ephemeral=True)
+
+        await self.resolve_match(active, target_match, member.id)
+        await interaction.response.send_message(f"👑 Advanced {member.mention} to the next round!")
+
+    @commands.command(name="tourney_bracket", aliases=["tournament_bracket", "tbracket"])
+    @commands.guild_only()
+    async def tourney_bracket_prefix(self, ctx: commands.Context) -> None:
+        """🏆 Show the current live tournament bracket."""
+        active = self.active_tournaments.get(ctx.guild.id)
+        if not active:
+            lobby = self.lobbies.get(ctx.guild.id)
+            if not lobby or not lobby.matches:
+                return await ctx.send("❌ No tournament bracket is currently running in this server.")
+            rnd = min((m.round_no for m in lobby.matches if m.winner is None), default=1)
+            return await self._post_bracket(ctx.channel, ctx.guild, lobby, f"Round {rnd}", rnd)
+
+        rnd = min((m.round_no for m in active.matches if m.winner is None), default=1)
+        await self._post_v2_bracket(ctx.channel, ctx.guild, active.reg, active.matches, active.blades, f"Live Bracket (Round {rnd})", rnd)
+
+    @app_commands.command(name="tourney_bracket", description="Show the current live tournament bracket")
+    @app_commands.guild_only()
+    async def tourney_bracket_slash(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer()
+        active = self.active_tournaments.get(interaction.guild_id)
+        if not active:
+            lobby = self.lobbies.get(interaction.guild_id)
+            if not lobby or not lobby.matches:
+                return await interaction.followup.send("❌ No tournament bracket is currently running in this server.", ephemeral=True)
+            rnd = min((m.round_no for m in lobby.matches if m.winner is None), default=1)
+            return await self._post_bracket(interaction.channel, interaction.guild, lobby, f"Round {rnd}", rnd)
+
+        rnd = min((m.round_no for m in active.matches if m.winner is None), default=1)
+        await self._post_v2_bracket(interaction.channel, interaction.guild, active.reg, active.matches, active.blades, f"Live Bracket (Round {rnd})", rnd)
 
     # ── running the bracket ──────────────────────────────────────────────────
     async def run(self, view: TournamentPanel) -> None:
@@ -867,7 +1066,8 @@ class TournamentCog(commands.Cog, name=COG_NAME):
                 self._active.discard(uid)
             if self.registrations.get(reg.guild_id) is panel:
                 self.registrations.pop(reg.guild_id, None)
-            reg.status = 'completed'
+            if reg.status != 'cancelled':
+                reg.status = 'completed'
             try:
                 await asyncio.to_thread(self.registration_store.write, reg)
             except Exception:
@@ -919,22 +1119,51 @@ class TournamentCog(commands.Cog, name=COG_NAME):
             await channel.send(f"❌ Could not generate bracket: {exc}")
             return
 
+        active = ActiveV2Tournament(
+            guild_id=reg.guild_id,
+            reg=reg,
+            panel=panel,
+            mode=mode,
+            matches=matches,
+            blades=blades,
+            channel=channel,
+            guild=guild
+        )
+        self.active_tournaments[reg.guild_id] = active
+
         first_rnd = min((m.round_no for m in matches), default=1)
         await self._post_v2_bracket(channel, guild, reg, matches, blades, "Bracket Drawn", first_rnd)
 
-        while not brackets.is_complete(matches, mode):
-            ready = brackets.ready_matches(matches)
-            if not ready:
-                break
-            rnd = min(m.round_no for m in ready)
-            for match in ready:
-                await self._play_v2(channel, guild, reg, match, rnd, blades, matches, mode)
-            await self._post_v2_bracket(channel, guild, reg, matches, blades, f"Round {rnd} Results", rnd)
+        try:
+            while not brackets.is_complete(matches, mode):
+                if active.cancelled:
+                    reg.status = 'cancelled'
+                    return
+                ready = [m for m in brackets.ready_matches(matches) if m.winner is None and m.state != MatchState.COMPLETED.value]
+                if not ready:
+                    break
+                rnd = min(m.round_no for m in ready)
+                current_round_matches = [m for m in ready if m.round_no == rnd]
 
-        champ_id = brackets.champion(matches, mode)
-        standings = self._compute_standings(reg.entrants, matches, champ_id)
-        prizes = await self._award_v2(reg, standings)
-        await self._post_v2_champion(channel, guild, reg, champ_id, standings, prizes)
+                for match in current_round_matches:
+                    if match.id not in active.match_events:
+                        active.match_events[match.id] = asyncio.Event()
+                    await self._announce_v2_match(active, match, rnd)
+
+                await asyncio.gather(*(active.match_events[m.id].wait() for m in current_round_matches))
+
+                if active.cancelled:
+                    return
+
+                await self._post_v2_bracket(channel, guild, reg, matches, blades, f"Round {rnd} Results", rnd)
+
+            if not active.cancelled:
+                champ_id = brackets.champion(matches, mode)
+                standings = self._compute_standings(reg.entrants, matches, champ_id)
+                prizes = await self._award_v2(reg, standings)
+                await self._post_v2_champion(channel, guild, reg, champ_id, standings, prizes)
+        finally:
+            self.active_tournaments.pop(reg.guild_id, None)
 
     async def _play_v2(self, channel, guild, reg: Registration, match: Match,
                        rnd: int, blades: dict[int, str], matches: list[Match], mode: str) -> None:
@@ -1061,6 +1290,244 @@ class TournamentCog(commands.Cog, name=COG_NAME):
         match.loser = match.player_b if winner == match.player_a else match.player_a
         match.state = MatchState.COMPLETED.value
         brackets.advance(matches, match, mode)
+
+    async def resolve_match(self, active: ActiveV2Tournament, match: Match, winner_id: int) -> None:
+        """Resolve a tournament match with the given winner, advancing the bracket and waking the runner."""
+        if match.state == MatchState.COMPLETED.value or match.winner is not None:
+            return
+        a, b = match.player_a, match.player_b
+        if winner_id not in (a, b):
+            return
+
+        self._finish_v2(active.matches, match, winner_id, active.mode)
+        loser_id = b if winner_id == a else a
+
+        msg = active.match_messages.get(match.id)
+        if msg:
+            try:
+                await msg.edit(view=None)
+            except Exception:
+                pass
+
+        try:
+            await active.channel.send(
+                f"🏆 **Round {match.round_no} Match Complete:** <@{winner_id}> defeated <@{loser_id}> and advances!"
+            )
+        except Exception:
+            pass
+
+        evt = active.match_events.get(match.id)
+        if evt and not evt.is_set():
+            evt.set()
+
+    async def _announce_v2_match(self, active: ActiveV2Tournament, match: Match, rnd: int) -> None:
+        """Announce one tournament match with manual battle instructions and controls."""
+        a, b = match.player_a, match.player_b
+        if a is None or b is None:
+            self._finish_v2(active.matches, match, a if b is None else b, active.mode)
+            evt = active.match_events.get(match.id)
+            if evt and not evt.is_set():
+                evt.set()
+            return
+
+        guild = active.guild
+        p1 = guild.get_member(a) if guild else None
+        if p1 is None and hasattr(self.bot, "get_user"):
+            p1 = self.bot.get_user(a)
+        if p1 is None and hasattr(self.bot, "fetch_user"):
+            try:
+                p1 = await self.bot.fetch_user(a)
+            except Exception:
+                p1 = None
+
+        p2 = guild.get_member(b) if guild else None
+        if p2 is None and hasattr(self.bot, "get_user"):
+            p2 = self.bot.get_user(b)
+        if p2 is None and hasattr(self.bot, "fetch_user"):
+            try:
+                p2 = await self.bot.fetch_user(b)
+            except Exception:
+                p2 = None
+
+        if p1 is None or p2 is None:
+            winner_id = b if p1 is None else a
+            self._finish_v2(active.matches, match, winner_id, active.mode)
+            evt = active.match_events.get(match.id)
+            if evt and not evt.is_set():
+                evt.set()
+            loser = a if p1 is None else b
+            try:
+                await active.channel.send(f"⚠️ A player left the server — <@{winner_id}> advances by default over <@{loser}>.")
+            except Exception:
+                pass
+            return
+
+        p1_name = getattr(p1, "display_name", getattr(p1, "name", f"Player {a}"))
+        p2_name = getattr(p2, "display_name", getattr(p2, "name", f"Player {b}"))
+        p1_mention = getattr(p1, "mention", f"<@{a}>")
+        p2_mention = getattr(p2, "mention", f"<@{b}>")
+
+        blade1_name = active.blades.get(a, "Equipped Beyblade")
+        blade2_name = active.blades.get(b, "Equipped Beyblade")
+
+        match_channel = active.channel
+        thread = None
+        try:
+            if hasattr(active.channel, "create_thread") and guild and guild.me:
+                perms = active.channel.permissions_for(guild.me)
+                if perms.create_public_threads and perms.send_messages_in_threads:
+                    t_name = f"⚔️ R{rnd}: {p1_name} vs {p2_name}"[:100]
+                    thread = await active.channel.create_thread(name=t_name, auto_archive_duration=60)
+                    match_channel = thread
+        except Exception:
+            match_channel = active.channel
+
+        view = TournamentMatchView(self, active, match, p1, p2)
+        desc = (
+            f"{p1_mention} (**{blade1_name}**)\n"
+            f"vs {p2_mention} (**{blade2_name}**)\n\n"
+            f"🥊 **Manual Battle:** Run `;battle {p2_mention}` in any channel to fight your match!\n"
+            f"*(Or click **Battle Now** below to fight here directly)*\n\n"
+            f"-# Either player can use **Forfeit**. The host can use **Advance Player** if an opponent is offline."
+        )
+        embed = discord.Embed(
+            title=f"⚔️ {active.reg.config.name} — Round {rnd}",
+            description=desc,
+            colour=COLOUR
+        )
+
+        msg = await match_channel.send(
+            content=f"📢 {p1_mention} {p2_mention} — Your Round {rnd} tournament match is ready!",
+            embed=embed,
+            view=view
+        )
+        active.match_messages[match.id] = msg
+
+        if thread and match_channel is not active.channel:
+            try:
+                t_notice = (
+                    f"⚔️ **Round {rnd} Match:** {p1_mention} vs {p2_mention} has started in {thread.mention}!\n"
+                    f"Use `;battle` inside the thread or click the button there to fight."
+                )
+                await active.channel.send(t_notice)
+            except Exception:
+                pass
+
+    async def _launch_interactive_match_battle(self, active: ActiveV2Tournament, match: Match, channel: discord.abc.Messageable) -> None:
+        """Launch an interactive in-channel/thread BattleSession when Battle Now is clicked."""
+        a, b = match.player_a, match.player_b
+        if a is None or b is None or match.winner is not None:
+            return
+        guild = active.guild
+        p1 = guild.get_member(a) if guild else None
+        if p1 is None and hasattr(self.bot, "get_user"):
+            p1 = self.bot.get_user(a)
+        p2 = guild.get_member(b) if guild else None
+        if p2 is None and hasattr(self.bot, "get_user"):
+            p2 = self.bot.get_user(b)
+
+        if p1 is None or p2 is None:
+            winner_id = b if p1 is None else a
+            await self.resolve_match(active, match, winner_id)
+            return
+
+        from cogs.battle.battle import _apply_parts
+        from cogs.battle.session import BattleSession
+
+        bname1 = active.blades.get(a, "")
+        bname2 = active.blades.get(b, "")
+        raw1 = get_beyblade(bname1) or get_beyblade("Dranzer S")
+        raw2 = get_beyblade(bname2) or get_beyblade("Dranzer S")
+        if not raw1 or not isinstance(raw1, dict):
+            raw1 = {"name": bname1 or "Default Beyblade", "stats": {"attack": 50, "defense": 50, "stamina": 50}, "level": 1}
+        if not raw2 or not isinstance(raw2, dict):
+            raw2 = {"name": bname2 or "Default Beyblade", "stats": {"attack": 50, "defense": 50, "stamina": 50}, "level": 1}
+
+        blade1 = _apply_parts(raw1, await get_user(a))
+        blade2 = _apply_parts(raw2, await get_user(b))
+
+        bc = self.bot.get_cog("Battle") if hasattr(self.bot, "get_cog") else None
+        registry = getattr(bc, "active_battles", None) if bc else None
+        try:
+            session = await BattleSession.create(
+                bot=self.bot,
+                channel=channel,
+                p1=p1,
+                p2=p2,
+                blade1=blade1,
+                blade2=blade2,
+                avatars_enabled=(active.reg.config.avatars == "Allowed"),
+                bey_level=(100 if active.reg.config.level_rule == "Equalized Level 100" else None),
+            )
+            if registry is not None:
+                registry[a] = session
+                registry[b] = session
+            await session.run()
+        except Exception:
+            log.exception("[tournament] interactive match battle error")
+            if match.state != MatchState.COMPLETED.value and match.winner is None:
+                try:
+                    await channel.send("⚠️ Battle crashed — advancing on a coin flip so bracket doesn't hang.")
+                except Exception:
+                    pass
+                await self.resolve_match(active, match, random.choice((a, b)))
+        finally:
+            if registry is not None:
+                registry.pop(a, None)
+                registry.pop(b, None)
+
+    @commands.Cog.listener()
+    async def on_beycord_battle_blades(self, result: dict) -> None:
+        """Capture results from manual ;battle runs and advance tournament matches."""
+        try:
+            guild_id = int(result.get("guild_id") or 0)
+        except (ValueError, TypeError):
+            return
+        if not guild_id:
+            return
+        active = self.active_tournaments.get(guild_id)
+        if not active or active.cancelled:
+            return
+
+        try:
+            participants = {int(p) for p in (result.get("participants") or []) if p is not None}
+        except (ValueError, TypeError):
+            return
+        if len(participants) != 2:
+            return
+
+        target_match = None
+        for m in active.matches:
+            if m.state != MatchState.COMPLETED.value and m.winner is None:
+                try:
+                    m_parts = {int(m.player_a), int(m.player_b)}
+                except (ValueError, TypeError):
+                    continue
+                if m_parts == participants:
+                    target_match = m
+                    break
+
+        if not target_match:
+            return
+
+        if result.get("draw") or result.get("winner_id") is None:
+            try:
+                draw_notice = (
+                    f"⚠️ Tournament match between <@{target_match.player_a}> and <@{target_match.player_b}> ended in a **DRAW**!\n"
+                    f"Please rematch using `;battle` to determine who advances!"
+                )
+                await active.channel.send(draw_notice)
+            except Exception:
+                pass
+            return
+
+        try:
+            winner_id = int(result.get("winner_id"))
+        except (ValueError, TypeError):
+            winner_id = None
+
+        if winner_id:
+            await self.resolve_match(active, target_match, winner_id)
 
     def _compute_standings(self, entrants: list[int], matches: list[Match], champion_id: Optional[int]) -> dict[str, Optional[int]]:
         standings: dict[str, Optional[int]] = {"first": champion_id, "second": None, "third": None}
@@ -1216,6 +1683,22 @@ class TournamentCog(commands.Cog, name=COG_NAME):
 
     async def admin_cancel(self, guild_id: int) -> bool:
         """Close the lobby AND its panel. False when there is nothing open."""
+        active = self.active_tournaments.get(guild_id)
+        if active is not None:
+            active.cancelled = True
+            active.reg.status = 'cancelled'
+            for evt in active.match_events.values():
+                evt.set()
+            if active.channel:
+                try:
+                    await active.channel.send("✖️ Tournament cancelled by an admin.")
+                except Exception:
+                    pass
+            registration = self.registrations.get(guild_id)
+            if registration is not None:
+                await registration.close()
+            return True
+
         registration = self.registrations.get(guild_id)
         if registration is not None:
             await registration.close()
@@ -1254,6 +1737,13 @@ class TournamentCog(commands.Cog, name=COG_NAME):
 
     def admin_force_win(self, guild_id: int, user_id: int) -> bool:
         """Advance a player out of their unfinished match. False if none."""
+        active = self.active_tournaments.get(guild_id)
+        if active and not active.cancelled:
+            for m in active.matches:
+                if m.winner is None and user_id in (m.player_a, m.player_b) and m.state != MatchState.COMPLETED.value:
+                    self._spawn(self.resolve_match(active, m, user_id))
+                    return True
+
         lobby = self.lobbies.get(guild_id)
         if not lobby or not lobby.matches:
             return False

@@ -54,7 +54,14 @@ deadline, and four active buttons: `Join`, `Leave`, `Start Tournament`, and `Can
 
 - **Start Tournament Button:** The host (or an admin) can start the tournament whenever
   at least 2 players have joined.
-- **Battle Execution:** Connects directly into the tournament bracket runner (`run_v2`).
+- **Manual Battle Execution:** Tournament matches are manual, not auto-simulated:
+  - When matches are ready, the bot announces each match in the tournament channel or dedicated match thread.
+  - **Manual Command:** Players run `;battle @opponent` to fight their tournament match. The tournament's `on_beycord_battle_blades` listener automatically detects the battle outcome and advances the bracket.
+  - **Match Controls View:** Each match announcement includes:
+    - `⚔️ Battle Now`: Allows participants or the host to launch the interactive move-selection battle directly.
+    - `🏳️ Forfeit`: Allows a player to forfeit, awarding the win to their opponent.
+    - `👑 Advance Player`: Host/Admin tool to force-advance a player if their opponent is absent or offline.
+  - **Host Commands:** Hosts can also advance players via `;tourney_win @member` (or `/tourney_win`) and view live brackets via `;tourney_bracket`.
 - **Rules Forwarded to Battle:**
   - `Avatars: Allowed / Disabled` and `Equalized Level` are passed directly to `BattleSession`.
   - `Level Rule: Equalized Level 100` normalizes combat stats.
