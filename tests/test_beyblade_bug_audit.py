@@ -269,6 +269,106 @@ class TestBeybladeBugAudit(unittest.TestCase):
         self.assertEqual(counter, 0)
         self.assertGreater(dmg, 0)
 
+    def test_12_boss_base_compatibility_and_is_boss_isolation(self):
+        """is_boss must identify boss base blades and not false-positive on standard Exclusive blades."""
+        for fn in ("aetherion_drakos_org.json", "argus_prime_org.json", "lionheart_sovereign_org.json", "nemesis_therion_org.json"):
+            with open(ROOT / "beys" / fn, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            sess = DummySession()
+            sess.blades["e"] = data
+            engine = AbilityEngine(sess)
+            self.assertTrue(engine._check({"cond": "is_boss"}, "p", "e", "attack", "neutral"), f"{fn} must be recognized as boss")
+
+        for fn in ("excalibur_ascendant.json", "kirindael.json", "void_longinus.json", "tartarus_reaper.json"):
+            with open(ROOT / "beys" / fn, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            sess = DummySession()
+            sess.blades["e"] = data
+            engine = AbilityEngine(sess)
+            self.assertFalse(engine._check({"cond": "is_boss"}, "p", "e", "attack", "neutral"), f"{fn} must not trigger is_boss")
+
+    def test_13_boss_base_rules_and_counter_reset_buff_clearing(self):
+        """reset_counter on stacking_buff must clear active buff bonuses in status manager."""
+        with open(ROOT / "beys" / "aetherion_drakos_org.json", "r", encoding="utf-8") as f:
+            drakos = json.load(f)
+        sess = DummySession()
+        sess.blades["p"] = drakos
+        engine = AbilityEngine(sess)
+        logs = []
+        engine._fire("passive", "p", "e", drakos, "attack", "neutral", 0, 0, logs)
+        self.assertEqual(sess.status.get_buff_bonus("p", "attack"), 4)
+        engine._fire("on_take_damage", "p", "e", drakos, "attack", "loss", 100, 0, logs)
+        self.assertEqual(engine.counters.get(("p", "stars")), 0)
+        self.assertEqual(sess.status.get_buff_bonus("p", "attack"), 0, "Buff source must clear on counter reset")
+
+    def test_14_copy_abilities_full_verification(self):
+        """copy_abilities.verify must report 0 missing or mismatched boss mechanics across all boss profiles."""
+        from cogs.battle.boss import copy_abilities
+        self.assertEqual(copy_abilities.verify(), [])
+
+    def test_15_boss_beys_combat_and_rolled_copies_compatibility(self):
+        """Simulate combat triggers for all boss originals and rolled copies in AbilityEngine."""
+        from cogs.battle.chain_handler import ChainHandler
+        from cogs.battle.boss import boss_copy as bc, boss_info as binfo
+        from unittest.mock import patch
+
+        boss_files = [
+            "aetherion_drakos_org.json",
+            "argus_prime_org.json",
+            "lionheart_sovereign_org.json",
+            "nemesis_therion_org.json",
+        ]
+
+        with open(ROOT / "beys" / "abyss_drakon.json", "r", encoding="utf-8") as f:
+            foe = json.load(f)
+
+        for fn in boss_files:
+            with open(ROOT / "beys" / fn, "r", encoding="utf-8") as f:
+                boss = json.load(f)
+            sess = DummySession()
+            sess.chain_handler = ChainHandler(sess)
+            sess.blades["p"] = boss
+            sess.blades["e"] = foe
+            engine = AbilityEngine(sess)
+            sess.ability = engine
+
+            # Setup & passive
+            engine.setup("p", boss)
+            with patch("random.random", return_value=0.1):
+                logs = []
+                engine._fire("passive", "p", "e", boss, "attack", "neutral", 0, 0, logs)
+                self.assertIsInstance(logs, list)
+
+            # Attack win
+            dealt, taken, a_logs = engine.apply("p", "e", boss, foe, "attack", "win", 100, 0)
+            self.assertGreater(dealt, 0)
+
+            # Take damage
+            t_logs = []
+            engine._fire("on_take_damage", "p", "e", boss, "attack", "loss", 80, 0, t_logs)
+
+            # Low HP & Special move
+            sess.hp["p"] = 300
+            engine._fire("on_low_hp", "p", "e", boss, "special", "win", 0, 0, logs)
+            s_dealt, s_taken, s_logs = engine.apply("p", "e", boss, foe, "special", "win", 150, 0)
+            self.assertGreater(s_dealt, 0)
+
+        # Verify rolled copies across all 4 bosses and all grades execute without errors
+        for key in ("drakos", "argus", "lionheart", "nemesis"):
+            prof = binfo.REGISTRY[key]
+            for grade in ("Flawed", "Standard", "Refined", "Pristine", "Flawless", "Perfect"):
+                copy_data = bc.roll_copy(prof, forced_grade=grade)
+                blade = bc.to_blade(copy_data, prof)
+                sess = DummySession()
+                sess.chain_handler = ChainHandler(sess)
+                sess.blades["p"] = blade
+                sess.blades["e"] = foe
+                engine = AbilityEngine(sess)
+                sess.ability = engine
+                engine.setup("p", blade)
+                dealt, _, _ = engine.apply("p", "e", blade, foe, "attack", "win", 100, 0)
+                self.assertGreater(dealt, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
