@@ -310,7 +310,7 @@ class AttackManager:
 
         # ── Stability costs ───────────────────────────────────────────────────
         stab = self.session.stability_manager
-        if mmove == MOVE_ATTACK and stab.is_effects_active(mkey, okey):
+        if mmove == MOVE_ATTACK:
             if matchup == "mirror":
                 # Attack vs Attack: the clash penalty IS the whole cost
                 # (-10 each, spec table). Applying the base attack cost on
@@ -325,6 +325,13 @@ class AttackManager:
                 # Counter: attacker got countered → attacker loses stability
                 if dmg_taken > 0:
                     logs.extend(stab.apply_counter_penalty(mkey))
+
+            # ── Attack signature effect: strip stability on type advantage ────
+            if dmg_dealt > 0 and stab.is_effects_active(mkey, okey):
+                atk_type_mod = self.session.type_mods.get(mkey)
+                enemy_mod = self.session.type_mods.get(okey)
+                enemy_type = enemy_mod.btype if enemy_mod else ""
+                logs.extend(self._type_signature_attack(mkey, okey, enemy_type, atk_type_mod))
 
         return dmg_dealt, dmg_taken, matchup, logs
 

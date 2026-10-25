@@ -248,8 +248,6 @@ class DefenseManager:
             return []
 
         stab = self.session.stability_manager
-        if not stab.is_effects_active(key, self._get_enemy_key(key)):
-            return []
 
         # enemy_matchup is from the OPPONENT (attacker) perspective:
         #   "win"        → attacker hit this defender   → damage got through

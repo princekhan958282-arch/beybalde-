@@ -950,7 +950,9 @@ class BattleSession:
             sta_now  = sm.stamina[key]
             g_now    = gauge_val
             stab_now = self.stability_manager.stability.get(key, 100)
-            stab_max = self.type_mods[key].stability_start
+            stab_max = self.stability_manager.max.get(
+                key, self.type_mods[key].stability_start if key in self.type_mods else 100
+            )
 
             _max_hp   = self.max_hp_per_player.get(key, self.max_hp)
             hp_pct    = int(round((hp_now / _max_hp) * 100))
@@ -1331,7 +1333,11 @@ class BattleSession:
                     attacked=was_attacked,
                     max_hp=self.max_hp_per_player[key], gimmicks=self.type_gimmicks))
                 _, recovery, _ = self.type_gimmicks.recovery(key, sm._sta_stat(key))
-                round_log.extend(self.stability_manager._apply(key, recovery))
+                round_log.extend(
+                    self.stability_manager.apply_stamina_recovery(
+                        key, amount=recovery, reduced=was_attacked
+                    )
+                )
                 sm.add_gauge(key, "stamina")
                 try:
                     self.bot.dispatch("beycord_stamina_move", int(key))
