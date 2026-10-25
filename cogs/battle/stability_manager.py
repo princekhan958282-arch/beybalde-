@@ -233,13 +233,18 @@ class StabilityManager:
     #  Stamina recovery
     # =========================================================================
 
-    def apply_stamina_recovery(self, key: str, reduced: bool = False) -> list[str]:
+    def apply_stamina_recovery(
+        self, key: str, amount: Optional[int] = None, reduced: bool = False
+    ) -> list[str]:
         """Apply stability recovery from using the Stamina action → +25.
 
+        If ``amount`` is provided (e.g. from type_gimmicks or overdrive), that amount
+        is applied. Otherwise falls back to _STAMINA_RECOVERY (+25, or +12 if reduced).
         ``reduced`` — True when the opponent attacked during the Stamina move;
         the recovery is halved (interrupted heal), matching the HP heal cut.
         """
-        amount = _STAMINA_RECOVERY // 2 if reduced else _STAMINA_RECOVERY
+        if amount is None:
+            amount = _STAMINA_RECOVERY // 2 if reduced else _STAMINA_RECOVERY
         return self._apply(key, amount)
 
     # =========================================================================

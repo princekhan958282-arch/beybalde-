@@ -314,6 +314,36 @@ class RealRounds(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(b - buffed.hp[E], 135)
         self.assertEqual(p - plain.hp[E], 102)
 
+    async def test_attack_mirror_clash_penalty(self):
+        s = self.session('Attack', 'Attack')
+        p_stab = s.stability_manager.stability[P]
+        e_stab = s.stability_manager.stability[E]
+        await turn(s, 'attack', 'attack')
+        self.assertEqual(p_stab - s.stability_manager.stability[P], 10)
+        self.assertEqual(e_stab - s.stability_manager.stability[E], 10)
+
+    async def test_attack_vs_defense_stability_costs_and_counter_penalty(self):
+        s = self.session('Attack', 'Defense')
+        p_stab = s.stability_manager.stability[P]
+        await turn(s, 'attack', 'defense')
+        self.assertEqual(p_stab - s.stability_manager.stability[P], 15)
+
+    async def test_attack_vs_stamina_strips_defender_stability(self):
+        s = self.session('Attack', 'Stamina')
+        p_stab = s.stability_manager.stability[P]
+        e_stab = s.stability_manager.stability[E]
+        await turn(s, 'attack', 'charge')
+        self.assertEqual(p_stab - s.stability_manager.stability[P], 10)
+        self.assertEqual(e_stab - s.stability_manager.stability[E], 6)
+
+    async def test_defense_mirror_clash_penalty(self):
+        s = self.session('Defense', 'Defense')
+        p_stab = s.stability_manager.stability[P]
+        e_stab = s.stability_manager.stability[E]
+        await turn(s, 'defense', 'defense')
+        self.assertEqual(p_stab - s.stability_manager.stability[P], 3)
+        self.assertEqual(e_stab - s.stability_manager.stability[E], 3)
+
 
 class BossTests(unittest.TestCase):
     def fighter(self, t='', hp=1000):
