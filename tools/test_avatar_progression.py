@@ -33,7 +33,11 @@ class StorageTests(unittest.TestCase):
 
     def tearDown(self):
         for p in reversed(self.patches): p.stop()
-        self.store.close()
+        if hasattr(self, "store") and hasattr(self.store, "close"):
+            try:
+                self.store.close()
+            except Exception:
+                pass
         try:
             self.temp.cleanup()
         except Exception:

@@ -167,8 +167,11 @@ class TransactionTests(unittest.TestCase):
         return UserStore(self.path)
 
     def tearDown(self):
-        if hasattr(self, "store"):
-            self.store.close()
+        if hasattr(self, "store") and hasattr(self.store, "close"):
+            try:
+                self.store.close()
+            except Exception:
+                pass
         try:
             self.temp.cleanup()
         except Exception:
@@ -276,8 +279,11 @@ class RecoveryUITests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self):
         self.patch.stop()
-        if hasattr(self, "store"):
-            self.store.close()
+        if hasattr(self, "store") and hasattr(self.store, "close"):
+            try:
+                self.store.close()
+            except Exception:
+                pass
         try:
             self.temp.cleanup()
         except Exception:

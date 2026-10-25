@@ -248,7 +248,11 @@ class PersistenceTests(unittest.IsolatedAsyncioTestCase):
         await DB.update_user(701, profile())
     async def asyncTearDown(self):
         self.patch.stop()
-        self.store.close()
+        if hasattr(self, "store") and hasattr(self.store, "close"):
+            try:
+                self.store.close()
+            except Exception:
+                pass
         try:
             self.temp.cleanup()
         except Exception:
