@@ -90,7 +90,7 @@ class LiveBoundary(unittest.IsolatedAsyncioTestCase):
             await fixtures.turn(s, 'attack', 'attack')
             losses.append(before - s.hp[defender])
             self.assertEqual(s.status.get_buff_bonus(defender, 'defense'), 0)
-        self.assertEqual(losses, [86, 86])
+        self.assertEqual(losses, [102, 102])
 
     async def test_one_turn_true_damage_same_in_both_orders(self):
         for attacker, defender in ((fixtures.P, fixtures.E), (fixtures.E, fixtures.P)):
@@ -121,13 +121,13 @@ class LiveBoundary(unittest.IsolatedAsyncioTestCase):
         self.add_rules(s, fixtures.P, [{'op': 'gimmick_chance', 'gimmick': 'critical_strike', 'value': 95}])
         before = s.hp[fixtures.E]
         await fixtures.turn(s, 'attack', 'charge')
-        self.assertEqual(before - s.hp[fixtures.E], 283)
+        self.assertEqual(before - s.hp[fixtures.E], 336)
         s = self.session('Attack', 'Unknown')
         s.type_gimmicks.forced.add((fixtures.P, 'critical_strike'))
         self.add_rules(s, fixtures.E, [{'op': 'gimmick_suppress', 'gimmick': 'critical_strike', 'target': 'enemy'}])
         before = s.hp[fixtures.E]
         await fixtures.turn(s, 'attack', 'charge')
-        self.assertEqual(before - s.hp[fixtures.E], 141)
+        self.assertEqual(before - s.hp[fixtures.E], 168)
 
     async def test_authored_cross_type_special_critical(self):
         normal, forced = self.session(), self.session()
@@ -148,7 +148,7 @@ class LiveBoundary(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(s.type_gimmicks.states[fixtures.P].adaptive_morph_active)
         before = s.hp[fixtures.E]
         await fixtures.turn(s, 'attack', 'charge')
-        self.assertEqual(before - s.hp[fixtures.E], 135)
+        self.assertEqual(before - s.hp[fixtures.E], 160)
         self.assertEqual(s.type_gimmicks.states[fixtures.P].adaptive_morph_rounds, 2)
         await fixtures.turn(s, 'attack', 'charge')
         self.assertEqual(s.type_gimmicks.states[fixtures.P].adaptive_morph_rounds, 1)
@@ -213,9 +213,9 @@ class BossBridge(unittest.TestCase):
         a.outgoing_amp, a.outgoing_flat = .5, 10
         with patch('random.random', return_value=0):
             report = boss_ai.resolve(a, b, 'attack', 'defense')
-        self.assertEqual(report['kinetic_return_a'], 53)
-        self.assertEqual(1000 - b.hp, 53)
-        self.assertEqual(1000 - a.hp, 53)
+        self.assertEqual(report['kinetic_return_a'], 60)
+        self.assertEqual(1000 - b.hp, 60)
+        self.assertEqual(1000 - a.hp, 60)
 
     def test_boss_shield_effect_precedes_type_mitigation(self):
         from cogs.battle.boss.boss_abilities import BossState
@@ -240,7 +240,7 @@ class BossBridge(unittest.TestCase):
             {'op': 'gimmick_bonus', 'gimmick': 'adaptive_morph', 'bonus': 'stats', 'value': 5}]}]
         with patch('random.random', return_value=.99):
             report = boss_ai.resolve(a, b, 'attack', 'charge')
-        self.assertEqual(report['dmg_to_b'], 94)
+        self.assertEqual(report['dmg_to_b'], 112)
         self.assertAlmostEqual(a.eff_attack, 315)  # bonus expires; Morph remains
         self.assertEqual(a.max_hp, 1050)
 
@@ -250,7 +250,7 @@ class BossBridge(unittest.TestCase):
             {'op': 'gimmick_force', 'gimmick': 'critical_strike'}]}]
         with patch('random.random', return_value=.99):
             result = boss_ai.resolve(a, b, 'attack', 'charge')
-        self.assertEqual(result['dmg_to_b'], 172)
+        self.assertEqual(result['dmg_to_b'], 204)
 
     def test_fractional_actual_kinetic_return_is_not_rounded_again(self):
         a, b = self.fighter('Attack'), self.fighter('Defense')

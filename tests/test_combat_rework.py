@@ -26,14 +26,15 @@ class FormulaTests(unittest.TestCase):
     def test_formula_equal_high_low_and_zero_defense(self):
         for attack, defense in ((300, 300), (400, 50), (50, 400), (300, 0), (300, .01)):
             with self.subTest(attack=attack, defense=defense):
-                expected = ((42 * 100 * attack / max(1, defense)) / 50) + 2
+                expected = ((50 * 100 * attack / max(1, defense)) / 50) + 2
                 self.assertAlmostEqual(base_damage(100, 100, attack, defense), expected)
-        self.assertEqual(base_damage(100, 100, 300, 300), 86)
+        self.assertEqual(base_damage(100, 100, 300, 300), 102)
+        self.assertEqual(hp_damage(base_damage(1, 100, 300, 300)), 42)
         self.assertEqual(hp_damage(172.9), 172)
 
     def test_calc_uses_formula_without_old_shield_gate(self):
         result = calc_damage('attack', {'attack': 300, 'level': 100}, {'defense': 300}, {}, 'attack')
-        self.assertEqual(result, (86, 0, 'mirror', False))
+        self.assertEqual(result, (102, 0, 'mirror', False))
 
     def test_stat_conversion(self):
         for stat in (100, 200, 400, 0, 1200):
@@ -310,8 +311,8 @@ class RealRounds(unittest.IsolatedAsyncioTestCase):
         b, p = buffed.hp[E], plain.hp[E]
         await turn(buffed, 'attack', 'attack')
         await turn(plain, 'attack', 'attack')
-        self.assertEqual(b - buffed.hp[E], 114)
-        self.assertEqual(p - plain.hp[E], 86)
+        self.assertEqual(b - buffed.hp[E], 135)
+        self.assertEqual(p - plain.hp[E], 102)
 
 
 class BossTests(unittest.TestCase):
@@ -321,10 +322,10 @@ class BossTests(unittest.TestCase):
 
     def test_boss_normal_formula_and_passive(self):
         a, b = self.fighter('Attack'), self.fighter('Defense')
-        self.assertAlmostEqual(boss_ai._raw_damage(a, dst=b), 94.4)
+        self.assertAlmostEqual(boss_ai._raw_damage(a, dst=b), 112.0)
         with patch('random.random', return_value=.99):
             result = boss_ai.resolve(a, b, 'attack', 'charge')
-        self.assertEqual(result['dmg_to_b'], 81)
+        self.assertEqual(result['dmg_to_b'], 96)
 
     def test_boss_critical_counter_and_clone(self):
         a, b = self.fighter('Attack'), self.fighter('Defense')
