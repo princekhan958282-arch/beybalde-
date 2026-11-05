@@ -13,6 +13,7 @@ Everything it does is in `worker.py`; this owns the schedule and the lifecycle.
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 import discord
 from discord import app_commands
@@ -37,6 +38,85 @@ def _is_owner(user) -> bool:
     return uid in admin_ids or uid == A.MASTER_ID
 
 
+# ── Public /whatsnew and /patchnotes ─────────────────────────────────────────
+class WhatsNewVersionSelect(discord.ui.Select):
+    def __init__(self, updates: list[dict], selected_id: str) -> None:
+        opts = []
+        for upd in updates[:25]:
+            uid = upd["update_id"]
+            ver = upd.get("version") or "v1.0"
+            title = upd.get("title") or "Update"
+            label = f"{ver} · {title}"[:100]
+            opts.append(discord.SelectOption(
+                label=label,
+                value=uid,
+                default=(uid == selected_id),
+                description=str(upd.get("event", "UPDATE_RELEASED"))[:100]
+            ))
+        super().__init__(placeholder="Select an update version…", options=opts, row=0)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        self.view.selected_id = self.values[0]
+        self.view.rebuild()
+        await interaction.response.edit_message(
+            embed=self.view.build_embed(), view=self.view)
+
+
+class WhatsNewCategoryButton(discord.ui.Button):
+    def __init__(self, cat_key: str, label: str, emoji: str, active: bool) -> None:
+        super().__init__(
+            label=label, emoji=emoji,
+            style=discord.ButtonStyle.primary if active else discord.ButtonStyle.secondary,
+            row=1)
+        self.cat_key = cat_key
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        self.view.filter_cat = self.cat_key
+        self.view.rebuild()
+        await interaction.response.edit_message(
+            embed=self.view.build_embed(), view=self.view)
+
+
+class WhatsNewView(discord.ui.View):
+    def __init__(self, bot: commands.Bot, selected_id: Optional[str] = None) -> None:
+        super().__init__(timeout=180)
+        self.bot = bot
+        self.updates = S.list_updates(25)
+        self.selected_id = selected_id or (self.updates[0]["update_id"] if self.updates else None)
+        self.filter_cat = "ALL"
+        self.rebuild()
+
+    def rebuild(self) -> None:
+        self.clear_items()
+        if self.updates:
+            self.add_item(WhatsNewVersionSelect(self.updates, self.selected_id))
+        for key, lbl, em in (("ALL", "All", "📜"), ("FEATURES", "Features", "✨"),
+                             ("BALANCE", "Balance", "⚖️"), ("FIXES", "Fixes", "🐛")):
+            self.add_item(WhatsNewCategoryButton(key, lbl, em, self.filter_cat == key))
+        upd = next((u for u in self.updates if u["update_id"] == self.selected_id), None)
+        if upd:
+            rew = (upd.get("audience") or {}).get("reward")
+            if rew:
+                self.add_item(W.UpdateClaimButton(upd["update_id"]))
+
+    def build_embed(self) -> discord.Embed:
+        if not self.updates:
+            return discord.Embed(
+                title="📣 Beycord Updates",
+                description="*No updates posted yet!*",
+                colour=COLOUR)
+        upd = next((u for u in self.updates if u["update_id"] == self.selected_id), self.updates[0])
+        e = W.build_embed(upd)
+        e.title = f"📣 {upd.get('title') or 'Beycord Update'}"
+        summary = S.feedback_summary(upd["update_id"])
+        if summary.get("total", 0) > 0:
+            e.add_field(
+                name="Community Feedback",
+                value=f"🔥 {summary.get('loved', 0)} · ⚖️ {summary.get('good', 0)} · ⚠️ {summary.get('issues', 0)}",
+                inline=True)
+        return e
+
+
 class NotificationCog(commands.Cog, name="Notifications"):
     """Update DMs out, player reports in."""
 
@@ -50,7 +130,7 @@ class NotificationCog(commands.Cog, name="Notifications"):
         # this a button pressed after a restart does nothing at all — the view
         # it belonged to died with the previous process.
         try:
-            self.bot.add_dynamic_items(R.ReportButton, W.UpdateDMButton)
+            self.bot.add_dynamic_items(R.ReportButton, W.UpdateDMButton, W.UpdateClaimButton, W.UpdateRatingButton)
         except Exception:                                # noqa: BLE001
             log.exception("[updates] could not register report buttons")
         self.delivery_loop.start()
@@ -174,6 +254,70 @@ class NotificationCog(commands.Cog, name="Notifications"):
             title="🔔  Your notifications", colour=COLOUR,
             description=P.summary(profile)),
             view=await PrefsView.create(ctx.author.id))
+
+
+# ── Update Channel Configuration ─────────────────────────────────────────
+    @commands.command(name="updatechannel",
+                      aliases=["patchchannel", "announceto"],
+                      brief="Set or clear the server's update announcement channel 📢")
+    @commands.has_permissions(manage_guild=True)
+    async def updatechannel(self, ctx: commands.Context, target: str = "") -> None:
+        if not ctx.guild:
+            return await ctx.send("This command must be run in a server.")
+        from utils.database import get_announce_channel, set_announce_channel
+        arg = (target or "").strip().lower()
+        if arg in ("off", "none", "clear", "unset"):
+            set_announce_channel(ctx.guild.id, None)
+            return await ctx.send("🚫 Update channel cleared for this server.")
+        if arg in ("here", "this", "set") or not target:
+            set_announce_channel(ctx.guild.id, ctx.channel.id)
+            return await ctx.send(f"📢 Server update announcements will now be posted in {ctx.channel.mention}!")
+        try:
+            ch = await commands.TextChannelConverter().convert(ctx, target)
+            set_announce_channel(ctx.guild.id, ch.id)
+            return await ctx.send(f"📢 Server update announcements will now be posted in {ch.mention}!")
+        except Exception:
+            cid = get_announce_channel(ctx.guild.id)
+            ch = ctx.guild.get_channel(cid) if cid else None
+            status = f"currently set to {ch.mention}" if ch else "not set yet"
+            await ctx.send(f"📢 Update channel is {status}. Use `;updatechannel here` to set it to this channel.")
+
+    @app_commands.command(name="updatechannel", description="Set or clear the server's update announcement channel")
+    @app_commands.describe(channel="Channel to receive game update announcements", clear="Set to True to clear the channel")
+    async def slash_updatechannel(self, interaction: discord.Interaction,
+                                  channel: Optional[discord.TextChannel] = None,
+                                  clear: bool = False) -> None:
+        if not interaction.guild:
+            return await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+        if not interaction.user.guild_permissions.manage_guild and not _is_owner(interaction.user):
+            return await interaction.response.send_message("You need `Manage Server` permission to configure this.", ephemeral=True)
+        from utils.database import get_announce_channel, set_announce_channel
+        if clear:
+            set_announce_channel(interaction.guild_id, None)
+            return await interaction.response.send_message("🚫 Update channel cleared for this server.", ephemeral=True)
+        if channel:
+            set_announce_channel(interaction.guild_id, channel.id)
+            return await interaction.response.send_message(f"📢 Server updates will now post in {channel.mention}!", ephemeral=True)
+        cid = get_announce_channel(interaction.guild_id)
+        ch = interaction.guild.get_channel(cid) if cid else None
+        status = f"currently {ch.mention}" if ch else "not set yet"
+        await interaction.response.send_message(f"📢 Update channel is {status}. Pick a channel to set it.", ephemeral=True)
+
+    # ── Public /whatsnew and /patchnotes ─────────────────────────────────────
+    @app_commands.command(name="whatsnew", description="Browse recent Beycord updates and patch notes")
+    async def whatsnew(self, interaction: discord.Interaction) -> None:
+        view = WhatsNewView(self.bot)
+        await interaction.response.send_message(embed=view.build_embed(), view=view)
+
+    @app_commands.command(name="patchnotes", description="Browse Beycord release notes and version history")
+    async def patchnotes(self, interaction: discord.Interaction) -> None:
+        view = WhatsNewView(self.bot)
+        await interaction.response.send_message(embed=view.build_embed(), view=view)
+
+    @commands.command(name="whatsnew", aliases=["patchnotes", "changelog"], brief="View recent updates 📣")
+    async def prefix_whatsnew(self, ctx: commands.Context) -> None:
+        view = WhatsNewView(self.bot)
+        await ctx.send(embed=view.build_embed(), view=view)
 
 
 def reports_embed(bot) -> discord.Embed:

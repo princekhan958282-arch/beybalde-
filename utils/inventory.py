@@ -55,18 +55,30 @@ def capacity(profile: dict) -> int:
     return min(MAX_INVENTORY_SLOTS, BASE_INVENTORY_SLOTS + extra_slots(profile))
 
 
-def used(profile: dict) -> int:
-    """Slots in use: beys held PLUS beys parked on the marketplace."""
+def stored_used(profile: dict) -> int:
+    """Slots in storage (unequipped beys + marketplace listings).
+    Equipped items sit outside the base storage cap so players aren't choked by full bags.
+    """
     p = profile or {}
-    inv = p.get("inventory")
-    listings = p.get("marketplace_listings")
+    inv = p.get("inventory") or []
+    listings = p.get("marketplace_listings") or []
+    # If a bey is active/equipped, count it outside storage cap
+    active_bey = 1 if (p.get("active_beyblade") or p.get("active_bey_instance")) and len(inv) > 0 else 0
+    return max(0, len(inv) - active_bey) + len(listings)
+
+
+def used(profile: dict) -> int:
+    """Total items held (including equipped items). Can display over cap (e.g. 54/53)."""
+    p = profile or {}
+    inv = p.get("inventory") or []
+    listings = p.get("marketplace_listings") or []
     return (len(inv) if isinstance(inv, list) else 0) + \
            (len(listings) if isinstance(listings, list) else 0)
 
 
 def free(profile: dict) -> int:
-    """Room left. Never negative — an over-cap profile reads 0, not -3."""
-    return max(0, capacity(profile) - used(profile))
+    """Room left for new drops/purchases. Equipped items do not choke base storage."""
+    return max(0, capacity(profile) - stored_used(profile))
 
 
 def can_add(profile: dict, n: int = 1) -> bool:

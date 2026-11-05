@@ -80,7 +80,7 @@ def tune() -> dict:
 
 
 def build_embed(upd: dict) -> discord.Embed:
-    """The DM a player actually receives."""
+    """The update embed a player or server channel receives."""
     emoji, label, colour = P.PRIORITY_LABEL.get(
         P.normalise(upd.get("priority")), P.PRIORITY_LABEL[P.NORMAL])
     title = f"{emoji} {upd.get('title') or 'Beycord'}"
@@ -89,12 +89,21 @@ def build_embed(upd: dict) -> discord.Embed:
                       colour=colour)
     if upd.get("image_url"):
         e.set_image(url=upd["image_url"])
+    reward = (upd.get("audience") or {}).get("reward")
+    if reward:
+        r_parts = []
+        if reward.get("coins"):
+            r_parts.append(f"🪙 **+{int(reward['coins']):,} Coins**")
+        if reward.get("exp"):
+            r_parts.append(f"⚡ **+{int(reward['exp']):,} EXP**")
+        if r_parts:
+            e.add_field(name="🎁 Update Reward",
+                        value=" · ".join(r_parts) + "\n*Tap [Claim Reward] below!*",
+                        inline=False)
     foot = ["Beycord"]
     if upd.get("version"):
         foot.append(str(upd["version"]))
     if not P.overrides_optout(upd.get("priority")):
-        # Only shown when the switch was actually consulted. Printing it on a
-        # Critical notice would be advertising an opt-out that does not apply.
         foot.append(";notifications to change what you receive")
     e.set_footer(text=" · ".join(foot)[:2048])
     return e
@@ -150,11 +159,137 @@ class UpdateDMButton(discord.ui.DynamicItem[discord.ui.Button],
             ephemeral=True)
 
 
-def update_dm_view(user_id: int, update_id: str) -> discord.ui.View:
+class UpdateClaimButton(discord.ui.DynamicItem[discord.ui.Button],
+                        template=r"beyclaim:(?P<update>[A-Za-z0-9_]+)"):
+    """Persistent claim button for update rewards."""
+
+    def __init__(self, update_id: str) -> None:
+        self.update_id = str(update_id)
+        super().__init__(discord.ui.Button(
+            label="Claim Reward", emoji="🎁", style=discord.ButtonStyle.success,
+            custom_id=f"beyclaim:{self.update_id}"))
+
+    @classmethod
+    async def from_custom_id(cls, interaction, item, match, /):
+        return cls(match["update"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        upd = S.get_update(self.update_id)
+        if not upd:
+            return await interaction.response.send_message(
+                "That update is no longer available.", ephemeral=True)
+        aud = upd.get("audience") or {}
+        reward = aud.get("reward")
+        if not reward:
+            return await interaction.response.send_message(
+                "No reward is attached to this update.", ephemeral=True)
+
+        claimed = S.claim_reward(self.update_id, str(interaction.user.id))
+        if not claimed:
+            return await interaction.response.send_message(
+                "🎁 You have already claimed this update's reward!", ephemeral=True)
+
+        from utils.database import mutate_user
+
+        coins_gained = int(reward.get("coins", 0) or 0)
+        exp_gained = int(reward.get("exp", 0) or 0)
+
+        def grant(profile):
+            if coins_gained > 0:
+                profile["coins"] = profile.get("coins", 0) + coins_gained
+            if exp_gained > 0:
+                profile["xp"] = profile.get("xp", 0) + exp_gained
+
+        await mutate_user(interaction.user.id, grant)
+
+        gains = []
+        if coins_gained > 0:
+            gains.append(f"🪙 **{coins_gained:,} Coins**")
+        if exp_gained > 0:
+            gains.append(f"⚡ **{exp_gained:,} EXP**")
+
+        await interaction.response.send_message(
+            f"🎁 **Reward Claimed!** You received {' and '.join(gains) or 'your rewards'}.",
+            ephemeral=True)
+
+
+class UpdateRatingButton(discord.ui.DynamicItem[discord.ui.Button],
+                         template=r"beyrate:(?P<update>[A-Za-z0-9_]+):(?P<val>loved|good|issues)"):
+    """Persistent community feedback buttons."""
+
+    LABELS = {
+        "loved": ("Loved it", "🔥", discord.ButtonStyle.secondary),
+        "good": ("Good", "⚖️", discord.ButtonStyle.secondary),
+        "issues": ("Issues", "⚠️", discord.ButtonStyle.secondary),
+    }
+
+    def __init__(self, update_id: str, val: str) -> None:
+        self.update_id = str(update_id)
+        self.val = str(val).lower()
+        label, emoji, style = self.LABELS.get(self.val, ("Feedback", "💬", discord.ButtonStyle.secondary))
+        super().__init__(discord.ui.Button(
+            label=label, emoji=emoji, style=style,
+            custom_id=f"beyrate:{self.update_id}:{self.val}"))
+
+    @classmethod
+    async def from_custom_id(cls, interaction, item, match, /):
+        return cls(match["update"], match["val"])
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        S.record_feedback(self.update_id, str(interaction.user.id), self.val)
+        summary = S.feedback_summary(self.update_id)
+        label = self.LABELS.get(self.val, (self.val,))[0]
+        await interaction.response.send_message(
+            f"Thanks for your feedback! (Recorded: **{label}** · Total feedback: {summary.get('total', 1):,})",
+            ephemeral=True)
+
+
+def update_view(user_id: Optional[int], update_id: str, is_dm: bool = True) -> discord.ui.View:
     view = discord.ui.View(timeout=None)
-    view.add_item(UpdateDMButton(user_id, update_id, "off"))
-    view.add_item(UpdateDMButton(user_id, update_id, "interested"))
+    upd = S.get_update(update_id) or {}
+    reward = (upd.get("audience") or {}).get("reward")
+    if reward:
+        view.add_item(UpdateClaimButton(update_id))
+    view.add_item(UpdateRatingButton(update_id, "loved"))
+    view.add_item(UpdateRatingButton(update_id, "good"))
+    view.add_item(UpdateRatingButton(update_id, "issues"))
+    if is_dm and user_id:
+        view.add_item(UpdateDMButton(user_id, update_id, "off"))
     return view
+
+
+def update_dm_view(user_id: int, update_id: str) -> discord.ui.View:
+    return update_view(user_id, update_id, is_dm=True)
+
+
+async def broadcast_guilds_async(bot, update_id: str) -> dict:
+    from utils.database import get_announce_channel
+    upd = S.get_update(update_id)
+    if not upd:
+        return {"sent": 0, "failed": 0}
+    embed = build_embed(upd)
+    view = update_view(None, update_id, is_dm=False)
+    sent, failed = 0, 0
+    for guild in getattr(bot, "guilds", []):
+        cid = get_announce_channel(guild.id)
+        if not cid:
+            continue
+        channel = guild.get_channel(cid) or bot.get_channel(cid)
+        if channel:
+            try:
+                await channel.send(embed=embed, view=view)
+                sent += 1
+            except Exception:
+                failed += 1
+    log.info("[updates] broadcast %s to %d server channels (%d failed)", update_id, sent, failed)
+    return {"sent": sent, "failed": failed}
+
+
+def broadcast_guilds(bot, update_id: str) -> None:
+    try:
+        asyncio.create_task(broadcast_guilds_async(bot, update_id))
+    except Exception:
+        pass
 
 
 class DeliveryWorker:

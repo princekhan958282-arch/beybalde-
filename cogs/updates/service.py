@@ -22,6 +22,7 @@ notification without taking a dependency on the notification system.
 from __future__ import annotations
 
 import logging
+import asyncio
 import time
 from typing import Optional
 
@@ -50,15 +51,26 @@ def create(*, event: str, title: str, body: str,
            version: Optional[str] = None,
            scheduled_at: Optional[float] = None,
            created_by: Optional[int] = None,
-           state: str = DRAFT) -> dict:
+           state: str = DRAFT,
+           reward: Optional[dict] = None,
+           fixed_reports: Optional[list[str]] = None,
+           broadcast_mode: str = "dms") -> dict:
     """Write an update row. Nothing is queued or sent."""
+    aud = dict(audience or {"kind": T.ALL})
+    if reward:
+        aud["reward"] = reward
+    if fixed_reports:
+        aud["fixed_reports"] = fixed_reports
+    if broadcast_mode:
+        aud["broadcast_mode"] = broadcast_mode
+
     row = {
         "update_id": S.new_id("upd"),
         "version": version,
         "title": (title or "Untitled")[:250],
         "body": body or "",
         "priority": P.normalise(priority),
-        "audience": audience or {"kind": T.ALL},
+        "audience": aud,
         "image_url": image_url or None,
         "event": str(event or "UPDATE_RELEASED").upper(),
         "created_by": str(created_by) if created_by else None,
@@ -81,15 +93,54 @@ def queue(bot, update_id: str) -> dict:
     upd = S.get_update(update_id)
     if not upd:
         raise LookupError(f"no such update: {update_id}")
-    res = T.resolve(bot, upd.get("audience") or {})
-    added = S.enqueue(update_id, res["ids"])
-    S.set_update_state(update_id, QUEUED)
+    aud = dict(upd.get("audience") or {})
+    b_mode = aud.get("broadcast_mode", "dms")
+
+    # 1. Server channel broadcast
+    guild_sent = 0
+    if b_mode in ("guilds", "both"):
+        from . import worker as W
+        W.broadcast_guilds(bot, update_id)
+
+    # 2. DMs enqueue
+    added, targeted_len, dropped, total_before = 0, 0, 0, 0
+    if b_mode in ("dms", "both"):
+        res = T.resolve(bot, aud)
+        added = S.enqueue(update_id, res["ids"])
+        targeted_len = len(res["ids"])
+        dropped = res["dropped_no_beys"]
+        total_before = res["total_before"]
+        S.set_update_state(update_id, QUEUED)
+    else:
+        # Guilds only: update is considered active
+        S.set_update_state(update_id, DONE)
+
+    # 3. Handle linked bug reports
+    fixed_reports = aud.get("fixed_reports") or []
+    if fixed_reports:
+        from . import reports as R
+        for rep_id in fixed_reports:
+            rep = S.get_report(rep_id)
+            if rep and rep.get("status") != R.FIXED:
+                S.set_report_status(rep_id, R.FIXED, handled_by=str(upd.get("created_by") or "system"))
+                if rep.get("user_id"):
+                    try:
+                        asyncio.create_task(notify_user(
+                            bot, int(rep["user_id"]),
+                            event="UPDATE_RELEASED",
+                            title=f"Bug Fixed in {upd.get('version') or 'Latest Update'}",
+                            body=(f"Your report (`{rep_id}`) has been marked as fixed in "
+                                  f"**{upd.get('title')}**!\nThank you for helping improve Beycord!"),
+                            priority=P.NORMAL))
+                    except Exception:
+                        pass
+
     log.info("[updates] %s queued: %d targeted, %d new rows, %d dropped "
-             "(no blades)", update_id, len(res["ids"]), added,
-             res["dropped_no_beys"])
-    return {"queued": added, "targeted": len(res["ids"]),
-            "dropped_no_beys": res["dropped_no_beys"],
-            "total_before": res["total_before"]}
+             "(no blades)", update_id, targeted_len, added, dropped)
+    return {"queued": added, "targeted": targeted_len,
+            "dropped_no_beys": dropped,
+            "total_before": total_before,
+            "broadcast_mode": b_mode}
 
 
 async def notify(bot, *, event: str, title: str, body: str,

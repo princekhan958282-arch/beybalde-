@@ -876,11 +876,45 @@ class ShopCog(commands.Cog, name="Shop"):
         from utils.bey_components import owned_parts
         items = owned_parts(profile)
         holders = {e['instance_id']: e['name'] for e in profile.get('bey_instances', [])}
-        rows = [f"**{p['name']}** · `{p['instance_id']}`\n"
-                f"HP {p['stats']['hp']} / ATK {p['stats']['attack']} / DEF {p['stats']['defense']} / STM {p['stats']['stamina']} · "
-                + (f"equipped on **{holders[p['equipped_on']]}** (`{p['equipped_on']}`)"
-                   if p["equipped_on"] else "available") for p in items]
-        rows += [f"**{n}** (Ring)" for n in profile.get("parts", []) if not REGISTRY.part(n)]
+
+        stacked: dict[str, dict] = {}
+        for p in items:
+            key = p["name"].casefold()
+            if key not in stacked:
+                stacked[key] = {
+                    "name": p["name"],
+                    "stats": p.get("stats") or {},
+                    "count": 0,
+                    "equipped": 0,
+                    "holders": []
+                }
+            stacked[key]["count"] += 1
+            if p.get("equipped_on"):
+                stacked[key]["equipped"] += 1
+                holder_name = holders.get(p["equipped_on"])
+                if holder_name and holder_name not in stacked[key]["holders"]:
+                    stacked[key]["holders"].append(holder_name)
+
+        rows = []
+        for p in stacked.values():
+            st = p["stats"]
+            avail = p["count"] - p["equipped"]
+            cnt_str = f" `{p['count']}x`" if p["count"] > 1 else ""
+            stat_str = f"HP {st.get('hp', 0)} / ATK {st.get('attack', 0)} / DEF {st.get('defense', 0)} / STM {st.get('stamina', 0)}"
+            if p["count"] > 1:
+                eq_str = f" · {p['equipped']} equipped, {avail} available"
+            elif p["equipped"]:
+                eq_str = f" · equipped on **{p['holders'][0] if p['holders'] else 'Bey'}**"
+            else:
+                eq_str = " · available"
+            rows.append(f"**{p['name']}**{cnt_str}\n{stat_str}{eq_str}")
+
+        from collections import Counter
+        legacy_rings = [n for n in profile.get("parts", []) if not REGISTRY.part(n)]
+        ring_counts = Counter(legacy_rings)
+        for r_name, r_cnt in ring_counts.items():
+            r_str = f" `{r_cnt}x`" if r_cnt > 1 else ""
+            rows.append(f"**{r_name}** (Ring){r_str}")
         if not rows:
             return await ctx.send("You do not own any parts yet.")
         pages = []
