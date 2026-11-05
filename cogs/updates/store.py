@@ -115,3 +115,20 @@ def reports_since(user_id, cutoff: float) -> int:
 
 def last_report_at(user_id) -> Optional[float]:
     return _store().reports_last_at(str(user_id))
+
+# ── Update Rewards & Feedback ────────────────────────────────────────────────
+def claim_reward(update_id: str, user_id: str) -> bool:
+    return _store().update_claim_reward(update_id, user_id)
+
+
+def has_claimed_reward(update_id: str, user_id: str) -> bool:
+    return _store().update_reward_claimed(update_id, user_id)
+
+
+def record_feedback(update_id: str, user_id: str, rating: str) -> None:
+    _store().update_record_feedback(update_id, user_id, rating)
+
+
+def feedback_summary(update_id: str) -> dict:
+    return _store().update_feedback_summary(update_id)
+

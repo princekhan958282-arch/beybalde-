@@ -230,19 +230,52 @@ class InventoryView(discord.ui.View):
 
         from utils.bey_components import owned_parts
         from utils.character_registry import REGISTRY
-        parts = []
+        raw_parts = []
         for cat in owned_parts(prof):
-            parts.append({"kind": "part", "name": cat["name"], "instance_id": cat["instance_id"],
+            raw_parts.append({
+                "kind": "part", "name": cat["name"], "instance_id": cat["instance_id"],
                 "ptype": cat["category"], "stat": cat.get("stat"), "stats": cat["stats"],
                 "bonus": cat.get("bonus", 0), "penalties": _part_penalties(cat),
-                "equipped": cat["equipped_on"] == prof.get("active_bey_instance"), "equipped_on": cat["equipped_on"]})
+                "equipped": cat["equipped_on"] == prof.get("active_bey_instance"),
+                "equipped_on": cat["equipped_on"]
+            })
         for nm in prof.get("parts", []):
             if REGISTRY.part(nm):
                 continue
             cat = _part_lookup(nm) or {}
-            parts.append({"kind": "part", "name": nm, "ptype": cat.get("type", "?"),
-                "stat": cat.get("stat"), "bonus": cat.get("bonus", 0),
-                "penalties": _part_penalties(cat), "equipped": nm in prof.get("equipped_parts", [])})
+            raw_parts.append({
+                "kind": "part", "name": nm, "instance_id": None,
+                "ptype": cat.get("type", "?"), "stat": cat.get("stat"),
+                "bonus": cat.get("bonus", 0), "penalties": _part_penalties(cat),
+                "equipped": nm in prof.get("equipped_parts", []),
+                "equipped_on": None
+            })
+
+        self._raw_parts = raw_parts
+        stacked = {}
+        for p in raw_parts:
+            key = p["name"].casefold()
+            if key not in stacked:
+                stacked[key] = {
+                    "kind": "part", "name": p["name"], "instance_id": p.get("instance_id"),
+                    "ptype": p.get("ptype", "?"), "stat": p.get("stat"), "stats": p.get("stats"),
+                    "bonus": p.get("bonus", 0), "penalties": p.get("penalties") or {},
+                    "count": 0, "equipped_count": 0, "equipped": False,
+                    "instances": [], "available_instances": [],
+                }
+            item = stacked[key]
+            item["count"] += 1
+            if p.get("equipped"):
+                item["equipped"] = True
+            if p.get("equipped_on") or p.get("equipped"):
+                item["equipped_count"] += 1
+            else:
+                if p.get("instance_id"):
+                    item["available_instances"].append(p["instance_id"])
+            if p.get("instance_id"):
+                item["instances"].append(p["instance_id"])
+
+        parts = list(stacked.values())
 
         self._cache = {"bey": beys, "copy": copies, "avatar": avatars,
                        "part": parts,
@@ -338,7 +371,8 @@ class InventoryView(discord.ui.View):
 
     def _line(self, idx: int, it: dict) -> str:
         eq = " ✅" if it.get("equipped") else ""
-        head = f"**{idx}.** {self._icon(it)} **{it['name']}**{eq}"
+        cnt_badge = f" `{it['count']}x`" if it.get("count", 1) > 1 else ""
+        head = f"**{idx}.** {self._icon(it)} **{it['name']}**{cnt_badge}{eq}"
         if it["kind"] == "bey":
             em  = RARITY_EMOJIS.get(it["rarity"], "")
             sub = f"{em} {self._stat_sub(it)}"
@@ -353,6 +387,9 @@ class InventoryView(discord.ui.View):
             sub = (" ".join(f"`{s[:3].upper()} {v:+}`" for s,v in it["stats"].items()) if it.get("stats") else f"`+{it['bonus']} {str(it.get('stat'))[:3].upper()}`")
             for _stat, _amt in (it.get("penalties") or {}).items():
                 sub += f" `-{_amt} {str(_stat)[:3].upper()}`"
+            if it.get("count", 1) > 1:
+                avail = it["count"] - it["equipped_count"]
+                sub += f" · {it['count']} owned ({it['equipped_count']} equipped, {avail} avail)"
         return f"{head}\n{sub}"
 
     def _stat_sub(self, it: dict) -> str:
@@ -432,12 +469,15 @@ class InventoryView(discord.ui.View):
             if it.get("image"):
                 e.set_thumbnail(url=it["image"])
         else:
+            avail = it.get("count", 1) - it.get("equipped_count", 0)
+            stock_line = f"\n📦 **Quantity**: `{it.get('count', 1)}x` total ({it.get('equipped_count', 0)} equipped, {avail} available)" if it.get("count", 1) > 1 else ""
             e.description = (
                 f"{str(it.get('ptype', '?')).title()}\n"
                 + (" ".join(f"`{s[:3].upper()} {v:+}`" for s,v in it["stats"].items()) if it.get("stats") else f"`+{it['bonus']} {str(it.get('stat')).upper()}`")
                 + "".join(f" `-{a} {str(s).upper()}`"
                           for s, a in (it.get("penalties") or {}).items())
-                + ("\n✅ **Equipped**" if it["equipped"] else "")
+                + stock_line
+                + ("\n✅ **Equipped on Active Bey**" if it.get("equipped") else "")
             )
         return e
 
@@ -692,7 +732,10 @@ class InventoryView(discord.ui.View):
         if not old:
             return None
         for it in self._cache.get(old["kind"], []):
-            if (it.get("instance_id") == old.get("instance_id") if old.get("instance_id")
+            if old.get("kind") == "part":
+                if str(it.get("name")).casefold() == str(old.get("name")).casefold():
+                    return it
+            elif (it.get("instance_id") == old.get("instance_id") if old.get("instance_id")
                     else it["name"] == old["name"]):
                 return it
         return None
@@ -724,7 +767,8 @@ class InventoryView(discord.ui.View):
         """Show the selected copy's build, even when another copy is active."""
         by_type = {}
         selected = (self.detail or {}).get("instance_id")
-        for part in self._cache.get("part", []):
+        parts_list = getattr(self, "_raw_parts", None) or self._cache.get("part", [])
+        for part in parts_list:
             if part.get("equipped_on") == selected and selected:
                 by_type[part.get("ptype")] = part["name"]
             elif not selected and part.get("equipped"):

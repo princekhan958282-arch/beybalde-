@@ -136,6 +136,21 @@ CREATE INDEX IF NOT EXISTS idx_reports_user_time
 CREATE INDEX IF NOT EXISTS idx_reports_status
     ON reports(status, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS update_reward_claims (
+    update_id  TEXT NOT NULL,
+    user_id    TEXT NOT NULL,
+    claimed_at REAL NOT NULL,
+    PRIMARY KEY (update_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS update_feedback (
+    update_id TEXT NOT NULL,
+    user_id   TEXT NOT NULL,
+    rating    TEXT NOT NULL,
+    voted_at  REAL NOT NULL,
+    PRIMARY KEY (update_id, user_id)
+);
+
 -- ── Community systems (main server only) ─────────────────────────────────────
 -- Config lives in a TABLE and not in data/config.json for the durability reason
 -- spelled out above: config.json is a local file, so on the MySQL deployment it
@@ -659,6 +674,43 @@ class UserStore:
         conn.execute("UPDATE update_deliveries SET state = 'PENDING' "
                      "WHERE state = 'SENDING'")
         return conn.total_changes - before
+
+    # ── Update Rewards & Feedback ────────────────────────────────────────────
+    def update_claim_reward(self, update_id: str, user_id: str, *,
+                            now: Optional[float] = None) -> bool:
+        """Claim an update's reward for a user. Returns True if claimed, False if already claimed."""
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        conn = self._conn()
+        before = conn.total_changes
+        conn.execute(
+            "INSERT OR IGNORE INTO update_reward_claims (update_id, user_id, claimed_at) "
+            "VALUES (?, ?, ?)", (str(update_id), str(user_id), ts))
+        return (conn.total_changes - before) > 0
+
+    def update_reward_claimed(self, update_id: str, user_id: str) -> bool:
+        self.ensure_ready()
+        row = self._conn().execute(
+            "SELECT 1 FROM update_reward_claims WHERE update_id = ? AND user_id = ?",
+            (str(update_id), str(user_id))).fetchone()
+        return bool(row)
+
+    def update_record_feedback(self, update_id: str, user_id: str, rating: str, *,
+                               now: Optional[float] = None) -> None:
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        self._conn().execute(
+            "INSERT OR REPLACE INTO update_feedback (update_id, user_id, rating, voted_at) "
+            "VALUES (?, ?, ?, ?)", (str(update_id), str(user_id), str(rating).lower(), ts))
+
+    def update_feedback_summary(self, update_id: str) -> dict:
+        self.ensure_ready()
+        rows = self._conn().execute(
+            "SELECT rating, COUNT(*) AS n FROM update_feedback "
+            "WHERE update_id = ? GROUP BY rating", (str(update_id),)).fetchall()
+        tally = {r["rating"]: int(r["n"]) for r in rows}
+        tally["total"] = sum(tally.values())
+        return tally
 
     def deliveries_drop_pending(self, update_id: str) -> int:
         """Cancel: forget what has not gone out. Sent rows are left alone."""

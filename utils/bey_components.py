@@ -305,25 +305,45 @@ def assemble(profile: dict, blade: dict) -> tuple[dict, dict]:
 
 
 def detach_bey(profile, name):
-    """Remove first named copy into escrow with its two attached components.
+    """Remove named or instance-matching copy into escrow with its attached components.
 
     Available components remain with the sender; purchased parts move their
     legacy ownership name too. Caller must save/transfer the returned bundle.
     """
     reconcile(profile)
-    index = next((i for i, item in enumerate(profile["inventory"]) if _name(item) == name), None)
+    # Match by instance_id first if supplied, or case-insensitive name
+    index = next((i for i, item in enumerate(profile.get("inventory", []))
+                  if (i < len(profile.get("bey_instances", [])) and profile["bey_instances"][i].get("instance_id") == name)
+                  or _name(item).casefold() == str(name).casefold()), None)
     if index is None:
         raise EquipmentError("That Bey is no longer owned.")
     item = profile["inventory"].pop(index)
     entry = profile["bey_instances"].pop(index)
-    attached = set(entry["parts"].values())
-    components = [i for i in profile["part_instances"] if i["instance_id"] in attached]
-    profile["part_instances"] = [i for i in profile["part_instances"] if i["instance_id"] not in attached]
+    attached = set(entry.get("parts", {}).values())
+    components = [i for i in profile.get("part_instances", []) if i["instance_id"] in attached]
+    profile["part_instances"] = [i for i in profile.get("part_instances", []) if i["instance_id"] not in attached]
+
+    # Clean up profile["parts"] safely with case-insensitive matching
     for component in components:
         part = REGISTRY.part(component["definition_id"])
-        if part.get("source") != "beyblade_default":
-            profile["parts"].remove(part["name"])
-    if profile.get("active_bey_instance") == entry["instance_id"]:
+        if part and part.get("source") != "beyblade_default":
+            target_case = str(part["name"]).casefold()
+            for p_idx, p_name in enumerate(profile.get("parts", [])):
+                if str(p_name).casefold() == target_case:
+                    profile["parts"].pop(p_idx)
+                    break
+
+    # Clean up profile["equipped_parts"] for detached parts
+    for component in components:
+        part = REGISTRY.part(component["definition_id"])
+        if part:
+            p_case = str(part["name"]).casefold()
+            profile["equipped_parts"] = [
+                ep for ep in profile.get("equipped_parts", [])
+                if str(ep).casefold() != p_case
+            ]
+
+    if profile.get("active_bey_instance") == entry.get("instance_id"):
         profile["active_beyblade"] = None
         profile["active_bey_instance"] = None
     reconcile(profile)

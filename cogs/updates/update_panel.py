@@ -116,18 +116,35 @@ class ComposeModal(discord.ui.Modal, title="📣 New update"):
             max_length=1800, required=True, default=drafted)
         self.image_in = discord.ui.TextInput(
             label="Image URL (optional)", required=False, max_length=400)
-        for item in (self.title_in, self.body_in, self.image_in):
+        self.reward_in = discord.ui.TextInput(
+            label="Reward (optional, e.g. 500 coins, 50 exp)",
+            placeholder="500 coins", required=False, max_length=50)
+        for item in (self.title_in, self.body_in, self.image_in, self.reward_in):
             self.add_item(item)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
+        import re
+        rew_text = str(self.reward_in.value or "").strip().lower()
+        reward = {}
+        if rew_text:
+            m_coins = re.search(r"(\d+)\s*(?:coins?|c)", rew_text) or re.search(r"coins?:\s*(\d+)", rew_text)
+            if m_coins:
+                reward["coins"] = int(m_coins.group(1))
+            elif rew_text.isdigit():
+                reward["coins"] = int(rew_text)
+            m_exp = re.search(r"(\d+)\s*(?:exp|xp)", rew_text) or re.search(r"(?:exp|xp):\s*(\d+)", rew_text)
+            if m_exp:
+                reward["exp"] = int(m_exp.group(1))
+
         row = SV.create(
             event="UPDATE_RELEASED",
             title=str(self.title_in.value).strip(),
             body=str(self.body_in.value).strip(),
             image_url=(str(self.image_in.value).strip() or None),
             priority=P.NORMAL,
-            audience={"kind": T.ALL, "skip_no_beys": True},
-            created_by=interaction.user.id)
+            audience={"kind": T.ALL, "skip_no_beys": True, "broadcast_mode": "both"},
+            created_by=interaction.user.id,
+            reward=reward or None)
         set_draft(interaction.user.id, row["update_id"])
         from utils.buildinfo import VERSION
         S.put_update({**row, "version": VERSION})
@@ -280,6 +297,33 @@ class SendButton(discord.ui.Button):
               "watch it.", ephemeral=True)
 
 
+
+class BroadcastModeSelect(discord.ui.Select):
+    def __init__(self, update_id: str, cog=None) -> None:
+        upd = S.get_update(update_id) or {}
+        cur = (upd.get("audience") or {}).get("broadcast_mode", "both")
+        opts = [
+            discord.SelectOption(label="DMs & Server Channels", value="both", emoji="🚀",
+                                 description="Deliver to DMs and announce channels", default=(cur == "both")),
+            discord.SelectOption(label="DMs Only", value="dms", emoji="📬",
+                                 description="Send direct messages to targeted players", default=(cur == "dms")),
+            discord.SelectOption(label="Server Channels Only", value="guilds", emoji="📢",
+                                 description="Post only to configured server update channels", default=(cur == "guilds")),
+        ]
+        super().__init__(placeholder="Delivery route…", options=opts, row=2)
+        self.update_id = update_id
+        self.cog = cog
+
+    async def callback(self, interaction: discord.Interaction) -> None:
+        upd = S.get_update(self.update_id)
+        if upd:
+            aud = dict(upd.get("audience") or {})
+            aud["broadcast_mode"] = self.values[0]
+            S.put_update({**upd, "audience": aud})
+        await interaction.response.edit_message(
+            embed=_draft_card(self.update_id),
+            view=ComposeView(self.update_id, self.cog))
+
 class ComposeView(discord.ui.View):
     def __init__(self, update_id: str, cog=None) -> None:
         super().__init__(timeout=900)
@@ -287,6 +331,7 @@ class ComposeView(discord.ui.View):
         self.cog = cog
         self.add_item(PrioritySelect(update_id, cog))
         self.add_item(AudienceSelect(update_id, cog))
+        self.add_item(BroadcastModeSelect(update_id, cog))
         self.add_item(SkipNoBeysButton(update_id, cog))
         self.add_item(PreviewButton(update_id, cog))
         self.add_item(SendButton(update_id, cog))
@@ -296,11 +341,26 @@ def _draft_card(update_id: str) -> discord.Embed:
     upd = S.get_update(update_id) or {}
     emoji, label, colour = P.PRIORITY_LABEL.get(
         P.normalise(upd.get("priority")), P.PRIORITY_LABEL[P.NORMAL])
+    aud = upd.get("audience") or {}
     e = discord.Embed(title=f"📝 Draft · {upd.get('title', '?')}"[:250],
                       description=(upd.get("body") or "")[:1000],
                       colour=colour)
     e.add_field(name="Priority", value=f"{emoji} {label}", inline=True)
+    b_mode = aud.get("broadcast_mode", "both")
+    b_label = {"both": "🚀 DMs & Server Channels", "dms": "📬 DMs Only", "guilds": "📢 Server Channels Only"}.get(b_mode, b_mode)
+    e.add_field(name="Delivery", value=b_label, inline=True)
     e.add_field(name="Audience",
-                value=T.describe(upd.get("audience") or {}), inline=False)
+                value=T.describe(aud), inline=False)
+    if aud.get("reward"):
+        rew = aud["reward"]
+        rew_desc = []
+        if rew.get("coins"): rew_desc.append(f"🪙 {int(rew['coins']):,} Coins")
+        if rew.get("exp"): rew_desc.append(f"⚡ {int(rew['exp']):,} EXP")
+        e.add_field(name="🎁 Reward Attached", value=" · ".join(rew_desc) or "None", inline=False)
+    summary = S.feedback_summary(update_id)
+    if summary.get("total", 0) > 0:
+        e.add_field(name="Feedback",
+                    value=f"🔥 {summary.get('loved', 0)} · ⚖️ {summary.get('good', 0)} · ⚠️ {summary.get('issues', 0)}",
+                    inline=False)
     e.set_footer(text=f"{update_id} · 👁️ Preview it, then 🚀 Send when ready.")
     return e

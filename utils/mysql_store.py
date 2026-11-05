@@ -133,6 +133,25 @@ CREATE TABLE IF NOT EXISTS reports (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 """
 
+_SCHEMA_UPDATE_REWARDS = """
+CREATE TABLE IF NOT EXISTS update_reward_claims (
+    update_id  VARCHAR(64) NOT NULL,
+    user_id    VARCHAR(32) NOT NULL,
+    claimed_at DOUBLE      NOT NULL,
+    PRIMARY KEY (update_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
+_SCHEMA_UPDATE_FEEDBACK = """
+CREATE TABLE IF NOT EXISTS update_feedback (
+    update_id VARCHAR(64) NOT NULL,
+    user_id   VARCHAR(32) NOT NULL,
+    rating    VARCHAR(32) NOT NULL,
+    voted_at  DOUBLE      NOT NULL,
+    PRIMARY KEY (update_id, user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
 # ── Community systems (main server only) ─────────────────────────────────────
 # The SQLite twin of every table below is in userstore.py, with the reasoning.
 # The short version: config lives in a TABLE because config.json does not
@@ -319,6 +338,8 @@ class MySQLStore:
                 cur.execute(_SCHEMA_UPDATES)
                 cur.execute(_SCHEMA_DELIVERIES)
                 cur.execute(_SCHEMA_REPORTS)
+                cur.execute(_SCHEMA_UPDATE_REWARDS)
+                cur.execute(_SCHEMA_UPDATE_FEEDBACK)
                 cur.execute(_SCHEMA_COMMUNITY_CONFIG)
                 cur.execute(_SCHEMA_POLLS)
                 cur.execute(_SCHEMA_POLL_VOTES)
@@ -722,6 +743,45 @@ class MySQLStore:
             cur.execute("SELECT DISTINCT update_id FROM update_deliveries "
                         "WHERE state IN ('PENDING','RETRY')")
             return [r["update_id"] for r in (cur.fetchall() or [])]
+
+    # ── Update Rewards & Feedback ────────────────────────────────────────────
+    def update_claim_reward(self, update_id: str, user_id: str, *,
+                            now: Optional[float] = None) -> bool:
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        with self._conn().cursor() as cur:
+            cur.execute(
+                "INSERT IGNORE INTO update_reward_claims (update_id, user_id, claimed_at) "
+                "VALUES (%s, %s, %s)", (str(update_id), str(user_id), ts))
+            return bool(cur.rowcount and cur.rowcount > 0)
+
+    def update_reward_claimed(self, update_id: str, user_id: str) -> bool:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute(
+                "SELECT 1 FROM update_reward_claims WHERE update_id = %s AND user_id = %s",
+                (str(update_id), str(user_id)))
+            return bool(cur.fetchone())
+
+    def update_record_feedback(self, update_id: str, user_id: str, rating: str, *,
+                               now: Optional[float] = None) -> None:
+        self.ensure_ready()
+        ts = time.time() if now is None else float(now)
+        with self._conn().cursor() as cur:
+            cur.execute(
+                "REPLACE INTO update_feedback (update_id, user_id, rating, voted_at) "
+                "VALUES (%s, %s, %s, %s)", (str(update_id), str(user_id), str(rating).lower(), ts))
+
+    def update_feedback_summary(self, update_id: str) -> dict:
+        self.ensure_ready()
+        with self._conn().cursor() as cur:
+            cur.execute(
+                "SELECT rating, COUNT(*) AS n FROM update_feedback "
+                "WHERE update_id = %s GROUP BY rating", (str(update_id),))
+            rows = cur.fetchall() or []
+            tally = {r["rating"]: int(r["n"]) for r in rows}
+            tally["total"] = sum(tally.values())
+            return tally
 
     def users_never_received(self, update_id: str,
                              limit: Optional[int] = None) -> list[int]:
