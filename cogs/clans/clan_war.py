@@ -15,14 +15,16 @@ Why this shape rather than a bracket of 1v1s:
 
 Wars live in data/clan_wars.json.
 
-    ;clan war @Clan <stake>   → declare (owner only)
-    ;clan war accept          → accept a declaration (owner only)
-    ;clan war decline         → refuse
-    ;clan war status          → live scoreboard
-    ;clan war history         → past wars
+Commands (supported as either `;clanwar ...` / `;war ...` or `;clan war ...`):
+    ;clanwar declare <clan> <stake>  → declare war (owner only)
+    ;clanwar accept                  → accept an incoming declaration (owner only)
+    ;clanwar decline                 → decline or cancel a pending declaration
+    ;clanwar status                  → live scoreboard
+    ;clanwar history                 → past wars
 """
 
 import os
+import re
 import threading
 import time
 import uuid
@@ -37,7 +39,7 @@ from utils.mobile_ui import MobileListView
 from . import clan_data as cd
 
 WARS_PATH      = os.path.join(BASE_DIR, "data", "clan_wars.json")
-_lock          = threading.Lock()
+_lock          = threading.RLock()
 
 WAR_DURATION   = 24 * 3600     # seconds a war runs for
 DECLARE_TTL    = 6 * 3600      # how long an unanswered declaration stands
@@ -64,9 +66,13 @@ def _save(data: dict) -> None:
 
 # ── War lookup ────────────────────────────────────────────────────────────────
 def war_for_clan(clan_id: str) -> Optional[dict]:
-    for w in _load()["wars"].values():
-        if clan_id in (w["a"], w["b"]):
-            return w
+    with _lock:
+        data = _load()
+        if _expire(data):
+            _save(data)
+        for w in data["wars"].values():
+            if clan_id in (w["a"], w["b"]):
+                return w
     return None
 
 
@@ -83,6 +89,16 @@ def _expire(data: dict) -> bool:
 class ClanWarCog(commands.Cog, name="Clan Wars"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self._settler = None
+
+    async def cog_load(self):
+        if self._settler is None:
+            self._settler = self.bot.loop.create_task(self._settle_loop())
+
+    async def cog_unload(self):
+        if self._settler:
+            self._settler.cancel()
+            self._settler = None
 
     # ── Battle hook: every win scores for the winner's clan ──────────────────
     @commands.Cog.listener()
@@ -94,6 +110,15 @@ class ClanWarCog(commands.Cog, name="Clan Wars"):
             clan = cd.clan_of(int(winner))
             if clan is None:
                 return
+
+            # Check participants to prevent wintrading between members of the same clan
+            participants = result.get("participants") or []
+            if len(participants) == 2:
+                p1_clan = cd.clan_of(int(participants[0]))
+                p2_clan = cd.clan_of(int(participants[1]))
+                if p1_clan and p2_clan and p1_clan["id"] == p2_clan["id"]:
+                    return
+
             with _lock:
                 data = _load()
                 war  = None
@@ -116,7 +141,7 @@ class ClanWarCog(commands.Cog, name="Clan Wars"):
     # ── Background: settle wars whose clock ran out ──────────────────────────
     @commands.Cog.listener()
     async def on_ready(self):
-        if getattr(self, "_settler", None) is None:
+        if self._settler is None:
             self._settler = self.bot.loop.create_task(self._settle_loop())
 
     async def _settle_loop(self):
@@ -157,13 +182,19 @@ class ClanWarCog(commands.Cog, name="Clan Wars"):
             outcome, winner_id = "draw", None
         else:
             winner_id = war["a"] if sa > sb else war["b"]
+            loser_id  = war["b"] if winner_id == war["a"] else war["a"]
             if cd.get_clan(winner_id):
                 cd.update_treasury(winner_id, pot)
+                w_clan = cd.get_clan(winner_id)
+                if w_clan:
+                    cd.set_field(winner_id, "wins", w_clan.get("wins", 0) + 1)
+                l_clan = cd.get_clan(loser_id)
+                if l_clan:
+                    cd.set_field(loser_id, "losses", l_clan.get("losses", 0) + 1)
             else:
                 # Winning clan disbanded mid-war — refund the loser instead
-                loser = war["b"] if winner_id == war["a"] else war["a"]
-                if cd.get_clan(loser):
-                    cd.update_treasury(loser, war["stake"])
+                if cd.get_clan(loser_id):
+                    cd.update_treasury(loser_id, war["stake"])
             outcome = "win"
 
         with _lock:
@@ -212,16 +243,34 @@ class ClanWarCog(commands.Cog, name="Clan Wars"):
         except Exception:
             pass
 
-    # ── Commands ─────────────────────────────────────────────────────────────
-    @commands.group(name="clanwar", aliases=["cwar", "war"],
-                    invoke_without_command=True)
-    async def clanwar(self, ctx: commands.Context):
-        """⚔️ Clan war status."""
-        await self.war_status(ctx)
+    # ── Action methods ───────────────────────────────────────────────────────
+    async def do_war_declare(self, ctx: commands.Context, *args):
+        if len(args) < 2:
+            return await ctx.send(
+                "❌ Usage: `;clanwar declare <clan name|tag> <stake>`\n"
+                f"Minimum stake: 🪙 {MIN_STAKE:,} from your treasury.")
 
-    @clanwar.command(name="declare", aliases=["challenge", "start"])
-    async def war_declare(self, ctx: commands.Context, target: str = None,
-                          stake: int = 0):
+        # Support flexible arguments: <target> <stake> or <stake> <target>
+        stake = None
+        target = None
+        cleaned_first = str(args[0]).replace(",", "").replace("_", "")
+        cleaned_last  = str(args[-1]).replace(",", "").replace("_", "")
+
+        if cleaned_first.isdigit() and not cleaned_last.isdigit():
+            stake = int(cleaned_first)
+            target = " ".join(str(a) for a in args[1:]).strip()
+        elif cleaned_last.isdigit():
+            stake = int(cleaned_last)
+            target = " ".join(str(a) for a in args[:-1]).strip()
+        else:
+            try:
+                stake = int(cleaned_last)
+                target = " ".join(str(a) for a in args[:-1]).strip()
+            except ValueError:
+                return await ctx.send(
+                    "❌ Please specify a valid integer stake amount.\n"
+                    "Usage: `;clanwar declare <clan name|tag> <stake>`")
+
         if not target or stake <= 0:
             return await ctx.send(
                 "❌ Usage: `;clanwar declare <clan name|tag> <stake>`\n"
@@ -233,7 +282,13 @@ class ClanWarCog(commands.Cog, name="Clan Wars"):
         if mine["owner_id"] != ctx.author.id:
             return await ctx.send("❌ Only the clan owner can declare war.")
 
-        theirs = cd.find_by_name(target)
+        theirs = None
+        mention_match = re.match(r"^<@!?(\d+)>$", target)
+        if mention_match:
+            theirs = cd.clan_of(int(mention_match.group(1)))
+        if theirs is None:
+            theirs = cd.find_by_name(target)
+
         if theirs is None:
             return await ctx.send(f"❌ No clan called **{target}**.")
         if theirs["id"] == mine["id"]:
@@ -254,9 +309,58 @@ class ClanWarCog(commands.Cog, name="Clan Wars"):
         if war_for_clan(theirs["id"]):
             return await ctx.send(f"❌ **{theirs['name']}** is already in a war.")
 
-        # _lock is a threading.Lock — nothing may be awaited while it is held,
-        # or the coroutine parks with the lock taken and the next war command
-        # blocks the event loop on it. Decide here, reply after.
+        error = None
+        war   = None
+        with _lock:
+            data = _load()
+            _expire(data)
+            if any(mine["id"] in (w["a"], w["b"]) for w in data["wars"].values()):
+                error = "❌ Your clan already has a war pending or active."
+            elif any(theirs["id"] in (w["a"], w["b"]) for w in data["wars"].values()):
+                error = f"❌ **{theirs['name']}** is already in a war."
+            else:
+                war_id = uuid.uuid4().hex[:8]
+                war = {
+                    "id":          war_id,
+                    "a":           mine["id"],
+                    "b":           theirs["id"],
+                    "a_name":      mine["name"],
+                    "b_name":      theirs["name"],
+                    "stake":       stake,
+                    "state":       "pending",
+                    "declared_at": time.time(),
+                    "channel_id":  ctx.channel.id,
+                    "score_a":     0,
+                    "score_b":     0,
+                    "scorers":     {},
+                }
+                data["wars"][war_id] = war
+                _save(data)
+
+        if error:
+            return await ctx.send(error)
+
+        e = discord.Embed(
+            title="⚔️  Clan War Declared!",
+            description=(
+                f"**[{mine['tag']}] {mine['name']}** has challenged "
+                f"**[{theirs['tag']}] {theirs['name']}** to war!\n\n"
+                f"Stake: 🪙 **{stake:,}** each (Pot: 🪙 **{stake * 2:,}**)\n"
+                f"Expires: <t:{int(war['declared_at'] + DECLARE_TTL)}:R>\n\n"
+                f"<@{theirs['owner_id']}> can accept with `;clanwar accept` "
+                f"or decline with `;clanwar decline`."
+            ),
+            color=0xe67e22,
+        )
+        await ctx.send(embed=e)
+
+    async def do_war_accept(self, ctx: commands.Context):
+        mine = cd.clan_of(ctx.author.id)
+        if mine is None:
+            return await ctx.send("❌ You're not in a clan.")
+        if mine["owner_id"] != ctx.author.id:
+            return await ctx.send("❌ Only the clan owner can accept a war.")
+
         error = None
         war   = None
         with _lock:
@@ -316,26 +420,29 @@ class ClanWarCog(commands.Cog, name="Clan Wars"):
         )
         await ctx.send(embed=e)
 
-    @clanwar.command(name="decline", aliases=["reject"])
-    async def war_decline(self, ctx: commands.Context):
+    async def do_war_decline(self, ctx: commands.Context):
         mine = cd.clan_of(ctx.author.id)
         if mine is None:
             return await ctx.send("❌ You're not in a clan.")
         if mine["owner_id"] != ctx.author.id:
-            return await ctx.send("❌ Only the clan owner can decline.")
+            return await ctx.send("❌ Only the clan owner can decline or cancel a war.")
         with _lock:
             data = _load()
+            _expire(data)
             war = next((w for w in data["wars"].values()
-                        if w["state"] == "pending" and w["b"] == mine["id"]), None)
+                        if w["state"] == "pending" and mine["id"] in (w["a"], w["b"])), None)
             if war is not None:
                 data["wars"].pop(war["id"], None)
                 _save(data)
         if war is None:
-            return await ctx.send("❌ Nothing to decline.")
-        await ctx.send(f"🕊️ Declined the war from **{war['a_name']}**.")
+            return await ctx.send("❌ No pending war declaration to decline or cancel.")
+        if war["a"] == mine["id"]:
+            await ctx.send(f"🕊️ Cancelled your war declaration against **{war['b_name']}**.")
+        else:
+            await ctx.send(f"🕊️ Declined the war from **{war['a_name']}**.")
 
-    @clanwar.command(name="status", aliases=["score"])
-    async def war_status(self, ctx: commands.Context):
+    async def do_war_status(self, ctx: commands.Context):
+        await self._settle_due()
         mine = cd.clan_of(ctx.author.id)
         if mine is None:
             return await ctx.send("❌ You're not in a clan. `;clan list` to find one.")
@@ -378,8 +485,7 @@ class ClanWarCog(commands.Cog, name="Clan Wars"):
         e.set_footer(text="Every battle win by a member scores a point")
         await ctx.send(embed=e)
 
-    @clanwar.command(name="history", aliases=["past"])
-    async def war_history(self, ctx: commands.Context):
+    async def do_war_history(self, ctx: commands.Context):
         hist = _load()["history"]
         if not hist:
             return await ctx.send("No wars have been fought yet.")
@@ -399,6 +505,33 @@ class ClanWarCog(commands.Cog, name="Clan Wars"):
             footer="most recent first",
         )
         view.message = await ctx.send(embed=view.embed(), view=view)
+
+    # ── Commands ─────────────────────────────────────────────────────────────
+    @commands.group(name="clanwar", aliases=["cwar", "war"],
+                    invoke_without_command=True)
+    async def clanwar(self, ctx: commands.Context):
+        """⚔️ Clan war status."""
+        await self.do_war_status(ctx)
+
+    @clanwar.command(name="declare", aliases=["challenge", "start"])
+    async def war_declare(self, ctx: commands.Context, *args):
+        await self.do_war_declare(ctx, *args)
+
+    @clanwar.command(name="accept")
+    async def war_accept(self, ctx: commands.Context):
+        await self.do_war_accept(ctx)
+
+    @clanwar.command(name="decline", aliases=["reject", "cancel"])
+    async def war_decline(self, ctx: commands.Context):
+        await self.do_war_decline(ctx)
+
+    @clanwar.command(name="status", aliases=["score"])
+    async def war_status(self, ctx: commands.Context):
+        await self.do_war_status(ctx)
+
+    @clanwar.command(name="history", aliases=["past"])
+    async def war_history(self, ctx: commands.Context):
+        await self.do_war_history(ctx)
 
 
 async def setup(bot: commands.Bot):

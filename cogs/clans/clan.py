@@ -19,6 +19,7 @@ takes coins out of circulation until someone withdraws them.
     ;clan withdraw <amount>    → owner only
     ;clan desc <text>          → set the description
     ;clan open / ;clan closed  → toggle who can join
+    ;clan war <clan> <stake>   → declare clan war
 """
 
 import time
@@ -95,7 +96,8 @@ class ClanCog(commands.Cog, name="Clans"):
         e.add_field(
             name="Combat",
             value=(f"🏆 {power['rank_score']:,} pts\n"
-                   f"⚔ {power['wins']}W/{power['losses']}L"),
+                   f"⚔ {power['wins']}W/{power['losses']}L\n"
+                   f"🛡️ Wars: {clan.get('wins', 0)}W/{clan.get('losses', 0)}L"),
             inline=True,
         )
         e.set_footer(text=f"{power['blades']:,} blades  •  "
@@ -122,8 +124,8 @@ class ClanCog(commands.Cog, name="Clans"):
                 f"**Join one** — `;clan list` to browse, then `;clan join <tag>`\n"
                 f"**Start one** — `;clan create <tag> <name>` "
                 f"(costs 🪙 {cd.CREATE_COST:,})\n\n"
-                "Clans give you a shared treasury, a combined leaderboard, and "
-                "a tag next to your name."
+                "Clans give you a shared treasury, a combined leaderboard, "
+                "clan wars against rivals, and a tag next to your name."
             ),
             color=0x9b59b6,
         )
@@ -350,9 +352,59 @@ class ClanCog(commands.Cog, name="Clans"):
         cd.set_field(clan["id"], "open", False)
         await ctx.send("🔒 Clan is now **invite only** — use `;clan invite @user`.")
 
+    # ── war subcommands ──────────────────────────────────────────────────────
+    @clan.group(name="war", aliases=["wars"], invoke_without_command=True)
+    async def clan_war_group(self, ctx: commands.Context):
+        """⚔️ Clan wars."""
+        cw = self.bot.get_cog("Clan Wars")
+        if cw:
+            await cw.do_war_status(ctx)
+        else:
+            await ctx.send("❌ Clan wars are currently unavailable.")
+
+    @clan_war_group.command(name="declare", aliases=["challenge", "start"])
+    async def clan_war_declare(self, ctx: commands.Context, *args):
+        cw = self.bot.get_cog("Clan Wars")
+        if cw:
+            await cw.do_war_declare(ctx, *args)
+        else:
+            await ctx.send("❌ Clan wars are currently unavailable.")
+
+    @clan_war_group.command(name="accept")
+    async def clan_war_accept(self, ctx: commands.Context):
+        cw = self.bot.get_cog("Clan Wars")
+        if cw:
+            await cw.do_war_accept(ctx)
+        else:
+            await ctx.send("❌ Clan wars are currently unavailable.")
+
+    @clan_war_group.command(name="decline", aliases=["reject", "cancel"])
+    async def clan_war_decline(self, ctx: commands.Context):
+        cw = self.bot.get_cog("Clan Wars")
+        if cw:
+            await cw.do_war_decline(ctx)
+        else:
+            await ctx.send("❌ Clan wars are currently unavailable.")
+
+    @clan_war_group.command(name="status", aliases=["score"])
+    async def clan_war_status(self, ctx: commands.Context):
+        cw = self.bot.get_cog("Clan Wars")
+        if cw:
+            await cw.do_war_status(ctx)
+        else:
+            await ctx.send("❌ Clan wars are currently unavailable.")
+
+    @clan_war_group.command(name="history", aliases=["past"])
+    async def clan_war_history(self, ctx: commands.Context):
+        cw = self.bot.get_cog("Clan Wars")
+        if cw:
+            await cw.do_war_history(ctx)
+        else:
+            await ctx.send("❌ Clan wars are currently unavailable.")
+
 
 class ClanCardView(discord.ui.View):
-    """Keeps the clan card short — roster and stats open on demand."""
+    """Keeps the clan card short — roster, treasury, and war status open on demand."""
 
     def __init__(self, owner, clan: dict, cog: "ClanCog"):
         super().__init__(timeout=180)
@@ -409,9 +461,44 @@ class ClanCardView(discord.ui.View):
             name="How it works",
             value=("`;clan deposit <amount>` — anyone can add\n"
                    "`;clan withdraw <amount>` — owner only\n"
-                   "Clan wars stake from here"),
+                   "`;clan war declare <clan> <stake>` — stake in clan wars"),
             inline=False,
         )
+        await interaction.response.send_message(embed=e, ephemeral=True)
+
+    @discord.ui.button(label="War", emoji="⚔️",
+                       style=discord.ButtonStyle.secondary)
+    async def war_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+        from .clan_war import war_for_clan
+        clan = cd.get_clan(self.clan["id"]) or self.clan
+        war = war_for_clan(clan["id"])
+        if war is None:
+            e = discord.Embed(
+                title=f"⚔️  [{clan['tag']}] Clan War",
+                description=(f"Record: **{clan.get('wins', 0)}W / {clan.get('losses', 0)}L**\n\n"
+                             f"No active war.\n"
+                             f"Declare war with `;clan war declare <clan> <stake>`"),
+                color=0x9b59b6,
+            )
+        elif war["state"] == "pending":
+            other = war["b"] if war["a"] == clan["id"] else war["a"]
+            other_clan = cd.get_clan(other)
+            other_name = (other_clan or {}).get("name", "Unknown")
+            e = discord.Embed(
+                title=f"⚔️  [{clan['tag']}] War Pending",
+                description=(f"Pending challenge with **{other_name}** for 🪙 **{war['stake']:,}** each.\n\n"
+                             f"Accept with `;clan war accept` or decline with `;clan war decline`."),
+                color=0xe67e22,
+            )
+        else:
+            sa, sb = war.get("score_a", 0), war.get("score_b", 0)
+            e = discord.Embed(
+                title=f"⚔️  [{clan['tag']}] War In Progress",
+                description=(f"**{war['a_name']}** `{sa}` — `{sb}` **{war['b_name']}**\n\n"
+                             f"Pot: 🪙 **{war['stake'] * 2:,}**\n"
+                             f"Ends: <t:{int(war['ends_at'])}:R>"),
+                color=0xe74c3c,
+            )
         await interaction.response.send_message(embed=e, ephemeral=True)
 
     async def on_timeout(self):
