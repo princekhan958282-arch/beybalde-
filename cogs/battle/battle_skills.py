@@ -110,6 +110,24 @@ class PlayerSkillState:
     def pending(self, value: int) -> None:
         self.blader_pending = value if value else None
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PlayerSkillState):
+            return False
+        return (
+            self.blader_energy == other.blader_energy
+            and self.blader_pending == other.blader_pending
+            and self.bit_beast_energy == other.bit_beast_energy
+            and self.bit_beast_pending == other.bit_beast_pending
+            and self.effects == other.effects
+            and self.streak == other.streak
+            and self.cooldowns == other.cooldowns
+            and self.sealed == other.sealed
+            and self.rage == other.rage
+            and self.last_skill == other.last_skill
+            and self.used_round == other.used_round
+            and self.ultimate_used == other.ultimate_used
+        )
+
 
 # Legacy alias
 SkillState = PlayerSkillState
@@ -374,6 +392,8 @@ class BattleSkillManager:
         # Initialize PlayerSkillState per participant
         if states is not None:
             self.states = states
+        elif not getattr(session, "avatars_enabled", True):
+            self.states = {}
         else:
             self.states: Dict[str, PlayerSkillState] = {}
             for p in getattr(session, "players", []):
@@ -405,6 +425,8 @@ class BattleSkillManager:
 
     def _state_for(self, key: str) -> PlayerSkillState:
         if key not in self.states:
+            if not getattr(self.s, "avatars_enabled", True):
+                return PlayerSkillState(energy=0, blader_energy=0, bit_beast_energy=0)
             self.states[key] = PlayerSkillState()
         return self.states[key]
 
@@ -425,6 +447,8 @@ class BattleSkillManager:
         Guaranteed to run strictly once per turn.
         """
         for key, st in self.states.items():
+            if self.debuffs.get((key, 'energy_denial'), 0) >= turn_no:
+                continue
             if st.last_charged_turn < turn_no:
                 st.bit_beast_energy = min(MAX_ENERGY, st.bit_beast_energy + BIT_BEAST_CHARGE_PER_TURN)
                 st.last_charged_turn = turn_no
@@ -667,7 +691,7 @@ class BattleSkillManager:
         from .purification import heal_amount
         amount = heal_amount(self.s, key, amount)
         before = self.s.hp.get(key, 0)
-        max_hp = self.s.max_hp_per_player.get(key, self.s.max_hp)
+        max_hp = getattr(self.s, "max_hp_per_player", {}).get(key, getattr(self.s, "max_hp", 100))
         self.s.hp[key], actual = recover_hp(before, max_hp, amount)
         if actual:
             logs.append(f"✨ **{label}** — restores {actual} HP!")
@@ -793,7 +817,7 @@ class BattleSkillManager:
             elif slot == 2: self.put(key, 'technique')
             elif slot == 3: self.put(key, 'vulcan', 99)
         elif character == 'max':
-            if slot == 1: self.put(key, 'shield', 2, hp=math.floor(self.s.max_hp_per_player.get(key, self.s.max_hp) * .10))
+            if slot == 1: self.put(key, 'shield', 2, hp=math.floor(getattr(self.s, "max_hp_per_player", {}).get(key, getattr(self.s, "max_hp", 100)) * .10))
             elif slot == 2: self.put(key, 'fortress', 2, stored=0)
             elif slot == 3: self.put(key, 'unbreakable', 2)
         elif character == 'mariah':
@@ -1095,7 +1119,7 @@ class BattleSkillManager:
             self.debuffs[(other, 'wound')] = self.round + 1
         if self.effect(key, 'monkey'):
             self.states[key].effects.pop('monkey', None)
-            self.debuffs[(other, 'energy_denial')] = self.round
+            self.debuffs[(other, 'energy_denial')] = self.round + 1
         if move == 'attack' and self.action_cutter.pop(key, False):
             if hasattr(self.s, "stability_manager"):
                 logs.extend(self.s.stability_manager._apply(other, -4))
@@ -1177,13 +1201,13 @@ class BattleSkillManager:
 
         for key, st in self.states.items():
             if self.effect(key, 'comeback'):
-                max_hp = self.s.max_hp_per_player.get(key, self.s.max_hp)
+                max_hp = getattr(self.s, "max_hp_per_player", {}).get(key, getattr(self.s, "max_hp", 100))
                 self.heal(key, min(self.incoming.get(key, 0) * 0.25, max_hp * 0.08), logs, "Champion's Spirit")
             fortress = self.effect(key, 'fortress')
             if fortress:
                 fortress['stored'] += self.guard_saved.get(key, 0) * 0.30
                 if fortress.get('until') == self.round:
-                    max_hp = self.s.max_hp_per_player.get(key, self.s.max_hp)
+                    max_hp = getattr(self.s, "max_hp_per_player", {}).get(key, getattr(self.s, "max_hp", 100))
                     self.heal(key, min(fortress['stored'], max_hp * 0.12), logs, 'Fortress Defense')
 
             moves = getattr(self.s, "moves", {}) or {}

@@ -622,7 +622,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
     @commands.command(name="buypack", aliases=["bpack", "openpack"])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def buy_pack(self, ctx: commands.Context, *, pack: str) -> None:
+    async def buy_pack(self, ctx: commands.Context, pack: str = "standard") -> None:
         """Open an avatar pack. Usage: ;buypack <common|rare|epic|legendary>"""
         pack = pack.lower()
         pack = {"original_generation": "original", "og": "original", "bitbeast": "bit_beast", "bit beast": "bit_beast", "bit-beast": "bit_beast", "bit": "bit_beast", "bb": "bit_beast"}.get(pack, pack)

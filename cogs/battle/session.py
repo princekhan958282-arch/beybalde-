@@ -122,6 +122,10 @@ class _InChannelControlPanel(discord.ui.View):
         self.session = session
         if not getattr(session, "story_match", None):
             self.remove_item(self.btn_forfeit)
+        og = getattr(session, "skills_manager", None) or getattr(session, "original_generation", None)
+        if not getattr(session, "avatars_enabled", True) or not og or not og.states:
+            self.remove_item(self.btn_blader_skill)
+            self.remove_item(self.btn_bit_beast_skill)
 
     @discord.ui.button(label="Blader Skill", emoji="👤", style=discord.ButtonStyle.primary, row=1)
     async def btn_blader_skill(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:

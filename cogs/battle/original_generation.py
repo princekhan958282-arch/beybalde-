@@ -1,3 +1,4 @@
+import random
 """
 cogs/battle/original_generation.py
 ----------------------------------
