@@ -93,10 +93,17 @@ def clan_of(user_id: int) -> Optional[dict]:
 
 
 def find_by_name(query: str) -> Optional[dict]:
+    if not query:
+        return None
     q = query.strip().lower()
     for c in _load()["clans"].values():
         if c["name"].lower() == q or c["tag"].lower() == q:
             return c
+    cleaned = q.strip("[]# ").strip()
+    if cleaned and cleaned != q:
+        for c in _load()["clans"].values():
+            if c["name"].lower() == cleaned or c["tag"].lower() == cleaned:
+                return c
     return None
 
 
