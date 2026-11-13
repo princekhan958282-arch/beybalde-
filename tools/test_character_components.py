@@ -40,6 +40,13 @@ FOUR_BURST_ADDITIONS = {f'BB{160+i}': name for i, name in enumerate(
 BOSS_ORIGINAL_ADDITIONS = {f'BB{165+i}': name for i, name in enumerate(
     ('Aetherion Drakos org', 'ARGUS PRIME org', 'LIONHEART SOVEREIGN org', 'NEMESIS ÆTHERION org'))}
 
+BIT_BEAST_AVATAR_ADDITIONS = {
+    'avatar_bb_wonder_valkyrie': 'Wonder Valkyrie',
+    'avatar_bb_dragoon': 'Dragoon',
+    'avatar_bb_driger': 'Driger',
+    'avatar_bb_dranzer': 'Dranzer',
+}
+
 def digest(document):
     return hashlib.sha256(json.dumps(document, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
 
@@ -52,7 +59,7 @@ class MigrationTests(unittest.TestCase):
     def test_every_record_and_every_original_field_is_preserved(self):
         for kind, entries in (('bey', load_beys().values()), ('avatar', load_avatars()['avatars'])):
             baseline = BASELINE['beys' if kind == 'bey' else 'avatars']
-            additions = {**DRANZER_ADDITIONS, **OCTOBER_ADDITIONS, **BURST_ADDITIONS, **FOUR_BURST_ADDITIONS, **BOSS_ORIGINAL_ADDITIONS, 'BB164': 'Blast Jinnius', 'BB_MALPHAS': 'Crimson Malice Malphas'} if kind == 'bey' else {}
+            additions = {**DRANZER_ADDITIONS, **OCTOBER_ADDITIONS, **BURST_ADDITIONS, **FOUR_BURST_ADDITIONS, **BOSS_ORIGINAL_ADDITIONS, 'BB164': 'Blast Jinnius', 'BB_MALPHAS': 'Crimson Malice Malphas'} if kind == 'bey' else BIT_BEAST_AVATAR_ADDITIONS
             self.assertEqual({v['id'] for v in entries}, set(baseline) | set(additions))
             for value in entries:
                 if value['id'] in additions:
@@ -73,7 +80,7 @@ class MigrationTests(unittest.TestCase):
                         self.assertEqual(hp_correction['previous_sha256'], expected_hash)
                         expected_hash = hp_correction['sha256']
                     self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
-        for folder, number in (('beys', 170), ('avatars', 54), ('parts/disks', 188), ('parts/drivers', 187)):
+        for folder, number in (('beys', 170), ('avatars', 58), ('parts/disks', 188), ('parts/drivers', 187)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
         for folder in ('beys', 'avatars'):
             self.assertFalse(any(p.is_dir() for p in (ROOT / folder).iterdir()))

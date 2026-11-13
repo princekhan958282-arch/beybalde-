@@ -1,0 +1,70 @@
+{
+  "id": "avatar_bb_wonder_valkyrie",
+  "name": "Wonder Valkyrie",
+  "rarity": "Bit Beast",
+  "type": "attack",
+  "price": 0,
+  "description": "Legendary warrior Bit Beast of victory and valor. Strikes with relentless speed, aerial fury, and awakening power.",
+  "image": "https://discord.com/channels/960378520926814288/1522421604498407545/1570752381023559740",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "stats_always_on": true,
+  "active_battle_skills": true,
+  "character": "wonder_valkyrie",
+  "anime_bey": "Wonder Valkyrie",
+  "bonuses": {
+    "attack_flat": 25,
+    "attack_percent": 0.1,
+    "defence_flat": 10,
+    "defence_percent": 0,
+    "stamina_flat": 15,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 10,
+    "charge_percent": 0,
+    "special_move_flat": 20,
+    "special_move_percent": 0.15,
+    "crit_percent": 0.05,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 15,
+    "hp_percent": 0
+  },
+  "skills": [
+    {
+      "name": "Wonder Attack",
+      "description": "Unleashes an aggressive aerial assault: +25 Attack damage this round.",
+      "cost": 25,
+      "energy_cost": 25,
+      "effect_type": "attack_flat",
+      "value": 25
+    },
+    {
+      "name": "Wonder Reboot",
+      "description": "Reboots spin velocity and triggers spring-loaded blades: +35% Attack power and +25% Crit chance.",
+      "cost": 50,
+      "energy_cost": 50,
+      "effect_type": "attack_pct_crit",
+      "atk_pct": 0.35,
+      "crit_pct": 0.25
+    },
+    {
+      "name": "Valkyrie Winged Storm",
+      "description": "Spreads divine wings in a catastrophic whirlwind: +50% Attack damage and pierces 30% enemy Defense.",
+      "cost": 75,
+      "energy_cost": 75,
+      "effect_type": "apex_strike",
+      "atk_pct": 0.5,
+      "pierce": 0.3
+    }
+  ],
+  "generation": null,
+  "_registry_order": 60,
+  "stat_bonus_cap": 1.0
+}

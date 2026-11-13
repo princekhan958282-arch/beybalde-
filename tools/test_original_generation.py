@@ -44,7 +44,7 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
 
     def test_data_and_shop(self):
         avatar_engine.load()
-        cards=[a for a in avatar_engine.get_all_avatars() if a.get('active_battle_skills')]
+        cards=[a for a in avatar_engine.get_all_avatars() if a.get('active_battle_skills') and a.get('rarity') == 'Original Generation']
         self.assertEqual(len(cards),9)
         for card in cards:
             self.assertEqual(validate_avatar_data(card),(True,''))
@@ -66,7 +66,8 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_no_persistent_energy_spent_and_all_stats(self):
         s=await self.build()
-        self.assertEqual(s.original_generation.states['101'].energy,0)
+        self.assertEqual(s.original_generation.states['101'].blader_energy,100)
+        self.assertEqual(s.original_generation.states['101'].bit_beast_energy,0)
         self.assertEqual(s.avatar_bonuses['101'].attack_flat,34)
         self.assertEqual(s.avatar_bonuses['101'].stamina_flat,18)
         self.assertEqual(s.avatar_bonuses['101'].defence_flat,8)
@@ -137,12 +138,13 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_selection_cooldown_and_ultimate(self):
         s=await self.build();og=s.original_generation
+        og.states['101'].energy=0
         self.assertIn('Need',og.select('101',1))
         og.states['101'].energy=100
         self.assertIsNone(og.select('101',1))
         self.assertIsNotNone(og.select('101',2))
         s.moves={'101':'attack','102':'attack'};og.begin_round([])
-        self.assertEqual(og.states['101'].energy,60)
+        self.assertEqual(og.states['101'].energy,75)
         s.round+=1;s.moves={'101':None,'102':None}
         self.assertIn('Ready',og.select('101',1))
         s.round=4;og.states['101'].energy=100
@@ -167,7 +169,7 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         s.round=3;before=s.hp['102'];og.begin_round([]);og.end_round(logs)
         self.assertEqual(s.hp['102'],before)
         self.assertEqual(og.cost('102','attack',2),2)
-        self.assertEqual(og.states['101'].energy,60)
+        self.assertEqual(og.states['101'].energy,0)
         self.assertEqual(s.avatar_bonuses['101'].crit_percent,0)
 
     async def test_tyson_requires_special_no_charge(self):
@@ -284,7 +286,8 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
     async def test_kevin_denies_energy_and_punishes_repeats(self):
         s=await self.build('kevin','tyson');og,logs=self.activate(s,2)
         og.committed('101','102','attack',10,logs);og.end_round(logs)
-        self.assertEqual(og.states['102'].energy,0)
+        og.on_turn_start(2)
+        self.assertEqual(og.states['102'].bit_beast_energy,15)
         s.round=5;s.og_previous_moves={'102':'attack'};og,logs=self.activate(s,3)
         self.assertEqual(og.cost('102','attack',2),2.4)
         self.assertEqual(og.cost('102','defense',2),2)
@@ -311,7 +314,8 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
                     s.stamina_manager.gauge['101']=150
                     await s._resolve_round()
                     self.assertEqual(s.round,2)
-                    self.assertEqual(s.original_generation.states['101'].energy,120-(40,60,100)[slot-1])
+                    expected_cost = 100 if slot == 3 else (25, 50)[slot - 1]
+                    self.assertEqual(s.original_generation.states['101'].energy, 100 - expected_cost)
                     self.assertEqual(AS.energy(await H.DB.get_user(101)),0)
 
     def test_boss_skills_and_search_clone_isolation(self):
@@ -331,7 +335,8 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
                     ai.resolve(a.clone(),b.clone(),'attack',move,simulate=True)
                     self.assertEqual(b.avatar_combat_state,snapshot)
                     ai.resolve(a,b,'attack',move)
-                    self.assertEqual(b.avatar_combat_state['states']['b'].energy,120-(40,60,100)[slot-1])
+                    expected_cost = 100 if slot == 3 else (25, 50)[slot - 1]
+                    self.assertEqual(b.avatar_combat_state['states']['b'].energy, 100 - expected_cost)
                     self.assertEqual(b.combat_round,1)
                     self.assertEqual(b.avatar_stat_multipliers,{})
 
@@ -350,7 +355,7 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any('CRITICAL' in l for l in first['gimmicks']))
         self.assertTrue(any('Galaxy Turbo Twister' in l for l in second['gimmicks']))
         self.assertFalse(any('Galaxy Turbo Twister' in l for l in third['gimmicks']))
-        self.assertEqual(b.avatar_combat_state['states']['b'].energy,60)
+        self.assertEqual(b.avatar_combat_state['states']['b'].energy,0)
 
     def test_boss_tornado_respects_last_round_of_aegis(self):
         from cogs.battle.boss import boss_ai as ai
@@ -407,7 +412,7 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         duplicate=interaction(101);await fresh.children[1].callback(duplicate)
         self.assertEqual(og.states['101'].pending,1)
         self.assertTrue(duplicate.response.send_message.called)
-        self.assertEqual(og.states['101'].energy,100)
+        self.assertEqual(og.states['101'].energy,75)
 
     async def test_battle_panel_and_boss_skill_button(self):
         from types import SimpleNamespace
@@ -416,9 +421,10 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         from cogs.battle.boss.boss_ai import Fighter
         s=await self.build('tyson')
         panel=_InChannelControlPanel(s)
-        self.assertTrue(any(c.label=='Avatar Skill' for c in panel.children))
+        self.assertTrue(any(c.label=='Blader Skill' for c in panel.children))
+        self.assertTrue(any(c.label=='Bit Beast Skill' for c in panel.children))
         s.original_generation.states={}
-        self.assertFalse(any(c.label=='Avatar Skill' for c in _InChannelControlPanel(s).children))
+        self.assertFalse(any(c.label in ('Blader Skill', 'Bit Beast Skill') for c in _InChannelControlPanel(s).children))
         b=Fighter('Player',2000,2000,100,100,100)
         b.avatar_card=avatar_engine.get_avatar('avatar_og_tyson')
         f=SimpleNamespace(foe=b,finished=False)

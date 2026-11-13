@@ -28,6 +28,7 @@ RARITY_COLORS: dict[str, int] = {
     # reason MLBB is: a closed banner no other pack can reach.
     "Blader":    0xE67E22,
     "Original Generation": 0x2ECC71,
+    "Bit Beast": 0x1ABC9C,
 }
 
 RARITY_EMOJI: dict[str, str] = {
@@ -41,6 +42,7 @@ RARITY_EMOJI: dict[str, str] = {
     "MLBB":      "🌟",
     "Blader":    "🏫",
     "Original Generation": "🐉",
+    "Bit Beast": "🐉",
 }
 
 RARITY_ORDER: list[str] = [
@@ -49,7 +51,7 @@ RARITY_ORDER: list[str] = [
     # banner, and the eight cards are pitched around Legendary. Ranking them
     # above Ultimate because they happen to be newer would missort every
     # collection.
-    "Common", "Rare", "Epic", "Legendary", "Blader", "Original Generation", "Mythic", "Ultimate",
+    "Common", "Rare", "Epic", "Legendary", "Blader", "Original Generation", "Bit Beast", "Mythic", "Ultimate",
     "Exclusive", "MLBB",
 ]
 

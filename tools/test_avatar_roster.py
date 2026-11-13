@@ -99,9 +99,9 @@ class AvatarRosterTests(AvatarConnectionTests):
             self.assertEqual(actor.avatar_rule_stats['attack'],0)
 
     def test_complete_skill_roster(self):
-        self.assertEqual(len(CARDS), 54)
-        self.assertEqual(sum(len(a.get('skills', [])) for a in CARDS), 162)
-        self.assertEqual(sum(len(a['skills']) for a in CARDS if a.get('active_battle_skills')), 27)
+        self.assertEqual(len(CARDS), 58)
+        self.assertEqual(sum(len(a.get('skills', [])) for a in CARDS), 174)
+        self.assertEqual(sum(len(a['skills']) for a in CARDS if a.get('active_battle_skills')), 39)
         for card in CARDS:
             for skill in card['skills']:
                 self.assertTrue(skill.get('bonuses') or skill.get('rules') or card.get('active_battle_skills'),

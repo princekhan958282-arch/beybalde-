@@ -1,0 +1,71 @@
+{
+  "id": "avatar_bb_dragoon",
+  "name": "Dragoon",
+  "rarity": "Bit Beast",
+  "type": "attack",
+  "price": 0,
+  "description": "The sacred dragon of the east and master of storms. Slices the arena with ferocious wind and cutting tornadoes.",
+  "image": "https://cdn.discordapp.com/attachments/1522421604498407545/1570752398031589436/3ddc77b84fe00738dcb733aba4451f47.jpg?ex=6af83caa&is=6af6eb2a&hm=5ec85e6b6e9ee5e7c4811b4a855cac59f01576c21ccb12e946a1a51ea2eaada5&",
+  "limited": false,
+  "available_until": null,
+  "draw_chance": null,
+  "stats_always_on": true,
+  "active_battle_skills": true,
+  "character": "dragoon",
+  "anime_bey": "Dragoon",
+  "bonuses": {
+    "attack_flat": 30,
+    "attack_percent": 0.1,
+    "defence_flat": 5,
+    "defence_percent": 0,
+    "stamina_flat": 15,
+    "stamina_percent": 0,
+    "stability_flat": 0,
+    "stability_percent": 0,
+    "charge_flat": 15,
+    "charge_percent": 0,
+    "special_move_flat": 25,
+    "special_move_percent": 0.15,
+    "crit_percent": 0.05,
+    "dodge_chance": 0,
+    "counter_chance": 0,
+    "multi_hit_power_double": false,
+    "multi_hit_extra_hits": false,
+    "resistance_damage_percent": 0,
+    "resistance_status_chance": 0,
+    "hp_flat": 15,
+    "hp_percent": 0
+  },
+  "skills": [
+    {
+      "name": "Hyper Tornado",
+      "description": "Conjures a swirling vortex: +25 Attack damage this round.",
+      "cost": 25,
+      "energy_cost": 25,
+      "effect_type": "attack_flat",
+      "value": 25
+    },
+    {
+      "name": "Storm Surge",
+      "description": "A torrential gale surges across the arena: +35% Attack power and +25% Crit chance.",
+      "cost": 50,
+      "energy_cost": 50,
+      "effect_type": "attack_pct_crit",
+      "atk_pct": 0.35,
+      "crit_pct": 0.25
+    },
+    {
+      "name": "Galaxy Storm",
+      "description": "Unleashes the supreme dragon hurricane: +50% Attack damage, pierces 30% Defense, and drains 5 enemy Stability.",
+      "cost": 75,
+      "energy_cost": 75,
+      "effect_type": "apex_strike",
+      "atk_pct": 0.5,
+      "pierce": 0.3,
+      "stability_drain": 5
+    }
+  ],
+  "generation": null,
+  "_registry_order": 61,
+  "stat_bonus_cap": 1.0
+}

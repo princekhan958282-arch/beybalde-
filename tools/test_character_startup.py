@@ -24,5 +24,6 @@ class CharacterStartupTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsNotNone(bot.tree.get_command('custombey'))
                     for extension in list(bot.extensions):
                         await bot.unload_extension(extension)
+            store.close()
 
 if __name__=='__main__': unittest.main()
