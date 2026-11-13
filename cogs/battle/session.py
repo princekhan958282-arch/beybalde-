@@ -114,28 +114,52 @@ from utils.ranks import tier_for_score, rank_score_for, WIN_SCORE, LOSS_SCORE
 # ── Per-round move selection panel ───────────────────────────────────────────
 
 class _InChannelControlPanel(discord.ui.View):
-    """Five-button move panel posted each round. Any player in the battle
-    can click their move; duplicate clicks are rejected inside submit_move()."""
+    """Control panel posted each round. Displays the five combat moves
+    along with Blader Skill and Bit Beast Skill activation controls."""
 
     def __init__(self, session: "BattleSession") -> None:
         super().__init__(timeout=BATTLE_TIMEOUT)
         self.session = session
         if not getattr(session, "story_match", None):
             self.remove_item(self.btn_forfeit)
-        if not getattr(session, "original_generation", None) or not session.original_generation.states:
-            self.remove_item(self.btn_avatar)
 
-    @discord.ui.button(label="Avatar Skill", emoji="✨", style=discord.ButtonStyle.primary, row=1)
-    async def btn_avatar(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        from .original_generation_ui import SkillPicker
+    @discord.ui.button(label="Blader Skill", emoji="👤", style=discord.ButtonStyle.primary, row=1)
+    async def btn_blader_skill(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        from .skill_views import BladerSkillPicker
         key = str(interaction.user.id)
-        og = getattr(self.session, "original_generation", None)
-        if not self.session.is_player(interaction.user) or not og or key not in og.states:
-            await interaction.response.send_message("No active Original Generation avatar equipped.", ephemeral=True)
+        if not self.session.is_player(interaction.user):
+            await interaction.response.send_message("❌ You are not in this battle!", ephemeral=True)
             return
+        sm = getattr(self.session, "skills_manager", None) or getattr(self.session, "original_generation", None)
+        if not sm:
+            await interaction.response.send_message("⚠️ Skill system not initialized.", ephemeral=True)
+            return
+        energy = sm.get_blader_energy(key)
         await interaction.response.send_message(
-            content=f"Avatar Energy: **{og.states[key].energy}/100**. Choose a skill before your move.",
-            view=SkillPicker(self.session, key), ephemeral=True)
+            content=f"👤 **Blader Energy**: **{energy}/100⚡**\nChoose a Blader skill to activate for this round:",
+            view=BladerSkillPicker(self.session, key),
+            ephemeral=True,
+        )
+
+    @discord.ui.button(label="Bit Beast Skill", emoji="🐉", style=discord.ButtonStyle.primary, row=1)
+    async def btn_bit_beast_skill(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        from .skill_views import BitBeastSkillPicker
+        key = str(interaction.user.id)
+        if not self.session.is_player(interaction.user):
+            await interaction.response.send_message("❌ You are not in this battle!", ephemeral=True)
+            return
+        sm = getattr(self.session, "skills_manager", None) or getattr(self.session, "original_generation", None)
+        if not sm:
+            await interaction.response.send_message("⚠️ Skill system not initialized.", ephemeral=True)
+            return
+        energy = sm.get_bit_beast_energy(key)
+        blocks = min(5, round(5 * energy / 100))
+        bar = "▰" * blocks + "▱" * (5 - blocks)
+        await interaction.response.send_message(
+            content=f"🐉 **Bit Beast Energy**: **{energy}/100⚡** `[{bar}]` (+15/turn)\nChoose a Bit Beast skill to activate for this round:",
+            view=BitBeastSkillPicker(self.session, key),
+            ephemeral=True,
+        )
 
     def _special_block(self, user_id: str) -> Optional[str]:
         """Why this player's Special is unavailable, or None if it is ready.
@@ -618,10 +642,11 @@ class BattleSession:
         self.attack_manager  = AttackManager(self)
         self.defense_manager = DefenseManager(self)
 
-        from .original_generation import OriginalGeneration
-        self.original_generation = OriginalGeneration(self)
-        self.stamina_manager.original_generation = self.original_generation
-        self.stability_manager.original_generation = self.original_generation
+        from .battle_skills import BattleSkillManager
+        self.skills_manager = BattleSkillManager(self)
+        self.original_generation = self.skills_manager
+        self.stamina_manager.original_generation = self.skills_manager
+        self.stability_manager.original_generation = self.skills_manager
 
         # ── Battle-start setup (initial_shield, initial_defense_buff, etc.) ──
         # Must run AFTER AbilityEngine is constructed so grant_shield / _add_buf
@@ -839,16 +864,22 @@ class BattleSession:
             pass
 
     def skill_label(self, key: str) -> str:
-        """'Bulwark · 75⚡' for the battle UI, or '' when no skill is in play."""
-        og = getattr(self, "original_generation", None)
-        if og and key in og.states:
-            st = og.states[key]
-            return f"Avatar Energy {st.energy}/100" + (" · skill selected" if st.pending else "")
-        commit = (getattr(self, "skill_commit", None) or {}).get(key) or {}
-        name = commit.get("name")
-        if not name:
-            return "" if commit.get("afforded", True) else "no energy"
-        return f"{name} · {commit.get('cost', 0)}⚡"
+        """Formatted Blader and Bit Beast energy/status for the battle UI."""
+        sm = getattr(self, "skills_manager", None) or getattr(self, "original_generation", None)
+        if sm:
+            be = sm.get_blader_energy(key)
+            bbe = sm.get_bit_beast_energy(key)
+            st = sm._state_for(key)
+            active = []
+            if st.blader_active_skill or st.blader_pending:
+                sk = st.blader_active_skill or (sm.get_blader_skills(key)[st.blader_pending - 1] if st.blader_pending else None)
+                if sk: active.append(sk["name"])
+            if st.bit_beast_active_skill or st.bit_beast_pending:
+                sk = st.bit_beast_active_skill or (sm.get_bit_beast_skills(key)[st.bit_beast_pending - 1] if st.bit_beast_pending else None)
+                if sk: active.append(sk["name"])
+            act_str = f" · Active: {', '.join(active)}" if active else ""
+            return f"Blader {be}/100⚡ · Bit Beast {bbe}/100⚡{act_str}"
+        return ""
 
     @property
     def stamina(self) -> dict[str, float]:
@@ -988,12 +1019,29 @@ class BattleSession:
             else:
                 fx_block = "*no effects*"
 
-            # Which avatar skill this player committed, and what it cost. Only
-            # rendered when there IS one: on a card with no skills the line
-            # would be permanent dead space in a panel that has to stay under
-            # ~45 chars a line to keep Discord's 3-column grid.
-            skill = self.skill_label(key)
-            skill_block = f"✨ {skill}\n" if skill else ""
+            sm_skill = getattr(self, "skills_manager", None) or getattr(self, "original_generation", None)
+            if sm_skill:
+                be = sm_skill.get_blader_energy(key)
+                bbe = sm_skill.get_bit_beast_energy(key)
+                bb_blocks = min(5, round(5 * bbe / 100))
+                bb_bar = "▰" * bb_blocks + "▱" * (5 - bb_blocks)
+                skill_block = (
+                    f"👤 Blader: **{be}**/100⚡\n"
+                    f"🐉 Bit Beast: `[{bb_bar}]` **{bbe}**/100⚡\n"
+                )
+                st_sk = sm_skill._state_for(key)
+                active = []
+                if st_sk.blader_active_skill or st_sk.blader_pending:
+                    sk = st_sk.blader_active_skill or (sm_skill.get_blader_skills(key)[st_sk.blader_pending - 1] if st_sk.blader_pending else None)
+                    if sk: active.append(sk["name"])
+                if st_sk.bit_beast_active_skill or st_sk.bit_beast_pending:
+                    sk = st_sk.bit_beast_active_skill or (sm_skill.get_bit_beast_skills(key)[st_sk.bit_beast_pending - 1] if st_sk.bit_beast_pending else None)
+                    if sk: active.append(sk["name"])
+                if active:
+                    skill_block += f"✨ *{', '.join(active)}*\n"
+            else:
+                skill = self.skill_label(key)
+                skill_block = f"✨ {skill}\n" if skill else ""
             from .purification import label
             domain_label = label(self, key)
             if domain_label:
@@ -1510,6 +1558,7 @@ class BattleSession:
         card_task = asyncio.create_task(self._battle_card_file())
         try:
             await self.channel.send(embed=result_embed)
+            self.skills_manager.on_turn_start(self.round)
             await self._prime_npc_move()
             new_view = _InChannelControlPanel(self)
             self._current_view = new_view
@@ -1898,6 +1947,7 @@ class BattleSession:
             await self.channel.send(embed=setup_embed)
 
         # Post the initial status panel with move buttons
+        self.skills_manager.on_turn_start(self.round)
         await self._prime_npc_move()
         first_view = _InChannelControlPanel(self)
         self._current_view = first_view

@@ -188,43 +188,27 @@ def energy_line(profile: dict) -> str:
 
 
 def build_skill_embed(profile: dict, card: dict) -> discord.Embed:
-    """The `;askill` panel: energy, the three prices, and which one is live."""
+    """The skill panel: shows the 3 Blader skills, costs, and battle energy info."""
     skills = card.get("skills") or []
-    if card.get("active_battle_skills"):
-        e = discord.Embed(title=f"{card['name']} — active battle skills", colour=0x2ECC71,
-            description="All three skills are available during battle. Start at 0 Avatar Energy; gain 20 each completed round, up to 100.")
-        for sk in skills:
-            e.add_field(name=f"{sk['name']} — {sk['energy_cost']}⚡", value=sk['description'], inline=False)
-        e.set_footer(text="Use Avatar Skill before your normal move. One skill per round. Ultimate once per battle.")
-        return e
-    pool = ASK.energy(profile)
-    chosen = max(1, min(ASK.chosen_slot(profile, card["id"]), len(skills)))
-
+    costs = (25, 50, 75)
     e = discord.Embed(
-        title=f"{RARITY_EMOJI.get(card.get('rarity'), '⚪')} "
-              f"{card['name']} — battle skill",
-        description=energy_line(profile),
-        colour=RARITY_COLORS.get(card.get("rarity"), 0xAAAAAA))
+        title=f"{RARITY_EMOJI.get(card.get('rarity'), '⚪')} {card['name']} — Blader Battle Skills",
+        description="Every battle starts with **100 Blader Energy**. Skills are activated dynamically during battle using the **Blader Skill** button!",
+        colour=RARITY_COLORS.get(card.get("rarity"), 0xAAAAAA),
+    )
 
     for i, sk in enumerate(skills, 1):
-        cost = ASK.skill_cost(i)
-        mark = "✅" if i == chosen else "▫️"
-        # Affordability is a RANKED statement only — casual grants any skill
-        # whatever the pool says — so it is worded that way rather than as a
-        # flat "not enough energy" that would be wrong half the time.
-        afford = "" if pool >= cost else "  ·  ⚠️ ranked can't afford this yet"
+        authored_cost = sk.get("energy_cost")
+        cost = authored_cost if authored_cost in (25, 50, 75, 100) else (costs[i - 1] if i <= len(costs) else 75)
         e.add_field(
-            name=f"{mark} {i}. {sk.get('name', 'Skill')}  —  {cost}⚡"
-                 f"  ({ASK.uses_affordable(i)}× per full pool){afford}",
-            value=sk.get("description", ""),
-            inline=False)
+            name=f"⚡ Skill {i}: {sk.get('name', 'Skill')} — {cost}⚡",
+            value=sk.get("description", "No description."),
+            inline=False,
+        )
 
     e.set_footer(
-        text=f"One skill per battle. Casual is free — it never spends energy. "
-             f"Ranked spends, and does not top you up when a match starts. "
-             f"Recovery is +{ASK.ENERGY_REGEN_AMOUNT} every "
-             f"{ASK.ENERGY_REGEN_SECONDS // 60} min between matches.  "
-             f";askill <1-3>")
+        text="Blader Energy: 100⚡ at start of each battle • Bit Beast Energy: 0⚡ at start, +15⚡ per turn"
+    )
     return e
 
 

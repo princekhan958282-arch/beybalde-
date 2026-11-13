@@ -278,60 +278,7 @@ class SkillPromptView(discord.ui.View):
 # ── Entry point ──────────────────────────────────────────────────────────────
 
 async def resolve_avatar_skills(ctx, p1, p2, ranked: bool = False) -> None:
-    """Ask both players which skill they are taking into the fight.
+    return None
 
-    Returns when everyone has chosen or the prompt times out. Sends nothing at
-    all when neither player has a card with skills, which is most battles.
-
-    Never raises. The picker is a convenience over a stored setting that
-    already has a working default, so any failure here degrades to exactly the
-    behaviour that shipped before it.
-    """
-    try:
-        entries = await participants((p1, p2))
-        if not entries:
-            return
-        view = await SkillPromptView.create(entries, ranked)
-        view.message = await ctx.send(embed=await view._status(), view=view)
-        await view.wait()
-        try:
-            await view.message.edit(view=None)
-        except Exception:                                # noqa: BLE001
-            pass
-    except Exception as exc:                             # noqa: BLE001
-        log.exception("avatar skill prompt failed: %s", exc)
-
-
-async def resolve_avatar_skills_solo(channel, member, ranked: bool = False
-                                     ) -> None:
-    """The same prompt, for ONE player. Used by Story Mode.
-
-    A League battle has exactly one human in it, and the other side is an NPC
-    with no profile. `participants()` resolves each player's card through
-    `avatar_engine.get_equipped_avatar_id` → `utils.database.get_user`, which
-    CREATES AND PERSISTS a profile for any id it has not seen — so handing it a
-    League opponent would register that opponent as a real player, in the
-    population count, the funnel and `;audit`. Everything else in the PvE path
-    is guarded against exactly that (`BattleSession._profile_for` and friends);
-    this is that guard for the prompt, and it is why Story does not simply call
-    the two-player entry point with a dummy second player.
-
-    Takes a CHANNEL rather than a Context: the view only ever needs `.send`.
-
-    Never raises, for the same reason `resolve_avatar_skills` does not — the
-    picker is a convenience over a stored setting that already has a working
-    default.
-    """
-    try:
-        entries = await participants((member,))
-        if not entries:
-            return
-        view = await SkillPromptView.create(entries, ranked)
-        view.message = await channel.send(embed=await view._status(), view=view)
-        await view.wait()
-        try:
-            await view.message.edit(view=None)
-        except Exception:                                # noqa: BLE001
-            pass
-    except Exception as exc:                             # noqa: BLE001
-        log.exception("avatar skill prompt (solo) failed: %s", exc)
+async def resolve_avatar_skills_solo(channel, member, ranked: bool = False) -> None:
+    return None
