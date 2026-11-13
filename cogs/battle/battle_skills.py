@@ -251,6 +251,114 @@ DEFAULT_BLADER_SKILLS = [
 ]
 
 
+BIT_BEAST_SIGNATURE_SKILLS = {
+    "Wonder Valkyrie": [
+        {
+            "name": "Wonder Attack",
+            "cost": 25,
+            "description": "Unleashes an aggressive aerial assault: +25 Attack damage this round.",
+            "effect_type": "attack_flat",
+            "value": 25,
+        },
+        {
+            "name": "Wonder Reboot",
+            "cost": 50,
+            "description": "Reboots spin velocity and triggers spring-loaded blades: +35% Attack power and +25% Crit chance.",
+            "effect_type": "attack_pct_crit",
+            "atk_pct": 0.35,
+            "crit_pct": 0.25,
+        },
+        {
+            "name": "Valkyrie Winged Storm",
+            "cost": 75,
+            "description": "Spreads divine wings in a catastrophic whirlwind: +50% Attack damage and pierces 30% enemy Defense.",
+            "effect_type": "apex_strike",
+            "atk_pct": 0.50,
+            "pierce": 0.30,
+        },
+    ],
+    "Dragoon": [
+        {
+            "name": "Hyper Tornado",
+            "cost": 25,
+            "description": "Conjures a swirling vortex: +25 Attack damage this round.",
+            "effect_type": "attack_flat",
+            "value": 25,
+        },
+        {
+            "name": "Storm Surge",
+            "cost": 50,
+            "description": "A torrential gale surges across the arena: +35% Attack power and +25% Crit chance.",
+            "effect_type": "attack_pct_crit",
+            "atk_pct": 0.35,
+            "crit_pct": 0.25,
+        },
+        {
+            "name": "Galaxy Storm",
+            "cost": 75,
+            "description": "Unleashes the supreme dragon hurricane: +50% Attack damage, pierces 30% Defense, and drains 5 enemy Stability.",
+            "effect_type": "apex_strike",
+            "atk_pct": 0.50,
+            "pierce": 0.30,
+            "stability_drain": 5,
+        },
+    ],
+    "Driger": [
+        {
+            "name": "Tiger Claw",
+            "cost": 25,
+            "description": "Swift tiger strike: +20% Attack and +20% Defense this round.",
+            "effect_type": "dual_buff",
+            "atk_pct": 0.20,
+            "def_pct": 0.20,
+        },
+        {
+            "name": "Vulcan Claw",
+            "cost": 50,
+            "description": "Spiritual balance surge: recovers 35 HP, +5 battle stamina, and adds +25 Special Gauge.",
+            "effect_type": "spiritual_shift",
+            "heal": 35,
+            "stamina": 5,
+            "gauge": 25,
+        },
+        {
+            "name": "Thunder Slash Claw",
+            "cost": 75,
+            "description": "Fierce lightning claws: +35% Attack, +35% Defense, and +35 Special Gauge.",
+            "effect_type": "dual_cataclysm",
+            "atk_pct": 0.35,
+            "def_pct": 0.35,
+            "gauge": 35,
+        },
+    ],
+    "Dranzer": [
+        {
+            "name": "Flame Saber",
+            "cost": 25,
+            "description": "Blazing fire slash: +25 Attack damage this round.",
+            "effect_type": "attack_flat",
+            "value": 25,
+        },
+        {
+            "name": "Dranzer Rebirth",
+            "cost": 50,
+            "description": "The sacred phoenix rises from the ashes: grants a 40 HP shield and recovers 25 HP.",
+            "effect_type": "phoenix_rebirth",
+            "shield": 40,
+            "heal": 25,
+        },
+        {
+            "name": "Plasma Saber",
+            "cost": 75,
+            "description": "Incandescent plasma strike: +40% Attack damage and reduces incoming damage by 35%.",
+            "effect_type": "plasma_saber",
+            "atk_pct": 0.40,
+            "mitigate_pct": 0.35,
+        },
+    ],
+}
+
+
 # ── BattleSkillManager ─────────────────────────────────────────────────────────
 
 class BattleSkillManager:
@@ -326,6 +434,19 @@ class BattleSkillManager:
     def get_blader_skills(self, key: str) -> List[dict]:
         """Return 3 Blader skills for this player (from Avatar card or defaults)."""
         card = (getattr(self.s, "avatar_cards", None) or {}).get(key) or {}
+        if card.get("rarity") == "Bit Beast":
+            out = []
+            for i in range(1, 4):
+                d = DEFAULT_BLADER_SKILLS[i - 1]
+                out.append({
+                    "slot": i,
+                    "name": d["name"],
+                    "cost": d["cost"],
+                    "description": d["description"],
+                    "raw": d,
+                    "type": "blader",
+                })
+            return out
         skills = card.get("skills") or []
         out = []
         for i in range(1, 4):
@@ -361,8 +482,54 @@ class BattleSkillManager:
         return out
 
     def get_bit_beast_skills(self, key: str) -> List[dict]:
-        """Return 3 Bit Beast skills for this player (from Beyblade type/archetype)."""
+        """Return 3 Bit Beast skills for this player (from equipped Bit Beast, Avatar card, or Beyblade archetype)."""
+        card = (getattr(self.s, "avatar_cards", None) or {}).get(key) or {}
         blade = (getattr(self.s, "blades", None) or {}).get(key) or {}
+
+        # 1. Check if an equipped Avatar is explicitly a Bit Beast
+        if card.get("rarity") == "Bit Beast" and card.get("skills"):
+            out = []
+            for i, raw in enumerate(card["skills"][:3], 1):
+                cost = raw.get("cost") or raw.get("energy_cost") or (25 if i == 1 else (50 if i == 2 else 75))
+                out.append({
+                    "slot": i,
+                    "name": raw.get("name", f"Bit Beast Skill {i}"),
+                    "cost": cost,
+                    "description": raw.get("description", "A signature Bit Beast power."),
+                    "raw": raw,
+                    "type": "bit_beast",
+                })
+            return out
+
+        # 2. Check for signature Bit Beast matching by blade name, character, or partner
+        bname = (blade.get("name") or "").lower()
+        c_anime = (card.get("anime_bey") or card.get("character") or "").lower()
+        c_name = (card.get("name") or "").lower()
+
+        matched_templates = None
+        for bb_name, templates in BIT_BEAST_SIGNATURE_SKILLS.items():
+            bb_key = bb_name.lower()
+            if bb_key in bname or bb_key in c_anime or bb_key in c_name:
+                matched_templates = templates
+                break
+            if bb_name == "Wonder Valkyrie" and "valkyrie" in bname:
+                matched_templates = templates
+                break
+
+        if matched_templates:
+            out = []
+            for i, t in enumerate(matched_templates, 1):
+                out.append({
+                    "slot": i,
+                    "name": t["name"],
+                    "cost": t["cost"],
+                    "description": t["description"],
+                    "raw": t,
+                    "type": "bit_beast",
+                })
+            return out
+
+        # 3. Fall back to Beyblade archetype templates
         btype = (blade.get("type") or "Balance").capitalize()
         if btype not in DEFAULT_BIT_BEAST_SKILLS:
             btype = "Balance"
@@ -757,6 +924,12 @@ class BattleSkillManager:
             if hasattr(self.s, "stamina_manager"):
                 sm = self.s.stamina_manager
                 sm.gauge[key] = min(150, sm.gauge.get(key, 0) + raw.get("gauge", 35))
+        elif eff_type == "phoenix_rebirth":
+            self.put(key, 'shield', 1, hp=raw.get("shield", 40))
+            self.heal(key, raw.get("heal", 25), logs, "Dranzer Rebirth")
+        elif eff_type == "plasma_saber":
+            self.action_bonus[key] = self.action_bonus.get(key, 0) + raw.get("atk_pct", 0.40)
+            self.put(key, 'bb_mitigate', 1, pct=raw.get("mitigate_pct", 0.35))
 
     # ── Combat Modifiers for Managers ─────────────────────────────────────────
 

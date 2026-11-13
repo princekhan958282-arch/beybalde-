@@ -72,6 +72,7 @@ RARITY_ORDER: list[str] = [
     # See the note in avatar_utils.RARITY_ORDER — the two lists must agree.
     "Blader",
     "Original Generation",
+    "Bit Beast",
     "Mythic",
     "Ultimate",
     "Exclusive",
@@ -109,6 +110,7 @@ PACK_POOL: dict[str, list[str]] = {
     # whole of the containment: no other pack can reach one.
     "season1":   ["Blader"],
     "original": ["Original Generation"],
+    "bit_beast": ["Bit Beast"],
 }
 
 # Exact guaranteed rarity for slot 1
@@ -120,6 +122,7 @@ PACK_GUARANTEE: dict[str, Optional[str]] = {
     "mlbb":      "MLBB",
     "season1":   "Blader",
     "original": "Original Generation",
+    "bit_beast": "Bit Beast",
 }
 
 PACK_PRICE: dict[str, int] = {
@@ -130,6 +133,7 @@ PACK_PRICE: dict[str, int] = {
     "mlbb":      15_000_000,
     "season1":   250_000,
     "original": 100_000,
+    "bit_beast": 350_000,
 }
 
 PACK_DISPLAY: dict[str, str] = {
@@ -140,6 +144,7 @@ PACK_DISPLAY: dict[str, str] = {
     "mlbb":      "MLBB Pack",
     "season1":   "Beyblade Burst Season 1 Pack",
     "original": "Original Generation",
+    "bit_beast": "Bit Beast",
 }
 
 # ── Duplicate refund rates (% of pack price returned per rarity) ──────────────
@@ -167,6 +172,7 @@ DUPE_REFUND_RATE: dict[str, float] = {
     # arrive quickly, and the refund is what stops a late pack feeling wasted.
     "Blader":    0.20,
     "Original Generation": 0.0,
+    "Bit Beast": 0.20,
 }
 
 ORIGINAL_PACK_COOLDOWN = 48 * 60 * 60
@@ -190,6 +196,7 @@ PACK_EMOJI: dict[str, str] = {
     "mlbb":      "🌟",
     "season1":   "🏫",
     "original": "🐉",
+    "bit_beast": "🐉",
 }
 
 
@@ -242,6 +249,7 @@ PACK_RARITY_WEIGHT: dict[str, dict[str, int]] = {
         "Blader": 1000,
     },
     "original": {"Original Generation": 1000},
+    "bit_beast": {"Bit Beast": 1000},
 }
 
 # How many avatars a pack hands over. This was a hardcoded `if pack != "common"`
@@ -256,6 +264,7 @@ PACK_PULLS: dict[str, int] = {
     "mlbb":      2,
     "season1":   1,
     "original": 1,
+    "bit_beast": 1,
 }
 
 # What a pack needs before it can be bought at all, checked BEFORE any coins
@@ -613,10 +622,10 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
     @commands.command(name="buypack", aliases=["bpack", "openpack"])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def buy_pack(self, ctx: commands.Context, pack: str) -> None:
+    async def buy_pack(self, ctx: commands.Context, *, pack: str) -> None:
         """Open an avatar pack. Usage: ;buypack <common|rare|epic|legendary>"""
         pack = pack.lower()
-        pack = {"original_generation": "original", "og": "original"}.get(pack, pack)
+        pack = {"original_generation": "original", "og": "original", "bitbeast": "bit_beast", "bit beast": "bit_beast", "bit-beast": "bit_beast", "bit": "bit_beast", "bb": "bit_beast"}.get(pack, pack)
 
         if pack not in PACK_PRICE:
             valid = ", ".join(PACK_PRICE.keys())
