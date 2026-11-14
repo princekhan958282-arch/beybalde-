@@ -30,6 +30,8 @@ from utils.database import (
     player_owns_avatar,
     get_equipped_avatar,
     set_equipped_avatar,
+    get_equipped_bit_beast,
+    set_equipped_bit_beast,
 )
 
 # ── Path to data file ─────────────────────────────────────────────────────────
@@ -274,6 +276,53 @@ class AvatarBonuses:
 NULL_BONUSES = AvatarBonuses()
 
 
+def combine_avatar_bonuses(b1: AvatarBonuses, b2: AvatarBonuses) -> AvatarBonuses:
+    """Combine battle bonuses from an equipped Blader and an equipped Bit Beast."""
+    if not b1 or not b1.has_any_bonus:
+        return b2 or NULL_BONUSES
+    if not b2 or not b2.has_any_bonus:
+        return b1 or NULL_BONUSES
+
+    nth_interval = 0
+    if b1.nth_hit_interval and b2.nth_hit_interval:
+        nth_interval = min(b1.nth_hit_interval, b2.nth_hit_interval)
+    else:
+        nth_interval = b1.nth_hit_interval or b2.nth_hit_interval
+
+    return AvatarBonuses(
+        stat_bonus_cap=max(b1.stat_bonus_cap, b2.stat_bonus_cap),
+        attack_flat=b1.attack_flat + b2.attack_flat,
+        attack_percent=b1.attack_percent + b2.attack_percent,
+        defence_flat=b1.defence_flat + b2.defence_flat,
+        defence_percent=b1.defence_percent + b2.defence_percent,
+        stamina_flat=b1.stamina_flat + b2.stamina_flat,
+        stamina_percent=b1.stamina_percent + b2.stamina_percent,
+        stability_flat=b1.stability_flat + b2.stability_flat,
+        stability_percent=b1.stability_percent + b2.stability_percent,
+        charge_flat=b1.charge_flat + b2.charge_flat,
+        charge_percent=b1.charge_percent + b2.charge_percent,
+        special_move_flat=b1.special_move_flat + b2.special_move_flat,
+        special_move_percent=b1.special_move_percent + b2.special_move_percent,
+        hp_flat=0.0,
+        hp_percent=0.0,
+        crit_percent=b1.crit_percent + b2.crit_percent,
+        dodge_chance=min(AvatarBonuses.DODGE_CAP, b1.dodge_chance + b2.dodge_chance),
+        counter_chance=b1.counter_chance + b2.counter_chance,
+        multi_hit_power_double=b1.multi_hit_power_double or b2.multi_hit_power_double,
+        multi_hit_extra_hits=b1.multi_hit_extra_hits or b2.multi_hit_extra_hits,
+        resistance_damage_percent=b1.resistance_damage_percent + b2.resistance_damage_percent,
+        resistance_status_chance=b1.resistance_status_chance + b2.resistance_status_chance,
+        gauge_on_crit=b1.gauge_on_crit + b2.gauge_on_crit,
+        immortal_rounds=max(b1.immortal_rounds, b2.immortal_rounds),
+        nth_hit_interval=nth_interval,
+        nth_hit_attack_percent=b1.nth_hit_attack_percent + b2.nth_hit_attack_percent,
+        defence_break_min=b1.defence_break_min + b2.defence_break_min,
+        defence_break_max=b1.defence_break_max + b2.defence_break_max,
+        defence_break_rounds=max(b1.defence_break_rounds, b2.defence_break_rounds),
+        ult_adds_attack_stat=b1.ult_adds_attack_stat or b2.ult_adds_attack_stat,
+    )
+
+
 # ── Avatar Engine ─────────────────────────────────────────────────────────────
 
 class AvatarEngine:
@@ -345,9 +394,22 @@ class AvatarEngine:
 
     async def equip(self, player_id: int, avatar_id: str) -> tuple[bool, str]:
         """
-        Equip an avatar for a player.
+        Equip an avatar (Blader or Bit Beast) for a player.
+        Smart-routes to the proper equipment slot.
         Returns (success, message).
         """
+        self._ensure_loaded()
+
+        if not self.avatar_exists(avatar_id):
+            return False, f"Avatar `{avatar_id}` does not exist."
+
+        avatar = self._avatars[avatar_id]
+        if avatar.get("rarity") == "Bit Beast":
+            return await self.equip_bit_beast(player_id, avatar_id)
+        return await self.equip_blader(player_id, avatar_id)
+
+    async def equip_blader(self, player_id: int, avatar_id: str) -> tuple[bool, str]:
+        """Equip a Blader card."""
         self._ensure_loaded()
 
         if not self.avatar_exists(avatar_id):
@@ -358,15 +420,53 @@ class AvatarEngine:
 
         await set_equipped_avatar(player_id, avatar_id)
         avatar = self._avatars[avatar_id]
-        return True, f"Equipped **{avatar['name']}**!"
+        return True, f"Equipped Blader **{avatar['name']}**!"
 
-    async def unequip(self, player_id: int) -> tuple[bool, str]:
-        """Remove equipped avatar for a player."""
+    async def unequip_blader(self, player_id: int) -> tuple[bool, str]:
+        """Unequip Blader slot."""
+        await set_equipped_avatar(player_id, None)
+        return True, "Blader unequipped."
+
+    async def equip_bit_beast(self, player_id: int, bit_beast_id: str) -> tuple[bool, str]:
+        """Equip a Bit Beast card."""
+        self._ensure_loaded()
+
+        if not self.avatar_exists(bit_beast_id):
+            return False, f"Bit Beast `{bit_beast_id}` does not exist."
+
+        if not player_owns_avatar(player_id, bit_beast_id):
+            return False, "You don't own this Bit Beast."
+
+        await set_equipped_bit_beast(player_id, bit_beast_id)
+        bb = self._avatars[bit_beast_id]
+        return True, f"Equipped Bit Beast **{bb['name']}**!"
+
+    async def unequip_bit_beast(self, player_id: int) -> tuple[bool, str]:
+        """Unequip Bit Beast slot."""
+        await set_equipped_bit_beast(player_id, None)
+        return True, "Bit Beast unequipped."
+
+    async def unequip(self, player_id: int, slot: Optional[str] = None) -> tuple[bool, str]:
+        """Remove equipped avatar or bit beast for a player."""
+        if slot in ("bit_beast", "bitbeast"):
+            return await self.unequip_bit_beast(player_id)
+        elif slot in ("blader", "avatar"):
+            return await self.unequip_blader(player_id)
+        elif slot == "all":
+            await set_equipped_avatar(player_id, None)
+            await set_equipped_bit_beast(player_id, None)
+            return True, "Blader and Bit Beast unequipped."
         await set_equipped_avatar(player_id, None)
         return True, "Avatar unequipped."
 
     async def get_equipped_avatar_id(self, player_id: int) -> Optional[str]:
         return await get_equipped_avatar(player_id)
+
+    async def get_equipped_blader_id(self, player_id: int) -> Optional[str]:
+        return await get_equipped_avatar(player_id)
+
+    async def get_equipped_bit_beast_id(self, player_id: int) -> Optional[str]:
+        return await get_equipped_bit_beast(player_id)
 
     # ── Card levels ───────────────────────────────────────────────────────────
 
@@ -454,16 +554,37 @@ class AvatarEngine:
         """
         from utils.database import get_user
         profile = await get_user(player_id)
-        avatar_id = profile.get('equipped_avatar')
-        if not avatar_id or ('avatar_inventory' in profile and avatar_id not in profile['avatar_inventory']):
+
+        # 1. Blader bonuses
+        blader_bonuses = NULL_BONUSES
+        blader_id = profile.get('equipped_avatar')
+        if blader_id and ('avatar_inventory' not in profile or blader_id in profile['avatar_inventory']):
+            blader = self.get_avatar(blader_id)
+            if blader:
+                b = await self._active_bonuses(player_id, blader, profile)
+                level_bonus = await self._level_bonus(player_id, blader_id, blader, profile)
+                from .avatar_config import avatar_bonus_cap
+                blader_bonuses = self.bonuses_from_block(b, level_bonus, stat_bonus_cap=avatar_bonus_cap(blader))
+
+        # 2. Bit Beast bonuses
+        bb_bonuses = NULL_BONUSES
+        bb_id = profile.get('equipped_bit_beast')
+        if bb_id and ('avatar_inventory' not in profile or bb_id in profile['avatar_inventory']):
+            bb = self.get_avatar(bb_id)
+            if bb:
+                b = await self._active_bonuses(player_id, bb, profile)
+                level_bonus = await self._level_bonus(player_id, bb_id, bb, profile)
+                from .avatar_config import avatar_bonus_cap
+                bb_bonuses = self.bonuses_from_block(b, level_bonus, stat_bonus_cap=avatar_bonus_cap(bb))
+
+        if not blader_bonuses.has_any_bonus and not bb_bonuses.has_any_bonus:
             return NULL_BONUSES
-        avatar = self.get_avatar(avatar_id)
-        if not avatar:
-            return NULL_BONUSES
-        b = await self._active_bonuses(player_id, avatar, profile)
-        level_bonus = await self._level_bonus(player_id, avatar_id, avatar, profile)
-        from .avatar_config import avatar_bonus_cap
-        return self.bonuses_from_block(b, level_bonus, stat_bonus_cap=avatar_bonus_cap(avatar))
+        if not bb_bonuses.has_any_bonus:
+            return blader_bonuses
+        if not blader_bonuses.has_any_bonus:
+            return bb_bonuses
+
+        return combine_avatar_bonuses(blader_bonuses, bb_bonuses)
 
     def bonuses_from_block(self, block: Optional[dict],
                            level_bonus: Optional[dict] = None, *, stat_bonus_cap=1.0) -> AvatarBonuses:

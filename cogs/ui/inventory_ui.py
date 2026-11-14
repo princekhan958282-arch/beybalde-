@@ -45,6 +45,7 @@ from discord.ext import commands
 from utils.database import (
     get_user, update_user, beyblade_ref, mutate_user,
     get_avatar_inventory, get_equipped_avatar, set_equipped_avatar,
+    get_equipped_bit_beast, set_equipped_bit_beast,
 )
 from utils.embeds import RARITY_EMOJIS, rarity_colour
 from utils.mobile_ui import trunc as _trunc
@@ -59,14 +60,14 @@ VIEW_TIMEOUT   = 180
 # Per-tab page size. Beys get the big page — their line is two short ones and
 # a page of 12 is ~900 characters against Discord's 4,096-character embed
 # description limit, so there is headroom even at the longest blade names.
-PAGE_SIZE = {"bey": 12, "all": 12, "copy": 8}
+PAGE_SIZE = {"bey": 12, "all": 12, "copy": 8, "blader": 6, "bit_beast": 6, "avatar": 6}
 
 # Discord's hard limit on a select. Both the item list and the page jump are
 # built against it, so neither can silently drop its tail.
 MAX_SELECT_OPTIONS = 25
 
 # Filterable tabs are the ones whose items carry a rarity. Parts do not.
-RARITY_TABS = ("bey", "copy", "avatar", "all")
+RARITY_TABS = ("bey", "copy", "blader", "bit_beast", "avatar", "all")
 
 # The "no filter" option's value. It CANNOT be the empty string: Discord
 # requires a select option's value to be 1–100 characters and rejects the whole
@@ -79,8 +80,8 @@ RARITY_TABS = ("bey", "copy", "avatar", "all")
 ALL_RARITIES = "__all__"
 
 TYPE_EMOJI = {"attack": "⚔️", "defense": "🛡️", "stamina": "🌀", "balance": "⚖️"}
-CATEGORIES = [("bey", "🌀 Beys"), ("copy", "🧬 Boss Copies"),
-              ("avatar", "🧑 Avatars"), ("part", "⚙️ Parts"), ("all", "🎒 All")]
+CATEGORIES = [("bey", "🌀 Beys"), ("blader", "👤 Bladers"),
+              ("bit_beast", "🐉 Bit Beasts"), ("part", "⚙️ Parts"), ("copy", "🧬 Copies")]
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _AVATAR_PATH = os.path.join(_PROJECT_ROOT, "cogs", "avatar", "avatar_data.json")
@@ -216,17 +217,30 @@ class InventoryView(discord.ui.View):
         except Exception:
             copies = []
 
-        eq_av   = await get_equipped_avatar(self.target.id)
-        avatars = []
+        eq_av = await get_equipped_avatar(self.target.id)
+        eq_bb = await get_equipped_bit_beast(self.target.id)
+        bladers = []
+        bit_beasts = []
         from cogs.avatar import avatar_collection as AC, avatar_progress as AP
         for aid in get_avatar_inventory(self.target.id):
             av = _avatar_lookup().get(aid, {})
-            avatars.append({
-                "kind": "avatar", "name": f"{av.get('name', aid)} · {AC.stars(prof, aid)}★ · Lv{AP.card_level(prof, aid)}", "id": aid,
-                "spare_copies": AC.spare_copies(prof, aid), "stages": AC.stages(prof, aid),
-                "rarity": av.get("rarity", "?"), "image": av.get("image"),
-                "bonuses": av.get("bonuses", {}), "equipped": aid == eq_av,
-            })
+            rarity = av.get("rarity", "?")
+            is_bb = rarity == "Bit Beast"
+            item_data = {
+                "kind": "bit_beast" if is_bb else "blader",
+                "name": f"{av.get('name', aid)} · {AC.stars(prof, aid)}★ · Lv{AP.card_level(prof, aid)}",
+                "id": aid,
+                "spare_copies": AC.spare_copies(prof, aid),
+                "stages": AC.stages(prof, aid),
+                "rarity": rarity,
+                "image": av.get("image"),
+                "bonuses": av.get("bonuses", {}),
+                "equipped": (aid == eq_bb) if is_bb else (aid == eq_av),
+            }
+            if is_bb:
+                bit_beasts.append(item_data)
+            else:
+                bladers.append(item_data)
 
         from utils.bey_components import owned_parts
         from utils.character_registry import REGISTRY
@@ -277,9 +291,15 @@ class InventoryView(discord.ui.View):
 
         parts = list(stacked.values())
 
-        self._cache = {"bey": beys, "copy": copies, "avatar": avatars,
-                       "part": parts,
-                       "all": beys + copies + avatars + parts}
+        self._cache = {
+            "bey": beys,
+            "copy": copies,
+            "blader": bladers,
+            "bit_beast": bit_beasts,
+            "avatar": bladers,
+            "part": parts,
+            "all": beys + copies + bladers + bit_beasts + parts,
+        }
         # The filtered view is derived from `_cache`, so it dies with it.
         self._view_cache = {}
 
@@ -365,8 +385,10 @@ class InventoryView(discord.ui.View):
             return TYPE_EMOJI.get(it["type"], "🌀")
         if it["kind"] == "copy":
             return it.get("emoji", "🧬")
-        if it["kind"] == "avatar":
-            return "🧑"
+        if it["kind"] in ("blader", "avatar"):
+            return "👤"
+        if it["kind"] == "bit_beast":
+            return "🐉"
         return {"driver": "🔩", "disk": "💿", "ring": "💍"}.get(it.get("ptype"), "⚙️")
 
     def _line(self, idx: int, it: dict) -> str:
@@ -381,7 +403,7 @@ class InventoryView(discord.ui.View):
             sub = (f"{it['grade']} · **{it['total']}** total "
                    f"({lo}-{hi}) · `#{it['id']}`"
                    + ("  ✨" if it.get("awakening") else ""))
-        elif it["kind"] == "avatar":
+        elif it["kind"] in ("blader", "avatar", "bit_beast"):
             sub = f"{RARITY_EMOJIS.get(it['rarity'], '')} {it['rarity']} · {it.get('spare_copies', 0)} spare copies"
         else:
             sub = (" ".join(f"`{s[:3].upper()} {v:+}`" for s,v in it["stats"].items()) if it.get("stats") else f"`+{it['bonus']} {str(it.get('stat'))[:3].upper()}`")
@@ -401,7 +423,7 @@ class InventoryView(discord.ui.View):
         self._clamp_page()
         items = self._page_items()
         per   = self._per_page()
-        cat_label = dict(CATEGORIES)[self.category]
+        cat_label = dict(CATEGORIES).get(self.category, "👤 Bladers" if self.category == "avatar" else ("🎒 All" if self.category == "all" else self.category.title()))
         shown, total = len(self._items()), len(self._all_items())
 
         if not items and self.rarity:
@@ -458,7 +480,7 @@ class InventoryView(discord.ui.View):
                 + "\n".join(kit)
             )
             e.set_footer(text=f"{it['loadout']}  •  ;copy {it['id']} for the card")
-        elif it["kind"] == "avatar":
+        elif it["kind"] in ("blader", "avatar", "bit_beast"):
             bn = it.get("bonuses", {}) or {}
             perks = " ".join(
                 f"`{k.split('_')[0][:3].upper()}+{v}`"
@@ -655,7 +677,8 @@ class InventoryView(discord.ui.View):
 
     def _make_cat_cb(self, key: str):
         async def cb(interaction: discord.Interaction):
-            self.category, self.page, self.detail = key, 0, None
+            self.category = "blader" if key == "avatar" else key
+            self.page, self.detail = 0, None
             # The filter is per-tab by nature — "Ultimate" carried from beys
             # onto parts would show an empty list nobody asked for.
             self.rarity = None
@@ -790,8 +813,10 @@ class InventoryView(discord.ui.View):
         elif it["kind"] == "copy":
             from cogs.battle.boss import boss_copy as _bc
             await _bc.equip(self.owner.id, it["id"])
-        elif it["kind"] == "avatar":
+        elif it["kind"] in ("blader", "avatar"):
             await set_equipped_avatar(self.owner.id, it.get("id"))
+        elif it["kind"] == "bit_beast":
+            await set_equipped_bit_beast(self.owner.id, it.get("id"))
         else:
             from utils.bey_components import EquipmentError
             try:
