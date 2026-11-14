@@ -368,6 +368,12 @@ class BattleSession:
             if avatar:
                 from cogs.avatar.avatar_scaling import scaled_card
                 avatar = scaled_card(profile, avatar)
+
+            bb_id = await _AE.get_equipped_bit_beast_id(int(pid)) if avatars_enabled else None
+            bb_card = _AE.get_avatar(bb_id or "") if bb_id else None
+            if bb_card:
+                from cogs.avatar.avatar_scaling import scaled_card
+                bb_card = scaled_card(profile, bb_card)
             stat_mult = await get_stat_multiplier(pid, blade.get("name")) if bey_level is None else 1.0
 
             skill_commit: dict = {}
@@ -393,6 +399,8 @@ class BattleSession:
                 "hp_pool":           max_hp_for_blade(effective),
                 "avatar_id":         avatar_id,
                 "avatar_card":       avatar or {},
+                "bit_beast_id":      bb_id,
+                "bit_beast_card":    bb_card or {},
                 "bonuses":           bonuses,
                 "stat_mult":         stat_mult,
                 "effective_special": eff_spec,
@@ -515,6 +523,10 @@ class BattleSession:
         self.avatar_cards: dict[str, dict] = {
             str(p1.id): self._avatar_card_for(p1.id),
             str(p2.id): self._avatar_card_for(p2.id),
+        }
+        self.bit_beast_cards: dict[str, dict] = {
+            str(p1.id): self._bit_beast_card_for(p1.id),
+            str(p2.id): self._bit_beast_card_for(p2.id),
         }
         self.avatar_skill_slots: dict[str, Optional[int]] = {
             str(p1.id): (None if self._is_npc(p1.id)
@@ -822,6 +834,15 @@ class BattleSession:
                 aid = getattr(self.npc_controller, "avatar_id", None)
                 return (avatar_engine.get_avatar(aid or "") or {}) if aid else {}
             return self._prefetch.get(str(player_id), {}).get("avatar_card") or {}
+        except Exception:                                # noqa: BLE001
+            return {}
+
+    def _bit_beast_card_for(self, player_id) -> dict:
+        """The Bit Beast card this side is wearing, or {}."""
+        if not self.avatars_enabled:
+            return {}
+        try:
+            return self._prefetch.get(str(player_id), {}).get("bit_beast_card") or {}
         except Exception:                                # noqa: BLE001
             return {}
 

@@ -304,7 +304,8 @@ def _default_profile(user_id: str) -> dict:
         "rank_score":       0,
         "parts":            [],
         "last_daily":       None,
-        "equipped_avatar":  None,   # Avatar system
+        "equipped_avatar":    None,   # Avatar system (Blader)
+        "equipped_bit_beast": None,   # Bit Beast system
         "win_streak":       0,
         "best_streak":      0,
         "quests":           {},
@@ -335,7 +336,8 @@ def _get_user_sync(user_id: int) -> dict:
                 ("rank_score",      0),
                 ("parts",           []),
                 ("last_daily",      None),
-                ("equipped_avatar", None),   # Avatar system migration
+                ("equipped_avatar",    None),   # Avatar system migration
+                ("equipped_bit_beast", None),   # Dual equipment migration
                 ("win_streak",      0),
                 ("best_streak",     0),
                 ("quests",          {}),
@@ -398,6 +400,8 @@ def _update_user_sync(user_id: int, profile: dict, touch: bool = True) -> None:
                         profile[key] = copy.deepcopy(current[key])
                 if profile.get('equipped_avatar') not in current['avatar_inventory']:
                     profile['equipped_avatar'] = None
+                if profile.get('equipped_bit_beast') not in current['avatar_inventory']:
+                    profile['equipped_bit_beast'] = None
             from .bey_components import reconcile
             reconcile(profile)
             return profile, None
@@ -939,22 +943,45 @@ def player_owns_avatar(user_id: int, avatar_id: str) -> bool:
 
 
 async def get_equipped_avatar(user_id: int) -> Optional[str]:
-    """Return the equipped avatar ID for a user, or None."""
+    """Return the equipped avatar (Blader) ID for a user, or None."""
     profile = await get_user(user_id)
     return profile.get("equipped_avatar")
+
+get_equipped_blader = get_equipped_avatar
+
+
+async def get_equipped_bit_beast(user_id: int) -> Optional[str]:
+    """Return the equipped Bit Beast ID for a user, or None."""
+    profile = await get_user(user_id)
+    return profile.get("equipped_bit_beast")
 
 
 def _set_equipped_avatar_sync(user_id: int, avatar_id: Optional[str]) -> None:
     def equip(profile):
-        if avatar_id is not None and avatar_id not in profile['avatar_inventory']:
+        if avatar_id is not None and avatar_id not in profile.get('avatar_inventory', []):
             raise ValueError("You no longer own this avatar.")
         profile['equipped_avatar'] = avatar_id
     _mutate_user_sync(user_id, equip)
 
 
 async def set_equipped_avatar(user_id: int, avatar_id: Optional[str]) -> None:
-    """Set or clear the equipped avatar for a user."""
+    """Set or clear the equipped avatar (Blader) for a user."""
     await asyncio.to_thread(_set_equipped_avatar_sync, user_id, avatar_id)
+
+set_equipped_blader = set_equipped_avatar
+
+
+def _set_equipped_bit_beast_sync(user_id: int, bit_beast_id: Optional[str]) -> None:
+    def equip(profile):
+        if bit_beast_id is not None and bit_beast_id not in profile.get('avatar_inventory', []):
+            raise ValueError("You no longer own this bit beast.")
+        profile['equipped_bit_beast'] = bit_beast_id
+    _mutate_user_sync(user_id, equip)
+
+
+async def set_equipped_bit_beast(user_id: int, bit_beast_id: Optional[str]) -> None:
+    """Set or clear the equipped Bit Beast for a user."""
+    await asyncio.to_thread(_set_equipped_bit_beast_sync, user_id, bit_beast_id)
 
 
 def get_custom_review_channel(guild_id: int) -> Optional[int]:

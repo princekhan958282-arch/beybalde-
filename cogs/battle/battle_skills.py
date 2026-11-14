@@ -507,23 +507,40 @@ class BattleSkillManager:
 
     def get_bit_beast_skills(self, key: str) -> List[dict]:
         """Return 3 Bit Beast skills for this player (from equipped Bit Beast, Avatar card, or Beyblade archetype)."""
+        bb_card = (getattr(self.s, "bit_beast_cards", None) or {}).get(key) or {}
         card = (getattr(self.s, "avatar_cards", None) or {}).get(key) or {}
         blade = (getattr(self.s, "blades", None) or {}).get(key) or {}
 
-        # 1. Check if an equipped Avatar is explicitly a Bit Beast
-        if card.get("rarity") == "Bit Beast" and card.get("skills"):
-            out = []
-            for i, raw in enumerate(card["skills"][:3], 1):
-                cost = raw.get("cost") or raw.get("energy_cost") or (25 if i == 1 else (50 if i == 2 else 75))
-                out.append({
-                    "slot": i,
-                    "name": raw.get("name", f"Bit Beast Skill {i}"),
-                    "cost": cost,
-                    "description": raw.get("description", "A signature Bit Beast power."),
-                    "raw": raw,
-                    "type": "bit_beast",
-                })
-            return out
+        # 1. Check if an equipped Bit Beast exists (or Avatar is a Bit Beast)
+        target_bb = bb_card if bb_card else (card if card.get("rarity") == "Bit Beast" else {})
+        if target_bb:
+            if target_bb.get("skills"):
+                out = []
+                for i, raw in enumerate(target_bb["skills"][:3], 1):
+                    cost = raw.get("cost") or raw.get("energy_cost") or (25 if i == 1 else (50 if i == 2 else 75))
+                    out.append({
+                        "slot": i,
+                        "name": raw.get("name", f"Bit Beast Skill {i}"),
+                        "cost": cost,
+                        "description": raw.get("description", "A signature Bit Beast power."),
+                        "raw": raw,
+                        "type": "bit_beast",
+                    })
+                return out
+            bb_name = target_bb.get("name", "")
+            for sig_name, templates in BIT_BEAST_SIGNATURE_SKILLS.items():
+                if sig_name.lower() in bb_name.lower():
+                    out = []
+                    for i, t in enumerate(templates, 1):
+                        out.append({
+                            "slot": i,
+                            "name": t["name"],
+                            "cost": t["cost"],
+                            "description": t["description"],
+                            "raw": t,
+                            "type": "bit_beast",
+                        })
+                    return out
 
         # 2. Check for signature Bit Beast matching by blade name, character, or partner
         bname = (blade.get("name") or "").lower()

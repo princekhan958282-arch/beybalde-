@@ -79,6 +79,13 @@ class MemoryStore:
     def put_one(self, uid, prof, touch=True):
         self.data[str(uid)] = copy.deepcopy(prof)
 
+    def mutate_one(self, uid, fn, touch=True):
+        profile = self.get_one(uid)
+        profile, result = fn(profile)
+        if profile is not None:
+            self.put_one(uid, profile, touch=touch)
+        return result
+
     def has(self, uid):
         return str(uid) in self.data
 

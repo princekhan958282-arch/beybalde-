@@ -512,6 +512,147 @@ class TestNewBitBeastAvatarsAndShop(unittest.TestCase):
         self.assertIsNotNone(shield_effect)
         self.assertEqual(shield_effect.get("hp"), 40)
 
+    def test_dual_equipment_system(self):
+        import utils.database as db
+        from cogs.avatar import avatar_engine
+
+        user_id = 999888777
+        # Initialize profile with both cards
+        prof = {
+            "inventory": [],
+            "avatar_inventory": ["avatar_bb_wonder_valkyrie", "avatar_s107"],
+            "equipped_avatar": None,
+            "equipped_bit_beast": None,
+        }
+        db.USER_STORE.put_one(str(user_id), prof)
+
+        # 1. Equip Blader via smart equip
+        ok, msg = asyncio.run(avatar_engine.equip(user_id, "avatar_s107"))
+        self.assertTrue(ok)
+        p1 = db._get_user_sync(user_id)
+        self.assertEqual(p1["equipped_avatar"], "avatar_s107")
+        self.assertIsNone(p1["equipped_bit_beast"])
+
+        # 2. Equip Bit Beast via smart equip (should NOT unequip Blader!)
+        ok, msg = asyncio.run(avatar_engine.equip(user_id, "avatar_bb_wonder_valkyrie"))
+        self.assertTrue(ok)
+        p2 = db._get_user_sync(user_id)
+        self.assertEqual(p2["equipped_avatar"], "avatar_s107")
+        self.assertEqual(p2["equipped_bit_beast"], "avatar_bb_wonder_valkyrie")
+
+        # 3. Unequip Blader (should NOT unequip Bit Beast!)
+        ok, msg = asyncio.run(avatar_engine.unequip_blader(user_id))
+        self.assertTrue(ok)
+        p3 = db._get_user_sync(user_id)
+        self.assertIsNone(p3["equipped_avatar"])
+        self.assertEqual(p3["equipped_bit_beast"], "avatar_bb_wonder_valkyrie")
+
+        # 4. Re-equip Blader, then unequip Bit Beast (should leave Blader equipped!)
+        asyncio.run(avatar_engine.equip_blader(user_id, "avatar_s107"))
+        ok, msg = asyncio.run(avatar_engine.unequip_bit_beast(user_id))
+        self.assertTrue(ok)
+        p4 = db._get_user_sync(user_id)
+        self.assertEqual(p4["equipped_avatar"], "avatar_s107")
+        self.assertIsNone(p4["equipped_bit_beast"])
+
+    def test_combined_avatar_bonuses(self):
+        from cogs.avatar.avatar_engine import AvatarBonuses, combine_avatar_bonuses
+
+        b1 = AvatarBonuses(attack_flat=10, defence_flat=5, crit_percent=0.10)
+        b2 = AvatarBonuses(attack_flat=15, defence_flat=10, stamina_flat=20)
+
+        combined = combine_avatar_bonuses(b1, b2)
+        self.assertEqual(combined.attack_flat, 25)
+        self.assertEqual(combined.defence_flat, 15)
+        self.assertEqual(combined.stamina_flat, 20)
+        self.assertEqual(combined.crit_percent, 0.10)
+
+    def test_inventory_ui_bladers_and_bit_beasts(self):
+        import cogs.ui.inventory_ui as ui
+        import utils.database as db
+
+        user_id = 999888666
+        prof = {
+            "inventory": [],
+            "parts": [],
+            "equipped_parts": [],
+            "avatar_inventory": ["avatar_bb_wonder_valkyrie", "avatar_s107"],
+            "equipped_avatar": "avatar_s107",
+            "equipped_bit_beast": "avatar_bb_wonder_valkyrie",
+        }
+        db.USER_STORE.put_one(str(user_id), prof)
+
+        # Check CATEGORIES includes both
+        cat_keys = [k for k, _ in ui.CATEGORIES]
+        self.assertIn("blader", cat_keys)
+        self.assertIn("bit_beast", cat_keys)
+
+        # Create InventoryView and load cache
+        member = SimpleNamespace(id=user_id, display_name="DualTester")
+        view = ui.InventoryView(member, member)
+        asyncio.run(view._load_cache())
+
+        # Check blader cache
+        blader_items = view._cache.get("blader", [])
+        self.assertTrue(any(it["id"] == "avatar_s107" for it in blader_items))
+        self.assertFalse(any(it["id"] == "avatar_bb_wonder_valkyrie" for it in blader_items))
+
+        # Check bit beast cache
+        bb_items = view._cache.get("bit_beast", [])
+        self.assertTrue(any(it["id"] == "avatar_bb_wonder_valkyrie" for it in bb_items))
+        self.assertFalse(any(it["id"] == "avatar_s107" for it in bb_items))
+
+        # Check icons
+        self.assertEqual(ui.InventoryView._icon({"kind": "blader"}), "👤")
+        self.assertEqual(ui.InventoryView._icon({"kind": "bit_beast"}), "🐉")
+
+    def test_simultaneous_blader_and_bit_beast_battle_skills(self):
+        card_blader = self.engine.get_avatar("avatar_s107")
+        card_bb = self.engine.get_avatar("avatar_bb_wonder_valkyrie")
+
+        session = SimpleNamespace(
+            round=1,
+            players=[SimpleNamespace(id=301), SimpleNamespace(id=302)],
+            blades={"301": {"type": "Attack", "name": "Victory Valkyrie"}, "302": {"type": "Defense"}},
+            avatar_cards={"301": card_blader, "302": {}},
+            bit_beast_cards={"301": card_bb, "302": {}},
+            hp={"301": 100, "302": 100},
+            max_hp_per_player={"301": 100, "302": 100},
+            max_hp=100,
+            finished=False,
+            moves={"301": "attack", "302": "defense"},
+        )
+        sm = BattleSkillManager(session)
+
+        # Blader skills should come from Valt Aoi
+        b_skills = sm.get_blader_skills("301")
+        self.assertEqual(len(b_skills), 3)
+        self.assertEqual(b_skills[0]["type"], "blader")
+
+        # Bit Beast skills should come from Wonder Valkyrie
+        bb_skills = sm.get_bit_beast_skills("301")
+        self.assertEqual(len(bb_skills), 3)
+        self.assertEqual(bb_skills[0]["name"], "Wonder Attack")
+        self.assertEqual(bb_skills[1]["name"], "Wonder Reboot")
+        self.assertEqual(bb_skills[2]["name"], "Valkyrie Winged Storm")
+
+        # Advance turns to have 50 Bit Beast energy
+        for t in range(1, 4):
+            sm.on_turn_start(t)
+        self.assertEqual(sm.get_bit_beast_energy("301"), 45)
+        sm.states["301"].bit_beast_energy = 50
+
+        # Activate BOTH Blader Skill and Bit Beast Skill simultaneously!
+        ok_b, _ = sm.select_blader_skill("301", 1)
+        ok_bb, _ = sm.select_bit_beast_skill("301", 1)
+        self.assertTrue(ok_b)
+        self.assertTrue(ok_bb)
+
+        # Both skills are committed for round 1
+        st = sm.states["301"]
+        self.assertEqual(st.blader_pending, 1)
+        self.assertEqual(st.bit_beast_pending, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

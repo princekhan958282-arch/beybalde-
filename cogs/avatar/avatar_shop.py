@@ -421,6 +421,10 @@ class AvatarShop(commands.Cog, name="Avatar"):
         from utils.database import get_equipped_avatar
         return await get_equipped_avatar(player_id)
 
+    async def _get_equipped_bit_beast_id(self, player_id: int) -> str | None:
+        from utils.database import get_equipped_bit_beast
+        return await get_equipped_bit_beast(player_id)
+
     # ── Pack internals ────────────────────────────────────────────────────────
 
     def _build_rarity_map(self, pool: list[str]) -> dict[str, list[dict]]:
@@ -479,26 +483,37 @@ class AvatarShop(commands.Cog, name="Avatar"):
 
     # ── Commands ──────────────────────────────────────────────────────────────
 
-    @commands.command(name="avatar", aliases=["av"])
+    @commands.command(name="avatar", aliases=["av", "blader", "bitbeast"])
     async def avatar_main(self, ctx: commands.Context) -> None:
-        """Avatar system overview — quick reference for all avatar commands."""
+        """Blader & Bit Beast system overview — quick reference for commands."""
         player_id   = ctx.author.id
         equipped_id = await self._get_equipped_id(player_id)
+        equipped_bb_id = await self._get_equipped_bit_beast_id(player_id)
         owned_count = len(self._get_owned_avatar_ids(player_id))
         coins       = await self._get_player_coins(player_id)
 
-        equipped_text = "None"
+        equipped_blader_text = "None"
         if equipped_id:
             av = avatar_engine.get_avatar(equipped_id)
             if av:
                 emoji = RARITY_EMOJI.get(av["rarity"], "⚪")
-                equipped_text = f"{emoji} **{av['name']}** ({av['rarity']})"
+                equipped_blader_text = f"{emoji} **{av['name']}**"
+
+        equipped_bb_text = "None"
+        if equipped_bb_id:
+            bb = avatar_engine.get_avatar(equipped_bb_id)
+            if bb:
+                emoji = RARITY_EMOJI.get(bb["rarity"], "🐉")
+                equipped_bb_text = f"{emoji} **{bb['name']}**"
 
         embed = discord.Embed(
-            title="🎭 Avatar System",
+            title="🎭 Blader & Bit Beast System",
             description=(
-                "Equip an avatar to gain passive battle bonuses.\n"
-                f"You own **{owned_count}** avatar(s). Currently equipped: {equipped_text}"
+                "Equip a Blader and Bit Beast to gain passive bonuses and in-battle skills.\n"
+                f"You own **{owned_count}** card(s).\n"
+                f"👤 **Blader**: {equipped_blader_text}\n"
+                f"🐉 **Bit Beast**: {equipped_bb_text}\n"
+                "*(Both can be equipped simultaneously!)*"
             ),
             color=0xE67E22,
         )
@@ -506,7 +521,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
             name="🛒 Browse & Buy",
             value=(
                 "`;ainfo` — Your equipped avatar\n"
-                "`;avatarinfo <id>` / `;ainfo <name or id>` — Inspect an avatar"
+                "`;avatarinfo <id>` / `;ainfo <name or id>` — Inspect a card"
             ),
             inline=False,
         )
@@ -515,16 +530,17 @@ class AvatarShop(commands.Cog, name="Avatar"):
             value=(
                 "`;avatarpacks` / `;apacks` — View packs & prices\n"
                 "`;buypack <type>` / `;bpack <type>` — Open a pack\n"
-                "Pack types: `common` • `rare` • `epic` • `legendary`"
+                "Pack types: `common` • `rare` • `epic` • `legendary` • `original`"
             ),
             inline=False,
         )
         embed.add_field(
             name="⚙️ Manage",
             value=(
-                "`;myavatars` / `;avinv` — View your collection\n"
-                "`;equipavatar <name or id>` / `;equipa <name or id>` — Equip an avatar\n"
-                "`;unequipavatar` / `;unequipa` — Unequip current avatar"
+                "`;myavatars` / `;bladers` / `;bitbeasts` — View your collection\n"
+                "`;equipblader <name>` • `;unequipblader` — Manage Blader\n"
+                "`;equipbitbeast <name>` • `;unequipbitbeast` — Manage Bit Beast\n"
+                "`;equipavatar <name>` — Smart equip to matching slot"
             ),
             inline=False,
         )
@@ -815,16 +831,17 @@ class AvatarShop(commands.Cog, name="Avatar"):
     # `price` field stays in the data: it is still shown on cards and read by
     # the shop listing, it simply is no longer a way to buy.
 
-    @commands.command(name="myavatars", aliases=["avatars", "myav", "avinv"])
+    @commands.command(name="myavatars", aliases=["avatars", "myav", "avinv", "bladers", "mybladers", "bitbeasts", "mybitbeasts"])
     async def my_avatars(self, ctx: commands.Context) -> None:
-        """View your owned avatars."""
+        """View your owned Bladers and Bit Beasts."""
         player_id   = ctx.author.id
         owned_ids   = self._get_owned_avatar_ids(player_id)
-        equipped_id = self._get_equipped_id(player_id)
+        equipped_blader_id = await self._get_equipped_id(player_id)
+        equipped_bb_id = await self._get_equipped_bit_beast_id(player_id)
 
         if not owned_ids:
             await ctx.send(
-                "You don't own any avatars yet. "
+                "You don't own any Bladers or Bit Beasts yet. "
                 "Use `;avatarpacks` to open packs."
             )
             return
@@ -835,26 +852,49 @@ class AvatarShop(commands.Cog, name="Avatar"):
             reverse=True,
         )
 
+        eq_blader_name = "None"
+        if equipped_blader_id:
+            b_card = avatar_engine.get_avatar(equipped_blader_id)
+            if b_card:
+                eq_blader_name = f"**{b_card['name']}**"
+
+        eq_bb_name = "None"
+        if equipped_bb_id:
+            bb_card = avatar_engine.get_avatar(equipped_bb_id)
+            if bb_card:
+                eq_bb_name = f"**{bb_card['name']}**"
+
         embed = discord.Embed(
-            title=f"🎭 {ctx.author.display_name}'s Avatars",
+            title=f"👤 {ctx.author.display_name}'s Bladers & Bit Beasts",
+            description=f"👤 **Blader**: {eq_blader_name}\n🐉 **Bit Beast**: {eq_bb_name}\n*(Both can be equipped simultaneously!)*",
             color=0x9B59B6,
         )
 
-        for av in owned_avatars:
-            emoji  = RARITY_EMOJI.get(av["rarity"], "⚪")
-            status = " ✅ [Equipped]" if av["id"] == equipped_id else ""
-            embed.add_field(
-                name=f"{emoji} {av['name']}{status}",
-                value=f"`{av['id']}`  •  {av['rarity']}",
-                inline=False,
-            )
+        bladers = [a for a in owned_avatars if a.get("rarity") != "Bit Beast"]
+        bit_beasts = [a for a in owned_avatars if a.get("rarity") == "Bit Beast"]
 
-        embed.set_footer(text="Use ;equipavatar <name or id> to equip one.")
+        if bladers:
+            lines = []
+            for av in bladers:
+                emoji = RARITY_EMOJI.get(av["rarity"], "⚪")
+                status = " ✅ [Equipped]" if av["id"] == equipped_blader_id else ""
+                lines.append(f"{emoji} **{av['name']}**{status} — `{av['id']}` ({av['rarity']})")
+            embed.add_field(name="👤 Bladers", value="\n".join(lines[:15]), inline=False)
+
+        if bit_beasts:
+            lines = []
+            for av in bit_beasts:
+                emoji = RARITY_EMOJI.get(av["rarity"], "🐉")
+                status = " ✅ [Equipped]" if av["id"] == equipped_bb_id else ""
+                lines.append(f"{emoji} **{av['name']}**{status} — `{av['id']}` ({av['rarity']})")
+            embed.add_field(name="🐉 Bit Beasts", value="\n".join(lines[:15]), inline=False)
+
+        embed.set_footer(text=";equipblader <name> • ;equipbitbeast <name> • ;equipavatar <name>")
         await ctx.send(embed=embed)
 
     @commands.command(name="equipavatar", aliases=["equipa"])
     async def equip_avatar(self, ctx: commands.Context, *, query: str) -> None:
-        """Equip an avatar by name or ID."""
+        """Equip an avatar (Blader or Bit Beast) by name or ID."""
         avatar = self._resolve_avatar_query(query)
         if not avatar:
             matches = self._ambiguous_matches(query)
@@ -873,6 +913,58 @@ class AvatarShop(commands.Cog, name="Avatar"):
     async def unequip_avatar(self, ctx: commands.Context) -> None:
         """Remove your currently equipped avatar."""
         success, msg = await avatar_engine.unequip(ctx.author.id)
+        emoji = "✅" if success else "❌"
+        await ctx.send(f"{emoji} {msg}")
+
+    @commands.command(name="equipblader", aliases=["equipb"])
+    async def equip_blader(self, ctx: commands.Context, *, query: str) -> None:
+        """Equip a Blader card."""
+        avatar = self._resolve_avatar_query(query)
+        if not avatar:
+            matches = self._ambiguous_matches(query)
+            if len(matches) > 1:
+                names = ", ".join(f"**{a['name']}**" for a in matches[:5])
+                await ctx.send(f"❌ Multiple matches for `{query}`: {names}. Be more specific.")
+            else:
+                await ctx.send(f"❌ No Blader found matching `{query}`.")
+            return
+        if avatar.get("rarity") == "Bit Beast":
+            await ctx.send(f"❌ **{avatar['name']}** is a Bit Beast! Use `;equipbitbeast {avatar['name']}` instead.")
+            return
+        success, msg = await avatar_engine.equip_blader(ctx.author.id, avatar["id"])
+        emoji = "✅" if success else "❌"
+        await ctx.send(f"{emoji} {msg}")
+
+    @commands.command(name="unequipblader", aliases=["unequipb"])
+    async def unequip_blader(self, ctx: commands.Context) -> None:
+        """Unequip your Blader card."""
+        success, msg = await avatar_engine.unequip_blader(ctx.author.id)
+        emoji = "✅" if success else "❌"
+        await ctx.send(f"{emoji} {msg}")
+
+    @commands.command(name="equipbitbeast", aliases=["equipbb"])
+    async def equip_bit_beast(self, ctx: commands.Context, *, query: str) -> None:
+        """Equip a Bit Beast card."""
+        avatar = self._resolve_avatar_query(query)
+        if not avatar:
+            matches = self._ambiguous_matches(query)
+            if len(matches) > 1:
+                names = ", ".join(f"**{a['name']}**" for a in matches[:5])
+                await ctx.send(f"❌ Multiple matches for `{query}`: {names}. Be more specific.")
+            else:
+                await ctx.send(f"❌ No Bit Beast found matching `{query}`.")
+            return
+        if avatar.get("rarity") != "Bit Beast":
+            await ctx.send(f"❌ **{avatar['name']}** is a Blader! Use `;equipblader {avatar['name']}` instead.")
+            return
+        success, msg = await avatar_engine.equip_bit_beast(ctx.author.id, avatar["id"])
+        emoji = "✅" if success else "❌"
+        await ctx.send(f"{emoji} {msg}")
+
+    @commands.command(name="unequipbitbeast", aliases=["unequipbb"])
+    async def unequip_bit_beast(self, ctx: commands.Context) -> None:
+        """Unequip your Bit Beast card."""
+        success, msg = await avatar_engine.unequip_bit_beast(ctx.author.id)
         emoji = "✅" if success else "❌"
         await ctx.send(f"{emoji} {msg}")
 
