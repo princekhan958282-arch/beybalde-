@@ -57,6 +57,7 @@ from utils.database import (
     set_spawn_channel,
     get_user,
     update_user,
+    mutate_user,
 )
 from utils.embeds import RARITY_EMOJIS, rarity_colour
 
@@ -1030,8 +1031,9 @@ class SpawnCog(commands.Cog):
         # { normalised_name: [original_string, original_string, ...] }
         seen: dict[str, list[str]] = {}
         for bey in inventory:
-            key = bey.lower().strip()
-            seen.setdefault(key, []).append(bey)
+            name = bey.get("name") if isinstance(bey, dict) else bey
+            key = str(name).lower().strip()
+            seen.setdefault(key, []).append(str(name))
 
         # Only entries with more than 1 copy
         duplicates = {k: v for k, v in seen.items() if len(v) > 1}
@@ -1121,10 +1123,6 @@ class SpawnCog(commands.Cog):
             return await ctx.send("❌ Duplicate sell cancelled. Nothing was changed.")
 
         # ── Execute the sale ──────────────────────────────────────────────────
-        # Re-fetch fresh profile right before mutating to avoid race conditions
-        user_profile = await get_user(ctx.author.id)
-        inventory    = user_profile.get("inventory", [])
-
         # ONE pass, not one per duplicate group. This rebuilt the whole
         # inventory list once per unique blade — with 91 possible names and a
         # large collection that is tens of thousands of comparisons and 91
@@ -1132,17 +1130,22 @@ class SpawnCog(commands.Cog):
         # many of each name to drop turns it into a single sweep.
         budget = {display_name.lower().strip(): extras
                   for display_name, _r, extras, _sv, _e in to_sell}
-        kept = []
-        for bey in inventory:
-            key = str(bey).lower().strip()
-            if budget.get(key, 0) > 0:
-                budget[key] -= 1        # sell this copy
-                continue
-            kept.append(bey)
 
-        user_profile["inventory"] = kept
-        user_profile["coins"]     = user_profile.get("coins", 0) + total_coins
-        await update_user(ctx.author.id, user_profile)
+        def apply_dupe_sale(prof):
+            inv = prof.get("inventory", [])
+            b = dict(budget)
+            kept = []
+            for bey in inv:
+                name = bey.get("name") if isinstance(bey, dict) else bey
+                key = str(name).lower().strip()
+                if b.get(key, 0) > 0:
+                    b[key] -= 1        # sell this copy
+                    continue
+                kept.append(bey)
+            prof["inventory"] = kept
+            prof["coins"] = prof.get("coins", 0) + total_coins
+
+        user_profile = await mutate_user(ctx.author.id, apply_dupe_sale)
 
         # ── Result embed ──────────────────────────────────────────────────────
         sold_count = sum(extras for _, _, extras, _, _ in to_sell)
