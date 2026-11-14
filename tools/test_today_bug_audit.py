@@ -66,7 +66,7 @@ class TestTodayBugAudit(unittest.IsolatedAsyncioTestCase):
         from cogs.updates import cog as UC
 
         owner_1 = SimpleNamespace(id=956773141265391676, roles=[])
-        owner_2 = SimpleNamespace(id=100654502861, roles=[])
+        owner_2 = SimpleNamespace(id=1006545028614729808, roles=[])
         regular_user = SimpleNamespace(id=555555555555, roles=[])
 
         # is_admin
@@ -240,8 +240,16 @@ class TestTodayBugAudit(unittest.IsolatedAsyncioTestCase):
 
             # Test tournament runner execution
             mock_session = SimpleNamespace(run=AsyncMock(), winner_id=1001)
+
+            async def mock_announce(act, m, r):
+                cog._finish_v2(act.matches, m, m.player_a or 1001, act.mode)
+                evt = act.match_events.get(m.id)
+                if evt and not evt.is_set():
+                    evt.set()
+
             with patch("cogs.tournament.tournament.mutate_user", AsyncMock()), \
                  patch("cogs.tournament.tournament.load_beyblades", return_value={"Valt": {"name": "Valt", "rarity": "Common"}}), \
+                 patch.object(cog, "_announce_v2_match", side_effect=mock_announce), \
                  patch("cogs.battle.session.BattleSession.create", AsyncMock(return_value=mock_session)):
                 bot.get_guild = Mock(return_value=SimpleNamespace(id=101, get_member=lambda uid: SimpleNamespace(id=uid, display_name=f"Player_{uid}", mention=f"<@{uid}>")))
                 await cog.run_v2(reg, panel)
@@ -282,6 +290,7 @@ class TestTodayBugAudit(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(res_stop.ok)
         self.assertIn("Spawn loop stopped", res_stop.message)
         self.assertIsNone(A._spawn_loop.get("task"))
+        await asyncio.sleep(0)
 
 
 if __name__ == "__main__":

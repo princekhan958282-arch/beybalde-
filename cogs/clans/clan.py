@@ -28,7 +28,7 @@ from typing import Optional
 import discord
 from discord.ext import commands
 
-from utils.database import get_user, update_user
+from utils.database import get_user, update_user, mutate_user
 from utils.mobile_ui import MobileListView, bar as ui_bar
 
 from . import clan_data as cd
@@ -149,20 +149,26 @@ class ClanCog(commands.Cog, name="Clans"):
         if taken:
             return await ctx.send(f"❌ {taken}")
 
-        profile = await get_user(ctx.author.id)
-        if profile.get("coins", 0) < cd.CREATE_COST:
+        class NotEnoughCoins(Exception):
+            pass
+
+        def deduct_cost(prof):
+            if prof.get("coins", 0) < cd.CREATE_COST:
+                raise NotEnoughCoins()
+            prof["coins"] = prof.get("coins", 0) - cd.CREATE_COST
+
+        try:
+            await mutate_user(ctx.author.id, deduct_cost)
+        except NotEnoughCoins:
+            profile = await get_user(ctx.author.id)
             return await ctx.send(
                 f"❌ Founding a clan costs 🪙 **{cd.CREATE_COST:,}** — "
                 f"you have 🪙 {profile.get('coins', 0):,}.")
 
-        profile["coins"] -= cd.CREATE_COST
-        await update_user(ctx.author.id, profile)
-
         try:
             clan = cd.create_clan(ctx.author.id, name, tag)
         except Exception as exc:
-            profile["coins"] += cd.CREATE_COST      # refund on failure
-            await update_user(ctx.author.id, profile)
+            await mutate_user(ctx.author.id, lambda prof: prof.update({"coins": prof.get("coins", 0) + cd.CREATE_COST}))
             return await ctx.send(f"❌ Couldn't create the clan: `{exc}`")
 
         e = await self._clan_embed(clan)
@@ -279,18 +285,24 @@ class ClanCog(commands.Cog, name="Clans"):
         if clan is None:
             return
 
-        profile = await get_user(ctx.author.id)
-        if profile.get("coins", 0) < amount:
+        class NotEnoughCoins(Exception):
+            pass
+
+        def deduct_dep(prof):
+            if prof.get("coins", 0) < amount:
+                raise NotEnoughCoins()
+            prof["coins"] = prof.get("coins", 0) - amount
+
+        try:
+            await mutate_user(ctx.author.id, deduct_dep)
+        except NotEnoughCoins:
+            profile = await get_user(ctx.author.id)
             return await ctx.send(
                 f"❌ You only have 🪙 {profile.get('coins', 0):,}.")
 
-        profile["coins"] -= amount
-        await update_user(ctx.author.id, profile)
-
         ok, new_balance = cd.update_treasury(clan["id"], amount)
         if not ok:
-            profile["coins"] += amount              # refund on failure
-            await update_user(ctx.author.id, profile)
+            await mutate_user(ctx.author.id, lambda prof: prof.update({"coins": prof.get("coins", 0) + amount}))
             return await ctx.send("❌ Couldn't update the treasury — nothing was taken.")
 
         await ctx.send(
@@ -312,9 +324,11 @@ class ClanCog(commands.Cog, name="Clans"):
             return await ctx.send(
                 f"❌ Treasury only has 🪙 {clan.get('treasury', 0):,}.")
 
-        profile = await get_user(ctx.author.id)
-        profile["coins"] = profile.get("coins", 0) + amount
-        await update_user(ctx.author.id, profile)
+        try:
+            await mutate_user(ctx.author.id, lambda prof: prof.update({"coins": prof.get("coins", 0) + amount}))
+        except Exception:
+            cd.update_treasury(clan["id"], amount)
+            return await ctx.send("❌ Failed to credit coins — treasury restored.")
 
         await ctx.send(
             f"✅ Withdrew 🪙 **{amount:,}** from **[{clan['tag']}]**.\n"

@@ -1960,10 +1960,16 @@ async def _carddebug(ctx: ActionCtx) -> Result:
     dt = (time.time() - t0) * 1000
 
     selected = info_card.selected_version() if hasattr(info_card, "selected_version") else "compatibility"
+    try:
+        import tempfile
+        tmp_dir = "/tmp" if os.path.exists("/tmp") else tempfile.gettempdir()
+        tmp_free_mb = shutil.disk_usage(tmp_dir).free // 2 ** 20
+        tmp_free_str = f"`{tmp_free_mb} MB`"
+    except Exception:
+        tmp_free_str = "`N/A`"
     lines = [f"**renderer:** `{info_card.__name__}` · **selected:** `{selected}`",
              f"**engine:** `{info_card.last_engine}` · {dt:.0f} ms",
-             f"**python:** `{platform.python_version()}` · **free /tmp:** "
-             f"`{shutil.disk_usage('/tmp').free // 2 ** 20} MB`"]
+             f"**python:** `{platform.python_version()}` · **free /tmp:** {tmp_free_str}"]
     # find_spec rather than `import playwright`: this only needs to know
     # whether the package is installed, and importing it for the answer is
     # both slower and an unused-import warning forever.

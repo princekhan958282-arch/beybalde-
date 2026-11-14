@@ -164,6 +164,10 @@ class BidModal(discord.ui.Modal, title="Place a Bid"):
         s   = self._state
         uid = interaction.user.id
 
+        if s.seller and uid == s.seller.id:
+            return await interaction.response.send_message(
+                "❌ You cannot bid on your own auction.", ephemeral=True)
+
         if amt <= s.current_bid:
             return await interaction.response.send_message(
                 f"Bid must exceed 🪙 {s.current_bid:,}.", ephemeral=True)

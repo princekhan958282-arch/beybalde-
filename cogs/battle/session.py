@@ -1583,7 +1583,9 @@ class BattleSession:
         card_task = asyncio.create_task(self._battle_card_file())
         try:
             await self.channel.send(embed=result_embed)
-            self.skills_manager.on_turn_start(self.round)
+            sm = getattr(self, "skills_manager", None) or getattr(self, "original_generation", None)
+            if sm and hasattr(sm, "on_turn_start"):
+                sm.on_turn_start(self.round)
             await self._prime_npc_move()
             new_view = _InChannelControlPanel(self)
             self._current_view = new_view
@@ -1972,7 +1974,9 @@ class BattleSession:
             await self.channel.send(embed=setup_embed)
 
         # Post the initial status panel with move buttons
-        self.skills_manager.on_turn_start(self.round)
+        sm = getattr(self, "skills_manager", None) or getattr(self, "original_generation", None)
+        if sm and hasattr(sm, "on_turn_start"):
+            sm.on_turn_start(self.round)
         await self._prime_npc_move()
         first_view = _InChannelControlPanel(self)
         self._current_view = first_view

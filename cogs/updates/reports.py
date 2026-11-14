@@ -371,7 +371,13 @@ async def _await_image(interaction: discord.Interaction, report_id: str,
             # Wherever it landed — the configured channel or the owner's DM.
             chan_id, msg_id = split_location(report["message_id"])
             from utils.database import get_report_channel
-            ch = bot.get_channel(chan_id or (get_report_channel() or 0))
+            target_cid = chan_id or (get_report_channel() or 0)
+            ch = bot.get_channel(target_cid) if target_cid else None
+            if ch is None and target_cid and hasattr(bot, "fetch_channel"):
+                try:
+                    ch = await bot.fetch_channel(target_cid)
+                except Exception:
+                    ch = None
             if ch and msg_id:
                 m = await ch.fetch_message(msg_id)
                 await m.edit(embed=build_embed(report),
