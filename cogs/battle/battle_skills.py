@@ -374,6 +374,36 @@ BIT_BEAST_SIGNATURE_SKILLS = {
             "mitigate_pct": 0.35,
         },
     ],
+    "Omega Whisper": [
+        {
+            "name": "Void Aegis",
+            "cost": 25,
+            "description": "Omega Whisper reinforces its dark armor for 3 rounds, immediately gaining +25 Defense and absorbing incoming hits to build up to 3 stacks of Shadow Ward (+15 Defense per stack).",
+            "effect_type": "void_aegis",
+            "defense": 25,
+            "rounds": 3,
+            "stack_defense": 15,
+            "max_stacks": 3,
+        },
+        {
+            "name": "Obsidian Barrier",
+            "cost": 50,
+            "description": "Deploys a crystalline void shield that reduces all incoming damage by 40% for the next 2 rounds and negates enemy critical hit bonus damage.",
+            "effect_type": "obsidian_barrier",
+            "mitigate_pct": 0.40,
+            "rounds": 2,
+            "negate_crit": True,
+        },
+        {
+            "name": "Void Cataclysm",
+            "cost": 100,
+            "description": "Plunges its dark sword into the ground, unleashing a massive purple void shockwave that deals 222 damage, cancels all opponent attack buffs, and restores 450 HP.",
+            "effect_type": "void_cataclysm",
+            "damage": 222,
+            "heal": 450,
+            "cancel_attack_buffs": True,
+        },
+    ],
 }
 
 
@@ -458,7 +488,8 @@ class BattleSkillManager:
     def get_blader_skills(self, key: str) -> List[dict]:
         """Return 3 Blader skills for this player (from Avatar card or defaults)."""
         card = (getattr(self.s, "avatar_cards", None) or {}).get(key) or {}
-        if card.get("rarity") == "Bit Beast":
+        from cogs.avatar.avatar_utils import is_bit_beast
+        if is_bit_beast(card):
             out = []
             for i in range(1, 4):
                 d = DEFAULT_BLADER_SKILLS[i - 1]
@@ -511,8 +542,9 @@ class BattleSkillManager:
         card = (getattr(self.s, "avatar_cards", None) or {}).get(key) or {}
         blade = (getattr(self.s, "blades", None) or {}).get(key) or {}
 
+        from cogs.avatar.avatar_utils import is_bit_beast
         # 1. Check if an equipped Bit Beast exists (or Avatar is a Bit Beast)
-        target_bb = bb_card if bb_card else (card if card.get("rarity") == "Bit Beast" else {})
+        target_bb = bb_card if bb_card else (card if is_bit_beast(card) else {})
         if target_bb:
             if target_bb.get("skills"):
                 out = []
@@ -791,7 +823,8 @@ class BattleSkillManager:
                 bbsk = st.bit_beast_active_skill or (self.get_bit_beast_skills(key)[bbslot - 1] if bbslot else None)
                 if bbsk:
                     blade = (getattr(self.s, "blades", None) or {}).get(key) or {}
-                    bname = blade.get("name") or "Bit Beast"
+                    bb_card = (getattr(self.s, "bit_beast_cards", None) or {}).get(key) or {}
+                    bname = bb_card.get("name") or blade.get("name") or "Bit Beast"
                     logs.append(f"🐉 **{bname}: {bbsk['name']}** — {bbsk['cost']}⚡ Bit Beast Energy!")
                     self._apply_bit_beast_skill_effect(key, other, bbsk, logs)
 
@@ -971,6 +1004,47 @@ class BattleSkillManager:
         elif eff_type == "plasma_saber":
             self.action_bonus[key] = self.action_bonus.get(key, 0) + raw.get("atk_pct", 0.40)
             self.put(key, 'bb_mitigate', 1, pct=raw.get("mitigate_pct", 0.35))
+        elif eff_type == "void_aegis":
+            rounds = raw.get("rounds", 3)
+            base_def = raw.get("defense", 25)
+            stack_def = raw.get("stack_defense", 15)
+            max_stacks = raw.get("max_stacks", 3)
+            self.put(key, 'void_aegis', rounds,
+                     stacks=0,
+                     max_stacks=max_stacks,
+                     base_def=base_def,
+                     stack_def=stack_def)
+            if hasattr(self.s, "status") and hasattr(self.s.status, "add_buff"):
+                self.s.status.add_buff(key, 'defense', base_def, rounds, source='void_aegis')
+            logs.append(f"🛡️ **Void Aegis** — dark armor reinforced for {rounds} rounds (+{base_def} Defense)! Absorbing hits builds Shadow Ward stacks.")
+        elif eff_type == "obsidian_barrier":
+            rounds = raw.get("rounds", 2)
+            mit_pct = raw.get("mitigate_pct", 0.40)
+            neg_crit = raw.get("negate_crit", True)
+            self.put(key, 'obsidian_barrier', rounds,
+                     pct=mit_pct,
+                     negate_crit=neg_crit)
+            logs.append(f"🔮 **Obsidian Barrier** — deployed crystalline void shield for {rounds} rounds (-{mit_pct:.0%} incoming damage, negates enemy crit bonus)!")
+        elif eff_type == "void_cataclysm":
+            raw_dmg = raw.get("damage", 222)
+            heal_amt = raw.get("heal", 450)
+            from .combat_rules import damage_hp
+            before_opp_hp = self.s.hp.get(other, 0)
+            self.s.hp[other], actual_dmg = damage_hp(before_opp_hp, raw_dmg)
+            logs.append(f"🌌 **Void Cataclysm** — plunges dark sword into the ground, unleashing a massive purple void shockwave for {actual_dmg} damage!")
+
+            if hasattr(self.s, "status") and hasattr(self.s.status, "active_buffs"):
+                opp_buffs = self.s.status.active_buffs.get(other, [])
+                atk_buffs = [b for b in opp_buffs if b.get("stat") == "attack" and b.get("amount", 0) > 0]
+                if atk_buffs:
+                    self.s.status.active_buffs[other] = [
+                        b for b in opp_buffs if not (b.get("stat") == "attack" and b.get("amount", 0) > 0)
+                    ]
+                    total_cancelled = sum(b.get("amount", 0) for b in atk_buffs)
+                    logs.append(f"🚫 **Void Cataclysm** — cancelled {len(atk_buffs)} opponent attack buff(s) (-{total_cancelled} ATK total)!")
+            self.action_bonus.pop(other, None)
+
+            self.heal(key, heal_amt, logs, "Void Cataclysm")
 
     # ── Combat Modifiers for Managers ─────────────────────────────────────────
 
@@ -1103,6 +1177,30 @@ class BattleSkillManager:
             if reduced < damage:
                 logs.append(f"🛡️ **Tactical Guard** absorbs {damage - reduced} damage!")
                 damage = reduced
+        obsidian = self.effect(other, 'obsidian_barrier')
+        if obsidian and damage > 0:
+            if obsidian.get('negate_crit'):
+                is_crit = False
+                crit_mult = 2.0
+                if hasattr(self.s, 'type_gimmicks') and self.s.type_gimmicks.critical_applies(key, move):
+                    is_crit = True
+                    crit_mult = max(1.0, self.s.type_gimmicks.critical_multiplier.get(key, 2.0)
+                                    + sum(self.s.type_gimmicks._values(key, 'critical_strike', 'gimmick_bonus', 'damage')))
+                elif getattr(getattr(self.s, 'ability', None), 'last_hit_was_crit', False):
+                    is_crit = True
+
+                if is_crit and crit_mult > 1.0:
+                    damage = max(1, math.floor(damage / crit_mult))
+                    logs.append("🔮 **Obsidian Barrier** — negated enemy critical hit bonus damage!")
+                    if hasattr(self.s, 'ability'):
+                        self.s.ability.last_hit_was_crit = False
+
+            pct = obsidian.get('pct', 0.40)
+            reduced = math.floor(damage * (1 - pct))
+            absorbed = damage - reduced
+            if absorbed > 0:
+                logs.append(f"🔮 **Obsidian Barrier** absorbs {absorbed} damage ({pct:.0%})!")
+                damage = reduced
         return damage
 
     def stability_delta(self, key: str, old: int, delta: int, logs: list[str], *, incoming: bool = True) -> int:
@@ -1147,6 +1245,18 @@ class BattleSkillManager:
             self.retaliation.append((other, key, 0.15 * self.attack(other), 'Tiger Claw'))
         if self.effect(other, 'lightning') and getattr(self.s, "moves", {}).get(other) == 'defense':
             self.retaliation.append((other, key, min(40, 0.30 * actual), 'Dark Lightning'))
+        va = self.effect(other, 'void_aegis')
+        if va:
+            current_stacks = va.get('stacks', 0)
+            max_stacks = va.get('max_stacks', 3)
+            if current_stacks < max_stacks:
+                current_stacks += 1
+                va['stacks'] = current_stacks
+                stack_def = va.get('stack_def', 15)
+                remaining_rounds = max(1, va.get('until', self.round) - self.round + 1)
+                if hasattr(self.s, "status") and hasattr(self.s.status, "add_buff"):
+                    self.s.status.add_buff(other, 'defense', stack_def, remaining_rounds, source=f'shadow_ward_{current_stacks}')
+                logs.append(f"🌑 **Shadow Ward** — absorbed incoming hit! Built stack {current_stacks}/{max_stacks} (+{current_stacks * stack_def} Defense total)!")
 
     def attack(self, key: str) -> float:
         from .purification import effective_stats

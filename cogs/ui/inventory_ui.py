@@ -224,8 +224,9 @@ class InventoryView(discord.ui.View):
         from cogs.avatar import avatar_collection as AC, avatar_progress as AP
         for aid in get_avatar_inventory(self.target.id):
             av = _avatar_lookup().get(aid, {})
+            from cogs.avatar.avatar_utils import is_bit_beast
             rarity = av.get("rarity", "?")
-            is_bb = rarity == "Bit Beast"
+            is_bb = is_bit_beast(av)
             item_data = {
                 "kind": "bit_beast" if is_bb else "blader",
                 "name": f"{av.get('name', aid)} · {AC.stars(prof, aid)}★ · Lv{AP.card_level(prof, aid)}",

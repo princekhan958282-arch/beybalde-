@@ -2308,13 +2308,20 @@ class AbilityEngine:
 
         if engine is not None:
             # Offensive effects have completed; type crit precedes defenses.
+            og = getattr(self.session, "skills_manager", None) or getattr(self.session, "original_generation", None)
+            negate_crit = bool(og and og.effect(other_key, "obsidian_barrier") and og.effect(other_key, "obsidian_barrier").get("negate_crit"))
             forced = self.guaranteed_crit_turns.get(mover_key, 0)
             natural = engine.critical_applies(mover_key, move)
             avatar_crit = False
             if move == MOVE_ATTACK and not natural and not forced:
                 from cogs.battle import avatar_combat
                 avatar_crit = avatar_combat.roll_extra_crit(self.session, mover_key, False)
-            if move == MOVE_ATTACK and (forced or avatar_crit) and not natural:
+            if negate_crit and (forced or avatar_crit or natural):
+                self.last_hit_was_crit = False
+                logs.append("🔮 **Obsidian Barrier** — negated enemy critical hit bonus damage!")
+                if forced:
+                    self.guaranteed_crit_turns[mover_key] = max(0, forced - 1)
+            elif move == MOVE_ATTACK and (forced or avatar_crit) and not natural:
                 dmg_dealt *= 2.0
                 self.last_hit_was_crit = True
                 if avatar_crit and dmg_dealt > 0:
