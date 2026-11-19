@@ -320,9 +320,12 @@ def calc_damage(
                    else "lose" if attacker_move == MOVE_STAMINA and defender_move == MOVE_ATTACK
                    else "mirror")
         return 0, 0, matchup, False
-    if attacker_move == MOVE_DEFENSE and defender_move == MOVE_ATTACK:
-        return 0, 0, "win", False  # Counter is returned by the Attack pairing.
-    if attacker_move not in (MOVE_ATTACK, MOVE_DEFENSE):
+    if attacker_move == MOVE_DEFENSE:
+        matchup = ("win" if defender_move == MOVE_ATTACK
+                   else "lose_grind" if defender_move == MOVE_STAMINA
+                   else "mirror")
+        return 0, 0, matchup, False
+    if attacker_move != MOVE_ATTACK:
         return 0, 0, "mirror", False
     stat = "attack"
     # Defense-pierce is an explicit damage-path bypass.  Do not simulate it by
@@ -345,8 +348,6 @@ def calc_damage(
                       attacker_stats.get(stat, 50), effective_defense)
     if attacker_move == defender_move:
         return raw, 0, "mirror", False
-    if attacker_move == MOVE_DEFENSE:
-        return raw * LOSING_PENALTY_MULT, 0, "lose_grind", False
     if defender_move == MOVE_DEFENSE:
         if defender_stats.get("_ignore_defense", False):
             return raw, 0, "win", False

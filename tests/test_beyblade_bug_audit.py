@@ -369,6 +369,47 @@ class TestBeybladeBugAudit(unittest.TestCase):
                 dealt, _, _ = engine.apply("p", "e", blade, foe, "attack", "win", 100, 0)
                 self.assertGreater(dealt, 0)
 
+    def test_defense_move_does_not_deal_outgoing_attack_damage(self):
+        from cogs.battle.constants import MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_CHARGE
+        from cogs.battle.damage_rules import calc_damage
+        with open(ROOT / "beys" / "prime_apocalypse.json", "r", encoding="utf-8") as f:
+            apocalypse = json.load(f)
+        with open(ROOT / "beys" / "fang_fenrir.json", "r", encoding="utf-8") as f:
+            fenrir = json.load(f)
+
+        atk_stats = apocalypse["stats"]
+        def_stats = fenrir["stats"]
+
+        # Defense vs Attack: 0 outgoing, 0 taken (counter hit is handled on Attack's pairing)
+        d_vs_a = calc_damage(MOVE_DEFENSE, atk_stats, def_stats, apocalypse, MOVE_ATTACK)
+        self.assertEqual(d_vs_a, (0, 0, "win", False))
+
+        # Defense vs Defense: 0 damage dealt
+        d_vs_d = calc_damage(MOVE_DEFENSE, atk_stats, def_stats, apocalypse, MOVE_DEFENSE)
+        self.assertEqual(d_vs_d, (0, 0, "mirror", False))
+
+        # Defense vs Stamina: 0 damage dealt, matchup is lose_grind for grind debuff
+        d_vs_s = calc_damage(MOVE_DEFENSE, atk_stats, def_stats, apocalypse, MOVE_STAMINA)
+        self.assertEqual(d_vs_s, (0, 0, "lose_grind", False))
+
+        # Defense vs Charge: 0 damage dealt
+        d_vs_c = calc_damage(MOVE_DEFENSE, atk_stats, def_stats, apocalypse, MOVE_CHARGE)
+        self.assertEqual(d_vs_c, (0, 0, "mirror", False))
+
+    def test_prime_apocalypse_weak_point_is_not_offensive_proc(self):
+        from cogs.abilities.legacy_convert import legacy_convert
+        with open(ROOT / "beys" / "prime_apocalypse.json", "r", encoding="utf-8") as f:
+            apocalypse = json.load(f)
+        rules = legacy_convert(apocalypse["ability"])
+        # Must not produce bonus_damage_pct (50% bonus damage) from weak_point_hit_chance
+        for rule in rules:
+            for op in rule.get("do", []):
+                self.assertNotEqual(op.get("op"), "bonus_damage_pct",
+                                    "Prime Apocalypse should not gain offensive bonus damage from its weak point")
+        # Should have its burst resistance / damage reduction
+        has_reduce = any(any(op.get("op") == "reduce_damage_pct" for op in rule.get("do", [])) for rule in rules)
+        self.assertTrue(has_reduce, "Prime Apocalypse should retain damage reduction from burst resistance")
+
 
 if __name__ == "__main__":
     unittest.main()

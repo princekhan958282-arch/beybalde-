@@ -252,7 +252,7 @@ _PATTERNS: list[tuple[re.Pattern, Any]] = [
      lambda m, v, ab: ({"op": "bonus_damage_pct",
                         "value": float(v) * (100 if float(v) <= 1 else 1)}, "off")),
     (re.compile(r"extra_hit_chance$|speed_burst_chance$|chaos_bonus_chance$|"
-                r"weak_point_hit_chance$|burst_chance_bonus$|"
+                r"burst_chance_bonus$|"
                 r"upper_attack_lift_chance$"),
      lambda m, v, ab: ({"op": "bonus_damage_pct", "value": 50.0,
                         "_chance": float(v) if float(v) <= 1 else float(v) / 100},
