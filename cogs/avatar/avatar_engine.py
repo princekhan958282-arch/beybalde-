@@ -23,7 +23,7 @@ import random
 from dataclasses import dataclass
 from typing import Optional
 
-from .avatar_utils import validate_avatar_data
+from .avatar_utils import validate_avatar_data, is_bit_beast
 
 # JSON-based database helpers (Beybot uses flat-file storage, not SQL)
 from utils.database import (
@@ -404,7 +404,7 @@ class AvatarEngine:
             return False, f"Avatar `{avatar_id}` does not exist."
 
         avatar = self._avatars[avatar_id]
-        if avatar.get("rarity") == "Bit Beast":
+        if is_bit_beast(avatar):
             return await self.equip_bit_beast(player_id, avatar_id)
         return await self.equip_blader(player_id, avatar_id)
 

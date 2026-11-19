@@ -59,6 +59,7 @@ from .avatar_utils import (
     rarity_sort_key,
     RARITY_EMOJI,
     RARITY_COLORS,
+    is_bit_beast,
 )
 
 
@@ -870,8 +871,8 @@ class AvatarShop(commands.Cog, name="Avatar"):
             color=0x9B59B6,
         )
 
-        bladers = [a for a in owned_avatars if a.get("rarity") != "Bit Beast"]
-        bit_beasts = [a for a in owned_avatars if a.get("rarity") == "Bit Beast"]
+        bladers = [a for a in owned_avatars if not is_bit_beast(a)]
+        bit_beasts = [a for a in owned_avatars if is_bit_beast(a)]
 
         if bladers:
             lines = []
@@ -928,7 +929,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
             else:
                 await ctx.send(f"❌ No Blader found matching `{query}`.")
             return
-        if avatar.get("rarity") == "Bit Beast":
+        if is_bit_beast(avatar):
             await ctx.send(f"❌ **{avatar['name']}** is a Bit Beast! Use `;equipbitbeast {avatar['name']}` instead.")
             return
         success, msg = await avatar_engine.equip_blader(ctx.author.id, avatar["id"])
@@ -954,7 +955,7 @@ class AvatarShop(commands.Cog, name="Avatar"):
             else:
                 await ctx.send(f"❌ No Bit Beast found matching `{query}`.")
             return
-        if avatar.get("rarity") != "Bit Beast":
+        if not is_bit_beast(avatar):
             await ctx.send(f"❌ **{avatar['name']}** is a Blader! Use `;equipblader {avatar['name']}` instead.")
             return
         success, msg = await avatar_engine.equip_bit_beast(ctx.author.id, avatar["id"])

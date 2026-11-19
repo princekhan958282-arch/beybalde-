@@ -5,7 +5,7 @@
   "type": "balance",
   "price": 0,
   "description": "Exists beyond all known power. Never found in packs. Never duplicated.",
-  "image": "assets/avatars/omega_prime.png",
+  "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1572215587566919762/4751d8ec477b72743f28a20f584de01a.jpg?ex=6afd8f5e&is=6afc3dde&hm=d3fd98c838e69b89475e432264e56e769b2336dbff7f50b86fc9d44e21c525d3",
   "bonuses": {
     "attack_flat": 25,
     "attack_percent": 0.25,

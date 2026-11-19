@@ -116,6 +116,18 @@ def format_type(avatar_type: str) -> str:
     return f"{TYPE_EMOJI.get(key, '❔')} {TYPE_LABEL.get(key, key.title() or 'Unknown')}"
 
 
+def is_bit_beast(card: Optional[dict]) -> bool:
+    """Return True if the avatar card belongs to the Bit Beast category/slot."""
+    if not isinstance(card, dict):
+        return False
+    return (
+        card.get("rarity") == "Bit Beast"
+        or card.get("category") == "bit_beast"
+        or bool(card.get("is_bit_beast"))
+    )
+
+
+
 # ── Validation ───────────────────────────────────────────────────────────────
 
 def validate_avatar_data(avatar: dict) -> tuple[bool, str]:
