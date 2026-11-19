@@ -45,6 +45,7 @@ BIT_BEAST_AVATAR_ADDITIONS = {
     'avatar_bb_dragoon': 'Dragoon',
     'avatar_bb_driger': 'Driger',
     'avatar_bb_dranzer': 'Dranzer',
+    'avatar_bb_omega_whisper': 'Omega Whisper',
 }
 
 def digest(document):
@@ -80,7 +81,7 @@ class MigrationTests(unittest.TestCase):
                         self.assertEqual(hp_correction['previous_sha256'], expected_hash)
                         expected_hash = hp_correction['sha256']
                     self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
-        for folder, number in (('beys', 170), ('avatars', 58), ('parts/disks', 188), ('parts/drivers', 187)):
+        for folder, number in (('beys', 170), ('avatars', 59), ('parts/disks', 188), ('parts/drivers', 187)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
         for folder in ('beys', 'avatars'):
             self.assertFalse(any(p.is_dir() for p in (ROOT / folder).iterdir()))

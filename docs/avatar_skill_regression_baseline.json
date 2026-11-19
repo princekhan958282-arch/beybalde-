@@ -30,6 +30,11 @@
       "name": "Shu Kurenai",
       "migration_sha256": "bf441e120f628fb4216134aee06028538409bc0d65e42d0a272f53b5282c3c52",
       "sha256": "9f999b5b4d87c5f29694bfbd72bdd7a856ba47b8bec5ad3bd9354b624f5304aa"
+    },
+    "avatar_x001": {
+      "name": "Omega Prime",
+      "migration_sha256": "bf754390d19bcd59c29d24139137074360361da51455ad338b005852c55672f3",
+      "sha256": "762d841c1d947b73dab15bb74a637a195dafe17ec26437866944b1475b06972c"
     }
   }
 }
