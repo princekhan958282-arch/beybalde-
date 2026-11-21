@@ -12,7 +12,7 @@
     {
       "name": "Extreme Switch Strike",
       "trigger": "on_attack_hit",
-      "description": "Switch Strike, taken further. Every Attack adds **70% of its Stamina** as damage; it drains **0.9 stamina** from whoever hits it and cuts **18%** off that hit, and every third hit taken answers for **60**.\n**Levitation Launch** restores **44 HP**, **3 stamina** and **30 stability**, leaves a **110 HP shield** with **+70 Defence for 3 turns**, and puts **+25 Attack** behind the next two strikes.",
+      "description": "Switch Strike, taken further. Every Attack adds **30% of its Stamina** as damage; it drains **0.9 stamina** from whoever hits it and cuts **18%** off that hit, and every third hit taken answers for **60**.\n**Levitation Launch** restores **44 HP**, **3 stamina** and **30 stability**, leaves a **110 HP shield** with **+70 Defence for 3 turns**, and puts **+25 Attack** behind the next two strikes.",
       "rules": [
         {
           "when": "on_attack_hit",
@@ -20,7 +20,7 @@
             {
               "op": "bonus_damage_stat",
               "stat": "stamina",
-              "scale": 0.7
+              "scale": 0.3
             }
           ]
         },
@@ -29,7 +29,8 @@
           "do": [
             {
               "op": "drain_stamina",
-              "value": 0.9
+              "value": 0.9,
+              "steal": false
             },
             {
               "op": "reduce_damage_pct",

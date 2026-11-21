@@ -15,20 +15,52 @@
   },
   "ability": {
     "name": "Updraft Glide",
-    "trigger": "passive",
-    "description": "Trypio's massive propeller layer generates constant lift. Reduces all incoming impact damage by 25, converts friction into stability, and recovers 1 Stamina per turn passively.",
-    "damage_reduction": 25,
-    "stamina_steal": 1,
-    "chain": [
+    "trigger": "on_take_damage",
+    "description": "Trypio's massive propeller layer generates constant lift. Reduces incoming impact damage by 25, converts friction into +5 stability, and recovers 1 Stamina per turn passively.\nTornado Glide drains 4 Stamina from the opponent and restores 90 HP.",
+    "rules": [
       {
-        "condition": "always",
-        "effect": "heal_pct",
-        "value": 0.1571,
-        "once": false,
-        "_note": "special_move heal – trigger from on_special (engine reads chain from ability)"
+        "when": "on_take_damage",
+        "do": [
+          {
+            "op": "reduce_damage_flat",
+            "value": 25,
+            "label": "Updraft Glide"
+          },
+          {
+            "op": "gain_stability",
+            "amount": 5,
+            "value": 5,
+            "label": "Updraft Glide"
+          }
+        ]
+      },
+      {
+        "when": "turn_start",
+        "do": [
+          {
+            "op": "gain_stamina",
+            "value": 1.0,
+            "label": "Updraft Glide"
+          }
+        ]
+      },
+      {
+        "when": "on_special",
+        "do": [
+          {
+            "op": "drain_stamina",
+            "value": 4.0,
+            "steal": false,
+            "label": "Tornado Glide"
+          },
+          {
+            "op": "heal",
+            "value": 90,
+            "label": "Tornado Glide"
+          }
+        ]
       }
-    ],
-    "special_stamina_drain": 5
+    ]
   },
   "special_move": {
     "name": "Tornado Glide",
@@ -44,20 +76,52 @@
   "abilities": [
     {
       "name": "Updraft Glide",
-      "trigger": "passive",
-      "description": "Trypio's massive propeller layer generates constant lift. Reduces all incoming impact damage by 25, converts friction into stability, and recovers 1 Stamina per turn passively.",
-      "damage_reduction": 25,
-      "stamina_steal": 1,
-      "chain": [
+      "trigger": "on_take_damage",
+      "description": "Trypio's massive propeller layer generates constant lift. Reduces incoming impact damage by 25, converts friction into +5 stability, and recovers 1 Stamina per turn passively.\nTornado Glide drains 4 Stamina from the opponent and restores 90 HP.",
+      "rules": [
         {
-          "condition": "always",
-          "effect": "heal_pct",
-          "value": 0.1571,
-          "once": false,
-          "_note": "special_move heal – trigger from on_special (engine reads chain from ability)"
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reduce_damage_flat",
+              "value": 25,
+              "label": "Updraft Glide"
+            },
+            {
+              "op": "gain_stability",
+              "amount": 5,
+              "value": 5,
+              "label": "Updraft Glide"
+            }
+          ]
+        },
+        {
+          "when": "turn_start",
+          "do": [
+            {
+              "op": "gain_stamina",
+              "value": 1.0,
+              "label": "Updraft Glide"
+            }
+          ]
+        },
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 4.0,
+              "steal": false,
+              "label": "Tornado Glide"
+            },
+            {
+              "op": "heal",
+              "value": 90,
+              "label": "Tornado Glide"
+            }
+          ]
         }
-      ],
-      "special_stamina_drain": 5
+      ]
     }
   ],
   "spin_direction": "Right",

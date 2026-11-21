@@ -102,8 +102,8 @@ STAMINA_RECOVERY_PER_STAT = 0.012   # +1.2 recovery per 100 stat
 # A small per-round trickle so a bey is never permanently stranded at zero.
 # Deliberately far below the Stamina move's recovery: this is a floor against
 # lockout, not an alternative to actually spending a turn recovering.
-STAMINA_REGEN_BASE     = 0.15
-STAMINA_REGEN_PER_STAT = 0.004      # +0.4 per 100 stat
+STAMINA_REGEN_BASE     = 0.08
+STAMINA_REGEN_PER_STAT = 0.0008     # +0.08 per 100 stat
 
 # ── Starting stamina tuning ───────────────────────────────────────────────────
 # Battle-start stamina = START_BASE + (sta_stat × START_PER_STAT), clamped to
