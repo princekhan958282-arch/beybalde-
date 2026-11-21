@@ -59,7 +59,7 @@ def _bey_xp(profile: dict, blade: Optional[dict], won: bool) -> Optional[dict]:
     try:
         if not blade or profile.get("active_copy"):
             return None
-        name = blade.get("name")
+        name = blade.get("base_name") or blade.get("name")
         if not name:
             return None
         lo, hi = _BL.XP_BATTLE_WIN if won else _BL.XP_BATTLE_LOSS
