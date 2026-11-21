@@ -160,12 +160,20 @@ def level_base_stats(blade: dict) -> dict:
     range as official Beys, rather than bypassing the new HP balance.
     """
     base = dict(blade.get("stats") or {})
-    if blade.get("id") == "CUSTOM" and "hp" in base:
-        from utils.custom_bey import STAT_MIN, STAT_TOTAL
-        allocation_max = STAT_TOTAL - 3 * STAT_MIN
-        fraction = max(0.0, min(1.0, (float(base["hp"]) - STAT_MIN)
-                               / (allocation_max - STAT_MIN)))
-        base["hp"] = round(70 + 30 * fraction)
+    if "hp" in base:
+        if blade.get("id") == "CUSTOM":
+            from utils.custom_bey import STAT_MIN, STAT_TOTAL
+            allocation_max = STAT_TOTAL - 3 * STAT_MIN
+            fraction = max(0.0, min(1.0, (float(base["hp"]) - STAT_MIN)
+                                   / (allocation_max - STAT_MIN)))
+            base["hp"] = round(70 + 30 * fraction)
+        else:
+            from utils.hp_system import HP_STAT_MAX
+            try:
+                if float(base["hp"]) > HP_STAT_MAX:
+                    base["hp"] = HP_STAT_MAX
+            except (TypeError, ValueError):
+                pass
     return base
 
 
