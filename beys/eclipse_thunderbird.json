@@ -17,7 +17,7 @@
   "default_mode": "Dawn",
   "tournament_exclusive": true,
   "booster_exclusive": false,
-  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573623458242240642/eclipse_thunderbird_dawn.png?ex=6b02ae8c&is=6b015d0c&hm=4ef79afba6a3fef15f4e926153cf44f34da08e92b07a347835efd6031c91fc60&"
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573623458242240642/eclipse_thunderbird_dawn.png?ex=6b02ae8c&is=6b015d0c&hm=4ef79afba6a3fef15f4e926153cf44f34da08e92b07a347835efd6031c91fc60&",
   "description": "A dual-mode Mythic Attack-type Beyblade capable of switching between Dawn Mode (Right Spin) and Dusk Mode (Left Spin) on ;info. Channels solar flares and lunar eclipses to unleash devastating aerial barrages.",
   "stats": {
     "hp": 125,

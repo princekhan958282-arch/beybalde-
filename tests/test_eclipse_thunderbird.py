@@ -114,7 +114,7 @@ class TestEclipseThunderbird(unittest.TestCase):
         self.assertEqual(dawn["stats"]["defense"], 80)
         self.assertEqual(dawn["stats"]["stamina"], 117)
         self.assertEqual(dawn["special_move"]["name"], "Daytime Blitz")
-        self.assertIn("IMG_7485.jpg", dawn["image_url"])
+        self.assertIn("eclipse_thunderbird_dawn.png", dawn["image_url"])
 
         # Dusk Mode
         dusk = resolve({"spin_mode": {"Eclipse Thunderbird": "Dusk"}}, self.blade)
@@ -123,7 +123,7 @@ class TestEclipseThunderbird(unittest.TestCase):
         self.assertEqual(dusk["stats"]["defense"], 65)
         self.assertEqual(dusk["stats"]["stamina"], 102)
         self.assertEqual(dusk["special_move"]["name"], "Nighttime Annihilation")
-        self.assertIn("IMG_7485-1.jpg", dusk["image_url"])
+        self.assertIn("eclipse_thunderbird_dusk.png", dusk["image_url"])
 
     def test_03_dawn_mode_wrath_of_the_sun_and_order_of_operations(self):
         """Verifies Wrath of the Sun stacking buff and order of operations with Eclipse Flight."""
