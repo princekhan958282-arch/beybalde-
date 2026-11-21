@@ -1,9 +1,9 @@
 ---
 name: beyblade-compatibility-auditor
 description: >-
-  Audits and validates Beyblade definitions, modular stat division (45/27.5/27.5), part integrity, and compatibility with AbilityEngine.
+  Audits and validates Beyblade definitions, modular stat division (45/27.5/27.5), part integrity, HP balance curve (2,000–3,000 HP), and compatibility with AbilityEngine.
   Provides guidelines for carefully reading human-written ability descriptions, understanding and mapping effects, and safely extending
-  the AbilityEngine without breaking existing features or test suites.
+  the AbilityEngine without breaking existing features, test suites, or CI regression checks.
 ---
 
 # Beyblade Compatibility & Ability Engine Auditor
@@ -13,7 +13,9 @@ Use this skill whenever:
 2. Creating default modular components (`parts/disks/*.json`, `parts/drivers/*.json`).
 3. Translating user-provided or human-written abilities/passives/specials into `AbilityEngine` rules.
 4. Verifying engine compatibility or safely extending `cogs/abilities/ability_engine.py`.
-5. Synchronizing roster test assertions across test suites (`tools/test_*.py`).
+5. Ensuring HP balance curve and level-100 stock HP constraints ($2,000 \le \text{HP} \le 3,000$).
+6. Synchronizing roster test assertions across test suites (`tools/test_*.py`).
+7. Pre-flighting CI regression suites before opening a Pull Request.
 
 ---
 
@@ -23,13 +25,14 @@ Use this skill whenever:
 flowchart TD
     A["1. Read & Parse Ability Text"] --> B["2. Compute 45/27.5/27.5 Stat Split"]
     B --> C["3. Create Beyblade & Part JSONs"]
-    C --> D["4. Map Rules to AbilityEngine"]
-    D --> E{"Compatible with Engine?"}
-    E -- Yes --> F["5. Run Automated Compatibility Auditor"]
-    E -- No --> G["Extend AbilityEngine Safely"]
-    G --> F
-    F --> H["6. Sync Roster Test Counts"]
-    H --> I["7. Run Full Unit Test Suites"]
+    C --> D["4. Verify HP Balance Curve (2000-3000 HP)"]
+    D --> E["5. Map Rules to AbilityEngine"]
+    E --> F{"Compatible with Engine?"}
+    F -- Yes --> G["6. Run Automated Compatibility Auditor"]
+    F -- No --> H["Extend AbilityEngine Safely"]
+    H --> G
+    G --> I["7. Sync Roster Test Counts"]
+    I --> J["8. Run Full CI Regression Suites"]
 ```
 
 ---
@@ -43,6 +46,8 @@ Follow the **Trigger $\rightarrow$ Condition $\rightarrow$ Operation** protocol:
   - On attack hit $\rightarrow$ `"when": "on_attack_hit"`
   - Below HP threshold $\rightarrow$ `"when": "on_low_hp"` with `"if": [{"cond": "hp_below_pct", "value": X}]`
   - On final hit of multi-hit special $\rightarrow$ `"when": "on_special_last_hit"`
+  - On receiving damage $\rightarrow$ `"when": "on_take_damage"`
+  - On would burst $\rightarrow$ `"when": "on_would_burst"`
 - **Condition**: Identify *restrictions*:
   - Percent chance $\rightarrow$ `"chance": 0.25`
   - Once per match $\rightarrow$ `"once": "battle"`
@@ -53,6 +58,7 @@ Follow the **Trigger $\rightarrow$ Condition $\rightarrow$ Operation** protocol:
   - Costing stamina $\rightarrow$ `"op": "consume_stamina"`
   - Zeroing/transferring stats $\rightarrow$ `"op": "stat_transfer"`
   - Permanent defense shred $\rightarrow$ `"op": "shatter"`
+  - Form transform / sprite swap $\rightarrow$ `"op": "evolve_form"`
 
 > [!TIP]
 > For a full list of all 30+ supported triggers, conditions, and operations with examples, consult [ability_effects_guide.md](./references/ability_effects_guide.md).
@@ -73,7 +79,28 @@ py .agents/skills/beyblade-compatibility-auditor/scripts/check_beyblade_compatib
 
 ---
 
-## 3. Creating Part Definitions
+## 3. HP Balance & Level-100 Stock Ceiling Rule ($2,000 \le \text{HP} \le 3,000$)
+
+> [!IMPORTANT]
+> GitHub Actions CI strictly enforces this rule in `tools/test_hp_balance.py` (`isolated-regressions` job). If any stock Beyblade exceeds 3,000 HP or falls below 2,000 HP at level 100, CI checks will fail!
+
+### Balance Requirements
+1. **Stock Level-100 Bounds**:
+   For every official Beyblade, across IV 0 and IV 10 (max IV), battle HP must strictly satisfy:
+   $$2,000 \le \text{Battle HP}_{\text{Lv 100}} \le 3,000$$
+2. **Monotonicity**:
+   HP must strictly increase with each level from 1 to 100.
+3. **High Base HP (> 100) Handling**:
+   - In Betcord, baseline Beys typically have base HP between 70 and 100.
+   - If a new Bey is authored with base HP > 100 (e.g., Galactic Astral with 144 HP, Prime Whisper with 150 HP), [utils/bey_levels.py](file:///e:/GITHUB%20BETCORD/utils/bey_levels.py) caps base HP at `HP_STAT_MAX` (100) for level progression calculations:
+     ```python
+     calc_hp_base = min(base["hp"], HP_STAT_MAX)
+     ```
+   - This ensures level 1 battles use the full authored base HP, while level-100 progression stays under the 3,000 HP balance ceiling.
+
+---
+
+## 4. Creating Part Definitions
 
 When registering `BB<N>`:
 1. `beys/<blade_name>.json`:
@@ -87,7 +114,7 @@ When registering `BB<N>`:
 
 ---
 
-## 4. Safely Extending `AbilityEngine` (If Needed)
+## 5. Safely Extending `AbilityEngine` (If Needed)
 
 If an ability requires a trigger or effect not yet in `AbilityEngine`:
 1. **Never break existing mechanics**: Extend by adding new branches to `TRIGGERS` or `_run_ops`.
@@ -101,9 +128,9 @@ If an ability requires a trigger or effect not yet in `AbilityEngine`:
 
 ---
 
-## 5. Automated Compatibility Auditor
+## 6. Automated Compatibility Auditor
 
-Run the automated verification script to validate schema, math, parts, abilities, and engine triggers:
+Run the automated verification script to validate schema, math, parts, abilities, HP balance, and engine triggers:
 
 ```powershell
 # Audit a single Beyblade
@@ -117,13 +144,15 @@ The script verifies:
 - JSON syntax and required schema keys.
 - Part existence in `parts/disks/` and `parts/drivers/`.
 - Exact sum match: `frame + disk + driver == total_stat` for all 4 stats.
+- **HP Balance Curve & Level-100 Cap**: Verifies $2,000 \le \text{HP} \le 3,000$ and monotonic growth across levels 1 to 100 for IV 0 and IV 10.
 - Special move hit damage array matches total damage.
 - Ability triggers are recognized in `AbilityEngine.TRIGGERS`.
 - Ability operations are recognized in `AbilityEngine` / `EXTENDED_OPS` / `TACTICAL_OPS` / `GIMMICK_OPS`.
+- **Roster & HP Balance Test Execution**: Executes `tools/test_hp_balance.py` automatically to guarantee CI parity.
 
 ---
 
-## 6. Roster Test Synchronization Checklist
+## 7. Roster Test Synchronization Checklist
 
 Whenever a new Beyblade is added, update the hardcoded counts in these 6 test files to match the new total:
 
@@ -141,7 +170,17 @@ Whenever a new Beyblade is added, update the hardcoded counts in these 6 test fi
 6. `tools/test_roster_refresh.py`:
    - Update `N-1`, `N`, and `"N Beys"` descriptions.
 
-Verify all 61 tests pass:
+---
+
+## 8. CI Pre-Flight Verification Before Opening PR
+
+Before committing and pushing to a PR branch, run the core CI test suite:
+
 ```powershell
-py -m unittest tools.test_physical_components tools.test_character_components tools.test_blast_jinnius tools.test_dragon_killer_black_legend tools.test_roster_refresh tools.test_special_avatar_pipeline
+py -m unittest tools.test_character_components tools.test_physical_components tools.test_hp_balance tools.test_special_avatar_pipeline tools.test_blast_jinnius tools.test_dragon_killer_black_legend tools.test_roster_refresh
+```
+
+After pushing, monitor the GitHub Actions check status with:
+```powershell
+gh pr checks <PR_NUM>
 ```

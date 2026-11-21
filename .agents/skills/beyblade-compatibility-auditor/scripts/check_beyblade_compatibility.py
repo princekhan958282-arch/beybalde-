@@ -31,12 +31,19 @@ try:
     from cogs.abilities.ability_engine import TRIGGERS
     from cogs.abilities.extended_effects import OPS as EXTENDED_OPS
     from cogs.abilities.tactical_effects import OPS as TACTICAL_OPS
-    from cogs.battle.type_gimmicks import GIMMICK_OPS
+    from cogs.battle.type_gimmicks import GIMMICK_OPS, passive_stat_multiplier
+    from utils import bey_levels as BL
+    from utils.hp_system import max_hp_for_blade
+    from utils.spin_mode import resolve
 except ImportError:
     TRIGGERS = set()
     EXTENDED_OPS = set()
     TACTICAL_OPS = set()
     GIMMICK_OPS = set()
+    passive_stat_multiplier = None
+    BL = None
+    max_hp_for_blade = None
+    resolve = None
 
 # Built-in AbilityEngine ops recognized in _run_ops
 BUILTIN_OPS = {
@@ -203,6 +210,46 @@ class BeybladeAuditor:
                         f"!= stats[{sk}]({target_val})"
                     )
 
+        # 3b. HP Balance & Level-100 Stock Scaling Check (2,000 <= HP <= 3,000)
+        # Enforced globally by tools/test_hp_balance.py and character-components CI workflow
+        if BL and max_hp_for_blade and passive_stat_multiplier and stats:
+            try:
+                for iv in (0, getattr(BL, "IV_MAX", 10)):
+                    before = 0
+                    max_lvl = getattr(BL, "MAX_LEVEL", 100)
+                    for level in range(1, max_lvl + 1):
+                        lvl_stats = BL.stats_at(data, level, {'hp': iv})
+                        hp = int(max_hp_for_blade(dict(data, stats=lvl_stats))
+                                 * passive_stat_multiplier(data.get('type', 'Balance'), 'hp'))
+                        if hp < before:
+                            self.log_error(
+                                f"[{rel_path}] HP non-monotonic regression at level {level} (iv={iv}): {hp} < {before}"
+                            )
+                        before = hp
+                    if not (2000 <= hp <= 3000):
+                        self.log_error(
+                            f"[{rel_path}] HP Balance Violation: Level-100 stock HP is {hp} (iv={iv}). "
+                            f"Must be between 2000 and 3000! Authored base HP: {stats.get('hp')}. "
+                            f"If base HP is high (>100), ensure utils.bey_levels.level_base_stats caps base HP during level progression."
+                        )
+            except Exception as e:
+                self.log_warning(f"[{rel_path}] HP curve calculation check failed: {e}")
+
+            if resolve:
+                for mode in data.get('spin_modes', {}):
+                    try:
+                        mode_blade = resolve({'spin_mode': {data.get('name', ''): mode}}, data)
+                        for iv in (0, getattr(BL, "IV_MAX", 10)):
+                            lvl_stats = BL.stats_at(mode_blade, getattr(BL, "MAX_LEVEL", 100), {'hp': iv})
+                            hp = int(max_hp_for_blade(dict(mode_blade, stats=lvl_stats))
+                                     * passive_stat_multiplier(mode_blade.get('type', 'Balance'), 'hp'))
+                            if not (2000 <= hp <= 3000):
+                                self.log_error(
+                                    f"[{rel_path}] Spin Mode '{mode}' HP Balance Violation: Level-100 HP is {hp} (must be 2000-3000)."
+                                )
+                    except Exception as e:
+                        self.log_warning(f"[{rel_path}] Spin mode '{mode}' HP check failed: {e}")
+
         # 4. Special Move Validation
         sm = data.get("special_move", {})
         if sm:
@@ -327,6 +374,23 @@ class BeybladeAuditor:
             content = t_dk.read_text(encoding="utf-8")
             if f"self.assertEqual(len(load_beys()), {total_beys})" not in content:
                 sync_errors.append(f"tools/test_dragon_killer_black_legend.py asserts len(load_beys()) == {total_beys}")
+
+        # 6. tools/test_hp_balance.py (CI isolated-regressions mandate: 2000 <= Stock HP Lv100 <= 3000)
+        t_hp = self.tools_dir / "test_hp_balance.py"
+        if t_hp.is_file():
+            try:
+                import io
+                import unittest
+                suite = unittest.defaultTestLoader.loadTestsFromName("tools.test_hp_balance")
+                runner = unittest.TextTestRunner(stream=io.StringIO())
+                res = runner.run(suite)
+                if not res.wasSuccessful():
+                    sync_errors.append(
+                        f"tools/test_hp_balance.py FAILED ({len(res.failures)} failures, {len(res.errors)} errors). "
+                        f"Level 100 stock HP balance ceiling (3000 max) violated."
+                    )
+            except Exception as e:
+                sync_errors.append(f"Could not execute tools/test_hp_balance.py: {e}")
 
         if sync_errors:
             for se in sync_errors:
