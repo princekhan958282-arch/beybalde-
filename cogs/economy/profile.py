@@ -856,7 +856,10 @@ class SpinModeView(discord.ui.View):
                     "That's not your Beyblade — run `;info` yourself to pick "
                     "a mode.", ephemeral=True)
             from utils.spin_mode import set_choice, label as _label
-            await set_choice(self.owner.id, self.blade.get("name", ""), mode)
+            base_blade_name = self.blade.get("base_name") or self.blade.get("name", "")
+            await set_choice(self.owner.id, base_blade_name, mode)
+            if self.blade.get("name") and self.blade.get("name") != base_blade_name:
+                await set_choice(self.owner.id, self.blade.get("name"), mode)
 
             # Acknowledge FIRST, then re-render. The card render goes through
             # a browser and can take seconds; leaving the interaction
