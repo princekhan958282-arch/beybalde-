@@ -113,6 +113,36 @@ from utils.ranks import tier_for_score, rank_score_for, WIN_SCORE, LOSS_SCORE
 
 # ── Per-round move selection panel ───────────────────────────────────────────
 
+class _CorruptionAwakenView(discord.ui.View):
+    """Interactive yield prompt for Prime Whisper's Corruption Dark Mode awakening."""
+    def __init__(self, target_player) -> None:
+        super().__init__(timeout=15.0)
+        self.target_player = target_player
+        self.chosen: Optional[bool] = None
+
+    @discord.ui.button(label="Awaken Dark Mode", style=discord.ButtonStyle.danger, emoji="⚡")
+    async def btn_awaken(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        if interaction.user.id != getattr(self.target_player, "id", None):
+            await interaction.response.send_message("❌ This choice is not yours to make!", ephemeral=True)
+            return
+        self.chosen = True
+        self.stop()
+        await interaction.response.send_message("⚡ **Prime Whisper unleashes its forbidden Dark Mode!**", ephemeral=True)
+
+    @discord.ui.button(label="Decline", style=discord.ButtonStyle.secondary)
+    async def btn_decline(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        if interaction.user.id != getattr(self.target_player, "id", None):
+            await interaction.response.send_message("❌ This choice is not yours to make!", ephemeral=True)
+            return
+        self.chosen = False
+        self.stop()
+        await interaction.response.send_message("Prime Whisper suppresses the dark energy.", ephemeral=True)
+
+    async def on_timeout(self) -> None:
+        self.chosen = False
+        self.stop()
+
+
 class _InChannelControlPanel(discord.ui.View):
     """Control panel posted each round. Displays the five combat moves
     along with Blader Skill and Bit Beast Skill activation controls."""
@@ -1190,6 +1220,72 @@ class BattleSession:
             # "This interaction failed" for the second player's button click.
             asyncio.get_running_loop().create_task(self._resolve_round())
 
+    async def _check_corruption_intercept(self, round_log: list[str]) -> None:
+        """Health threshold intercept for Prime Whisper's Corruption awakening."""
+        AWAKENED_URL = "https://cdn.discordapp.com/attachments/1510856884943454208/1573560966925520957/40999_transparent.png?ex=6b027459&is=6b0122d9&hm=b8202b8c7232222d71b252303fd9b8d331d760fc92453f862bcf3db039a902bb&"
+        p1, p2 = self.players
+        keys = (str(p1.id), str(p2.id))
+        for key in keys:
+            blade = self.blades.get(key) or {}
+            is_pw = blade.get("id") == "BB170" or "prime_whisper" in blade.get("aliases", []) or "Prime Whisper" in blade.get("name", "")
+            if not is_pw:
+                continue
+            if blade.get("has_awakened", False) or getattr(self, f"_corruption_prompted_{key}", False):
+                continue
+
+            max_hp = self.max_hp_per_player.get(key, 1500) or 1500
+            cur_hp = self.hp.get(key, 0)
+            if cur_hp <= 0 or (cur_hp / max_hp) > 0.40:
+                continue
+
+            # Flag prompted immediately so it never prompts repeatedly
+            setattr(self, f"_corruption_prompted_{key}", True)
+            blade["has_awakened"] = True
+
+            player_obj = p1 if str(p1.id) == key else p2
+            awakened = False
+
+            if getattr(self, "channel", None) and not self._is_npc(player_obj):
+                view = _CorruptionAwakenView(player_obj)
+                embed = discord.Embed(
+                    title="⚡ Prime Whisper — Resonance Detected!",
+                    description=(
+                        f"{player_obj.mention}, your HP has dropped below **40%**!\n"
+                        "The dark core pulses with chaotic red lightning.\n"
+                        "**Do you awaken Prime Whisper's true Dark Mode?**"
+                    ),
+                    color=discord.Color.dark_red(),
+                )
+                try:
+                    msg = await self.channel.send(content=player_obj.mention, embed=embed, view=view)
+                    await view.wait()
+                    awakened = bool(view.chosen)
+                    try:
+                        await msg.delete()
+                    except Exception:
+                        pass
+                except Exception:
+                    awakened = True
+            else:
+                # In headless / test / NPC runs, auto-awaken
+                awakened = True
+
+            if awakened:
+                blade["is_awakened"] = True
+                blade["image_url"] = AWAKENED_URL
+                heal_amt = min(max_hp - self.hp[key], 100)
+                self.hp[key] += heal_amt
+                self.status.add_buff(key, "attack", 100, 99)
+                self.status.add_buff(key, "special", 80, 99)
+                self.ability.lifesteal_pct[key] = max(self.ability.lifesteal_pct.get(key, 0), 20)
+                sm = getattr(self, "stamina_manager", None)
+                if sm:
+                    sm.cost_increase[key] = max(sm.cost_increase.get(key, 0.0), 1.0)
+                round_log.append(
+                    f"⚡ **Corruption** — **{player_obj.display_name if hasattr(player_obj, 'display_name') else key}**'s "
+                    f"Prime Whisper awakens into **Dark Mode**! (+100 HP, +100 ATK, +80 SP, 20% Lifesteal, 2x Stamina Cost)"
+                )
+
     # ── Round resolution ──────────────────────────────────────────────────────
 
     async def _resolve_round(self) -> None:
@@ -1391,6 +1487,7 @@ class BattleSession:
             dmg_p2, counter_p2, matchup_p2,
         )
         round_log.extend(hp_logs)
+        await self._check_corruption_intercept(round_log)
         self.defer_landed_hit_effects = False
         dmg_p1 = am.committed_damage[k1]
         dmg_p2 = am.committed_damage[k2]

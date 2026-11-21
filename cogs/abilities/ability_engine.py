@@ -75,6 +75,7 @@ TRIGGERS = frozenset({
     "on_attack_hit",    # owner's Attack landed (once per move)
     "on_hit",           # per-hit proc (each hit of Attack / multi-hit Special)
     "on_special",       # owner fired their Special (once, on first hit)
+    "on_special_last_hit",  # final hit of multi-hit Special
     "on_mirror",        # both picked the same move (any move)
     # threshold triggers (fire while the condition holds, once per move)
     "on_low_hp", "on_high_hp", "on_low_stamina", "on_high_stamina",
@@ -92,6 +93,7 @@ TRIGGERS = frozenset({
     "on_charge",
     "on_stability_break",  # last chance before a ring-out is applied
     "on_gauge_full",       # the Special just became available
+    "on_would_burst",      # fired before a lethal burst resolves
 })
 
 # default thresholds for threshold-triggers when the rule carries no own `if`
@@ -170,6 +172,13 @@ class AbilityEngine:
         self.last_hit_was_crit: bool = False
         self.extra_special_hits: dict[str, int]     = {}   # key -> bonus hits on MOVE_SPECIAL
         self.debuff_immune: dict[str, bool]         = {}   # key -> ignores enemy debuffs
+        self.eclipse_phase: dict[str, bool]         = {}   # key -> active eclipse phase
+        self.eclipse_sealed: dict[str, bool]        = {}   # (key, name) or key -> sealed
+        self.chain_crit_active: dict[str, bool]     = {}   # key -> chain crit triggered in multi-hit special
+        self.obsession_stacks: dict[str, int]       = {}   # key -> Obsession stacks (+10% Crit Chance each)
+        self.obsession_timer: dict[str, int]        = {}   # key -> rounds remaining before stacks decay
+        self.unleash_hound_active: dict[str, bool]  = {}   # key -> Unleash the Hound active
+        self.clone_duration: dict[str, int]         = {}   # key -> clone duration in rounds
 
         # ── The debuff ward ──────────────────────────────────────────────────
         # `debuff_immune` is a permanent on/off flag: once set, that side
@@ -298,6 +307,13 @@ class AbilityEngine:
             ("timed_modes", list),
             ("cooldowns", dict),
             ("ability_2_disabled", dict),
+            ("eclipse_phase", dict),
+            ("eclipse_sealed", dict),
+            ("chain_crit_active", dict),
+            ("obsession_stacks", dict),
+            ("obsession_timer", dict),
+            ("unleash_hound_active", dict),
+            ("clone_duration", dict),
         ):
             if not hasattr(self, attr):
                 setattr(self, attr, default_factory())
@@ -635,6 +651,17 @@ class AbilityEngine:
                 return int(getattr(self.session, "round", 0) or 0) < int(v)
             except (TypeError, ValueError):
                 return False
+        if c == "round_multiple_of":
+            try:
+                r = int(getattr(self.session, "round", 0) or 0)
+                return r > 0 and (r % int(v) == 0)
+            except (TypeError, ValueError):
+                return False
+        if c == "not_sealed":
+            sname = str(v or cond.get("name", "eclipse_flight"))
+            return not self.eclipse_sealed.get(sname, False) and not self.eclipse_sealed.get((key, sname), False)
+        if c == "is_eclipse_phase":
+            return bool(self.eclipse_phase.get(key, False))
         if c == "matchup_is":          return matchup == v
         if c == "mode_is":             return self.modes.get(key) == v
         if c == "mode_is_not":         return self.modes.get(key) != v
@@ -1323,6 +1350,34 @@ class AbilityEngine:
             elif kind == "debuff_immune":
                 self.debuff_immune[key] = True
                 logs.append(f"🛡️ **{ab_name}** — immune to debuffs!")
+            elif kind in ("stat_transfer", "transfer_stat"):
+                # Transfer points from one stat to another (e.g. glass-cannon collapse).
+                # Lowers from_stat (zeroes it if zero_source is true) and adds to to_stat.
+                try:
+                    from_stat = op.get("from_stat", "defense")
+                    to_stat   = op.get("to_stat", "attack")
+                    turns     = int(op.get("turns", 99))
+                    eff       = (getattr(self.session, "battle_stats", {}) or {}).get(key)
+                    cur_from  = (eff or {}).get(from_stat)
+                    if cur_from is None:
+                        cur_from = ((self.session.blades.get(key) or {})
+                                    .get("stats") or {}).get(from_stat, 88)
+                    cur_from = max(0, int(cur_from))
+                    amt = int(op.get("amount", val if val is not None else cur_from))
+                    zero_source = op.get("zero_source", True)
+                    deduct = cur_from if zero_source else amt
+                    if deduct > 0:
+                        self.st.add_buff(key, from_stat, -deduct, turns, hostile=False)
+                    if amt > 0:
+                        self.st.add_buff(key, to_stat, amt, turns, hostile=False)
+                    label = op.get("label", ab_name)
+                    logs.append(
+                        f"🌌 **{label}** — {from_stat.title()} drops to 0, "
+                        f"+{amt} transferred to {to_stat.title()}"
+                        + (" (permanent)!" if turns >= 99 else f" for {turns} turns!")
+                    )
+                except Exception:
+                    pass
             elif kind == "stamina_regen":
                 # float, not int — the stamina economy runs on a 0–15 scale
                 # where a 0.5/turn trickle is a meaningful value and int()
@@ -1394,28 +1449,32 @@ class AbilityEngine:
                         logs.extend(stm._apply(okey, -amt) or [])
                 except Exception:
                     pass
-            elif kind == "enemy_debuff_pct":
+            elif kind in ("enemy_debuff_pct", "shatter"):
                 # Enemy loses X% of one stat, resolved against THEIR base stat.
-                #
-                # `enemy_debuff` is flat, which cannot express "−20% defence":
-                # a flat 20 is a fifth of a 100-defence blade but a thirteenth
-                # of a levelled 250-defence one, so the ability would quietly
-                # weaken as the game went on. Mirrors buff_all_pct, on the
-                # other side and with the sign flipped.
+                # `shatter` is a permanent (or timed) defense/stat shred debuff that also tracks shatter stacks.
                 if self._debuff_blocked(okey, ab_name, logs):
                     pass
                 else:
                     try:
-                        pct = float(val)
+                        pct = float(op.get("pct", val if val is not None else 20))
                         pct = pct if pct <= 1 else pct / 100
                         stat = op.get("stat", "defense")
                         base = (self.session.blades.get(okey) or {}).get("stats") or {}
                         amt = int(round(float(base.get(stat, 0)) * pct))
                         if amt > 0:
-                            self.st.add_buff(okey, stat, -amt,
-                                             int(op.get("turns", 2)))
-                            logs.append(f"📉 **{ab_name}** — enemy {stat} "
-                                        f"-{amt} ({int(pct * 100)}%)!")
+                            turns = int(op.get("turns", 2 if kind == "enemy_debuff_pct" else 99))
+                            self.st.add_buff(okey, stat, -amt, turns)
+                            if kind == "shatter":
+                                self.st.shatter_stacks[okey] = self.st.shatter_stacks.get(okey, 0) + 1
+                            label = op.get("label", ab_name)
+                            emoji = op.get("emoji", "💔" if kind == "shatter" else "📉")
+                            dur_str = " (permanent)!" if turns >= 99 else f" for {turns} turns!" if turns > 2 else "!"
+                            if turns >= 99:
+                                logs.append(f"{emoji} **{label}** — enemy {stat} "
+                                            f"-{amt} ({int(round(pct * 100))}%) (permanent)!")
+                            else:
+                                logs.append(f"{emoji} **{label}** — enemy {stat} "
+                                            f"-{amt} ({int(round(pct * 100))}%)!")
                     except Exception:
                         pass
             elif kind == "stacking_buff":
@@ -1771,8 +1830,13 @@ class AbilityEngine:
                     add = int(round(float(base) * scale))
                     if add > 0:
                         dmg_dealt += add
-                        logs.append(f"🩸 **{ab_name}** — +{add} damage from "
-                                    f"its full {stat.title()}!")
+                        label = op.get("label", ab_name)
+                        if scale >= 1.0:
+                            logs.append(f"🩸 **{label}** — +{add} damage from "
+                                        f"its full {stat.title()}!")
+                        else:
+                            logs.append(f"💫 **{label}** — +{add} damage "
+                                        f"({int(round(scale * 100))}% of {stat.title()})!")
                 except Exception:
                     pass
             elif kind == "heal_per_drain":
@@ -1781,22 +1845,25 @@ class AbilityEngine:
                 self.heal_per_drain[key] = int(val)
                 logs.append(f"☀️ **{ab_name}** — drained stamina now restores "
                             f"{int(val)} HP per point!")
-            elif kind == "gain_stamina":
+            elif kind in ("gain_stamina", "lose_stamina", "consume_stamina"):
                 try:
                     sm  = self.session.stamina_manager
                     cap = getattr(sm, "max_stamina", {}).get(key, 15) or 15
                     cur = sm.stamina.get(key, 0)
-                    # float, not int — the stamina scale is 0–15, so a 0.5
-                    # gain is meaningful and int() silently zeroed it.
-                    amt = float(val)
-                    new = max(0.0, min(float(cap), cur + amt))
-                    gained = round(new - cur, 2)
-                    sm.stamina[key] = round(new, 2)
-                    if amt >= 0:
-                        if gained > 0:
-                            logs.append(f"🔋 **{ab_name}** — +{gained:g} stamina!")
+                    if kind in ("lose_stamina", "consume_stamina"):
+                        amt = -abs(float(val if val is not None else op.get("amount", 1.0)))
                     else:
-                        logs.append(f"🪫 **{ab_name}** — {amt:g} stamina!")
+                        amt = float(val)
+                    new = max(0.0, min(float(cap), cur + amt))
+                    sm.stamina[key] = round(new, 2)
+                    label = op.get("label", ab_name)
+                    if amt >= 0:
+                        gained = round(new - cur, 2)
+                        if gained > 0:
+                            logs.append(f"🔋 **{label}** — +{gained:g} stamina!")
+                    else:
+                        lost = round(cur - new, 2)
+                        logs.append(f"🪫 **{label}** — -{lost:g} stamina!")
                 except Exception:
                     pass
             elif kind == "gain_gauge":
@@ -2010,6 +2077,36 @@ class AbilityEngine:
                             pass
                     logs.append(f"🌌 **{ab_name}** — {bl.get('name', '?')} "
                                 f"awakens in a new form!")
+            elif kind == "enter_eclipse_phase":
+                self.eclipse_phase[key] = True
+                logs.append(f"🌑 **{ab_name}** — Eclipse Thunderbird enters the Eclipse Phase! (+10% Attack, Ω Special unlocked!)")
+            elif kind == "seal_eclipse_flight":
+                sname = str(op.get("name") or "eclipse_flight")
+                self.eclipse_sealed[key] = True
+                self.eclipse_sealed[(key, sname)] = True
+                self.eclipse_phase[key] = False
+                logs.append(f"🔒 **{ab_name}** — Eclipse Flight has been permanently sealed for the remainder of the battle.")
+            elif kind == "gain_obsession_stack":
+                cur = self.obsession_stacks.get(key, 0)
+                max_s = int(op.get("max_stacks", 5))
+                if cur < max_s:
+                    cur += 1
+                    self.obsession_stacks[key] = cur
+                dur = int(op.get("duration", 3))
+                self.obsession_timer[key] = dur
+                crit_pct = cur * float(op.get("crit_per_stack", 0.10))
+                self.crit_chance_bonus[key] = crit_pct
+                logs.append(
+                    f"🩸 **{ab_name}** — Cerberus gains an Obsession stack! "
+                    f"({cur}/{max_s} stacks, +{int(crit_pct * 100)}% Crit Chance, duration refreshed to {dur} rounds!)"
+                )
+            elif kind == "unleash_hound":
+                dur = int(op.get("duration", 6))
+                self.unleash_hound_active[key] = True
+                self.clone_duration[key] = dur
+                logs.append(
+                    f"🐺 **{ab_name}** — Cerberus summons two invulnerable shadow clones for {dur} rounds!"
+                )
             elif kind == "queue_chain":
                 self.session.chain_handler.queue(key, op.get("steps", []))
             elif kind == "disable_ability_2":
@@ -2271,6 +2368,10 @@ class AbilityEngine:
                 if primed:
                     dmg_dealt += primed
                     logs.append(f"🔆 Primed energy released — +{primed} damage!")
+            if move == MOVE_SPECIAL and is_last_hit:
+                dmg_dealt, dmg_taken = self._fire("on_special_last_hit", mover_key,
+                                                  other_key, mover_blade, move,
+                                                  matchup, dmg_dealt, dmg_taken, logs)
             if is_first_hit and matchup == "mirror":
                 dmg_dealt, dmg_taken = self._fire("on_mirror", mover_key,
                                                   other_key, mover_blade, move,
@@ -2289,7 +2390,7 @@ class AbilityEngine:
             p = self.crit_chance_bonus.get(mover_key, 0.0)
             if is_first_hit:
                 p += self.tactical.crit_bonus(mover_key, move)
-            if p > 0 and dmg_dealt > 0 and matchup == "win" and is_first_hit \
+            if p > 0 and dmg_dealt > 0 and (matchup == "win" or self.obsession_stacks.get(mover_key, 0) > 0) and is_first_hit \
                     and random.random() < min(0.95, p):
                 mult = self.crit_damage_mult.get(mover_key, 1.5)
                 dmg_dealt = math.ceil(dmg_dealt * mult)
@@ -2646,6 +2747,24 @@ class AbilityEngine:
                             f"fades. It can purify again.")
 
         logs.extend(self._tick_zones())
+        self.eclipse_phase.clear()
+
+        for k in list(getattr(self, "obsession_timer", {}).keys()):
+            if self.obsession_stacks.get(k, 0) > 0:
+                self.obsession_timer[k] -= 1
+                if self.obsession_timer[k] <= 0:
+                    self.obsession_stacks[k] = 0
+                    self.obsession_timer.pop(k, None)
+                    self.crit_chance_bonus[k] = 0.0
+                    logs.append("⏳ **Killing Frenzy** — Obsession stacks have expired!")
+
+        for k in list(getattr(self, "clone_duration", {}).keys()):
+            if self.unleash_hound_active.get(k, False):
+                self.clone_duration[k] -= 1
+                if self.clone_duration[k] <= 0:
+                    self.unleash_hound_active[k] = False
+                    self.clone_duration.pop(k, None)
+                    logs.append("🐺 **Unleash the Hound** — The shadow clones disperse back into the shadows.")
 
         if not getattr(self, "timed_modes", None):
             return logs

@@ -1,0 +1,258 @@
+{
+  "id": "BB172",
+  "name": "Cerberus",
+  "aliases": [
+    "cerberus",
+    "Cerberus (Right)",
+    "Cerberus (Left)",
+    "right_cerberus",
+    "left_cerberus"
+  ],
+  "rarity": "Exclusive",
+  "type": "Balance",
+  "spin_direction": "Dual",
+  "burst_height": "Mid",
+  "dual_spin": true,
+  "default_mode": "Right",
+  "tournament_exclusive": true,
+  "booster_exclusive": false,
+  "creator": "AXIS#Z73DAX \u201cBeymaster1\u201d",
+  "complexity": 5,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573601302854766752/image1.png?ex=6b0299ea&is=6b01486a&hm=01cda85e54bc4e5ea08b4b6936959f383e3b1ff3110daa471c0a2eb3d8022223&",
+  "description": "Cerberus is a mythical three-headed hound forged for unrelenting pursuit. It enters a Killing Frenzy as it tracks its prey, stacking critical strikes and summoning invulnerable shadow clones to overwhelm opponents with fierce multi-hit assaults.",
+  "stats": {
+    "hp": 80,
+    "attack": 170,
+    "defense": 80,
+    "stamina": 75,
+    "special": 0
+  },
+  "main_frame": {
+    "hp": 36,
+    "attack": 76,
+    "defense": 36,
+    "stamina": 34
+  },
+  "default_parts": {
+    "disk": "BB172_default_disk",
+    "driver": "BB172_default_driver"
+  },
+  "generation": "Burst",
+  "_registry_order": 173,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "special_move": {
+    "name": "Unleash the Hound",
+    "description": "Summons two invulnerable clones of Cerberus. The clones last for 6 rounds and perform 3 separate hits whenever Cerberus uses an Attack. (0 Base Damage).",
+    "hits": 1,
+    "damage_per_hit": 0,
+    "total_damage": 0,
+    "non_damage": true,
+    "flavour_texts": [
+      "\ud83d\udc3a **Unleash the Hound** \u2014 Cerberus howls and summons two ferocious shadow clones to fight at its side!"
+    ]
+  },
+  "spin_modes": {
+    "Right": {
+      "label": "Right Spin",
+      "spin_direction": "Right",
+      "type": "Balance",
+      "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573601302854766752/image1.png?ex=6b0299ea&is=6b01486a&hm=01cda85e54bc4e5ea08b4b6936959f383e3b1ff3110daa471c0a2eb3d8022223&",
+      "stats": {
+        "hp": 80,
+        "attack": 170,
+        "defense": 80,
+        "stamina": 75,
+        "special": 0
+      },
+      "special_move": {
+        "name": "Unleash the Hound",
+        "description": "Summons two invulnerable clones of Cerberus. The clones last for 6 rounds and perform 3 separate hits whenever Cerberus uses an Attack. (0 Base Damage).",
+        "hits": 1,
+        "damage_per_hit": 0,
+        "total_damage": 0,
+        "non_damage": true,
+        "flavour_texts": [
+          "\ud83d\udc3a **Unleash the Hound** \u2014 Cerberus howls and summons two ferocious shadow clones to fight at its side!"
+        ]
+      },
+      "abilities": [
+        {
+          "name": "Killing Frenzy",
+          "trigger": "on_attack_hit",
+          "description": "Cerberus has an obsession with hunting down its prey. Each time an attack successfully lands, it gains a stack of Obsession (+10% Critical Chance per stack, lasting 3 rounds, stacks up to 5 times for +50% max Crit Chance). Acquiring a new stack refreshes the duration of all active stacks.",
+          "rules": [
+            {
+              "when": "on_attack_hit",
+              "_name": "Killing Frenzy",
+              "do": [
+                {
+                  "op": "gain_obsession_stack",
+                  "max_stacks": 5,
+                  "duration": 3,
+                  "crit_per_stack": 0.10
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Triple Bite",
+          "trigger": "passive",
+          "description": "While Unleash the Hound is active, Attack and Defense responses trigger 3 times instead of once, resulting in a 2.7x overall power amplification.",
+          "rules": [
+            {
+              "when": "passive",
+              "_name": "Triple Bite",
+              "do": []
+            }
+          ]
+        },
+        {
+          "name": "Unleash the Hound",
+          "trigger": "on_special",
+          "description": "Summons two invulnerable clones of Cerberus for 6 rounds. The clones execute 3 separate strikes whenever Cerberus attacks (2.7x total power amplification).",
+          "rules": [
+            {
+              "when": "on_special",
+              "_name": "Unleash the Hound",
+              "do": [
+                {
+                  "op": "unleash_hound",
+                  "duration": 6
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "Left": {
+      "label": "Left Spin",
+      "spin_direction": "Left",
+      "type": "Balance",
+      "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573601302854766752/image1.png?ex=6b0299ea&is=6b01486a&hm=01cda85e54bc4e5ea08b4b6936959f383e3b1ff3110daa471c0a2eb3d8022223&",
+      "stats": {
+        "hp": 80,
+        "attack": 170,
+        "defense": 80,
+        "stamina": 75,
+        "special": 0
+      },
+      "special_move": {
+        "name": "Unleash the Hound",
+        "description": "Summons two invulnerable clones of Cerberus. The clones last for 6 rounds and perform 3 separate hits whenever Cerberus uses an Attack. (0 Base Damage).",
+        "hits": 1,
+        "damage_per_hit": 0,
+        "total_damage": 0,
+        "non_damage": true,
+        "flavour_texts": [
+          "\ud83d\udc3a **Unleash the Hound** \u2014 Cerberus howls and summons two ferocious shadow clones to fight at its side!"
+        ]
+      },
+      "abilities": [
+        {
+          "name": "Killing Frenzy",
+          "trigger": "on_attack_hit",
+          "description": "Cerberus has an obsession with hunting down its prey. Each time an attack successfully lands, it gains a stack of Obsession (+10% Critical Chance per stack, lasting 3 rounds, stacks up to 5 times for +50% max Crit Chance). Acquiring a new stack refreshes the duration of all active stacks.",
+          "rules": [
+            {
+              "when": "on_attack_hit",
+              "_name": "Killing Frenzy",
+              "do": [
+                {
+                  "op": "gain_obsession_stack",
+                  "max_stacks": 5,
+                  "duration": 3,
+                  "crit_per_stack": 0.10
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Triple Bite",
+          "trigger": "passive",
+          "description": "While Unleash the Hound is active, Attack and Defense responses trigger 3 times instead of once, resulting in a 2.7x overall power amplification.",
+          "rules": [
+            {
+              "when": "passive",
+              "_name": "Triple Bite",
+              "do": []
+            }
+          ]
+        },
+        {
+          "name": "Unleash the Hound",
+          "trigger": "on_special",
+          "description": "Summons two invulnerable clones of Cerberus for 6 rounds. The clones execute 3 separate strikes whenever Cerberus attacks (2.7x total power amplification).",
+          "rules": [
+            {
+              "when": "on_special",
+              "_name": "Unleash the Hound",
+              "do": [
+                {
+                  "op": "unleash_hound",
+                  "duration": 6
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "abilities": [
+    {
+      "name": "Killing Frenzy",
+      "trigger": "on_attack_hit",
+      "description": "Cerberus has an obsession with hunting down its prey. Each time an attack successfully lands, it gains a stack of Obsession (+10% Critical Chance per stack, lasting 3 rounds, stacks up to 5 times for +50% max Crit Chance). Acquiring a new stack refreshes the duration of all active stacks.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "_name": "Killing Frenzy",
+          "do": [
+            {
+              "op": "gain_obsession_stack",
+              "max_stacks": 5,
+              "duration": 3,
+              "crit_per_stack": 0.10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Triple Bite",
+      "trigger": "passive",
+      "description": "While Unleash the Hound is active, Attack and Defense responses trigger 3 times instead of once, resulting in a 2.7x overall power amplification.",
+      "rules": [
+        {
+          "when": "passive",
+          "_name": "Triple Bite",
+          "do": []
+        }
+      ]
+    },
+    {
+      "name": "Unleash the Hound",
+      "trigger": "on_special",
+      "description": "Summons two invulnerable clones of Cerberus for 6 rounds. The clones execute 3 separate strikes whenever Cerberus attacks (2.7x total power amplification).",
+      "rules": [
+        {
+          "when": "on_special",
+          "_name": "Unleash the Hound",
+          "do": [
+            {
+              "op": "unleash_hound",
+              "duration": 6
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

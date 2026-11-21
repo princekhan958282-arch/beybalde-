@@ -520,8 +520,14 @@ async def build_info_embed(blade: dict, viewer_id=None) -> discord.Embed:
     embed.add_field(name="Type",         value=f"{t_emoji} {btype}",                       inline=True)
     embed.add_field(name="Burst Height", value=blade.get("burst_height", "—"),             inline=True)
 
-    # Booster exclusive badge
-    if blade.get("booster_exclusive"):
+    # Acquisition badges
+    if blade.get("tournament_exclusive"):
+        embed.add_field(
+            name="🏆 Acquisition",
+            value="**Tournament Exclusive**\nCannot be found in wild spawns.\nObtained via tournaments.",
+            inline=False,
+        )
+    elif blade.get("booster_exclusive"):
         embed.add_field(
             name="📦 Acquisition",
             value="**Booster Pack Exclusive**\nCannot be found in wild spawns.\nObtain via `;booster`.",
@@ -654,8 +660,14 @@ async def build_beypedia_embed(blade: dict, viewer_id=None) -> discord.Embed:
             inline=True,
         )
 
-    # ── Booster Exclusive badge ─────────────────────────────────────────────
-    if blade.get("booster_exclusive"):
+    # ── Acquisition badges ──────────────────────────────────────────────────
+    if blade.get("tournament_exclusive"):
+        embed.add_field(
+            name  = "🏆 Acquisition",
+            value = "**Tournament Exclusive**\nCannot be found in wild spawns.\nObtained via tournaments.",
+            inline=False,
+        )
+    elif blade.get("booster_exclusive"):
         embed.add_field(
             name  = "📦 Acquisition",
             value = "**Booster Pack Exclusive**\nCannot be found in wild spawns.\nObtain via `;booster`.",
@@ -1719,7 +1731,7 @@ class BeyListView(discord.ui.View):
                 blade = self.beyblades.get(n, {})
                 mark  = "✅" if n.lower() in self.owned else "⬜"
                 emoji = RARITY_EMOJIS.get(blade.get("rarity", ""), "")
-                pack  = " 📦" if blade.get("booster_exclusive") else ""
+                pack  = " 🏆" if blade.get("tournament_exclusive") else (" 📦" if blade.get("booster_exclusive") else "")
                 # Badges, not a separate tier — a Limited Ultimate still
                 # sorts, groups and colours as an Ultimate. The flags only
                 # change how it is obtained.

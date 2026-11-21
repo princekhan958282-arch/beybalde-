@@ -1,0 +1,169 @@
+{
+  "id": "BB169",
+  "name": "Galactic Astral",
+  "aliases": [
+    "Galactic astral",
+    "galactic_astral"
+  ],
+  "rarity": "Mythic",
+  "type": "Attack",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "tournament_exclusive": true,
+  "booster_exclusive": false,
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1563411231115841547/1791946365899.png?ex=6b0271ac&is=6b01202c&hm=b9fa6d4d75f0b86eab1024fd5b3a43ac3acd65e9f229171782f7d41b1bb0282a&",
+  "description": "A celestial Attack-type Beyblade with four distinct cosmic quadrants and a glowing purple rift core that triggers supernova glass-cannon phase shifts.",
+  "stats": {
+    "attack": 176,
+    "defense": 88,
+    "stamina": 120,
+    "special": 163,
+    "hp": 144
+  },
+  "ability": {
+    "name": "Nebula Resonance",
+    "trigger": "on_attack_hit",
+    "description": "Because of the four distinct cosmic quadrants on its chassis, every successful physical Attack has a 25% chance to trigger a secondary stardust shockwave. This deals bonus damage equal to 30% of Attack and heals 120 HP, but consumes a small amount of extra Stamina.",
+    "rules": [
+      {
+        "when": "on_attack_hit",
+        "chance": 0.25,
+        "do": [
+          {
+            "op": "bonus_damage_stat",
+            "stat": "attack",
+            "scale": 0.3,
+            "label": "Nebula Resonance — Stardust Shockwave"
+          },
+          {
+            "op": "heal",
+            "value": 120,
+            "label": "Nebula Resonance"
+          },
+          {
+            "op": "consume_stamina",
+            "value": 1.0,
+            "label": "Nebula Resonance"
+          }
+        ],
+        "_name": "Nebula Resonance"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Nebula Resonance",
+      "trigger": "on_attack_hit",
+      "description": "Because of the four distinct cosmic quadrants on its chassis, every successful physical Attack has a 25% chance to trigger a secondary stardust shockwave. This deals bonus damage equal to 30% of Attack and heals 120 HP, but consumes a small amount of extra Stamina.",
+      "rules": [
+        {
+          "when": "on_attack_hit",
+          "chance": 0.25,
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.3,
+              "label": "Nebula Resonance — Stardust Shockwave"
+            },
+            {
+              "op": "heal",
+              "value": 120,
+              "label": "Nebula Resonance"
+            },
+            {
+              "op": "consume_stamina",
+              "value": 1.0,
+              "label": "Nebula Resonance"
+            }
+          ],
+          "_name": "Nebula Resonance"
+        }
+      ]
+    },
+    {
+      "name": "Event Horizon",
+      "trigger": "on_low_hp",
+      "description": "The glowing purple rift in the center acts as a collapsing star. When HP drops below 30%, the Bey routes all its remaining gravitational energy to the perimeter blades. Its Defense drops to 0, but the 88 stat points are immediately transferred to Attack for a supernova-level glass-cannon phase.",
+      "rules": [
+        {
+          "when": "on_low_hp",
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.3
+            }
+          ],
+          "once": "battle",
+          "do": [
+            {
+              "op": "stat_transfer",
+              "from_stat": "defense",
+              "to_stat": "attack",
+              "amount": 88,
+              "zero_source": true,
+              "turns": 99,
+              "label": "Event Horizon"
+            }
+          ],
+          "_name": "Event Horizon"
+        }
+      ]
+    },
+    {
+      "name": "Galactic Rift Slash",
+      "trigger": "on_special_last_hit",
+      "description": "Channels the chaotic cosmic energy from all four quadrants into the jagged, star-shaped contact points for a devastating high-speed meteor barrage. The final hit tears through the opponent's center of gravity, applying a 'Shatter' debuff that permanently lowers their Defense by 20% for the remainder of the battle.",
+      "rules": [
+        {
+          "when": "on_special_last_hit",
+          "do": [
+            {
+              "op": "shatter",
+              "stat": "defense",
+              "pct": 20,
+              "turns": 99,
+              "label": "Galactic Rift Slash — Shatter",
+              "emoji": "💔"
+            }
+          ],
+          "_name": "Galactic Rift Slash — Shatter"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Galactic Rift Slash",
+    "description": "Channels the chaotic cosmic energy from all four quadrants into the jagged, star-shaped contact points for a devastating high-speed meteor barrage. The final hit tears through the opponent's center of gravity, applying a 'Shatter' debuff that permanently lowers their Defense by 20% for the remainder of the battle.",
+    "hits": 4,
+    "damage_per_hit": [
+      40,
+      40,
+      40,
+      43
+    ],
+    "total_damage": 163,
+    "flavour_texts": [
+      "🌌 **Galactic Rift Slash** — all four cosmic quadrants channel chaotic energy into the contact points!",
+      "☄️ **Meteor Barrage** — high-speed star-shaped strikes tear across the stadium!",
+      "💥 **Gravitational Collapse** — the final strike shatters the opponent's center of gravity!"
+    ]
+  },
+  "generation": "Burst",
+  "main_frame": {
+    "hp": 65,
+    "attack": 79,
+    "defense": 40,
+    "stamina": 54
+  },
+  "default_parts": {
+    "disk": "BB169_default_disk",
+    "driver": "BB169_default_driver"
+  },
+  "_registry_order": 170,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}
