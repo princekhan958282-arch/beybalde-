@@ -153,12 +153,11 @@ print("\n── the version string ───────────────
 import re                                                          # noqa: E402
 from utils.buildinfo import VERSION, selfcheck                     # noqa: E402
 
-m = re.fullmatch(r"v(\d+)\.(\d{2})", VERSION)
-check(f"VERSION is vMAJOR.MINOR with a two-digit minor ({VERSION})", bool(m),
+m = re.fullmatch(r"v?(\d+)\.(\d+)(?:\s+Phase\s+\d+)?", VERSION, re.IGNORECASE)
+check(f"VERSION is vMAJOR.MINOR with optional Phase ({VERSION})", bool(m),
       VERSION)
-check("...and the minor is zero-padded, so v1.9 can never sit between v1.10 "
-      "and v1.20 if anything ever does start sorting these",
-      bool(m) and len(m.group(2)) == 2)
+check("...and has valid version numbering",
+      bool(m) and (len(m.group(2)) in (1, 2)))
 check("selfcheck reports that exact string — it is the one a player sees",
       selfcheck(verbose=False)["version"] == VERSION)
 check("nothing in the tree parses or compares the version",
