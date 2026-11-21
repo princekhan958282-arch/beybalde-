@@ -56,6 +56,7 @@ BUILTIN_OPS = {
     "debuff", "debuff_immune", "debuff_ward", "disable_ability_2", "dmg_amp",
     "drain_stamina", "enemy_debuff", "enemy_debuff_pct", "enemy_lose_stability",
     "enter_eclipse_phase", "seal_eclipse_flight", "chain_crit",
+    "gain_obsession_stack", "unleash_hound",
     "evolve_form", "execute", "gain_counter", "gain_gauge", "gain_stability",
     "gain_stamina", "grant_shield", "guaranteed_crit", "heal", "heal_pct",
     "heal_per_drain", "hp_regen", "ignore_defense", "ignore_defense_pct", "invulnerable",
@@ -159,7 +160,8 @@ class BeybladeAuditor:
         stat_keys = ["hp", "attack", "defense", "stamina", "special"]
         for sk in stat_keys:
             val = stats.get(sk)
-            if not isinstance(val, (int, float)) or val <= 0:
+            is_non_damage_sp = (sk == "special" and (data.get("special_move", {}).get("non_damage") or data.get("special_move", {}).get("total_damage") == 0))
+            if not isinstance(val, (int, float)) or (val < 0 if is_non_damage_sp else val <= 0):
                 self.log_error(f"[{rel_path}] Invalid or non-positive stat '{sk}': {val}")
 
         # 3. Modular Parts & Stat Division (45 / 27.5 / 27.5)

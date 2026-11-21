@@ -236,6 +236,12 @@ class AttackManager:
                         f"  ↩️ **Counter Surge** — {oblade['name']}'s counter "
                         f"hits **{cpct:g}%** harder (+{extra})!")
 
+        if dmg_taken > 0 and getattr(self.session.ability, "unleash_hound_active", {}).get(okey) and omove == MOVE_DEFENSE:
+            dmg_taken = math.ceil(dmg_taken * 2.70)
+            logs.append(
+                f"  🐺 **Triple Bite** — {oblade['name']}'s shadow clones counter in unison (2.7x counter damage)!"
+            )
+
         # NOTE: stat_mult (level bonus) is now baked into the effective stats
         # dict built by session.py before resolve_pair is called.  Do NOT apply
         # it again here — doing so would double-scale the level bonus.
@@ -287,6 +293,24 @@ class AttackManager:
             mkey, okey, mblade, oblade, mmove, matchup, dmg_dealt, dmg_taken
         )
         logs.extend(ab_logs)
+
+        # ── Triple Bite clone assault (Unleash the Hound active) ──────────────
+        if mmove == MOVE_ATTACK and dmg_dealt > 0 and getattr(self.session.ability, "unleash_hound_active", {}).get(mkey):
+            clone1_dmg = math.ceil(dmg_dealt * 0.85)
+            clone2_dmg = math.ceil(dmg_dealt * 0.85)
+            total_clone_dmg = dmg_dealt + clone1_dmg + clone2_dmg
+            logs.append(
+                f"  🐺 **Triple Bite** — Unleash the Hound activates 3-hit clone assault (2.7x power amplification)!\n"
+                f"    • **Primary Strike:** {dmg_dealt} damage\n"
+                f"    • **Shadow Clone 1:** {clone1_dmg} damage\n"
+                f"    • **Shadow Clone 2:** {clone2_dmg} damage"
+            )
+            dmg_dealt = total_clone_dmg
+            for _ in (1, 2):
+                self.session.ability._fire(
+                    "on_attack_hit", mkey, okey, mblade, mmove, matchup,
+                    dmg_dealt, dmg_taken, logs
+                )
 
         # ── Knockout chance bonus (generic proc for bonus true damage on hit) ─
         if dmg_dealt > 0 and mmove in (MOVE_ATTACK, MOVE_SPECIAL):

@@ -175,6 +175,10 @@ class AbilityEngine:
         self.eclipse_phase: dict[str, bool]         = {}   # key -> active eclipse phase
         self.eclipse_sealed: dict[str, bool]        = {}   # (key, name) or key -> sealed
         self.chain_crit_active: dict[str, bool]     = {}   # key -> chain crit triggered in multi-hit special
+        self.obsession_stacks: dict[str, int]       = {}   # key -> Obsession stacks (+10% Crit Chance each)
+        self.obsession_timer: dict[str, int]        = {}   # key -> rounds remaining before stacks decay
+        self.unleash_hound_active: dict[str, bool]  = {}   # key -> Unleash the Hound active
+        self.clone_duration: dict[str, int]         = {}   # key -> clone duration in rounds
 
         # ── The debuff ward ──────────────────────────────────────────────────
         # `debuff_immune` is a permanent on/off flag: once set, that side
@@ -306,6 +310,10 @@ class AbilityEngine:
             ("eclipse_phase", dict),
             ("eclipse_sealed", dict),
             ("chain_crit_active", dict),
+            ("obsession_stacks", dict),
+            ("obsession_timer", dict),
+            ("unleash_hound_active", dict),
+            ("clone_duration", dict),
         ):
             if not hasattr(self, attr):
                 setattr(self, attr, default_factory())
@@ -2078,6 +2086,27 @@ class AbilityEngine:
                 self.eclipse_sealed[(key, sname)] = True
                 self.eclipse_phase[key] = False
                 logs.append(f"🔒 **{ab_name}** — Eclipse Flight has been permanently sealed for the remainder of the battle.")
+            elif kind == "gain_obsession_stack":
+                cur = self.obsession_stacks.get(key, 0)
+                max_s = int(op.get("max_stacks", 5))
+                if cur < max_s:
+                    cur += 1
+                    self.obsession_stacks[key] = cur
+                dur = int(op.get("duration", 3))
+                self.obsession_timer[key] = dur
+                crit_pct = cur * float(op.get("crit_per_stack", 0.10))
+                self.crit_chance_bonus[key] = crit_pct
+                logs.append(
+                    f"🩸 **{ab_name}** — Cerberus gains an Obsession stack! "
+                    f"({cur}/{max_s} stacks, +{int(crit_pct * 100)}% Crit Chance, duration refreshed to {dur} rounds!)"
+                )
+            elif kind == "unleash_hound":
+                dur = int(op.get("duration", 6))
+                self.unleash_hound_active[key] = True
+                self.clone_duration[key] = dur
+                logs.append(
+                    f"🐺 **{ab_name}** — Cerberus summons two invulnerable shadow clones for {dur} rounds!"
+                )
             elif kind == "queue_chain":
                 self.session.chain_handler.queue(key, op.get("steps", []))
             elif kind == "disable_ability_2":
@@ -2361,7 +2390,7 @@ class AbilityEngine:
             p = self.crit_chance_bonus.get(mover_key, 0.0)
             if is_first_hit:
                 p += self.tactical.crit_bonus(mover_key, move)
-            if p > 0 and dmg_dealt > 0 and matchup == "win" and is_first_hit \
+            if p > 0 and dmg_dealt > 0 and (matchup == "win" or self.obsession_stacks.get(mover_key, 0) > 0) and is_first_hit \
                     and random.random() < min(0.95, p):
                 mult = self.crit_damage_mult.get(mover_key, 1.5)
                 dmg_dealt = math.ceil(dmg_dealt * mult)
@@ -2719,6 +2748,23 @@ class AbilityEngine:
 
         logs.extend(self._tick_zones())
         self.eclipse_phase.clear()
+
+        for k in list(getattr(self, "obsession_timer", {}).keys()):
+            if self.obsession_stacks.get(k, 0) > 0:
+                self.obsession_timer[k] -= 1
+                if self.obsession_timer[k] <= 0:
+                    self.obsession_stacks[k] = 0
+                    self.obsession_timer.pop(k, None)
+                    self.crit_chance_bonus[k] = 0.0
+                    logs.append("⏳ **Killing Frenzy** — Obsession stacks have expired!")
+
+        for k in list(getattr(self, "clone_duration", {}).keys()):
+            if self.unleash_hound_active.get(k, False):
+                self.clone_duration[k] -= 1
+                if self.clone_duration[k] <= 0:
+                    self.unleash_hound_active[k] = False
+                    self.clone_duration.pop(k, None)
+                    logs.append("🐺 **Unleash the Hound** — The shadow clones disperse back into the shadows.")
 
         if not getattr(self, "timed_modes", None):
             return logs
