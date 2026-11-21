@@ -65,6 +65,7 @@ NEVER_DRAFT = {"Exclusive"}
 RARITY_WEIGHT = {
     "Common": 40, "Rare": 26, "Epic": 16, "Legendary": 9,
     "Mythic": 5, "Ultimate": 3, "Exclusive": 1,
+    "Limited": 2, "Boss Fighter": 1,
 }
 
 
@@ -111,6 +112,7 @@ def draft_pool() -> list[dict]:
             and b.get("rarity") not in NEVER_DRAFT
             and not b.get("hidden_drop_one_in")
             and not b.get("booster_exclusive")
+            and not b.get("tournament_exclusive")
             and obtainable(b)]
 
 

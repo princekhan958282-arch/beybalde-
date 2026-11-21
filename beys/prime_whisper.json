@@ -10,6 +10,8 @@
   "type": "Defense",
   "spin_direction": "Right",
   "burst_height": "Mid",
+  "tournament_exclusive": true,
+  "booster_exclusive": false,
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573568494186926201/1795143807048.png?ex=6b027b5c&is=6b0129dc&hm=f707419208fedc87aa2751b923612d94393e60dad26f3b275c323270b1a710a5&",
   "awakened_image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573560966925520957/40999_transparent.png?ex=6b027459&is=6b0122d9&hm=b8202b8c7232222d71b252303fd9b8d331d760fc92453f862bcf3db039a902bb&",
   "description": "A heavy Defense-type Beyblade clad in gold and purple hexagonal armor. Possesses an analytical central demonic gaze and a hidden corruption awakening engulfed in red lightning.",

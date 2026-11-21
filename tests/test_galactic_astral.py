@@ -75,6 +75,8 @@ class TestGalacticAstral(unittest.TestCase):
         self.assertEqual(self.blade["type"], "Attack")
         self.assertEqual(self.blade["spin_direction"], "Right")
         self.assertEqual(self.blade["rarity"], "Mythic")
+        self.assertTrue(self.blade.get("tournament_exclusive"))
+        self.assertFalse(self.blade.get("booster_exclusive"))
 
         # Stats validation
         stats = self.blade["stats"]

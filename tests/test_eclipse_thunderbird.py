@@ -73,6 +73,8 @@ class TestEclipseThunderbird(unittest.TestCase):
         """Verifies core identity, 125 base HP, dual-spin configuration, and 45/27.5/27.5 parts."""
         self.assertEqual(self.blade["id"], "BB171")
         self.assertEqual(self.blade["rarity"], "Mythic")
+        self.assertTrue(self.blade.get("tournament_exclusive"))
+        self.assertFalse(self.blade.get("booster_exclusive"))
         self.assertEqual(self.blade["type"], "Attack")
         self.assertTrue(self.blade.get("dual_spin"))
         self.assertEqual(self.blade["stats"]["hp"], 125)

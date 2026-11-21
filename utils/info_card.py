@@ -489,6 +489,8 @@ def build_html(blade: dict, parts: Optional[dict] = None) -> str:
 
     from utils.availability import is_limited, is_owner_bound
     _badges = []
+    if blade.get("tournament_exclusive"):
+        _badges.append("🏆 TOURNAMENT EXCLUSIVE")
     if blade.get("booster_exclusive"):
         _badges.append("📦 BOOSTER EXCLUSIVE")
     if is_limited(blade):

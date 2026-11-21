@@ -14,6 +14,8 @@
   "burst_height": "Mid",
   "dual_spin": true,
   "default_mode": "Right",
+  "tournament_exclusive": true,
+  "booster_exclusive": false,
   "creator": "AXIS#Z73DAX \u201cBeymaster1\u201d",
   "complexity": 5,
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573601302854766752/image1.png?ex=6b0299ea&is=6b01486a&hm=01cda85e54bc4e5ea08b4b6936959f383e3b1ff3110daa471c0a2eb3d8022223&",

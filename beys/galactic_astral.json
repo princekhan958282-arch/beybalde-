@@ -9,6 +9,8 @@
   "type": "Attack",
   "spin_direction": "Right",
   "burst_height": "Mid",
+  "tournament_exclusive": true,
+  "booster_exclusive": false,
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1563411231115841547/1791946365899.png?ex=6b0271ac&is=6b01202c&hm=b9fa6d4d75f0b86eab1024fd5b3a43ac3acd65e9f229171782f7d41b1bb0282a&",
   "description": "A celestial Attack-type Beyblade with four distinct cosmic quadrants and a glowing purple rift core that triggers supernova glass-cannon phase shifts.",
   "stats": {

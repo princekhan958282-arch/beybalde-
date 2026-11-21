@@ -58,6 +58,8 @@ class CerberusTests(unittest.TestCase):
         self.assertEqual(self.blade["spin_direction"], "Dual")
         self.assertTrue(self.blade["dual_spin"])
         self.assertEqual(self.blade["default_mode"], "Right")
+        self.assertTrue(self.blade.get("tournament_exclusive"))
+        self.assertFalse(self.blade.get("booster_exclusive"))
         self.assertEqual(self.blade["creator"], "AXIS#Z73DAX \u201cBeymaster1\u201d")
         self.assertEqual(self.blade["complexity"], 5)
 

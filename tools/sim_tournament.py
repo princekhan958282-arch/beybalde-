@@ -460,7 +460,8 @@ check(f"the draft pool is built and non-empty ({len(_pool)} of "
 # suite stayed green.
 _leaked = [b["name"] for b in _pool
            if b.get("hidden_drop_one_in") or b.get("owner_ids")
-           or b.get("rarity") == "Exclusive" or b.get("booster_exclusive")]
+           or b.get("rarity") == "Exclusive" or b.get("booster_exclusive")
+           or b.get("tournament_exclusive")]
 check("no hidden, owner-bound, booster or Exclusive blade can be drafted",
       not _leaked, _leaked)
 check("...and the pool is a strict subset of the roster, not all of it",
