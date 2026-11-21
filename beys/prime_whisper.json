@@ -1,0 +1,230 @@
+{
+  "id": "BB170",
+  "name": "Prime Whisper",
+  "aliases": [
+    "prime_whisper",
+    "Prime whisper",
+    "Prime Whisper (Awakened Dark Mode)"
+  ],
+  "rarity": "Mythic",
+  "type": "Defense",
+  "spin_direction": "Right",
+  "burst_height": "Mid",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573568494186926201/1795143807048.png?ex=6b027b5c&is=6b0129dc&hm=f707419208fedc87aa2751b923612d94393e60dad26f3b275c323270b1a710a5&",
+  "awakened_image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573560966925520957/40999_transparent.png?ex=6b027459&is=6b0122d9&hm=b8202b8c7232222d71b252303fd9b8d331d760fc92453f862bcf3db039a902bb&",
+  "description": "A heavy Defense-type Beyblade clad in gold and purple hexagonal armor. Possesses an analytical central demonic gaze and a hidden corruption awakening engulfed in red lightning.",
+  "stats": {
+    "hp": 150,
+    "attack": 120,
+    "defense": 140,
+    "stamina": 90,
+    "special": 100
+  },
+  "ability": {
+    "name": "Hex Plating",
+    "trigger": "on_take_damage",
+    "description": "The heavy gold and purple hexagonal armor on its chassis provides superior bulk. Reduces incoming physical Attack damage by 15% and grants a 20% chance to drain 15 Stamina from the opponent upon contact.",
+    "rules": [
+      {
+        "when": "on_take_damage",
+        "do": [
+          {
+            "op": "reduce_damage_pct",
+            "value": 15,
+            "label": "Hex Plating"
+          }
+        ],
+        "_name": "Hex Plating — Armor Bulk"
+      },
+      {
+        "when": "on_take_damage",
+        "chance": 0.2,
+        "do": [
+          {
+            "op": "drain_stamina",
+            "value": 1.5,
+            "label": "Hex Plating — Contact Drain"
+          }
+        ],
+        "_name": "Hex Plating — Stamina Drain"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Hex Plating",
+      "trigger": "on_take_damage",
+      "description": "The heavy gold and purple hexagonal armor on its chassis provides superior bulk. Reduces incoming physical Attack damage by 15% and grants a 20% chance to drain 15 Stamina from the opponent upon contact.",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "reduce_damage_pct",
+              "value": 15,
+              "label": "Hex Plating"
+            }
+          ],
+          "_name": "Hex Plating — Armor Bulk"
+        },
+        {
+          "when": "on_take_damage",
+          "chance": 0.2,
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 1.5,
+              "label": "Hex Plating — Contact Drain"
+            }
+          ],
+          "_name": "Hex Plating — Stamina Drain"
+        }
+      ]
+    },
+    {
+      "name": "Demonic Gaze",
+      "trigger": "on_take_damage",
+      "description": "The central eye constantly analyzes the opponent. Every time Prime Whisper takes damage, its Special stat permanently increases by 5 for the rest of the battle (stacks up to 5 times).",
+      "rules": [
+        {
+          "when": "on_take_damage",
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "demonic_gaze_stacks",
+              "stat": "special",
+              "per_stack": 5,
+              "max": 5,
+              "label": "Demonic Gaze"
+            }
+          ],
+          "_name": "Demonic Gaze — Analytical Stacking"
+        }
+      ]
+    },
+    {
+      "name": "Corruption",
+      "trigger": "on_low_hp",
+      "hidden": true,
+      "description": "When Prime Whisper's HP drops below 40%, a secret prompt appears giving the player the choice to awaken its true form. Selecting 'Yes' triggers Dark Mode, engulfed in red lightning. This swaps the Beyblade's image to the Awakened Dark Mode URL, instantly heals 100 HP, and applies a massive stat boost: Attack gains +100 and Special gains +80, bypassing the base stat limits. While in Dark Mode, every strike heals Prime Whisper for 20% of the damage dealt, but it consumes double Stamina per turn.",
+      "rules": [
+        {
+          "when": "on_low_hp",
+          "if": [
+            {
+              "cond": "hp_below_pct",
+              "value": 0.4
+            }
+          ],
+          "once": "battle",
+          "do": [
+            {
+              "op": "evolve_form",
+              "name": "Prime Whisper (Awakened Dark Mode)",
+              "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573560966925520957/40999_transparent.png?ex=6b027459&is=6b0122d9&hm=b8202b8c7232222d71b252303fd9b8d331d760fc92453f862bcf3db039a902bb&",
+              "label": "Corruption"
+            },
+            {
+              "op": "heal",
+              "value": 100,
+              "label": "Corruption"
+            },
+            {
+              "op": "buff",
+              "stat": "attack",
+              "amount": 100,
+              "turns": 99,
+              "label": "Corruption"
+            },
+            {
+              "op": "buff",
+              "stat": "special",
+              "amount": 80,
+              "turns": 99,
+              "label": "Corruption"
+            },
+            {
+              "op": "lifesteal_pct",
+              "value": 20,
+              "label": "Corruption"
+            },
+            {
+              "op": "stamina_cost_increase",
+              "value": 100,
+              "label": "Corruption"
+            }
+          ],
+          "_name": "Corruption — Awakened Dark Mode"
+        }
+      ]
+    },
+    {
+      "name": "Gilded Purge",
+      "trigger": "on_special",
+      "description": "Channels energy into the six outer hexagonal nodes to unleash a heavy, concentrated shockwave. Deals Special damage equal to 120% of its current Defense stat and lowers the opponent's Attack by 10% for two turns.",
+      "rules": [
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "enemy_debuff_pct",
+              "stat": "attack",
+              "pct": 10,
+              "turns": 2,
+              "label": "Gilded Purge"
+            }
+          ],
+          "_name": "Gilded Purge — Attack Suppression"
+        }
+      ]
+    }
+  ],
+  "special_move": {
+    "name": "Gilded Purge",
+    "description": "Channels energy into the six outer hexagonal nodes to unleash a heavy, concentrated shockwave. Deals Special damage equal to 120% of its current Defense stat and lowers the opponent's Attack by 10% for two turns.",
+    "hits": 1,
+    "damage_per_hit": [
+      100
+    ],
+    "total_damage": 100,
+    "damage_formula": {
+      "defense": 1.2
+    },
+    "rules": [
+      {
+        "when": "on_special",
+        "do": [
+          {
+            "op": "enemy_debuff_pct",
+            "stat": "attack",
+            "pct": 10,
+            "turns": 2,
+            "label": "Gilded Purge"
+          }
+        ],
+        "_name": "Gilded Purge — Attack Suppression"
+      }
+    ],
+    "flavour_texts": [
+      "🛡️ **Gilded Purge** — energy surges into the six hexagonal nodes!",
+      "⚡ **Hexagonal Shockwave** — concentrated shockwave crashes into the opponent!"
+    ]
+  },
+  "generation": "Burst",
+  "main_frame": {
+    "hp": 68,
+    "attack": 54,
+    "defense": 63,
+    "stamina": 40
+  },
+  "default_parts": {
+    "disk": "BB170_default_disk",
+    "driver": "BB170_default_driver"
+  },
+  "_registry_order": 171,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  }
+}
