@@ -56,7 +56,7 @@ DEFAULT_MODE = "Right"
 # (`loadout.effective_blade` and `battle._apply_parts`), so what lands in
 # `session.blades` — which is what AbilityEngine compiles — is already the
 # resolved form.
-MODE_FIELDS = ("stats", "special_move", "spin_direction", "type", "abilities", "image_url")
+MODE_FIELDS = ("stats", "special_move", "spin_direction", "type", "abilities", "image_url", "name")
 
 
 def is_dual(blade: Optional[dict]) -> bool:
@@ -81,7 +81,12 @@ def chosen(profile: Optional[dict], blade: Optional[dict]) -> str:
         return ""
     try:
         raw = (profile or {}).get(K_MODE) or {}
-        want = str(raw.get(blade.get("name"), "")).strip().title()
+        base_name = (blade or {}).get("base_name") or (blade or {}).get("name", "")
+        curr_name = (blade or {}).get("name", "")
+        want = raw.get(base_name)
+        if not want and curr_name != base_name:
+            want = raw.get(curr_name)
+        want = str(want or "").strip().title()
     except Exception:                                    # noqa: BLE001
         want = ""
     return want if want in available else available[0]
@@ -101,6 +106,7 @@ def resolve(profile: Optional[dict], blade: Optional[dict]) -> dict:
         return blade
 
     out = dict(blade)
+    out["base_name"] = blade.get("base_name") or blade.get("name")
     for field in MODE_FIELDS:
         if field in cfg:
             out[field] = cfg[field]

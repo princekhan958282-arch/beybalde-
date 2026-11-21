@@ -224,6 +224,8 @@ def refresh_art_index() -> None:
 def _art_src(blade: dict) -> str:
     """Best art source: local file as data URI, else the CDN image_url."""
     path = _local_art_path(blade.get("name", ""))
+    if not path and blade.get("base_name"):
+        path = _local_art_path(blade.get("base_name", ""))
     if path:
         try:
             mime = "image/webp" if path.endswith(".webp") else \

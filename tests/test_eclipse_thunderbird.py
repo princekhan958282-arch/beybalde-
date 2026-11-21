@@ -109,6 +109,7 @@ class TestEclipseThunderbird(unittest.TestCase):
 
         # Dawn Mode
         dawn = resolve({"spin_mode": {"Eclipse Thunderbird": "Dawn"}}, self.blade)
+        self.assertEqual(dawn["name"], "eclipse thunderbird dawn")
         self.assertEqual(dawn["spin_direction"], "Right")
         self.assertEqual(dawn["stats"]["attack"], 120)
         self.assertEqual(dawn["stats"]["defense"], 80)
@@ -118,6 +119,7 @@ class TestEclipseThunderbird(unittest.TestCase):
 
         # Dusk Mode
         dusk = resolve({"spin_mode": {"Eclipse Thunderbird": "Dusk"}}, self.blade)
+        self.assertEqual(dusk["name"], "eclipse thunderbird dusk")
         self.assertEqual(dusk["spin_direction"], "Left")
         self.assertEqual(dusk["stats"]["attack"], 150)
         self.assertEqual(dusk["stats"]["defense"], 65)

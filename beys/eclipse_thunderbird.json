@@ -7,7 +7,13 @@
     "Eclipse Thunderbird (Dawn Mode)",
     "Eclipse Thunderbird (Dusk Mode)",
     "dawn_thunderbird",
-    "dusk_thunderbird"
+    "dusk_thunderbird",
+    "eclipse_thunderbird_dawn",
+    "eclipse_thunderbird_dusk",
+    "eclipse thunderbird dawn",
+    "eclipse thunderbird dusk",
+    "Eclipse Thunderbird Dawn",
+    "Eclipse Thunderbird Dusk"
   ],
   "rarity": "Mythic",
   "type": "Attack",
@@ -191,6 +197,7 @@
   ],
   "spin_modes": {
     "Dawn": {
+      "name": "eclipse thunderbird dawn",
       "label": "Swap to Dawn Mode",
       "spin_direction": "Right",
       "type": "Attack",
@@ -316,6 +323,7 @@
       ]
     },
     "Dusk": {
+      "name": "eclipse thunderbird dusk",
       "label": "Swap to Dusk Mode",
       "spin_direction": "Left",
       "type": "Attack",

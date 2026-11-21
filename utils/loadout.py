@@ -109,6 +109,8 @@ def bey_level_and_stats(profile: dict, blade: dict) -> tuple[int, dict]:
         if not name:
             return 1, printed
         entry = (profile.get("bey_progress") or {}).get(str(name))
+        if not entry and blade.get("base_name"):
+            entry = (profile.get("bey_progress") or {}).get(str(blade.get("base_name")))
         if not entry:
             return 1, printed
         level = BL.level_from_xp(entry.get("xp", 0))
