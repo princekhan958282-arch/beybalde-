@@ -43,7 +43,7 @@
     "BB021": {
       "name": "Eternal Blaze Garuda",
       "previous_sha256": "caf4243a4a3f0435f08319ee289dc27b614b42663a66bf78c3ab15c1320ffc09",
-      "sha256": "d12ec149ce2df24b44bf42efd79ad98e4c8dd9446a0e1b53a174e177e2e8fdc6"
+      "sha256": "c06a34c486c6b7f98a91e72217e94dd7e856778b5d5ba4997c59c665122c78e0"
     },
     "BB065": {
       "name": "Baldur Bumper",
@@ -163,7 +163,7 @@
     "BB102": {
       "name": "Deep Caynox",
       "previous_sha256": "6d2940f95c801bbd8faa0255a6a212281f8be64cacd61fb5a3ee4801ae280d25",
-      "sha256": "5d0ba46e51dfc952ca35abe6a049252833a2a77063add1b980142b91d8b56c79"
+      "sha256": "b88a11394622a71d3c94e6a65cb952c389c3381fc6644d2650e6ec2ae1e63ea5"
     },
     "BB055": {
       "name": "Crystal Zeutron",
@@ -178,7 +178,7 @@
     "BB016": {
       "name": "Trypio",
       "previous_sha256": "1fce2db769a3fb27d9b35b255df8bfe5393d2dcbb14a04ea8d16310cee237264",
-      "sha256": "f4af92454f48dbfadb14b98e39638ccf8464862b04d56cf78147bfef46db9de6"
+      "sha256": "7b4135c3a919c306df47214d23f654ea5e7d861788c0b86d5d29fe5d937cfea3"
     },
     "BB118": {
       "name": "Abyss Drakon",
@@ -278,7 +278,7 @@
     "BB103": {
       "name": "Deep Caynox ELT",
       "previous_sha256": "e368d3a0c3a040a8ff8a725bb471f44a998607a71b7360991e8489a7641c4c20",
-      "sha256": "115a5fe4a5821bac02dfb2cb90585599692efb8439d886bfb0abb493fbc77e90"
+      "sha256": "f85e1a4ccf2b531b731b510bfa89662edddf9a2bb77886673f31ecece203eda1"
     },
     "BB112": {
       "name": "Drakoryn",

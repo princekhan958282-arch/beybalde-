@@ -15,10 +15,10 @@
   },
   "special_move": {
     "name": "Blazing Eternal Storm",
-    "description": "Garuda spreads its divine wings to their full span, unleashing a tempest of sacred fire — each strike drains 1 Stamina from the enemy and heals Garuda for 30 HP, then engulfs the stadium in immortal flame!",
+    "description": "Garuda spreads its divine wings to their full span, unleashing a tempest of sacred fire — each strike burns 1 Stamina from the enemy and heals Garuda for 15 HP, then engulfs the stadium in immortal flame!",
     "hits": 4,
-    "damage_per_hit": 35,
-    "total_damage": 140,
+    "damage_per_hit": 30,
+    "total_damage": 120,
     "flavour_texts": [
       "🔥 **Blazing Eternal Storm** — Garuda ignites the sky!",
       "🌪️ **Strike 2** — Sacred winds drain the enemy's spirit!",
@@ -30,9 +30,9 @@
     {
       "name": "Eternal Flame",
       "trigger": "passive",
-      "description": "Garuda's wings radiate heat at all times, reducing every incoming hit by 20, and it recovers +2 Stamina per turn. The first time HP drops below 40%, the flames surge once: heals 40 HP instantly and grants +30 DEF for the rest of the battle.",
+      "description": "Garuda's wings radiate heat at all times, reducing every incoming hit by 20, and it recovers +1 Stamina per turn. The first time HP drops below 40%, the flames surge once: heals 40 HP instantly and grants +30 DEF for the rest of the battle.",
       "damage_reduction": 20,
-      "stamina_per_turn": 2,
+      "stamina_per_turn": 1,
       "hp_threshold": 0.4,
       "surge_heal": 40,
       "surge_defense_boost": 30,
@@ -68,9 +68,26 @@
     {
       "name": "Blazing Wing Strike",
       "trigger": "on_hit",
-      "description": "Each hit of Blazing Eternal Storm burns 1 Stamina from the enemy and heals Garuda for 30 HP — 4 hits, so 4 Stamina burned and 120 HP healed.",
-      "garuda_stamina_drain_per_hit": 1,
-      "garuda_heal_per_hit": 30
+      "description": "Each hit of Blazing Eternal Storm burns 1 Stamina from the enemy and heals Garuda for 15 HP — 4 hits, so 4 Stamina burned and 60 HP healed.",
+      "rules": [
+        {
+          "when": "on_hit",
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 1.0,
+              "steal": false,
+              "label": "Blazing Wing Strike"
+            },
+            {
+              "op": "heal",
+              "value": 15,
+              "label": "Blazing Wing Strike"
+            }
+          ],
+          "_name": "Blazing Wing Strike"
+        }
+      ]
     }
   ],
   "spin_direction": "Right",

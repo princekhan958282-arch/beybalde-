@@ -5,6 +5,8 @@ import json
 import logging
 import os
 import re
+import urllib.parse
+import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -197,28 +199,85 @@ class AssetUploadModal(discord.ui.Modal, title="Upload Bey Photo"):
     async def on_submit(self, interaction: discord.Interaction):
         if interaction.user.id != self.parent_view.owner_id or not A.is_admin(interaction.user):
             return await interaction.response.send_message("Not authorized.", ephemeral=True)
-        if self.photo is None:
-            return await interaction.response.send_message(
-                "⚠️ This discord.py build does not support attachment uploads in modals yet. Update discord.py to a build with `discord.ui.FileUpload`.", ephemeral=True)
-        attachment = self.photo.values[0]
-        ext = os.path.splitext(attachment.filename or "")[1].lower()
-        if ext not in IMAGE_EXTS:
-            return await interaction.response.send_message("❌ Use PNG, JPG, JPEG, or WEBP.", ephemeral=True)
-        if attachment.size and attachment.size > MAX_ASSET_BYTES:
-            return await interaction.response.send_message("❌ Image is too large. Maximum size is 8 MB.", ephemeral=True)
-        if attachment.content_type and not attachment.content_type.startswith("image/"):
-            return await interaction.response.send_message("❌ The uploaded file must be an image.", ephemeral=True)
-        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        _, assets_dir, _ = _load_asset_state()
+
+        if self.photo is not None:
+            attachment = self.photo.values[0]
+            ext = os.path.splitext(attachment.filename or "")[1].lower()
+            if ext not in IMAGE_EXTS:
+                return await interaction.response.send_message("❌ Use PNG, JPG, JPEG, or WEBP.", ephemeral=True)
+            if attachment.size and attachment.size > MAX_ASSET_BYTES:
+                return await interaction.response.send_message("❌ Image is too large. Maximum size is 8 MB.", ephemeral=True)
+            if attachment.content_type and not attachment.content_type.startswith("image/"):
+                return await interaction.response.send_message("❌ The uploaded file must be an image.", ephemeral=True)
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            try:
+                destination = os.path.join(assets_dir, _safe_asset_stem(self.bey_name) + ext)
+                temp = destination + ".uploading"
+                await attachment.save(temp)
+                os.replace(temp, destination)
+            except Exception as exc:
+                log.exception("Failed to save Bey asset for %s", self.bey_name)
+                return await interaction.followup.send(f"❌ Upload failed: `{type(exc).__name__}`", ephemeral=True)
+        else:
+            url_str = (self.url.value or "").strip()
+            parsed = urllib.parse.urlparse(url_str)
+            if parsed.scheme not in ("http", "https") or not parsed.netloc:
+                return await interaction.response.send_message("❌ Invalid image URL. Must start with http:// or https://.", ephemeral=True)
+
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            try:
+                timeout = aiohttp.ClientTimeout(total=20)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(url_str) as resp:
+                        if resp.status != 200:
+                            return await interaction.followup.send(f"❌ Could not download image (HTTP {resp.status}).", ephemeral=True)
+                        content_type = (resp.headers.get("Content-Type") or "").lower()
+                        path_ext = os.path.splitext(parsed.path)[1].lower()
+                        if path_ext in IMAGE_EXTS:
+                            ext = path_ext
+                        elif "png" in content_type:
+                            ext = ".png"
+                        elif "jpeg" in content_type or "jpg" in content_type:
+                            ext = ".jpg"
+                        elif "webp" in content_type:
+                            ext = ".webp"
+                        else:
+                            return await interaction.followup.send("❌ URL must point to a PNG, JPG, JPEG, or WEBP image.", ephemeral=True)
+
+                        data = await resp.read()
+                        if len(data) > MAX_ASSET_BYTES:
+                            return await interaction.followup.send("❌ Image is too large. Maximum size is 8 MB.", ephemeral=True)
+                        if not data:
+                            return await interaction.followup.send("❌ Downloaded image file was empty.", ephemeral=True)
+
+                        destination = os.path.join(assets_dir, _safe_asset_stem(self.bey_name) + ext)
+                        temp = destination + ".uploading"
+                        with open(temp, "wb") as f:
+                            f.write(data)
+                        os.replace(temp, destination)
+            except Exception as exc:
+                log.exception("Failed to download Bey asset from %s for %s", url_str, self.bey_name)
+                return await interaction.followup.send(f"❌ Download failed: `{type(exc).__name__}`", ephemeral=True)
+
+        # Invalidate in-memory art caches so battle cards and info cards immediately detect the new asset
         try:
-            _, assets_dir, _ = _load_asset_state()
-            destination = os.path.join(assets_dir, _safe_asset_stem(self.bey_name) + ext)
-            temp = destination + ".uploading"
-            await attachment.save(temp)
-            os.replace(temp, destination)
+            import utils.image_generator
+            utils.image_generator.clear_cache()
+        except Exception:
+            pass
+        try:
+            import utils.info_card
+            utils.info_card.refresh_art_index()
+        except Exception:
+            pass
+
+        try:
             roster, _, missing = _load_asset_state()
-        except Exception as exc:
-            log.exception("Failed to save Bey asset for %s", self.bey_name)
-            return await interaction.followup.send(f"❌ Upload failed: `{type(exc).__name__}`", ephemeral=True)
+        except Exception:
+            roster, missing = {}, []
+
         self.parent_view.total = len(roster)
         self.parent_view.missing = missing
         self.parent_view.selected_bey = None

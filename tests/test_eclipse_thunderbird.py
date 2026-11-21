@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from cogs.abilities.ability_engine import AbilityEngine
 from cogs.battle.attack_manager import AttackManager
+from cogs.battle.stability_manager import StabilityManager
 from cogs.battle.status_manager import StatusManager
 from utils.character_registry import load_beys, REGISTRY
 from utils.spin_mode import resolve, modes, chosen
@@ -60,6 +61,7 @@ class DummySession:
 
         self.status = StatusManager(self)
         self.stamina_manager = DummyStamina()
+        self.stability_manager = StabilityManager(self.blades, {})
         self.ability = AbilityEngine(self)
         self.attack_manager = AttackManager(self)
 
@@ -112,7 +114,7 @@ class TestEclipseThunderbird(unittest.TestCase):
         self.assertEqual(dawn["stats"]["defense"], 80)
         self.assertEqual(dawn["stats"]["stamina"], 117)
         self.assertEqual(dawn["special_move"]["name"], "Daytime Blitz")
-        self.assertIn("IMG_7485.jpg", dawn["image_url"])
+        self.assertIn("eclipse_thunderbird_dawn.png", dawn["image_url"])
 
         # Dusk Mode
         dusk = resolve({"spin_mode": {"Eclipse Thunderbird": "Dusk"}}, self.blade)
@@ -121,7 +123,7 @@ class TestEclipseThunderbird(unittest.TestCase):
         self.assertEqual(dusk["stats"]["defense"], 65)
         self.assertEqual(dusk["stats"]["stamina"], 102)
         self.assertEqual(dusk["special_move"]["name"], "Nighttime Annihilation")
-        self.assertIn("IMG_7485-1.jpg", dusk["image_url"])
+        self.assertIn("eclipse_thunderbird_dusk.png", dusk["image_url"])
 
     def test_03_dawn_mode_wrath_of_the_sun_and_order_of_operations(self):
         """Verifies Wrath of the Sun stacking buff and order of operations with Eclipse Flight."""
@@ -150,7 +152,7 @@ class TestEclipseThunderbird(unittest.TestCase):
         self.assertAlmostEqual(total_atk, 152, delta=3)
 
     def test_04_dawn_mode_daytime_blitz(self):
-        """Verifies Daytime Blitz deals 8 hits, adds 20% ATK rider, and drains stamina."""
+        """Verifies Daytime Blitz deals 8 hits, adds 20% ATK rider, and reduces enemy stability."""
         dawn = resolve({"spin_mode": {"Eclipse Thunderbird": "Dawn"}}, self.blade)
         sess = DummySession(dawn, dawn)
         sess.moves["p"] = "special"
@@ -158,8 +160,8 @@ class TestEclipseThunderbird(unittest.TestCase):
         # Resolve Daytime Blitz
         total_dmg, logs = sess.attack_manager._resolve_special("p", "e", "special", dawn, dawn, [])
         self.assertGreater(total_dmg, 0)
-        # Verify enemy stamina was drained by 3.0
-        self.assertEqual(sess.stamina_manager.stamina["e"], 12.0)
+        # Verify enemy stability was reduced by 30 (from 100 to 70)
+        self.assertEqual(sess.stability_manager.stability["e"], 70)
         self.assertTrue(any("Daytime Blitz" in l for l in logs))
 
     def test_05_dusk_mode_bask_in_moonlight(self):

@@ -17,7 +17,7 @@
   "default_mode": "Dawn",
   "tournament_exclusive": true,
   "booster_exclusive": false,
-  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573623458242240642/eclipse_thunderbird_dawn.png?ex=6b02ae8c&is=6b015d0c&hm=4ef79afba6a3fef15f4e926153cf44f34da08e92b07a347835efd6031c91fc60&"
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573623458242240642/eclipse_thunderbird_dawn.png?ex=6b02ae8c&is=6b015d0c&hm=4ef79afba6a3fef15f4e926153cf44f34da08e92b07a347835efd6031c91fc60&",
   "description": "A dual-mode Mythic Attack-type Beyblade capable of switching between Dawn Mode (Right Spin) and Dusk Mode (Left Spin) on ;info. Channels solar flares and lunar eclipses to unleash devastating aerial barrages.",
   "stats": {
     "hp": 125,
@@ -45,13 +45,13 @@
   },
   "special_move": {
     "name": "Daytime Blitz",
-    "description": "The eight blades shred the opponent for 8 rapid strikes, dealing Special damage equal to 160 + 20% of current Attack, and drains 30 Stamina from the opponent.",
+    "description": "The eight blades shred the opponent for 8 rapid strikes, dealing Special damage equal to 160 + 20% of current Attack, and reduces the opponent's Stability by 30.",
     "hits": 8,
     "damage_per_hit": 20,
     "total_damage": 160,
     "flavour_texts": [
       "☀️⚡ **Daytime Blitz** — Eight blades shred through the stadium with blinding speed!",
-      "☀️⚡ **Strike 8** — DAYTIME BLITZ COMPLETE — STAMINA DRAINED!"
+      "☀️⚡ **Strike 8** — DAYTIME BLITZ COMPLETE — STABILITY SHREDDED!"
     ],
     "omega_special": {
       "name": "Final Eclipse Flight",
@@ -166,7 +166,7 @@
     {
       "name": "Daytime Blitz",
       "trigger": "on_special",
-      "description": "Dealing Special damage equal to 160 + 20% of current Attack, and drains 30 Stamina from the opponent.",
+      "description": "Dealing Special damage equal to 160 + 20% of current Attack, and reduces the opponent's Stability by 30.",
       "rules": [
         {
           "when": "on_special",
@@ -178,12 +178,13 @@
               "label": "Daytime Blitz"
             },
             {
-              "op": "drain_stamina",
-              "value": 3.0,
+              "op": "enemy_lose_stability",
+              "amount": 30,
+              "value": 30,
               "label": "Daytime Blitz"
             }
           ],
-          "_name": "Daytime Blitz — Attack Rider & Stamina Drain"
+          "_name": "Daytime Blitz — Attack Rider & Stability Loss"
         }
       ]
     }
@@ -203,13 +204,13 @@
       },
       "special_move": {
         "name": "Daytime Blitz",
-        "description": "The eight blades shred the opponent for 8 rapid strikes, dealing Special damage equal to 160 + 20% of current Attack, and drains 30 Stamina from the opponent.",
+        "description": "The eight blades shred the opponent for 8 rapid strikes, dealing Special damage equal to 160 + 20% of current Attack, and reduces the opponent's Stability by 30.",
         "hits": 8,
         "damage_per_hit": 20,
         "total_damage": 160,
         "flavour_texts": [
           "☀️⚡ **Daytime Blitz** — Eight blades shred through the stadium with blinding speed!",
-          "☀️⚡ **Strike 8** — DAYTIME BLITZ COMPLETE — STAMINA DRAINED!"
+          "☀️⚡ **Strike 8** — DAYTIME BLITZ COMPLETE — STABILITY SHREDDED!"
         ],
         "omega_special": {
           "name": "Final Eclipse Flight",
@@ -290,7 +291,7 @@
         {
           "name": "Daytime Blitz",
           "trigger": "on_special",
-          "description": "Dealing Special damage equal to 160 + 20% of current Attack, and drains 30 Stamina from the opponent.",
+          "description": "Dealing Special damage equal to 160 + 20% of current Attack, and reduces the opponent's Stability by 30.",
           "rules": [
             {
               "when": "on_special",
@@ -302,12 +303,13 @@
                   "label": "Daytime Blitz"
                 },
                 {
-                  "op": "drain_stamina",
-                  "value": 3.0,
+                  "op": "enemy_lose_stability",
+                  "amount": 30,
+                  "value": 30,
                   "label": "Daytime Blitz"
                 }
               ],
-              "_name": "Daytime Blitz — Attack Rider & Stamina Drain"
+              "_name": "Daytime Blitz — Attack Rider & Stability Loss"
             }
           ]
         }
