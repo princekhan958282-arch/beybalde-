@@ -683,6 +683,17 @@ class AttackManager:
         # (see below), so a Special that only wants to shave a few percent off
         # mitigation, rather than ignore it outright, had no way to say so.
         _sm_block    = mblade.get("special_move") or {}
+        # Eclipse Thunderbird Omega Special check
+        is_omega = False
+        if _sm_block.get("omega_special") and getattr(ab_eng, "eclipse_phase", {}).get(mkey) and not getattr(ab_eng, "eclipse_sealed", {}).get(mkey):
+            _sm_block = dict(_sm_block["omega_special"])
+            is_omega = True
+            if hasattr(ab_eng, "eclipse_sealed"):
+                ab_eng.eclipse_sealed[mkey] = True
+                ab_eng.eclipse_sealed[(mkey, "eclipse_flight")] = True
+            if hasattr(ab_eng, "eclipse_phase"):
+                ab_eng.eclipse_phase[mkey] = False
+            logs.append("🌌 **FINAL ECLIPSE FLIGHT (Ω Special)** — Eclipse Thunderbird crashes down with catastrophic cosmic fury! Eclipse Flight is permanently sealed.")
         # Using the authored Burst Special spends its cooldown even when
         # silence or ability disabling suppresses the on_special rider.
         if (mblade.get("special_requires") or {}).get("cooldown_name") == "burst_finisher":
@@ -694,7 +705,11 @@ class AttackManager:
         if og:
             og.preprocess(mkey, okey, effective_stats(self.session, okey))
         _live_stats = effective_stats(self.session, mkey)
-        hits, per_hit, flavour, ignores_def = resolve_special(mblade, _spc, _live_stats)
+        hits, per_hit, flavour, ignores_def = resolve_special(dict(mblade, special_move=_sm_block), _spc, _live_stats)
+        if is_omega and _sm_block.get("atk_pct"):
+            omega_atk_bonus = int(round(_live_stats.get("attack", 0) * (float(_sm_block["atk_pct"]) / 100.0)))
+            per_hit += omega_atk_bonus
+            logs.append(f"  ⚡ **Ω Impact** — +{omega_atk_bonus} bonus damage from modified Attack ({_sm_block['atk_pct']}%)!")
         phoenix = ab_eng.dranzer
         if phoenix.owned(mkey):
             hits = phoenix.special_hits(mkey)
@@ -849,6 +864,8 @@ class AttackManager:
                         f"×{_amp:.2f} from accumulated judgement!")
 
         total_dmg = 0
+        chain_crit_active = False
+        has_chain_crit = bool(_sm_block.get("chain_crit"))
         for hit_n in range(hits):
             base_for_hit = hit_table[hit_n] if hit_n < len(hit_table) else per_hit
             if phoenix.owned(mkey):
@@ -858,6 +875,15 @@ class AttackManager:
             if rider_log:
                 logs.append(rider_log)
             hit_base = math.ceil((base_for_hit + rider) * mult)
+            if has_chain_crit:
+                if not chain_crit_active:
+                    crit_chance = max(0.25, getattr(ab_eng, "crit_chance_bonus", {}).get(mkey, 0.0))
+                    if random.random() < crit_chance:
+                        chain_crit_active = True
+                        logs.append(f"  💥 **CHAIN CRIT ACTIVATED!** — Hit {hit_n + 1} scores a Critical Hit! All subsequent strikes locked to Critical Hits!")
+                if chain_crit_active:
+                    crit_mult = getattr(ab_eng, "crit_damage_mult", {}).get(mkey, 1.5)
+                    hit_base = math.ceil(hit_base * crit_mult)
             if (_sm_block.get('non_damage') and hit_n >= _authored
                     and hit_base <= 0):
                 # A DSL-created Special has no printed hit damage. Its avatar

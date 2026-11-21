@@ -172,6 +172,9 @@ class AbilityEngine:
         self.last_hit_was_crit: bool = False
         self.extra_special_hits: dict[str, int]     = {}   # key -> bonus hits on MOVE_SPECIAL
         self.debuff_immune: dict[str, bool]         = {}   # key -> ignores enemy debuffs
+        self.eclipse_phase: dict[str, bool]         = {}   # key -> active eclipse phase
+        self.eclipse_sealed: dict[str, bool]        = {}   # (key, name) or key -> sealed
+        self.chain_crit_active: dict[str, bool]     = {}   # key -> chain crit triggered in multi-hit special
 
         # ── The debuff ward ──────────────────────────────────────────────────
         # `debuff_immune` is a permanent on/off flag: once set, that side
@@ -300,6 +303,9 @@ class AbilityEngine:
             ("timed_modes", list),
             ("cooldowns", dict),
             ("ability_2_disabled", dict),
+            ("eclipse_phase", dict),
+            ("eclipse_sealed", dict),
+            ("chain_crit_active", dict),
         ):
             if not hasattr(self, attr):
                 setattr(self, attr, default_factory())
@@ -637,6 +643,17 @@ class AbilityEngine:
                 return int(getattr(self.session, "round", 0) or 0) < int(v)
             except (TypeError, ValueError):
                 return False
+        if c == "round_multiple_of":
+            try:
+                r = int(getattr(self.session, "round", 0) or 0)
+                return r > 0 and (r % int(v) == 0)
+            except (TypeError, ValueError):
+                return False
+        if c == "not_sealed":
+            sname = str(v or cond.get("name", "eclipse_flight"))
+            return not self.eclipse_sealed.get(sname, False) and not self.eclipse_sealed.get((key, sname), False)
+        if c == "is_eclipse_phase":
+            return bool(self.eclipse_phase.get(key, False))
         if c == "matchup_is":          return matchup == v
         if c == "mode_is":             return self.modes.get(key) == v
         if c == "mode_is_not":         return self.modes.get(key) != v
@@ -2052,6 +2069,15 @@ class AbilityEngine:
                             pass
                     logs.append(f"🌌 **{ab_name}** — {bl.get('name', '?')} "
                                 f"awakens in a new form!")
+            elif kind == "enter_eclipse_phase":
+                self.eclipse_phase[key] = True
+                logs.append(f"🌑 **{ab_name}** — Eclipse Thunderbird enters the Eclipse Phase! (+10% Attack, Ω Special unlocked!)")
+            elif kind == "seal_eclipse_flight":
+                sname = str(op.get("name") or "eclipse_flight")
+                self.eclipse_sealed[key] = True
+                self.eclipse_sealed[(key, sname)] = True
+                self.eclipse_phase[key] = False
+                logs.append(f"🔒 **{ab_name}** — Eclipse Flight has been permanently sealed for the remainder of the battle.")
             elif kind == "queue_chain":
                 self.session.chain_handler.queue(key, op.get("steps", []))
             elif kind == "disable_ability_2":
@@ -2692,6 +2718,7 @@ class AbilityEngine:
                             f"fades. It can purify again.")
 
         logs.extend(self._tick_zones())
+        self.eclipse_phase.clear()
 
         if not getattr(self, "timed_modes", None):
             return logs

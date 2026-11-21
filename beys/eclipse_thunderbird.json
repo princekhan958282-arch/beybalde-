@@ -1,0 +1,406 @@
+{
+  "id": "BB171",
+  "name": "Eclipse Thunderbird",
+  "aliases": [
+    "eclipse_thunderbird",
+    "Eclipse thunderbird",
+    "Eclipse Thunderbird (Dawn Mode)",
+    "Eclipse Thunderbird (Dusk Mode)",
+    "dawn_thunderbird",
+    "dusk_thunderbird"
+  ],
+  "rarity": "Mythic",
+  "type": "Attack",
+  "spin_direction": "Dual",
+  "burst_height": "Mid",
+  "dual_spin": true,
+  "default_mode": "Dawn",
+  "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573577102458884107/IMG_7485.jpg?ex=6b028360&is=6b0131e0&hm=d232ef0c694b6485e19b532b735e5f23d784fedd541a41e71f2619158f38317a&",
+  "description": "A dual-mode Mythic Attack-type Beyblade capable of switching between Dawn Mode (Right Spin) and Dusk Mode (Left Spin) on ;info. Channels solar flares and lunar eclipses to unleash devastating aerial barrages.",
+  "stats": {
+    "hp": 125,
+    "attack": 120,
+    "defense": 80,
+    "stamina": 117,
+    "special": 125
+  },
+  "main_frame": {
+    "hp": 56,
+    "attack": 54,
+    "defense": 36,
+    "stamina": 53
+  },
+  "default_parts": {
+    "disk": "BB171_default_disk",
+    "driver": "BB171_default_driver"
+  },
+  "generation": "Burst",
+  "_registry_order": 172,
+  "component_migration": {
+    "strategy": "authorized_45_27_5_27_5",
+    "rounding": "largest_remainder_frame_disk_driver_tiebreak",
+    "version": 2
+  },
+  "special_move": {
+    "name": "Daytime Blitz",
+    "description": "The eight blades shred the opponent for 8 rapid strikes, dealing Special damage equal to 160 + 20% of current Attack, and drains 30 Stamina from the opponent.",
+    "hits": 8,
+    "damage_per_hit": 20,
+    "total_damage": 160,
+    "flavour_texts": [
+      "☀️⚡ **Daytime Blitz** — Eight blades shred through the stadium with blinding speed!",
+      "☀️⚡ **Strike 8** — DAYTIME BLITZ COMPLETE — STAMINA DRAINED!"
+    ],
+    "omega_special": {
+      "name": "Final Eclipse Flight",
+      "hits": 1,
+      "damage_per_hit": 180,
+      "total_damage": 180,
+      "atk_pct": 50,
+      "description": "Usable only during Eclipse Phase. Crashes into the opponent dealing 180 base damage plus 50% of its current modified Attack stat. Upon use, Eclipse Flight becomes permanently Sealed for the remainder of the battle.",
+      "flavour_texts": [
+        "🌌⚡ **FINAL ECLIPSE FLIGHT** — Eclipse Thunderbird dives from the cosmic zenith for total annihilation!"
+      ]
+    }
+  },
+  "ability": {
+    "name": "Eclipse Flight",
+    "trigger": "turn_start",
+    "description": "Every 3 rounds, Eclipse Thunderbird enters its Eclipse Phase. During this time, it gains a 10% boost to its base Attack and unlocks its Ω Special Move.",
+    "rules": [
+      {
+        "when": "turn_start",
+        "if": [
+          {
+            "cond": "round_multiple_of",
+            "value": 3
+          },
+          {
+            "cond": "not_sealed",
+            "name": "eclipse_flight"
+          }
+        ],
+        "do": [
+          {
+            "op": "enter_eclipse_phase",
+            "label": "Eclipse Flight"
+          },
+          {
+            "op": "buff",
+            "stat": "attack",
+            "pct": 10,
+            "turns": 1,
+            "label": "Eclipse Flight"
+          }
+        ],
+        "_name": "Eclipse Flight — Eclipse Phase"
+      }
+    ]
+  },
+  "abilities": [
+    {
+      "name": "Eclipse Flight",
+      "trigger": "turn_start",
+      "description": "Every 3 rounds, Eclipse Thunderbird enters its Eclipse Phase. During this time, it gains a 10% boost to its base Attack and unlocks its Ω Special Move.",
+      "rules": [
+        {
+          "when": "turn_start",
+          "if": [
+            {
+              "cond": "round_multiple_of",
+              "value": 3
+            },
+            {
+              "cond": "not_sealed",
+              "name": "eclipse_flight"
+            }
+          ],
+          "do": [
+            {
+              "op": "enter_eclipse_phase",
+              "label": "Eclipse Flight"
+            },
+            {
+              "op": "buff",
+              "stat": "attack",
+              "pct": 10,
+              "turns": 1,
+              "label": "Eclipse Flight"
+            }
+          ],
+          "_name": "Eclipse Flight — Eclipse Phase"
+        }
+      ]
+    },
+    {
+      "name": "Wrath of the Sun",
+      "trigger": "turn_start",
+      "description": "On turn start, 40% chance to gain a Solar Stack. Each stack increases Attack by 3% (Capped at 5 stacks = max +15% ATK).",
+      "rules": [
+        {
+          "when": "turn_start",
+          "chance": 0.4,
+          "if": [
+            {
+              "cond": "counter_below",
+              "name": "solar_stack",
+              "value": 5
+            }
+          ],
+          "do": [
+            {
+              "op": "stacking_buff",
+              "name": "solar_stack",
+              "stat": "attack",
+              "per_stack_pct": 3,
+              "max": 5,
+              "label": "Wrath of the Sun"
+            }
+          ],
+          "_name": "Wrath of the Sun — Solar Stacks"
+        }
+      ]
+    },
+    {
+      "name": "Daytime Blitz",
+      "trigger": "on_special",
+      "description": "Dealing Special damage equal to 160 + 20% of current Attack, and drains 30 Stamina from the opponent.",
+      "rules": [
+        {
+          "when": "on_special",
+          "do": [
+            {
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "pct": 20,
+              "label": "Daytime Blitz"
+            },
+            {
+              "op": "drain_stamina",
+              "value": 3.0,
+              "label": "Daytime Blitz"
+            }
+          ],
+          "_name": "Daytime Blitz — Attack Rider & Stamina Drain"
+        }
+      ]
+    }
+  ],
+  "spin_modes": {
+    "Dawn": {
+      "label": "Swap to Dawn Mode",
+      "spin_direction": "Right",
+      "type": "Attack",
+      "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573577102458884107/IMG_7485.jpg?ex=6b028360&is=6b0131e0&hm=d232ef0c694b6485e19b532b735e5f23d784fedd541a41e71f2619158f38317a&",
+      "stats": {
+        "hp": 125,
+        "attack": 120,
+        "defense": 80,
+        "stamina": 117,
+        "special": 125
+      },
+      "special_move": {
+        "name": "Daytime Blitz",
+        "description": "The eight blades shred the opponent for 8 rapid strikes, dealing Special damage equal to 160 + 20% of current Attack, and drains 30 Stamina from the opponent.",
+        "hits": 8,
+        "damage_per_hit": 20,
+        "total_damage": 160,
+        "flavour_texts": [
+          "☀️⚡ **Daytime Blitz** — Eight blades shred through the stadium with blinding speed!",
+          "☀️⚡ **Strike 8** — DAYTIME BLITZ COMPLETE — STAMINA DRAINED!"
+        ],
+        "omega_special": {
+          "name": "Final Eclipse Flight",
+          "hits": 1,
+          "damage_per_hit": 180,
+          "total_damage": 180,
+          "atk_pct": 50,
+          "description": "Usable only during Eclipse Phase. Crashes into the opponent dealing 180 base damage plus 50% of its current modified Attack stat. Upon use, Eclipse Flight becomes permanently Sealed for the remainder of the battle.",
+          "flavour_texts": [
+            "🌌⚡ **FINAL ECLIPSE FLIGHT** — Eclipse Thunderbird dives from the cosmic zenith for total annihilation!"
+          ]
+        }
+      },
+      "abilities": [
+        {
+          "name": "Eclipse Flight",
+          "trigger": "turn_start",
+          "description": "Every 3 rounds, Eclipse Thunderbird enters its Eclipse Phase. During this time, it gains a 10% boost to its base Attack and unlocks its Ω Special Move.",
+          "rules": [
+            {
+              "when": "turn_start",
+              "if": [
+                {
+                  "cond": "round_multiple_of",
+                  "value": 3
+                },
+                {
+                  "cond": "not_sealed",
+                  "name": "eclipse_flight"
+                }
+              ],
+              "do": [
+                {
+                  "op": "enter_eclipse_phase",
+                  "label": "Eclipse Flight"
+                },
+                {
+                  "op": "buff",
+                  "stat": "attack",
+                  "pct": 10,
+                  "turns": 1,
+                  "label": "Eclipse Flight"
+                }
+              ],
+              "_name": "Eclipse Flight — Eclipse Phase"
+            }
+          ]
+        },
+        {
+          "name": "Wrath of the Sun",
+          "trigger": "turn_start",
+          "description": "On turn start, 40% chance to gain a Solar Stack. Each stack increases Attack by 3% (Capped at 5 stacks = max +15% ATK).",
+          "rules": [
+            {
+              "when": "turn_start",
+              "chance": 0.4,
+              "if": [
+                {
+                  "cond": "counter_below",
+                  "name": "solar_stack",
+                  "value": 5
+                }
+              ],
+              "do": [
+                {
+                  "op": "stacking_buff",
+                  "name": "solar_stack",
+                  "stat": "attack",
+                  "per_stack_pct": 3,
+                  "max": 5,
+                  "label": "Wrath of the Sun"
+                }
+              ],
+              "_name": "Wrath of the Sun — Solar Stacks"
+            }
+          ]
+        },
+        {
+          "name": "Daytime Blitz",
+          "trigger": "on_special",
+          "description": "Dealing Special damage equal to 160 + 20% of current Attack, and drains 30 Stamina from the opponent.",
+          "rules": [
+            {
+              "when": "on_special",
+              "do": [
+                {
+                  "op": "bonus_damage_stat",
+                  "stat": "attack",
+                  "pct": 20,
+                  "label": "Daytime Blitz"
+                },
+                {
+                  "op": "drain_stamina",
+                  "value": 3.0,
+                  "label": "Daytime Blitz"
+                }
+              ],
+              "_name": "Daytime Blitz — Attack Rider & Stamina Drain"
+            }
+          ]
+        }
+      ]
+    },
+    "Dusk": {
+      "label": "Swap to Dusk Mode",
+      "spin_direction": "Left",
+      "type": "Attack",
+      "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1573581254526238750/IMG_7485-1.jpg?ex=6b02873e&is=6b0135be&hm=9746abecf36266b23db4428ee47c1c9bf924fe96caea1a4f8d8c5551606f2a1b&",
+      "stats": {
+        "hp": 125,
+        "attack": 150,
+        "defense": 65,
+        "stamina": 102,
+        "special": 125
+      },
+      "special_move": {
+        "name": "Nighttime Annihilation",
+        "description": "All four blades clash into the opponent for 4 hits at 45 damage each (180 total base damage). Each hit rolls an independent Critical Hit chance; if any single hit lands as a Critical Hit, all 4 hits automatically land as Critical Hits.",
+        "hits": 4,
+        "damage_per_hit": 45,
+        "total_damage": 180,
+        "chain_crit": true,
+        "flavour_texts": [
+          "🌑⚡ **Nighttime Annihilation** — Four obsidian blades clash in a vortex of critical strikes!",
+          "🌑⚡ **Hit 4** — NIGHTTIME ANNIHILATION OBLITERATION!"
+        ],
+        "omega_special": {
+          "name": "Final Eclipse Flight",
+          "hits": 1,
+          "damage_per_hit": 190,
+          "total_damage": 190,
+          "atk_pct": 70,
+          "description": "Usable only during Eclipse Phase. Crashes into the opponent dealing 190 base damage plus 70% of its current modified Attack stat. Upon use, Eclipse Flight becomes permanently Sealed for the remainder of the battle.",
+          "flavour_texts": [
+            "🌌⚡ **FINAL ECLIPSE FLIGHT** — Dusk Mode unleashes total darkness and crashes into the stadium floor!"
+          ]
+        }
+      },
+      "abilities": [
+        {
+          "name": "Eclipse Flight",
+          "trigger": "turn_start",
+          "description": "Every 3 rounds, Eclipse Thunderbird enters its Eclipse Phase. During this time, it gains a 10% boost to its base Attack and unlocks its Ω Special Move.",
+          "rules": [
+            {
+              "when": "turn_start",
+              "if": [
+                {
+                  "cond": "round_multiple_of",
+                  "value": 3
+                },
+                {
+                  "cond": "not_sealed",
+                  "name": "eclipse_flight"
+                }
+              ],
+              "do": [
+                {
+                  "op": "enter_eclipse_phase",
+                  "label": "Eclipse Flight"
+                },
+                {
+                  "op": "buff",
+                  "stat": "attack",
+                  "pct": 10,
+                  "turns": 1,
+                  "label": "Eclipse Flight"
+                }
+              ],
+              "_name": "Eclipse Flight — Eclipse Phase"
+            }
+          ]
+        },
+        {
+          "name": "Bask in the Moonlight",
+          "trigger": "turn_start",
+          "description": "On turn start, Eclipse Thunderbird has a 40% chance to regain 2 Stamina.",
+          "rules": [
+            {
+              "when": "turn_start",
+              "chance": 0.4,
+              "do": [
+                {
+                  "op": "gain_stamina",
+                  "value": 2.0,
+                  "label": "Bask in the Moonlight"
+                }
+              ],
+              "_name": "Bask in the Moonlight — Stamina Recovery"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -55,6 +55,7 @@ BUILTIN_OPS = {
     "crit_chance", "crit_damage", "damage_amp", "damage_boost", "damage_reduction",
     "debuff", "debuff_immune", "debuff_ward", "disable_ability_2", "dmg_amp",
     "drain_stamina", "enemy_debuff", "enemy_debuff_pct", "enemy_lose_stability",
+    "enter_eclipse_phase", "seal_eclipse_flight", "chain_crit",
     "evolve_form", "execute", "gain_counter", "gain_gauge", "gain_stability",
     "gain_stamina", "grant_shield", "guaranteed_crit", "heal", "heal_pct",
     "heal_per_drain", "hp_regen", "ignore_defense", "ignore_defense_pct", "invulnerable",

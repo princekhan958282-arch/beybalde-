@@ -56,7 +56,7 @@ DEFAULT_MODE = "Right"
 # (`loadout.effective_blade` and `battle._apply_parts`), so what lands in
 # `session.blades` — which is what AbilityEngine compiles — is already the
 # resolved form.
-MODE_FIELDS = ("stats", "special_move", "spin_direction", "type", "abilities")
+MODE_FIELDS = ("stats", "special_move", "spin_direction", "type", "abilities", "image_url")
 
 
 def is_dual(blade: Optional[dict]) -> bool:
@@ -68,8 +68,9 @@ def modes(blade: Optional[dict]) -> list[str]:
     """Mode names in a stable order — the default first."""
     if not is_dual(blade):
         return []
+    def_mode = (blade or {}).get("default_mode", DEFAULT_MODE)
     keys = list(blade["spin_modes"].keys())
-    keys.sort(key=lambda k: (k != DEFAULT_MODE, k))
+    keys.sort(key=lambda k: (k != def_mode and k != DEFAULT_MODE, k))
     return keys
 
 
