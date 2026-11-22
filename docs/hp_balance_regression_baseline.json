@@ -43,7 +43,7 @@
     "BB021": {
       "name": "Eternal Blaze Garuda",
       "previous_sha256": "caf4243a4a3f0435f08319ee289dc27b614b42663a66bf78c3ab15c1320ffc09",
-      "sha256": "c06a34c486c6b7f98a91e72217e94dd7e856778b5d5ba4997c59c665122c78e0"
+      "sha256": "9f740efb81a2abda69a2fe746f0ca0846f9f8bc82eda8d23a228c058d9bf13f7"
     },
     "BB065": {
       "name": "Baldur Bumper",
@@ -178,7 +178,7 @@
     "BB016": {
       "name": "Trypio",
       "previous_sha256": "1fce2db769a3fb27d9b35b255df8bfe5393d2dcbb14a04ea8d16310cee237264",
-      "sha256": "7b4135c3a919c306df47214d23f654ea5e7d861788c0b86d5d29fe5d937cfea3"
+      "sha256": "bac812cbe81fb043f33d35a14d75208afa3182e02687c1bf2cd2ab7f7f1640ea"
     },
     "BB118": {
       "name": "Abyss Drakon",

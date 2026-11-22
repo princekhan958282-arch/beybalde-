@@ -54,7 +54,7 @@
     "counter_chance": 0,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 0,
+    "hp_flat": 80,
     "hp_percent": 0.15,
     "multi_hit_power_double": false,
     "multi_hit_extra_hits": false,

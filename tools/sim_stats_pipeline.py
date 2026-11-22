@@ -212,7 +212,7 @@ try:
     removed, freed = purge_pycache(tmp)
     check("every ordinary __pycache__ is removed", removed == len(kill), removed)
     check("...and the bytes are reported", freed == len(kill) * 100, freed)
-    left = sorted(os.path.relpath(os.path.join(r, d), tmp)
+    left = sorted(os.path.relpath(os.path.join(r, d), tmp).replace("\\", "/")
                   for r, ds, _ in os.walk(tmp) for d in ds if d == "__pycache__")
     check("protected trees are untouched", sorted(left) == sorted(keep), left)
     check("live player data survives",

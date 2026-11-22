@@ -52,7 +52,7 @@
     },
     {
       "name": "Golden Eye",
-      "description": "Reading the opponent — a mirrored move — feeds 25 Special gauge.",
+      "description": "Reading the opponent \u2014 a mirrored move \u2014 feeds 25 Special gauge.",
       "rules": [
         {
           "when": "on_mirror",
@@ -86,7 +86,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 125,
+    "hp_flat": 88,
     "hp_percent": 0
   },
   "generation": null,

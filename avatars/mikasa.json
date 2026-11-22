@@ -4,7 +4,7 @@
   "rarity": "Ultimate",
   "type": "attack",
   "price": 0,
-  "description": "The Ackerman. Unmatched in combat — devastating special moves and relentless multi-hit assault.",
+  "description": "The Ackerman. Unmatched in combat \u2014 devastating special moves and relentless multi-hit assault.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521012727105978440/peakpx_1.jpg?ex=6a4348fd&is=6a41f77d&hm=19872a6ca17c58dd5c8b429496d6383a75417e3f05d56ad209beb05295f4ab70&",
   "bonuses": {
     "attack_flat": 0,
@@ -26,7 +26,7 @@
     "multi_hit_extra_hits": true,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 0,
+    "hp_flat": 76,
     "hp_percent": 0.12
   },
   "skills": [

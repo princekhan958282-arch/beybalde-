@@ -653,6 +653,57 @@ class TestNewBitBeastAvatarsAndShop(unittest.TestCase):
         self.assertEqual(st.blader_pending, 1)
         self.assertEqual(st.bit_beast_pending, 1)
 
+    def test_in_battle_skill_activation_updates_avatar_bonuses_and_rules(self):
+        from tools import sim_story as H
+
+        async def run_async():
+            self.engine.load()
+            p1 = H.FakePlayer(101, "Player 1")
+            p2 = H.FakePlayer(102, "Player 2")
+            H.seed_profile(101, equipped_avatar="avatar_x002")  # Argus
+            H.seed_profile(102)
+            blade = {"name": "Test", "type": "Balance", "stats": {"attack": 100, "defense": 100, "stamina": 100, "special": 100, "hp": 100}, "abilities": []}
+            s = await H.BattleSession.create(None, H.FakeChannel(), p1, p2, blade, blade, ranked=False)
+
+            # Initially slot 1 from a info
+            self.assertEqual(s.avatar_skill_slots["101"], 1)
+            self.assertEqual(s.avatar_bonuses["101"].crit_percent, 0)
+            self.assertEqual(s.avatar_bonuses["101"].attack_percent, 0.3)
+
+            # Player selects skill 2 (Piercing Gaze: crit_percent=0.4, gauge_on_crit=50) in battle
+            ok, msg = s.skills_manager.select_blader_skill("101", 2)
+            self.assertTrue(ok)
+            self.assertEqual(s.avatar_skill_slots["101"], 2)
+
+            logs = []
+            s.moves = {"101": "attack", "102": "defense"}
+            s.skills_manager.begin_round(logs)
+
+            # Check bonuses dynamically updated to skill 2
+            self.assertEqual(s.avatar_skill_slots["101"], 2)
+            self.assertEqual(s.avatar_bonuses["101"].crit_percent, 0.4)
+            self.assertEqual(s.avatar_bonuses["101"].gauge_on_crit, 50.0)
+            self.assertEqual(s.avatar_bonuses["101"].attack_percent, 0)
+
+            # Now test Valt Aoi rule-based activation
+            H.seed_profile(101, equipped_avatar="avatar_s107")  # Valt Aoi
+            s2 = await H.BattleSession.create(None, H.FakeChannel(), p1, p2, blade, blade, ranked=False)
+            initial_rules = [r["_name"] for _, r in s2.ability._avatar_rules_for("101")]
+            self.assertEqual(initial_rules, ["Valkyrie Strike"])
+
+            # Select skill 2 (Brave Sword) in battle
+            ok2, _ = s2.skills_manager.select_blader_skill("101", 2)
+            self.assertTrue(ok2)
+            logs2 = []
+            s2.moves = {"101": "attack", "102": "defense"}
+            s2.skills_manager.begin_round(logs2)
+
+            # Check rules dynamically switched to Brave Sword
+            after_rules = [r["_name"] for _, r in s2.ability._avatar_rules_for("101")]
+            self.assertEqual(after_rules, ["Brave Sword", "Brave Sword"])
+
+        asyncio.run(run_async())
+
 
 if __name__ == "__main__":
     unittest.main()

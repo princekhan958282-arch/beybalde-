@@ -40,9 +40,10 @@ class GimmickState:
 
 
 class TypeGimmickEngine:
-    def __init__(self, types, rng=None):
+    def __init__(self, types, rng=None, blades=None):
         self.types = {k: normalise_type(v) for k, v in types.items()}
         self.states = {k: GimmickState() for k in types}
+        self.blades = blades or {}
         self.rng = rng or (lambda: random.random())
         # Extension points, keyed (player, gimmick). Force/disable can override
         # natural type/action eligibility explicitly; suppression always wins.
@@ -217,10 +218,18 @@ class TypeGimmickEngine:
                 and not self.critical_applies(attacker, move))
 
     def recovery(self, key, stamina_stat):
+        blade = getattr(self, "blades", {}).get(key) or {}
+        is_trypio = blade.get("id") == "BB016" or blade.get("name") == "Trypio"
         if self.states[key].overdrive_active:
             bonus = self.overdrive_bonus.get(key, {})
             bonus = {field: bonus.get(field, 0) + sum(self._values(key, 'overdrive', 'gimmick_bonus', field))
                      for field in ('heal', 'stability', 'stamina')}
-            return (max(0, stamina_stat * (1 + bonus['heal'])),
+            heal = max(0, stamina_stat * (1 + bonus['heal']))
+            if is_trypio:
+                heal = min(heal, 112)
+            return (heal,
                     max(0, 30 + bonus['stability']), max(0, 6 + bonus['stamina']))
-        return stamina_stat * (.70 if self.types[key] == "stamina" else .50), 8, None
+        heal = stamina_stat * (.70 if self.types[key] == "stamina" else .50)
+        if is_trypio:
+            heal = min(heal, 112)
+        return heal, 8, None

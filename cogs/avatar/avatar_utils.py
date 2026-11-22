@@ -212,6 +212,8 @@ def format_bonuses_summary(bonuses: dict) -> str:
         ("defence_percent",          "DEF",            "percent"),
         ("stamina_flat",             "STA",            "flat"),
         ("stamina_percent",          "STA",            "percent"),
+        ("hp_flat",                  "HP",             "flat"),
+        ("hp_percent",               "HP",             "percent"),
         ("stability_flat",           "STB",            "flat"),
         ("stability_percent",        "STB",            "percent"),
         ("charge_flat",              "CHG",            "flat"),

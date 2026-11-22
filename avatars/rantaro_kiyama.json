@@ -15,7 +15,7 @@
   "skills": [
     {
       "name": "Roktavor Rush",
-      "description": "Winning an Attack matchup builds Attack — up to five times.",
+      "description": "Winning an Attack matchup builds Attack \u2014 up to five times.",
       "rules": [
         {
           "when": "on_attack_win",
@@ -97,7 +97,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 120,
+    "hp_flat": 105,
     "hp_percent": 0
   },
   "generation": null,

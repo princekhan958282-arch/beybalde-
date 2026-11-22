@@ -4,7 +4,7 @@
   "rarity": "Original Generation",
   "type": "attack",
   "price": 0,
-  "description": "Galzzly partner — original-generation anime-inspired active battle skills.",
+  "description": "Galzzly partner \u2014 original-generation anime-inspired active battle skills.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301639843971272/Gary2.webp?backend=b2&ex=6ac3aa59&is=6ac258d9&hm=62cd492d9db6a212172b2d45be2630842f3cdabe611bab42b3d35969d018ad50&",
   "limited": false,
   "available_until": null,
@@ -33,12 +33,12 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 25,
+    "hp_flat": 64,
     "hp_percent": 0
   },
   "skills": [
     {
-      "name": "Bear’s Endurance",
+      "name": "Bear\u2019s Endurance",
       "description": "For 2 rounds, convert 50% of incoming stability damage into HP damage at 3 HP per converted stability point.",
       "energy_cost": 40,
       "cooldown_rounds": 3,

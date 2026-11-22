@@ -4,7 +4,7 @@
   "rarity": "Original Generation",
   "type": "attack",
   "price": 0,
-  "description": "Dranzer partner — original-generation anime-inspired active battle skills.",
+  "description": "Dranzer partner \u2014 original-generation anime-inspired active battle skills.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301583761936475/Kai_Hiwatari.webp?backend=b2&ex=6ac3aa4c&is=6ac258cc&hm=822f1843a822e3b3546ba9fb09edacc8d25fe86bd00ff8634d77f68ecabfc754&",
   "limited": false,
   "available_until": null,
@@ -33,7 +33,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 10,
+    "hp_flat": 65,
     "hp_percent": 0
   },
   "skills": [

@@ -4,7 +4,7 @@
   "rarity": "Ultimate",
   "type": "attack",
   "price": 0,
-  "description": "A phantom that cannot be hit. Maximum dodge, counter, and crit — every multi-hit strike lands harder and more often.",
+  "description": "A phantom that cannot be hit. Maximum dodge, counter, and crit \u2014 every multi-hit strike lands harder and more often.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1520391560192200824/4e1149f60cf0c95a13af779ce24f9ee8.jpg",
   "bonuses": {
     "attack_flat": 15,
@@ -26,7 +26,7 @@
     "multi_hit_extra_hits": true,
     "resistance_damage_percent": 0.1,
     "resistance_status_chance": 0.2,
-    "hp_flat": 0,
+    "hp_flat": 77,
     "hp_percent": 0.12
   },
   "skills": [

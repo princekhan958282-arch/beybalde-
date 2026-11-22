@@ -26,7 +26,7 @@
     "multi_hit_extra_hits": true,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 30,
+    "hp_flat": 72,
     "hp_percent": 0.1
   },
   "skills": [

@@ -19,7 +19,7 @@
     },
     {
       "name": "Aegis of Asgard",
-      "description": "15% of incoming damage is absorbed, and a blocked hit answers back — 25% counter chance.",
+      "description": "15% of incoming damage is absorbed, and a blocked hit answers back \u2014 25% counter chance.",
       "bonuses": {
         "resistance_damage_percent": 0.15,
         "counter_chance": 0.25
@@ -53,7 +53,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0.15,
     "resistance_status_chance": 0,
-    "hp_flat": 0,
+    "hp_flat": 79,
     "hp_percent": 0.15
   },
   "generation": null,

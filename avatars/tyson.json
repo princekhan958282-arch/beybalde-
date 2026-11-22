@@ -4,7 +4,7 @@
   "rarity": "Original Generation",
   "type": "attack",
   "price": 0,
-  "description": "Dragoon partner — original-generation anime-inspired active battle skills.",
+  "description": "Dragoon partner \u2014 original-generation anime-inspired active battle skills.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301569559892009/TysonGrangerS3-1.webp?backend=b2&ex=6ac3aa48&is=6ac258c8&hm=b31526f3170c741a5a2d830b2875565edd4bb8468f99ebe1bdb7ab4882a56e91&",
   "limited": false,
   "available_until": null,
@@ -33,12 +33,12 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 15,
+    "hp_flat": 66,
     "hp_percent": 0
   },
   "skills": [
     {
-      "name": "Champion’s Spirit",
+      "name": "Champion\u2019s Spirit",
       "description": "For 2 rounds, recover 25% of HP damage received, capped at 8% maximum HP per round. Surviving hits only.",
       "energy_cost": 40,
       "cooldown_rounds": 3,

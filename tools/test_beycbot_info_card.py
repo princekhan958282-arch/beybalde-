@@ -128,7 +128,15 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.patcher=patch.object(db,'USER_STORE',self.store); self.patcher.start()
         self.store.put_one('1',dict(coins=100000, inventory=['keep'], stats={'attack':123}))
     async def asyncTearDown(self):
-        self.patcher.stop(); self.tmp.cleanup()
+        self.patcher.stop()
+        try:
+            self.store.close()
+        except Exception:
+            pass
+        try:
+            self.tmp.cleanup()
+        except Exception:
+            pass
 
     async def test_purchase_atomicity_persistence_and_no_bonuses(self):
         results=await asyncio.gather(*[self.db.mutate_user(1,lambda p: apply_info_card_purchase(p,'beycbot_2ability')) for _ in range(10)],return_exceptions=True)

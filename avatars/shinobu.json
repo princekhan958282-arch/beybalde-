@@ -4,7 +4,7 @@
   "rarity": "Ultimate",
   "type": "defense",
   "price": 0,
-  "description": "The Insect Hashira. Poisons with a smile — devastating resistance debuffs and status application with lethal counter precision.",
+  "description": "The Insect Hashira. Poisons with a smile \u2014 devastating resistance debuffs and status application with lethal counter precision.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521013619389628516/HD-wallpaper-kochou-shinobu-kimetsu-no-yaiba-anime-anime-girls-women-fantasy-girl-hair-ornament-purple-hair-looking-at-viewer-smiling-black-clothing-kimono-uniform-belt-katana-fantasy-art-butterfly.jpg?ex=6a4349d1&is=6a41f851&hm=6201741ee8b9106c04b3d7b1fba2c7cb0c04cf380d8d39d641e79210639d6e9c&",
   "bonuses": {
     "attack_flat": 10,
@@ -26,7 +26,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0.3,
     "resistance_status_chance": 0.6,
-    "hp_flat": 0,
+    "hp_flat": 89,
     "hp_percent": 0.13
   },
   "skills": [

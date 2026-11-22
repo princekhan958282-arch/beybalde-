@@ -30,7 +30,7 @@
     {
       "name": "Eternal Flame",
       "trigger": "passive",
-      "description": "Garuda's wings radiate heat at all times, reducing every incoming hit by 20, and it recovers +1 Stamina per turn. The first time HP drops below 40%, the flames surge once: heals 40 HP instantly and grants +30 DEF for the rest of the battle.",
+      "description": "Garuda's wings radiate heat at all times, reducing every incoming hit by 20, and it recovers +1 Stamina per turn (canceled if hit this round). The first time HP drops below 40%, the flames surge once: heals 40 HP instantly and grants +30 DEF for the rest of the battle.",
       "damage_reduction": 20,
       "stamina_per_turn": 1,
       "hp_threshold": 0.4,
@@ -59,7 +59,7 @@
     {
       "name": "Iron Wing Veil",
       "trigger": "on_defense_win",
-      "description": "When Garuda wins a defense, its iron wings reflect the force — dealing 15 TRUE damage to the attacker and restoring +1 Stamina. Every 4th successful defense releases a radiant burst that heals 25 HP, then the count resets.",
+      "description": "When Garuda wins a defense, its iron wings reflect the force — dealing 15 TRUE damage to the attacker and restoring +1 Stamina (canceled if hit this round). Every 4th successful defense releases a radiant burst that heals 25 HP, then the count resets.",
       "recoil_damage": 15,
       "stamina_gain": 1,
       "streak_threshold": 4,

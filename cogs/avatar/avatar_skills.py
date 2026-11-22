@@ -278,27 +278,27 @@ def active_skill(profile: dict, avatar: Optional[dict]) -> Optional[dict]:
 
 # ── Bonus filtering ───────────────────────────────────────────────────────────
 
-# No maximum-HP bonus survives skill selection. Legacy HP keys remain in
-# the returned shape as zero for compatibility with saved/authored cards.
-CARD_LEVEL_BONUS_KEYS = frozenset()
+# Bonuses that belong to the CARD rather than to the skill in play. Everything
+# else is zeroed and re-supplied by the active skill; these are carried across
+# from the card's own block whatever is equipped.
+CARD_LEVEL_BONUS_KEYS = frozenset({"hp_percent", "hp_flat"})
 
 
 def bonuses_for(avatar: Optional[dict], slot: int) -> dict:
     """The bonus block that applies for one slot.
 
-    Cards without skills retain their ordinary bonuses; HP bonus fields
-    are always zero.
+    Cards without skills retain their ordinary bonuses.
 
     A card WITH skills returns only the active slice, and explicitly zeroes
     every other key. Returning just the slice would leave the caller merging
     against defaults it cannot see; zeroing keeps the shape identical to the
     card's own block so `get_battle_bonuses` stays a straight field read.
 
-    HP keys are explicitly zeroed after every path, including skill blocks.
+    Card-level bonus keys (hp_flat, hp_percent) survive skill selection.
     """
     card = (avatar or {}).get("bonuses") or {}
     if not has_skills(avatar):
-        return dict(card, hp_flat=0.0, hp_percent=0.0)
+        return dict(card)
 
     # `stats_always_on` cards keep their whole statline whatever slot is
     # picked, and their skills carry no stat block at all — the skill is a
@@ -308,7 +308,7 @@ def bonuses_for(avatar: Optional[dict], slot: int) -> dict:
     # Every card written before this flag existed omits it, so all of them go
     # down the narrowing path exactly as before.
     if (avatar or {}).get("stats_always_on"):
-        return dict(card, hp_flat=0.0, hp_percent=0.0)
+        return dict(card)
 
     out = {k: (v if k in CARD_LEVEL_BONUS_KEYS
                else (False if isinstance(v, bool) else 0))
@@ -317,7 +317,6 @@ def bonuses_for(avatar: Optional[dict], slot: int) -> dict:
     if skill:
         for key, val in (skill.get("bonuses") or {}).items():
             out[key] = val
-    out.update(hp_flat=0.0, hp_percent=0.0)
     return out
 
 

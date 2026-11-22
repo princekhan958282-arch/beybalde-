@@ -59,7 +59,7 @@ def _bey_xp(profile: dict, blade: Optional[dict], won: bool) -> Optional[dict]:
     try:
         if not blade or profile.get("active_copy"):
             return None
-        name = blade.get("name")
+        name = blade.get("base_name") or blade.get("name")
         if not name:
             return None
         lo, hi = _BL.XP_BATTLE_WIN if won else _BL.XP_BATTLE_LOSS
@@ -247,6 +247,10 @@ class _InChannelControlPanel(discord.ui.View):
 
     @discord.ui.button(label="🛡️ Defense", style=discord.ButtonStyle.primary, row=0)
     async def btn_defense(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        uid = str(interaction.user.id)
+        if self.session.defense_locked_turns.get(uid, 0) > 0:
+            await interaction.response.send_message("🛡️ **Defense is broken!** You cannot use Defense this turn.", ephemeral=True)
+            return
         await self._handle(interaction, MOVE_DEFENSE)
 
     @discord.ui.button(label="⚡ Stamina", style=discord.ButtonStyle.success, row=0)
@@ -614,7 +618,7 @@ class BattleSession:
         }
 
         from .type_gimmicks import TypeGimmickEngine, passive_stat_multiplier
-        self.type_gimmicks = TypeGimmickEngine({k: b.get("type") for k, b in self.blades.items()})
+        self.type_gimmicks = TypeGimmickEngine({k: b.get("type") for k, b in self.blades.items()}, blades=self.blades)
         self.base_stats = copy.deepcopy(self.battle_stats)
         for key, stats in self.battle_stats.items():
             for stat in stats:
@@ -713,6 +717,10 @@ class BattleSession:
 
         self.moves:      dict[str, Optional[str]] = {str(p1.id): None, str(p2.id): None}
         self.round:    int  = 1
+        self.atk_vs_def_streak: dict[tuple[str, str], int] = {}
+        self.defense_locked_turns: dict[str, int] = {}
+        self.defense_locked_round: dict[str, int] = {}
+        self._guard_broken_this_round: set[str] = set()
         # move -> times played, per player key. Written in __resolve_round_body.
         self.move_counts: dict[str, dict[str, int]] = {}
         # (mine, theirs) Victory Points for a Story League round, keyed by
@@ -794,6 +802,8 @@ class BattleSession:
             move = await ctrl.choose(self)
         except Exception:                                # noqa: BLE001
             move = None
+        if move == MOVE_DEFENSE and self.defense_locked_turns.get(key, 0) > 0:
+            move = MOVE_STAMINA
         self.moves[key] = move or MOVE_STAMINA
 
     def _is_npc(self, player_id) -> bool:
@@ -1002,6 +1012,7 @@ class BattleSession:
             if atk_buff:  tags.append(f"⚔️+{atk_buff}")
             if def_buff:  tags.append(f"🛡️+{def_buff}")
             if sta_regen: tags.append(f"♻️+{sta_regen}")
+            if self.defense_locked_turns.get(key, 0) > 0: tags.append("🚫Def")
 
             if st.get_shield(key) > 0:                    tags.append(f"🔵{st.get_shield(key)}")
             if st.burn_stacks.get(key, 0) > 0:            tags.append(f"🔥×{st.burn_stacks[key]}({st.burn_duration.get(key,0)}t)")
@@ -1178,6 +1189,9 @@ class BattleSession:
 
         if move not in (MOVE_ATTACK, MOVE_DEFENSE, MOVE_STAMINA, MOVE_CHARGE, MOVE_SPECIAL):
             await interaction.response.send_message("❌ Invalid battle action.", ephemeral=True)
+            return
+        if move == MOVE_DEFENSE and self.defense_locked_turns.get(key, 0) > 0:
+            await interaction.response.send_message("🛡️ **Defense is broken!** You cannot use Defense this turn.", ephemeral=True)
             return
         if not self.stamina_manager.can_afford(key, move):
             await interaction.response.send_message("⚠️ Not enough Battle Stamina. Use Stamina to recover.", ephemeral=True)
@@ -1365,6 +1379,9 @@ class BattleSession:
         sm     = self.stamina_manager
 
         round_log: list[str] = []
+        self._guard_broken_this_round.clear()
+        self.ability.stamina_regen_applied_this_round = {k1: 0.0, k2: 0.0}
+        self.ability.stamina_gained_by_op_this_round = {k1: [], k2: []}
         from . import requiem
         requiem.expire(self, round_log)
         tactical = self.ability.tactical
@@ -1461,6 +1478,26 @@ class BattleSession:
         am = self.attack_manager
         self.defer_landed_hit_effects = True
 
+        # ── Defense Breaker check (Attack vs Defense streak) ─────────────────
+        self._guard_broken_this_round.clear()
+        for atk_k, def_k, atk_m, def_m in ((k1, k2, m1, m2), (k2, k1, m2, m1)):
+            if atk_m == MOVE_ATTACK and def_m == MOVE_DEFENSE:
+                streak = self.atk_vs_def_streak.get((atk_k, def_k), 0) + 1
+                self.atk_vs_def_streak[(atk_k, def_k)] = streak
+                proc = False
+                if streak >= 3:
+                    chance = min(1.0, 0.50 + 0.05 * (streak - 3))
+                    rng_roll = self.rng() if hasattr(self, "rng") and callable(self.rng) else random.random()
+                    if rng_roll < chance:
+                        proc = True
+                if proc:
+                    self.atk_vs_def_streak[(atk_k, def_k)] = 0
+                    self.defense_locked_turns[def_k] = 1
+                    self.defense_locked_round[def_k] = self.round
+                    self._guard_broken_this_round.add(def_k)
+            else:
+                self.atk_vs_def_streak[(atk_k, def_k)] = 0
+
         dmg_p1, counter_p1, matchup_p1, atk_logs_p1 = am.resolve_pair(
             k1, k2, m1, m2, b1, b2, s1, s2
         )
@@ -1487,6 +1524,36 @@ class BattleSession:
             dmg_p2, counter_p2, matchup_p2,
         )
         round_log.extend(hp_logs)
+
+        # ── Passive stamina cancel on hit for Garuda & Trypio ─────────────────
+        for key, other_key, blade in ((k1, k2, b1), (k2, k1, b2)):
+            other_move = m2 if key == k1 else m1
+            dmg_taken = am.committed_damage.get(other_key, 0)
+            if other_move == MOVE_DEFENSE:
+                if key == k1 and counter_p1 > 0:
+                    dmg_taken += counter_p1
+                elif key == k2 and counter_p2 > 0:
+                    dmg_taken += counter_p2
+            was_hit = (dmg_taken > 0) or (other_move in (MOVE_ATTACK, MOVE_SPECIAL) and not getattr(self, "_dodged_this_round", {}).get(key, False))
+            if was_hit:
+                b_id = blade.get("id", "")
+                b_name = blade.get("name", "")
+                if b_id == "BB021" or b_name == "Eternal Blaze Garuda":
+                    flame_reg = self.ability.stamina_regen_applied_this_round.get(key, 0.0)
+                    if flame_reg > 0:
+                        sm.stamina[key] = max(0.0, round(sm.stamina[key] - flame_reg, 2))
+                        round_log.append(f"💨 **Eternal Flame** — stamina recovery canceled because {b_name} was hit!")
+                        self.ability.stamina_regen_applied_this_round[key] = 0.0
+                    for op_label, amt in self.ability.stamina_gained_by_op_this_round.get(key, []):
+                        if "Iron Wing" in op_label and amt > 0:
+                            sm.stamina[key] = max(0.0, round(sm.stamina[key] - amt, 2))
+                            round_log.append(f"💨 **Iron Wing Veil** — stamina recovery canceled because {b_name} was hit!")
+                elif b_id == "BB016" or b_name == "Trypio":
+                    for op_label, amt in self.ability.stamina_gained_by_op_this_round.get(key, []):
+                        if "Updraft" in op_label and amt > 0:
+                            sm.stamina[key] = max(0.0, round(sm.stamina[key] - amt, 2))
+                            round_log.append(f"💨 **Updraft Glide** — stamina recovery canceled because {b_name} was hit!")
+
         await self._check_corruption_intercept(round_log)
         self.defer_landed_hit_effects = False
         dmg_p1 = am.committed_damage[k1]
@@ -1661,6 +1728,14 @@ class BattleSession:
                   f"{b1.get('name','?')} {max(0, self.hp[k1])} HP  •  "
                   f"{b2.get('name','?')} {max(0, self.hp[k2])} HP")
         )
+        # ── Update continuous defense & defense lockout ───────────────────────
+        for key in (k1, k2):
+            if self.moves.get(key) == MOVE_DEFENSE:
+                sm.consecutive_defense[key] = sm.consecutive_defense.get(key, 0) + 1
+            else:
+                sm.consecutive_defense[key] = 0
+            if self.defense_locked_turns.get(key, 0) > 0 and self.defense_locked_round.get(key) != self.round:
+                self.defense_locked_turns[key] = max(0, self.defense_locked_turns[key] - 1)
         # ── Reset moves ───────────────────────────────────────────────────────
         self.moves = {k1: None, k2: None}
         self.round += 1

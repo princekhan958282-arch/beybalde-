@@ -4,7 +4,7 @@
   "rarity": "Original Generation",
   "type": "balance",
   "price": 0,
-  "description": "Driger partner — original-generation anime-inspired active battle skills.",
+  "description": "Driger partner \u2014 original-generation anime-inspired active battle skills.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301590518833262/Ray_Kon_GRevolution_Render.webp?backend=b2&ex=6ac3aa4d&is=6ac258cd&hm=ada02ec01e2c3a91c1ab61f61ea3ae87e839f624df6e8c591dd03a6723dffc4b&",
   "limited": false,
   "available_until": null,
@@ -33,13 +33,13 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 10,
+    "hp_flat": 92,
     "hp_percent": 0
   },
   "skills": [
     {
       "name": "Tiger Claw",
-      "description": "Split your next Attack’s normal damage into 3 strikes. If all connect, recover 0.4 battle stamina. Ordinary abilities trigger once per action.",
+      "description": "Split your next Attack\u2019s normal damage into 3 strikes. If all connect, recover 0.4 battle stamina. Ordinary abilities trigger once per action.",
       "energy_cost": 40,
       "cooldown_rounds": 3,
       "once_per_battle": false
