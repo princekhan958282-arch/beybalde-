@@ -243,6 +243,9 @@ class StabilityManager:
         ``reduced`` — True when the opponent attacked during the Stamina move;
         the recovery is halved (interrupted heal), matching the HP heal cut.
         """
+        # Prevent Stamina from resurrecting a Bey that hit 0 mid-turn
+        if self.check_ring_out(key):
+            return []
         if amount is None:
             amount = _STAMINA_RECOVERY // 2 if reduced else _STAMINA_RECOVERY
         return self._apply(key, amount)
@@ -374,7 +377,7 @@ class StabilityManager:
             delta = -math.ceil(extra.cost(key, move, "stability", -delta))
         return self._apply(key, delta, action=True)
 
-    def _apply(self, key: str, delta: int, *, action=False) -> list[str]:
+    def _apply(self, key: str, delta: int, *, action: bool = False) -> list[str]:
         """Clamp-apply ``delta`` to ``stability[key]`` and return a log line.
 
         If the Bey has ``burst_resistance_pct`` in any ability, negative

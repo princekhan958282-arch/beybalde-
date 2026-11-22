@@ -344,6 +344,36 @@ class RealRounds(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(p_stab - s.stability_manager.stability[P], 3)
         self.assertEqual(e_stab - s.stability_manager.stability[E], 3)
 
+    async def test_zero_stability_prevents_stamina_heal_resurrection(self):
+        s = self.session('Attack', 'Stamina')
+        # Simulate E dropping to 0 stability mid-turn (e.g. from an attack or ability like Guilty Upper)
+        s.stability_manager.stability[E] = 0
+        await turn(s, 'charge', 'stamina')
+        # E was at 0 stability, so Stamina recovery must NOT resurrect them to > 0
+        self.assertEqual(s.stability_manager.stability[E], 0)
+        self.assertTrue(s.finished)
+        self.assertEqual(s.finish_for(E), 'ringout')
+
+    async def test_guilty_longinus_uppercut_ringout_against_stamina(self):
+        from utils.database import get_beyblade
+        s = self.session('Attack', 'Stamina')
+        gl = get_beyblade("Guilty Longinus")
+        s.blades[P] = copy.deepcopy(gl)
+        s.blades[P]['stats'] = {'attack': 300, 'defense': 300, 'stamina': 200, 'hp': 1000, 'special': 200}
+        # Set E to 2 stability and plenty of HP so HP damage doesn't burst them
+        s.stability_manager.stability[E] = 2
+        s.hp[E] = 2000
+        s.max_hp_per_player[E] = 2000
+        # Prime guilty_upper counter to 2 stacks so this hit is the 3rd hit
+        s.ability.counters[(P, "guilty_upper")] = 2
+        # P attacks, E uses stamina
+        await turn(s, 'attack', 'stamina')
+        # Guilty Upper deals -25 stability, dropping E to 0.
+        # Stamina action must not resurrect E to +12, and E must be rung out.
+        self.assertEqual(s.stability_manager.stability[E], 0)
+        self.assertTrue(s.finished)
+        self.assertEqual(s.finish_for(E), 'ringout')
+
 
 class BossTests(unittest.TestCase):
     def fighter(self, t='', hp=1000):
