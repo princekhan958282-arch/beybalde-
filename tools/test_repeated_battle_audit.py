@@ -46,7 +46,7 @@ async def session(name, enemy='Victory Valkyrie', *, level=100, reverse=False,
     # Authored stats, levels, HP pools, skills and forms remain real.
     for key in (actor, target):
         s.stability_manager.stability[key] = s.stability_manager.max[key] = 1000
-        s.stamina_manager.stamina[key] = 100
+        s.stamina_manager.stamina[key] = s.stamina_manager.max_stamina[key] = 100
     return s, actor, target
 
 
