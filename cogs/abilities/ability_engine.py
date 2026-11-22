@@ -153,6 +153,8 @@ class AbilityEngine:
         self.lifesteal_pct: dict[str, float]        = {}   # key -> pct of dmg healed
         self.regen_per_turn: dict[str, int]         = {}   # key -> stamina/turn
         self.hp_regen_per_turn: dict[str, int]      = {}   # key -> hp/turn
+        self.stamina_regen_applied_this_round: dict[str, float] = {}
+        self.stamina_gained_by_op_this_round: dict[str, list[tuple[str, float]]] = {}
         self.pending_critical_rewards: dict[str, bool] = {}
         self.pending_lifesteal_hits: dict[str, list] = {}
         self.pending_landed_hits: dict[str, list] = {}
@@ -1861,6 +1863,7 @@ class AbilityEngine:
                         gained = round(new - cur, 2)
                         if gained > 0:
                             logs.append(f"🔋 **{label}** — +{gained:g} stamina!")
+                            self.stamina_gained_by_op_this_round.setdefault(key, []).append((label, gained))
                     else:
                         lost = round(cur - new, 2)
                         logs.append(f"🪫 **{label}** — -{lost:g} stamina!")
@@ -2819,6 +2822,9 @@ class AbilityEngine:
                 sm.stamina[key] = round(min(float(cap),
                                             sm.stamina.get(key, 0) + amt), 2)
                 logs.append(f"🔋 Regenerated {amt:g} stamina.")
+                self.stamina_regen_applied_this_round[key] = (
+                    self.stamina_regen_applied_this_round.get(key, 0.0) + amt
+                )
             except Exception:
                 pass
         return logs

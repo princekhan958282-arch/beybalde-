@@ -16,7 +16,7 @@
   "ability": {
     "name": "Updraft Glide",
     "trigger": "on_take_damage",
-    "description": "Trypio's massive propeller layer generates constant lift. Reduces incoming impact damage by 25, converts friction into +5 stability, and recovers 1 Stamina per turn passively.\nTornado Glide drains 4 Stamina from the opponent and restores 90 HP.",
+    "description": "Trypio's massive propeller layer generates constant lift. Reduces incoming impact damage by 25, converts friction into +5 stability, and recovers 1 Stamina per turn passively (canceled if hit this round).\nTornado Glide drains 4 Stamina from the opponent and restores 90 HP.",
     "rules": [
       {
         "when": "on_take_damage",
@@ -77,7 +77,7 @@
     {
       "name": "Updraft Glide",
       "trigger": "on_take_damage",
-      "description": "Trypio's massive propeller layer generates constant lift. Reduces incoming impact damage by 25, converts friction into +5 stability, and recovers 1 Stamina per turn passively.\nTornado Glide drains 4 Stamina from the opponent and restores 90 HP.",
+      "description": "Trypio's massive propeller layer generates constant lift. Reduces incoming impact damage by 25, converts friction into +5 stability, and recovers 1 Stamina per turn passively (canceled if hit this round).\nTornado Glide drains 4 Stamina from the opponent and restores 90 HP.",
       "rules": [
         {
           "when": "on_take_damage",

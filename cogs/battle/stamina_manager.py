@@ -155,6 +155,7 @@ class StaminaManager:
         self.cost_increase_moves: dict[str, tuple[str, ...]] = {
             key: (MOVE_ATTACK, MOVE_SPECIAL) for key in blades
         }
+        self.consecutive_defense: dict[str, int] = {key: 0 for key in blades}
 
     # ── Stat helper ───────────────────────────────────────────────────────────
 
@@ -264,6 +265,12 @@ class StaminaManager:
                 if flat:
                     parts.append(f"+{flat:g}")
                 note = f" *({' '.join(parts)} cost)*"
+        if move == MOVE_DEFENSE:
+            consec = self.consecutive_defense.get(key, 0)
+            if consec >= 1:
+                extra = 1.0 + (consec - 1) * 0.5
+                cost = round(cost + extra, 2)
+                note += f" *(continuous defense +{extra:g} stamina)*"
         red = min(0.9, max(0.0, self.drain_reduction.get(key, 0.0)))
         if red > 0:
             cost = round(cost * (1.0 - red), 2)
@@ -324,8 +331,10 @@ class StaminaManager:
         """
         from .type_gimmicks import TypeGimmickEngine
         blade = self._blades[key]
-        engine = gimmicks or TypeGimmickEngine({key: blade.get("type")})
+        engine = gimmicks or TypeGimmickEngine({key: blade.get("type")}, blades=self._blades)
         heal, _, recovery = engine.recovery(key, self._sta_stat(key))
+        if blade.get("id") == "BB016" or blade.get("name") == "Trypio":
+            heal = min(heal, 112)
         if recovery is None:
             # Keep the existing normal resource recovery; Overdrive replaces it.
             recovery = STAMINA_RECOVERY_BASE + self._sta_stat(key) * STAMINA_RECOVERY_PER_STAT

@@ -177,6 +177,32 @@ class AttackManager:
         dmg_dealt, dmg_taken, matchup, is_crit = calc_damage(
             mmove, mstats, ostats, mblade, omove
         )
+        guard_broken = getattr(self.session, "_guard_broken_this_round", set())
+        if mmove == MOVE_ATTACK and omove == MOVE_DEFENSE and okey in guard_broken:
+            from .combat_rules import base_damage
+            from .button_profile import move_power
+            effective_defense = (
+                min(ostats.get("defense", 50), max(1, mstats.get("attack", 50)))
+                if ostats.get("_ignore_defense", False)
+                else ostats.get("defense", 50)
+            )
+            raw = base_damage(mstats.get("level", mblade.get("level", 1)),
+                              move_power(mblade, mmove),
+                              mstats.get("attack", 50), effective_defense)
+            dmg_dealt = raw
+            dmg_taken = 0
+            matchup = "win"
+            def_stat = ostats.get("defense", 50)
+            def_loss = max(1, int(round(def_stat * 0.15)))
+            self.session.status.add_buff(okey, "defense", -def_loss, rounds=2, source="Defense Breaker", hostile=True)
+            logs.append(
+                f"💥 **GUARD BREAK!** {mblade['name']} shatters {oblade['name']}'s guard with Defense Breaker! "
+                f"Full damage dealt ({dmg_dealt}), enemy Defense reduced by 15% (-{def_loss}), and Defense disabled for next turn!"
+            )
+        elif mmove == MOVE_DEFENSE and omove == MOVE_ATTACK and mkey in guard_broken:
+            matchup = "lose"
+            dmg_dealt = 0
+            dmg_taken = 0
         if whip_strike:
             # Damage uses Attack's power/math; owner triggers and all original
             # guard/recovery/cost effects still see the chosen button.
