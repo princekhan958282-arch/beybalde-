@@ -323,6 +323,12 @@ class AbilityEngine:
             self.session = None
         if not hasattr(self, "st"):
             self.st = getattr(self.session, "status", None) if self.session else None
+        if not hasattr(self, "dranzer"):
+            from cogs.battle.dranzer import DranzerRuntime
+            self.dranzer = DranzerRuntime(self.session)
+        if not hasattr(self, "draciel"):
+            from cogs.battle.draciel import DracielRuntime
+            self.draciel = DracielRuntime(self.session)
 
     # =========================================================================
     #  Rule compilation
@@ -1057,7 +1063,9 @@ class AbilityEngine:
                 self.crit_damage_mult[key] = m if m > 1 else 1.5 + m
             elif kind == "true_damage":
                 amount = self._special_true_damage(rule, move, key, int(val), logs)
-                self.dranzer.terminal(okey, amount, logs)
+                dranzer = getattr(self, "dranzer", None)
+                if dranzer:
+                    dranzer.terminal(okey, amount, logs)
                 logs.append(f"💥 **{ab_name}** — {amount} TRUE damage!")
             elif kind == "true_damage_stat_pct":
                 # Like true_damage, but scaled off the WIELDER'S OWN stat

@@ -1559,7 +1559,7 @@ class BattleSession:
         dmg_p1 = am.committed_damage[k1]
         dmg_p2 = am.committed_damage[k2]
         for key, move in ((k1, m1), (k2, m2)):
-            if move == MOVE_STAMINA and self.hp[key] > 0:
+            if move == MOVE_STAMINA and self.hp[key] > 0 and not self.stability_manager.check_ring_out(key):
                 other_key = k2 if key == k1 else k1
                 other_move = m2 if key == k1 else m1
                 was_attacked = (other_move in (MOVE_ATTACK, MOVE_SPECIAL)) or (am.committed_damage.get(key, 0) > 0)
