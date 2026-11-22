@@ -4,7 +4,7 @@
   "rarity": "Original Generation",
   "type": "defense",
   "price": 0,
-  "description": "Draciel partner — original-generation anime-inspired active battle skills.",
+  "description": "Draciel partner \u2014 original-generation anime-inspired active battle skills.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301601466220604/MaxSeason1.webp?backend=b2&ex=6ac3aa50&is=6ac258d0&hm=52f53551ccc795cd1924b8d2fcb3017d66005c37365f1b9c5aad8fb32b986c0b&",
   "limited": false,
   "available_until": null,
@@ -33,7 +33,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 20,
+    "hp_flat": 84,
     "hp_percent": 0
   },
   "skills": [

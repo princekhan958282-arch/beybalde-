@@ -674,6 +674,8 @@ class BattleSkillManager:
         st.used_round = self.round
         st.blader_active_skill = sk
         st.last_skill = slot
+        if hasattr(self.s, "avatar_skill_slots"):
+            self.s.avatar_skill_slots[key] = slot
         return True, f"✅ Activated Blader Skill: **{sk['name']}** (-{cost}⚡)!"
 
     def select_bit_beast_skill(self, key: str, slot: int) -> Tuple[bool, str]:
@@ -807,6 +809,21 @@ class BattleSkillManager:
                     st.ultimate_used |= slot == 3
                     st.last_skill = slot
                     logs.append(f"⚡ **{card.get('name', 'Blader')}: {name}** — {cost} energy!")
+                    # Switch active avatar skill slot so AbilityEngine rules use the chosen skill
+                    if hasattr(self.s, "avatar_skill_slots"):
+                        self.s.avatar_skill_slots[key] = slot
+                    # Switch active avatar bonuses so combat passives use the chosen skill
+                    try:
+                        from cogs.avatar import avatar_engine
+                        prof = (getattr(self.s, "_prefetch", None) or {}).get(key, {}).get("profile") or {}
+                        bb_card = (getattr(self.s, "bit_beast_cards", None) or {}).get(key) or {}
+                        pid = int(key) if key.isdigit() else 0
+                        new_bonuses = avatar_engine.get_battle_bonuses_for_slot(
+                            pid, slot, card=card, profile=prof, bb_card=bb_card
+                        )
+                        self.s.avatar_bonuses[key] = new_bonuses
+                    except Exception:
+                        pass
                     self.activate(key, card.get('character'), slot, logs)
                     from cogs.avatar import avatar_config as C
                     levels = card.get('_skill_levels', [])
@@ -924,7 +941,7 @@ class BattleSkillManager:
     def _apply_blader_skill_effect(self, key: str, other: str, skill: dict, logs: list[str]) -> None:
         raw = skill.get("raw") or {}
         bonuses = raw.get("bonuses") or {}
-        if bonuses:
+        if bonuses and not getattr(self.s, "avatar_bonuses", None):
             for bstat, bval in bonuses.items():
                 if bstat == "attack_flat":
                     self.action_bonus[key] = self.action_bonus.get(key, 0) + (bval / 100.0)

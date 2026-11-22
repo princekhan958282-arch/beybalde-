@@ -4,7 +4,7 @@
   "rarity": "Ultimate",
   "type": "defense",
   "price": 0,
-  "description": "Small, soft, and entirely immovable. Miffy scales with whatever bey she is paired to — the sturdier the blade, the more absurd she becomes.",
+  "description": "Small, soft, and entirely immovable. Miffy scales with whatever bey she is paired to \u2014 the sturdier the blade, the more absurd she becomes.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1530707808981483571/83c9f2cd8ef087daf7ce64906bfa467e-1.jpg?ex=6a79abfc&is=6a785a7c&hm=7bdb9c608f23c56fdeb6bfa0fc18eef9d2a278997719ec27929addc70e1e803e&",
   "limited": false,
   "available_until": null,
@@ -52,7 +52,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0.08,
     "resistance_status_chance": 0,
-    "hp_flat": 0,
+    "hp_flat": 88,
     "hp_percent": 0.13
   },
   "generation": null,

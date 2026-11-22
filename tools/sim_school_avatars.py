@@ -91,14 +91,14 @@ avatar_engine.load()
 # ── The table, exactly as specified ───────────────────────────────────────────
 # id, blader, bey, HP, ATK, ATK%, DEF, DEF%, STM, STM%, Stability, Stab%
 TABLE = [
-    ("avatar_s101", "Rantaro Kiyama",  "Rising Roktavor",     120, 35, 0.16, 28, 0.00, 42, 0.18, 30, 0.00),
-    ("avatar_s102", "Ken Midori",      "King Kerbeus",        135, 27, 0.00, 45, 0.20, 35, 0.00, 42, 0.22),
-    ("avatar_s103", "Daigo Kurogami",  "Hollow Deathscyther", 115, 46, 0.22, 25, 0.00, 34, 0.00, 28, 0.00),
-    ("avatar_s104", "Hoji Konda",      "Hyper Horusood",      125, 36, 0.15, 34, 0.12, 36, 0.00, 35, 0.00),
-    ("avatar_s105", "Wakiya Murasaki", "Wild Wyvern",         130, 30, 0.00, 43, 0.18, 37, 0.00, 44, 0.20),
-    ("avatar_s106", "Orochi Ginba",    "Omni Odax",           118, 43, 0.20, 30, 0.00, 39, 0.15, 32, 0.00),
-    ("avatar_s107", "Valt Aoi",        "Victory Valkyrie",    120, 52, 0.25, 28, 0.00, 35, 0.00, 30, 0.00),
-    ("avatar_s108", "Shu Kurenai",     "Storm Spriggan",      125, 45, 0.20, 40, 0.15, 43, 0.18, 45, 0.20),
+    ("avatar_s101", "Rantaro Kiyama",  "Rising Roktavor",     105, 35, 0.16, 28, 0.00, 42, 0.18, 30, 0.00),
+    ("avatar_s102", "Ken Midori",      "King Kerbeus",         80, 27, 0.00, 45, 0.20, 35, 0.00, 42, 0.22),
+    ("avatar_s103", "Daigo Kurogami",  "Hollow Deathscyther",  60, 46, 0.22, 25, 0.00, 34, 0.00, 28, 0.00),
+    ("avatar_s104", "Hoji Konda",      "Hyper Horusood",       88, 36, 0.15, 34, 0.12, 36, 0.00, 35, 0.00),
+    ("avatar_s105", "Wakiya Murasaki", "Wild Wyvern",          80, 30, 0.00, 43, 0.18, 37, 0.00, 44, 0.20),
+    ("avatar_s106", "Orochi Ginba",    "Omni Odax",            60, 43, 0.20, 30, 0.00, 39, 0.15, 32, 0.00),
+    ("avatar_s107", "Valt Aoi",        "Victory Valkyrie",     62, 52, 0.25, 28, 0.00, 35, 0.00, 30, 0.00),
+    ("avatar_s108", "Shu Kurenai",     "Storm Spriggan",       90, 45, 0.20, 40, 0.15, 43, 0.18, 45, 0.20),
 ]
 
 SKILL_NAMES = {c["id"]: [s["name"] for s in c["skills"]]
@@ -332,9 +332,9 @@ async def suite() -> None:
     deltas: list = []
     _real_apply = StabilityManager._apply
 
-    def tracing_apply(mgr, key, delta):
+    def tracing_apply(mgr, key, delta, *args, **kwargs):
         deltas.append((key, float(delta)))
-        return _real_apply(mgr, key, delta)
+        return _real_apply(mgr, key, delta, *args, **kwargs)
 
     nb, ng = H.levelled("King Kerbeus", 100)
     s, _ch, npc, _c = await H.build_session(player, pblade, nb, ng, "elite",
@@ -503,10 +503,13 @@ async def suite() -> None:
         check("the claim pays a card the first time", got1 is not None
               and got1["id"] in SD.LEAGUE_AVATARS, got1)
         check("...and never a second", cog._award_blader(U) is None)
-        check("exactly one card landed in the inventory",
-              len(inv.get(str(U), [])) == 1, inv.get(str(U)))
+        prof_u = H.STORE.data[str(U)]
+        rewards = prof_u.get("avatar_rewards", {})
+        reward_card = rewards.get("story:school-league", {}).get("avatar_id") or (inv.get(str(U), [None])[0])
+        check("exactly one card landed in the reward queue or inventory",
+              len(rewards) == 1 or len(inv.get(str(U), [])) == 1, (rewards, inv.get(str(U))))
         check("the card it paid is one of the eight",
-              inv[str(U)][0] in SD.LEAGUE_AVATARS)
+              reward_card in SD.LEAGUE_AVATARS, reward_card)
 
         # the pool really is random across players, not a fixed card
         rolled = set()

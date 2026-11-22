@@ -1,0 +1,275 @@
+{
+  "reason": "Avatar HP balancing: Attack (50-80), Defence (70-90), Stamina (100-110), Balance (80-100)",
+  "avatars": {
+    "avatar_c002": {
+      "name": "Yuki",
+      "previous_sha256": "b8665a375117f4c3705cb2b772cf9b7f2926a8f45320685d9d5210fbb93faba7",
+      "sha256": "c091d953f4ddc6a50eff544d09f1002e66a940c264ba15c7c6dccf03879a577f"
+    },
+    "avatar_r001": {
+      "name": "Sable",
+      "previous_sha256": "28d336859530942d9cf91fe6cb3705dbe75e2083cb2deec778f267929253f7b3",
+      "sha256": "4050932eec68ce6659dfb1deedec1cb228ab6782752e138b695b67072d830e16"
+    },
+    "avatar_r002": {
+      "name": "Marina",
+      "previous_sha256": "4b3cc05c70098446167171bbbaf4aed75fc0aa793ec0e14e33234cb4859e450c",
+      "sha256": "f329d53a46ffcd825df1562c38f5f6f1ebfa695489460b80ebc7da1e48daf3e5"
+    },
+    "avatar_e001": {
+      "name": "Miku",
+      "previous_sha256": "a883b375aa2af625e90b4120bfe384709537b81fc6a2256e550f714fab657b10",
+      "sha256": "fee88f732d33a8d84921ac61054ec0d04cfe1ce33d4ec70026a3680f8c366026"
+    },
+    "avatar_l001": {
+      "name": "Storm Reaper",
+      "previous_sha256": "9b3d990700610070c32724458779198502c670adff2fc2cfc835e0951f53fc16",
+      "sha256": "7097bc2ee283249d0cecaf274009b819e295bacdb240ff59c1d6f740b590c108"
+    },
+    "avatar_m001": {
+      "name": "Eternal Inferno",
+      "previous_sha256": "69d415e9dcbe4940eafbe2bad8c842a5751e717fd158596b09ee842076de21e0",
+      "sha256": "8b3ac0c90f5c76f47242d4615090414341bc9f4f796940c4c45acc75952e9ebc"
+    },
+    "avatar_m002": {
+      "name": "Abyssal Warden",
+      "previous_sha256": "d884bd508bd9bba0e2cfc282232b267cdcedd03e308d998ee8eecc14748001f9",
+      "sha256": "fed896a07d9015c2c56793c523ba0b0fa4f0a895b8d30233095ca4528df5660e"
+    },
+    "avatar_x001": {
+      "name": "Omega Prime",
+      "previous_sha256": "762d841c1d947b73dab15bb74a637a195dafe17ec26437866944b1475b06972c",
+      "sha256": "d9720d69885bac7a59c3f05120769e45d7888e2e196d76518c0bb839d9aeb0e4"
+    },
+    "avatar_m003": {
+      "name": "Sukuna",
+      "previous_sha256": "e56baab7d49fc2d15036a75dbae31d6a704f74d86810e805203afc692008a4fe",
+      "sha256": "0a6905210ba180b4c3d67b87d4637baf242962ea3f99c08f952cfee14aa64deb"
+    },
+    "avatar_l003": {
+      "name": "Zero Two",
+      "previous_sha256": "6df6f23aaa8085aff1201bb6455ab74246f479f3d0d26c57aeedc079d7ee8598",
+      "sha256": "4af1842baa07b94730d4771da741e93c483091142b80585f396707f9a1c1da7b"
+    },
+    "avatar_r003": {
+      "name": "Hinata",
+      "previous_sha256": "1c109dfe48cab26d3d7924fe56bc1b82bdf4a2ef0235307c1ff2b8bee080741f",
+      "sha256": "bfd27fc4e7474627da6c41e010eecad1e1ff92197fdf6b22dd9231eaf6b54b00"
+    },
+    "avatar_e003": {
+      "name": "Mitsuha",
+      "previous_sha256": "b744e2ca9a407bfc60101982598d513574c9177ac954445f965766b372b81281",
+      "sha256": "eb1bc394a3e9906c8fafb1c9862343c657777e244df6d63501c92d6895c75e26"
+    },
+    "avatar_u002": {
+      "name": "Shadow Ninja",
+      "previous_sha256": "3080f0fa6c676a68ccb9f133f3fce8622dc5237a9d33307eca8f0f35c600d06d",
+      "sha256": "a5d16cd18abba84a71451468c2890a88f247abb55109cb5c581f8b5f7b2c7e1c"
+    },
+    "avatar_r004": {
+      "name": "Alya",
+      "previous_sha256": "36dd12a6052430c4400a597cc96f3cf6afbf8949d1cd226c4403a5891ee9a1e8",
+      "sha256": "2220353dd21d74cca5962d8037dccd37c6fee3b70ab4c2a88d81573cb9cabc7a"
+    },
+    "avatar_e004": {
+      "name": "Gen",
+      "previous_sha256": "9a5e889ea042079c39c5f4a81d06abdb32b8af93603adbec56825997bb234e6d",
+      "sha256": "13c181afab8df510947576267baefaf229caf1d3251933cc6b5e7c6746dfe1e8"
+    },
+    "avatar_u003": {
+      "name": "Mikasa",
+      "previous_sha256": "349fa4d59a13ac3b4bd23981748e9b7cbf2ec8ce58abea92fb2082f1b863ccd1",
+      "sha256": "e781fa1c4345c7661dba6b5759b9f1c391d93331224ae2764bdbb707b1655bdf"
+    },
+    "avatar_l004": {
+      "name": "Taki",
+      "previous_sha256": "5acfa869024a4218f95e51a2d492a8b8e8ff48f4bdb931b9f299d80d2d3ca9d7",
+      "sha256": "e9e7cf8f6449cb718040434e0703ff65dde66bf0a583beba3fc6aee8f37ad379"
+    },
+    "avatar_r005": {
+      "name": "Yotsuha",
+      "previous_sha256": "50354d46742d34e876577b690ba8203314c2ced8d8a9f0e3f5837362561afdd5",
+      "sha256": "e627e569312d44bd889c669cc061868091c506b5dcb854abbf590569bab7f43e"
+    },
+    "avatar_e005": {
+      "name": "Reina",
+      "previous_sha256": "9c56c4a53d2bd330ee4583ee2a5c58b6f03831039dceac6bda5f58799d6976c6",
+      "sha256": "a8fa34cb87f846c84df2a53d67ade01b3e843e536443239db83d9c916b67cc51"
+    },
+    "avatar_r006": {
+      "name": "Okudera",
+      "previous_sha256": "e5c24573ca4e13ea4e5832cd0f78db6b829133b4ff1f88d92687f004fb60c34f",
+      "sha256": "2170ad8c43e798802737a43830b91951647830a48a5ad36fa8509fe5b9ea4578"
+    },
+    "avatar_m004": {
+      "name": "Tifa",
+      "previous_sha256": "c29d6e2dd3b68e6f8828b245d4fb2e7f9c3033c792ac524dbf8494cf4db301c9",
+      "sha256": "4aff99fc9e4135371ba40643759fd61d32e2ca36fb08017452fc615f5843875b"
+    },
+    "avatar_r007": {
+      "name": "Tessie",
+      "previous_sha256": "956228f9c401a375d08cc631688afe615eebd06725757a0250166ac284d43b79",
+      "sha256": "60461711959976920ff57dbce5200743895f3cf0afbca022dd394c28e0f68d52"
+    },
+    "avatar_r008": {
+      "name": "Kanna",
+      "previous_sha256": "fcd99ad35794ff804b0521cd87f2fdfa2f234f55b978843b14955b817cd025c2",
+      "sha256": "d93476f7eb31a8e3346130ffefdb2e89cc1a3a2dc3ac957ca88e302bd3d24e3c"
+    },
+    "avatar_e006": {
+      "name": "Ymir",
+      "previous_sha256": "d65a0d496d90d75ff4dd6a174357bbf9102e2f20d53d45c34cc4f298a1082b02",
+      "sha256": "14340834171a6a07892a9764b877ab22cac84a82654a4e9a342ceb181cd09485"
+    },
+    "avatar_l005": {
+      "name": "Historia",
+      "previous_sha256": "de4d2ae3d590b9c31e65d2053e571c4c50dea902377f984bd560e7b8e64b0259",
+      "sha256": "398dbc244e872d568840b7cd3a572270262e6589e891f2dbd67a273103da4513"
+    },
+    "avatar_u004": {
+      "name": "Mitsuri",
+      "previous_sha256": "dce33ced2d58236d6a46bbf90964341cec3c4adf1ed8b6e9d153b9f157601719",
+      "sha256": "aa40fc3d20c253206324384046b555cb7d59d692e141e0d6d7b71fc42db830ec"
+    },
+    "avatar_u005": {
+      "name": "Shinobu",
+      "previous_sha256": "8e72ed598968871443577738dc1d368a1f6b61cade2933d7a24da2a09eb617b1",
+      "sha256": "004c509e58f6abb1556b08f2df5e4bc071120954769c771e76fbf89855647b21"
+    },
+    "avatar_x002": {
+      "name": "Argus",
+      "previous_sha256": "6432df26560344dcd57359a8802bff83982f75058a22d897b997dbd32559fb7b",
+      "sha256": "4509d23c4c808197310362dd1c5952cdd8c5f58765724a0b35f2aa02a90e2152"
+    },
+    "avatar_x003": {
+      "name": "Dyrroth",
+      "previous_sha256": "f9456faab1434b93bc6e9f98da12b8202349d1b9f5c287a2c9b706c24e96ce1c",
+      "sha256": "646db83918fce81d6020777702f5c4d6aa19c2d8766c043d4ba95ef60019a18b"
+    },
+    "avatar_u006": {
+      "name": "Mare",
+      "previous_sha256": "ef4fb00adb16d9b02335b5b48f41a91e6dbc72ce631d81de6aed3b125d01bf2f",
+      "sha256": "1946d4e342ca87ae9d03e0c6dab0a155a928f05fed8f1472935c8a9100353776"
+    },
+    "avatar_x004": {
+      "name": "Cobra Titan",
+      "previous_sha256": "1551f0861a410258e61443e1ec58b979bf4cf374ed994bed2c1eaff40d070f75",
+      "sha256": "9cb0af0dc3bb46da859013559f508671fbc86edab19e0ab13aaa5e9b9faa5e5b"
+    },
+    "avatar_u007": {
+      "name": "Miffy",
+      "previous_sha256": "c69bce7fd23c341628076d46ebfc61951263d5db0544602da5686512b59366d6",
+      "sha256": "1ffbcdb781567e6d070fe695f2b4ccb1120d49da4d75cb91af1d4e2aed19c8c4"
+    },
+    "avatar_mlbb001": {
+      "name": "Freya",
+      "previous_sha256": "ec6f8644f10e8c12fd68f64fbd1f8ac20a80aefb01742799b7d9c494c322e7af",
+      "sha256": "6f6bafb879d3f0e93a3689a8028ea6dd7e55a158a3438515b5fc3e6c64c144c7"
+    },
+    "avatar_mlbb002": {
+      "name": "Vexana",
+      "previous_sha256": "0ec96af738813be02a84add89a24dfdec80e2d2ac9d11ec6a53c26d9d371f947",
+      "sha256": "e879d535f907997724e1662cc598c9ce4c0d3c8b3795e3e2f370e0da96e942fe"
+    },
+    "avatar_mlbb003": {
+      "name": "Helcurt",
+      "previous_sha256": "9747172c925077ee89f4dcd74aba3905968072c32ff82f6ecdc55488bf965458",
+      "sha256": "4cb6a9dfa4bdb701386d74dcfa174a892b94eba46da7665d0849dd4ae8477617"
+    },
+    "avatar_mlbb004": {
+      "name": "Eudora",
+      "previous_sha256": "d1dba0787251e9999e41beed7242678ea978068d707dfd08536e2fa1d6d298a2",
+      "sha256": "d9ae5f3fb291194bce4d65b607274a725be6a2c328abf97815d70d4d91e9de88"
+    },
+    "avatar_u001": {
+      "name": "Dr. W. D. Gaster",
+      "previous_sha256": "b50545e64a65a73b3b83de344ada5b5ccee3269160428cdb4c5180a6bd5a9a5e",
+      "sha256": "1fcaccd4db8135807a8e1a53a9674a4c24841102c48a65c7f7c22deb2f9fa830"
+    },
+    "avatar_s101": {
+      "name": "Rantaro Kiyama",
+      "previous_sha256": "c76021d9b7e94f1cf163a37fb102deaab9c077ce852525913d5db6eea09aca08",
+      "sha256": "cca421cc3c56a7a8949ca1e51156522d8db8d4bd8f34fa158245707299a530f6"
+    },
+    "avatar_s102": {
+      "name": "Ken Midori",
+      "previous_sha256": "780d53847ca5cec904bdd85a542892d34d535e9ee389f90879d8478922f15dda",
+      "sha256": "0cf7a2aedcc70390e98f8d8851a12d16c3d24c447a51f73250afd565199c6ff5"
+    },
+    "avatar_s103": {
+      "name": "Daigo Kurogami",
+      "previous_sha256": "cbf8dcbc01a44531adbff296969c9ec9888638f3a0e32422fccfabee40b6b8d4",
+      "sha256": "03035dc90e06b5258620ddf6625b0ebd1070e28b7b728f19eacfe4dc02b9733c"
+    },
+    "avatar_s104": {
+      "name": "Hoji Konda",
+      "previous_sha256": "ab32318957636e3ca18b8f147b03dcc71768e4e13e7c396547f3ff3d8b06fc33",
+      "sha256": "a6eb326e1719c6fb658112d6eeb1429ab6260d3dd1df9d095b1037bf836c2492"
+    },
+    "avatar_s105": {
+      "name": "Wakiya Murasaki",
+      "previous_sha256": "b61eeaebe261824b9a7f304f684b5760c3c62d2fa69c54c8d98c731615945880",
+      "sha256": "1675201f502769ae0cea4205b7ee36d34e8e78e3d5b0bc28d9b97f467267f8fa"
+    },
+    "avatar_s106": {
+      "name": "Orochi Ginba",
+      "previous_sha256": "78bf527dd5f27d87da366e7cad9687bbfcdc391a368f68a80648d8c4f9393f88",
+      "sha256": "cf5d18b696a36d947bc89853556a48061b8248e6d0b2925024552110e73e0294"
+    },
+    "avatar_s107": {
+      "name": "Valt Aoi",
+      "previous_sha256": "6733045369eeea37aef648d4c8a344ea9b28bfa794fa6760197610feca428126",
+      "sha256": "ef138fbc2480ab8608df1989aaea8f4fb3a29873020880096516e159967bc231"
+    },
+    "avatar_s108": {
+      "name": "Shu Kurenai",
+      "previous_sha256": "9f999b5b4d87c5f29694bfbd72bdd7a856ba47b8bec5ad3bd9354b624f5304aa",
+      "sha256": "7ec3ecd3d72725e2aae5b30b667f9d84c9dac6eefef99cef0a2f4ad8dc286b51"
+    },
+    "avatar_og_tyson": {
+      "name": "Tyson",
+      "previous_sha256": "9febf20e4623e93ec11089bd8a890cdc662104871c0ebfe34d98219b4909a4fc",
+      "sha256": "6f38b84ea5b02200a4fc526e1e615381e6ecb6bb245681f3c87d1a6bb995f8ce"
+    },
+    "avatar_og_kai": {
+      "name": "Kai",
+      "previous_sha256": "55ecbee3ee923ef5322dcadc66ce0e7a406f54e14aa3c706975e95980908905b",
+      "sha256": "a59c014e357b9e4a3eb361d94ddfe4ab4ef69315abe1453aabe7901af802b496"
+    },
+    "avatar_og_ray": {
+      "name": "Ray",
+      "previous_sha256": "6bafccf295742cd262f846a173338fa9639986dda62f409490cf9b6d30b3907c",
+      "sha256": "16a1239f723bf5ebdf82cdc47fb74594e254f0cc3d23788f2e963a55b8005f80"
+    },
+    "avatar_og_max": {
+      "name": "Max",
+      "previous_sha256": "cc1ded7dc8b58389d7ce3f8ee291f287fc70615e7fbedc3ea849efdfca861c72",
+      "sha256": "20a053785f6281a3f33721b94a933a8d4ea8ba40d791ca6f6055caa55965d8aa"
+    },
+    "avatar_og_mariah": {
+      "name": "Mariah",
+      "previous_sha256": "fe07c65596811bf2556717c85534338c134e8ae1e61eea649432dfd9142e11b0",
+      "sha256": "15c88f27e79dc2ca97cb78a3d6e6850985e207a262439e7c2579c01b11d964af"
+    },
+    "avatar_og_daichi": {
+      "name": "Daichi",
+      "previous_sha256": "7d888775abc8d6678843e11c062a25ed2ee5192481dcee1f61d2327ca61bc1d1",
+      "sha256": "854b666780a81ec865ce1e07bc3866020defaaaf3a7eda6924493dac554e90ef"
+    },
+    "avatar_og_lee": {
+      "name": "Lee",
+      "previous_sha256": "83f1bb7e83cdad37dc9c679c273e010c91dd102839ba1c2299469ab83b81f14a",
+      "sha256": "1f7057ecd9b1a33fedd03c0e7688ff92d035a987beb5f80bd6c20dd5570558a9"
+    },
+    "avatar_og_gary": {
+      "name": "Gary",
+      "previous_sha256": "04b409329084c19c04eb1a43800cbd6d714b591b777b169673d113b262002879",
+      "sha256": "9126f5366b3c150e08a71e7a549cc7cbaee76e300ff876078aeb62992894a93a"
+    },
+    "avatar_og_kevin": {
+      "name": "Kevin",
+      "previous_sha256": "b2d5640a13e4f6315831aac63b5ab9384887095a372df138d6f90bdcdd54c8ae",
+      "sha256": "d075823be3f8ed049af42669f92a6c16ee55a15b2ddff1fbd374077c956f71dd"
+    }
+  }
+}

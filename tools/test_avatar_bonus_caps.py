@@ -85,33 +85,36 @@ class BonusCaps(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(av.stat_bonus_cap, cap, card['name'])
             for method in ('apply_attack_bonus', 'apply_defence_bonus', 'apply_stamina_bonus'):
                 self.assertAlmostEqual(getattr(av, method)(100), 100 * (1 + cap), msg=card['name'])
-            av.hp_flat = 100000
-            self.assertAlmostEqual(av.apply_hp_bonus(2000), 2000)
+            av.hp_flat = 10
+            self.assertAlmostEqual(av.apply_hp_bonus(2000), 2000 + 10 * 15 + 2000 * av.hp_percent)
         self.assertGreater(len(caps), 1)
         self.assertEqual(AvatarBonuses(attack_flat=10000, stat_bonus_cap=12).apply_attack_bonus(100), 200)
 
-    async def test_hp_flat_and_percent_are_disabled(self):
-        self.assertEqual(AvatarBonuses(hp_flat=100, hp_percent=.1).apply_hp_bonus(2000), 2000)
-        for pool in (0, 100, 2000):
-            self.assertEqual(AvatarBonuses(hp_flat=10000, hp_percent=.5).apply_hp_bonus(pool), pool)
-            self.assertEqual(AvatarBonuses(hp_percent=12).apply_hp_bonus(pool), pool)
+    async def test_hp_flat_and_percent_scale(self):
+        from utils.hp_system import HP_PER_STAT
+        self.assertEqual(AvatarBonuses(hp_flat=100, hp_percent=.1).apply_hp_bonus(2000), 2000 + 100 * HP_PER_STAT + 200)
+        for pool in (100, 2000):
+            self.assertEqual(AvatarBonuses(hp_flat=10, hp_percent=.5).apply_hp_bonus(pool), pool + 10 * HP_PER_STAT + 0.5 * pool)
 
     async def test_hp_cap_matches_pvp_boss_and_display(self):
         from unittest.mock import AsyncMock, patch
         from cogs.battle.boss import boss_battle as BB
         from utils.loadout import battle_pool
+        from utils.hp_system import HP_PER_STAT
+        from cogs.battle.type_gimmicks import passive_stat_multiplier
+        import math
         with patch.object(avatar_engine, 'get_battle_bonuses',
                           new=AsyncMock(return_value=AvatarBonuses())):
             base, _, _ = await self.build()
             plain_boss, _ = await BB._player_fighter(101)
         with patch.object(avatar_engine, 'get_battle_bonuses',
-                          new=AsyncMock(return_value=AvatarBonuses(hp_flat=100000))):
-            capped, _, _ = await self.build()
-            shown = await battle_pool(101, capped.blades['101'])
+                          new=AsyncMock(return_value=AvatarBonuses(hp_flat=80))):
+            boosted, _, _ = await self.build()
+            shown = await battle_pool(101, boosted.blades['101'])
             boss, _ = await BB._player_fighter(101)
-        self.assertAlmostEqual(capped.max_hp_per_player['101'], base.max_hp_per_player['101'], delta=1)
-        self.assertEqual(shown, capped.max_hp_per_player['101'])
-        self.assertEqual(boss.max_hp, plain_boss.max_hp)
+        expected_boost = math.floor(80 * HP_PER_STAT * passive_stat_multiplier('Balance', 'hp'))
+        self.assertAlmostEqual(boosted.max_hp_per_player['101'], base.max_hp_per_player['101'] + expected_boost, delta=2)
+        self.assertEqual(shown, boosted.max_hp_per_player['101'])
 
 
 if __name__ == '__main__':

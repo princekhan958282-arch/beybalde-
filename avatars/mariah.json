@@ -4,7 +4,7 @@
   "rarity": "Original Generation",
   "type": "stamina",
   "price": 0,
-  "description": "Galux partner — original-generation anime-inspired active battle skills.",
+  "description": "Galux partner \u2014 original-generation anime-inspired active battle skills.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301609133277264/Mariah2.webp?backend=b2&ex=6ac3aa52&is=6ac258d2&hm=485a82369607d2c9717fdddfa8fc0adbe9c51c71820b9311684c97f74e9b593a&",
   "limited": false,
   "available_until": null,
@@ -33,7 +33,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 10,
+    "hp_flat": 107,
     "hp_percent": 0
   },
   "skills": [
@@ -46,7 +46,7 @@
     },
     {
       "name": "Cat Scratch",
-      "description": "Your next successful hit reduces the enemy’s HP healing by 40% for 2 rounds.",
+      "description": "Your next successful hit reduces the enemy\u2019s HP healing by 40% for 2 rounds.",
       "energy_cost": 60,
       "cooldown_rounds": 4,
       "once_per_battle": false

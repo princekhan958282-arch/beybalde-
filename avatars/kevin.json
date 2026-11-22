@@ -4,7 +4,7 @@
   "rarity": "Original Generation",
   "type": "defense",
   "price": 0,
-  "description": "Galman partner — original-generation anime-inspired active battle skills.",
+  "description": "Galman partner \u2014 original-generation anime-inspired active battle skills.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301644038279258/Kevin2.webp?backend=b2&ex=6ac3aa5a&is=6ac258da&hm=539cd22aa6f43d444593b82ffcc63b6ed87dcd8e45837e10f87798ae6d9e1a3b&",
   "limited": false,
   "available_until": null,
@@ -33,7 +33,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 10,
+    "hp_flat": 82,
     "hp_percent": 0
   },
   "skills": [
@@ -52,7 +52,7 @@
       "once_per_battle": false
     },
     {
-      "name": "Galman’s Trickery",
+      "name": "Galman\u2019s Trickery",
       "description": "For 2 rounds, an enemy repeating their previous move pays 0.4 extra battle stamina. Changing moves avoids the penalty. Once per battle.",
       "energy_cost": 100,
       "cooldown_rounds": 0,

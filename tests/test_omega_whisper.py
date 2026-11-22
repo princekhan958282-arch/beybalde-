@@ -38,7 +38,7 @@ class TestOmegaWhisperData(unittest.TestCase):
         self.assertEqual(bonuses["attack_flat"], 0)
         self.assertEqual(bonuses["stamina_flat"], 69)
         self.assertEqual(bonuses["defence_flat"], 165)
-        self.assertEqual(bonuses["hp_flat"], 59)
+        self.assertEqual(bonuses["hp_flat"], 90)
 
         # Skills
         skills = card["skills"]

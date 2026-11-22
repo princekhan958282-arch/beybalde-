@@ -4,7 +4,7 @@
   "rarity": "MLBB",
   "type": "attack",
   "price": 0,
-  "description": "The Necrokeep queen. Vexana turns a duel into a séance — every Special she calls lands with the weight of everything she has already buried.",
+  "description": "The Necrokeep queen. Vexana turns a duel into a s\u00e9ance \u2014 every Special she calls lands with the weight of everything she has already buried.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1536106112372310036/977bd21a2bfcf5e26a44f3f3439074a3.jpg?ex=6a7a31cc&is=6a78e04c&hm=be6ee8fb2a7d07cd945c080dc30386851cd14c3cc0b814edaa3bf52198cab0d1&",
   "limited": false,
   "available_until": null,
@@ -54,7 +54,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 0,
+    "hp_flat": 80,
     "hp_percent": 0.15,
     "nth_hit_interval": 3,
     "nth_hit_attack_percent": 0.18

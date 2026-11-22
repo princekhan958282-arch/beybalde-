@@ -4,7 +4,7 @@
   "rarity": "Original Generation",
   "type": "attack",
   "price": 0,
-  "description": "Strata Dragoon partner — original-generation anime-inspired active battle skills.",
+  "description": "Strata Dragoon partner \u2014 original-generation anime-inspired active battle skills.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301620365758615/Daichi.webp?backend=b2&ex=6ac3aa54&is=6ac258d4&hm=dd6e6d19d8fd895460d4ce8fa4bbcf3a866d364563a4cd81b6d283eb6ec604bb&",
   "limited": false,
   "available_until": null,
@@ -33,7 +33,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 20,
+    "hp_flat": 64,
     "hp_percent": 0
   },
   "skills": [

@@ -48,7 +48,16 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(cards),9)
         for card in cards:
             self.assertEqual(validate_avatar_data(card),(True,''))
-            self.assertEqual(sum(card['bonuses'][k] for k in ('hp_flat','attack_flat','defence_flat','stamina_flat')),60)
+            t = card['type']
+            hp = card['bonuses']['hp_flat']
+            if t == 'attack':
+                self.assertTrue(50 <= hp <= 80)
+            elif t == 'defense':
+                self.assertTrue(70 <= hp <= 90)
+            elif t == 'stamina':
+                self.assertTrue(100 <= hp <= 110)
+            elif t == 'balance':
+                self.assertTrue(80 <= hp <= 100)
             self.assertEqual([sk['energy_cost'] for sk in card['skills']],[40,60,100])
             self.assertEqual(len(card['skills']),3)
             e=build_avatar_embed(card)
@@ -71,7 +80,7 @@ class OriginalGenerationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(s.avatar_bonuses['101'].attack_flat,34)
         self.assertEqual(s.avatar_bonuses['101'].stamina_flat,18)
         self.assertEqual(s.avatar_bonuses['101'].defence_flat,8)
-        self.assertEqual(s.avatar_bonuses['101'].hp_flat,0)
+        self.assertEqual(s.avatar_bonuses['101'].hp_flat,66)
         self.assertEqual(AS.energy(await H.DB.get_user(101)),0)
         self.assertEqual(AS.active_slot({},s.avatar_cards['101']),0)
 

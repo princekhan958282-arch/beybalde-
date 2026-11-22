@@ -27,7 +27,7 @@
     },
     {
       "name": "Deathless",
-      "description": "The first lethal hit cannot kill — Argus is immortal for 2 rounds. Once per battle.",
+      "description": "The first lethal hit cannot kill \u2014 Argus is immortal for 2 rounds. Once per battle.",
       "bonuses": {
         "immortal_rounds": 2
       }
@@ -51,7 +51,7 @@
     "counter_chance": 0,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 0,
+    "hp_flat": 100,
     "hp_percent": 0.15,
     "multi_hit_power_double": false,
     "multi_hit_extra_hits": false,

@@ -15,7 +15,7 @@
   "skills": [
     {
       "name": "Spriggan Adaptation",
-      "description": "Reads your habit — whichever move you lean on, Spriggan is ready for it.",
+      "description": "Reads your habit \u2014 whichever move you lean on, Spriggan is ready for it.",
       "rules": [
         {
           "when": "passive",
@@ -182,7 +182,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 125,
+    "hp_flat": 90,
     "hp_percent": 0
   },
   "generation": null,

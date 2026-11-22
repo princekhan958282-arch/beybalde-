@@ -4,7 +4,7 @@
   "rarity": "Legendary",
   "type": "defense",
   "price": 0,
-  "description": "The true queen. Unshakeable HP and resistance — she endures all and rises stronger.",
+  "description": "The true queen. Unshakeable HP and resistance \u2014 she endures all and rises stronger.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1521013550754304071/d677001e1afb4ec621d9e6a944e67b17.jpg?ex=6a4349c1&is=6a41f841&hm=80d2f11d1be964ca1f11c70b0862cc2dd3a5543e2ac94c45c0ca2202d12af4e1&",
   "bonuses": {
     "attack_flat": 5,
@@ -26,7 +26,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0.2,
     "resistance_status_chance": 0.3,
-    "hp_flat": 40,
+    "hp_flat": 78,
     "hp_percent": 0.09
   },
   "skills": [

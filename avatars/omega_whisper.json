@@ -35,7 +35,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0.0,
     "resistance_status_chance": 0.0,
-    "hp_flat": 59,
+    "hp_flat": 90,
     "hp_percent": 0.0
   },
   "skills": [
@@ -56,7 +56,7 @@
       "cost": 50,
       "energy_cost": 50,
       "effect_type": "obsidian_barrier",
-      "mitigate_pct": 0.40,
+      "mitigate_pct": 0.4,
       "rounds": 2,
       "negate_crit": true
     },

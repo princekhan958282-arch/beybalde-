@@ -4,7 +4,7 @@
   "rarity": "Original Generation",
   "type": "balance",
   "price": 0,
-  "description": "Galeon partner — original-generation anime-inspired active battle skills.",
+  "description": "Galeon partner \u2014 original-generation anime-inspired active battle skills.",
   "image": "https://cdn.discordapp.com/attachments/1520321120123748432/1556301631274877009/Lee_GRevolution_Render.webp?backend=b2&ex=6ac3aa57&is=6ac258d7&hm=d72d51c5ced4157856812e28a3ae0602939619e781cc85052e2f7b54df61a735&",
   "limited": false,
   "available_until": null,
@@ -33,7 +33,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 10,
+    "hp_flat": 91,
     "hp_percent": 0
   },
   "skills": [
@@ -53,7 +53,7 @@
     },
     {
       "name": "Spiral Lightning",
-      "description": "Seal the enemy’s last-used avatar skill for 2 rounds. Other skills and normal buttons stay available. Once per battle.",
+      "description": "Seal the enemy\u2019s last-used avatar skill for 2 rounds. Other skills and normal buttons stay available. Once per battle.",
       "energy_cost": 100,
       "cooldown_rounds": 0,
       "once_per_battle": true

@@ -366,13 +366,13 @@ def _want(card):
 # specifies, and a flat pool bonus does not scale with the pool, so it needs no
 # band. They are exempted here explicitly rather than by a silent `.get`, and
 # the exemption is asserted below so it cannot quietly widen.
-_FLAT_HP_RARITIES = {"Blader", "Original Generation"}
-_BANDED = [c for c in _CARDS if c["rarity"] not in _FLAT_HP_RARITIES]
+_FLAT_HP_RARITIES = {"Blader", "Original Generation", "Bit Beast"}
+_flat = [c for c in _CARDS if c["rarity"] in _FLAT_HP_RARITIES or c.get("is_bit_beast") or c.get("category") == "bit_beast"]
+_BANDED = [c for c in _CARDS if c not in _flat]
 
 check(f"all {len(_BANDED)} percent-HP cards are on a known rarity band",
       all(c["rarity"] in HP_BAND for c in _BANDED),
       sorted({c["rarity"] for c in _BANDED} - set(HP_BAND)))
-_flat = [c for c in _CARDS if c["rarity"] in _FLAT_HP_RARITIES]
 check("...and the flat-HP tier really does use flat HP, not a zeroed percent "
       "hiding a missing band",
       bool(_flat) and all(c["bonuses"]["hp_flat"] > 0
@@ -463,7 +463,7 @@ check("a negative value cannot SHRINK the pool",
       _AB(hp_percent=-0.5).apply_hp_bonus(2000) == 2000)
 check("apply_hp_bonus adds flat and percent HP once",
       _AB(hp_flat=100, hp_percent=0.10).apply_hp_bonus(2000)
-      == 2000 + 100 + 200,
+      == 2000 + 100 * 15 + 200,
       _AB(hp_flat=100, hp_percent=0.10).apply_hp_bonus(2000))
 check("...and a card with neither changes nothing",
       _AB().apply_hp_bonus(2000) == 2000)

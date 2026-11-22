@@ -99,8 +99,8 @@ class AvatarBonuses:
     multi_hit_extra_hits:   bool = False  # +MULTI_HIT_EXTRA_HITS hits
 
     # HP
-    hp_flat:    float = 0.0   # legacy compatibility field; no maximum-HP bonus
-    hp_percent: float = 0.0   # legacy compatibility field; no maximum-HP bonus
+    hp_flat:    float = 0.0   # bonus HP stat (converted in battle via HP_PER_STAT = 15)
+    hp_percent: float = 0.0   # percent bonus to starting HP (e.g. 0.10 = +10%)
 
     # Resistance
     resistance_damage_percent: float = 0.0   # reduces all incoming damage
@@ -181,8 +181,12 @@ class AvatarBonuses:
         return (base_damage + self.special_move_flat) * (1.0 + self.special_move_percent)
 
     def apply_hp_bonus(self, base_hp: float) -> float:
-        """Avatars no longer add flat or percentage maximum HP."""
-        return base_hp
+        """Add avatar HP to the battle HP pool using the same logic as Beyblades in battle."""
+        from utils.hp_system import HP_PER_STAT
+        base = max(0.0, float(base_hp))
+        pct = min(self.HP_PERCENT_CAP, max(0.0, float(self.hp_percent or 0.0)))
+        bonus_hp = float(self.hp_flat) * HP_PER_STAT + base * pct
+        return base + bonus_hp
 
     def apply_damage_resistance(self, incoming_damage: float) -> float:
         """Reduce incoming damage by resistance percent."""
@@ -225,8 +229,8 @@ class AvatarBonuses:
     # and makes the ceiling one number to change again later.
     DODGE_CAP = 0.05
 
-    # Kept for older readers; maximum-HP bonuses are disabled for all avatars.
-    HP_PERCENT_CAP = 0.0
+    # HP shares the combined stat ceiling, including flat and percent gains.
+    from .avatar_config import AVATAR_STAT_BONUS_CAP as HP_PERCENT_CAP
 
     def roll_dodge(self) -> bool:
         """Roll whether this avatar dodges an incoming attack.
@@ -261,6 +265,7 @@ class AvatarBonuses:
             self.stability_flat, self.stability_percent,
             self.charge_flat, self.charge_percent,
             self.special_move_flat, self.special_move_percent,
+            self.hp_flat, self.hp_percent,
             self.crit_percent,
             self.dodge_chance, self.counter_chance,
             self.multi_hit_power_double, self.multi_hit_extra_hits,
@@ -303,8 +308,8 @@ def combine_avatar_bonuses(b1: AvatarBonuses, b2: AvatarBonuses) -> AvatarBonuse
         charge_percent=b1.charge_percent + b2.charge_percent,
         special_move_flat=b1.special_move_flat + b2.special_move_flat,
         special_move_percent=b1.special_move_percent + b2.special_move_percent,
-        hp_flat=0.0,
-        hp_percent=0.0,
+        hp_flat=b1.hp_flat + b2.hp_flat,
+        hp_percent=b1.hp_percent + b2.hp_percent,
         crit_percent=b1.crit_percent + b2.crit_percent,
         dodge_chance=min(AvatarBonuses.DODGE_CAP, b1.dodge_chance + b2.dodge_chance),
         counter_chance=b1.counter_chance + b2.counter_chance,
@@ -500,6 +505,19 @@ class AvatarEngine:
         except Exception:                                # noqa: BLE001
             return {"attack": 0, "defense": 0, "stamina": 0}
 
+    def _level_bonus_sync(self, player_id: int, avatar_id: str, avatar: dict, profile=None) -> dict:
+        try:
+            from . import avatar_levels as AL
+            from . import avatar_progress as AP
+            from .avatar_collection import stat_bonus
+            prof = profile or {}
+            level = AP.card_level(prof, avatar_id)
+            gain = AL.card_stat_bonus(avatar.get("type", "balance"), level)
+            star_gain = stat_bonus(prof, avatar)
+            return {s: n + star_gain[s] for s, n in gain.items()}
+        except Exception:                                # noqa: BLE001
+            return {"attack": 0, "defense": 0, "stamina": 0}
+
     async def _active_bonuses(self, player_id: int, avatar: dict, profile=None) -> dict:
         """The card's bonus block, narrowed to the skill in play.
 
@@ -586,6 +604,52 @@ class AvatarEngine:
 
         return combine_avatar_bonuses(blader_bonuses, bb_bonuses)
 
+    def get_battle_bonuses_for_slot(
+        self,
+        player_id: int,
+        slot: int,
+        card: Optional[dict] = None,
+        profile: Optional[dict] = None,
+        bb_card: Optional[dict] = None,
+    ) -> AvatarBonuses:
+        """Return the AvatarBonuses snapshot when a specific skill slot is activated in battle."""
+        from . import avatar_skills as AS
+        from .avatar_scaling import scaled_card, selected_stats
+        from .avatar_config import avatar_bonus_cap
+
+        prof = profile or {}
+        blader = card or (self.get_avatar(prof.get('equipped_avatar')) if prof else None)
+        blader_bonuses = NULL_BONUSES
+        if blader:
+            scard = scaled_card(prof, blader)
+            block = AS.bonuses_for(scard, slot)
+            for stat, gain in selected_stats(scard, slot).items():
+                key = 'defence_flat' if stat == 'defense' else stat + '_flat'
+                block[key] = block.get(key, 0) + gain
+            level_bonus = self._level_bonus_sync(player_id, scard.get('id', ''), scard, prof)
+            blader_bonuses = self.bonuses_from_block(block, level_bonus, stat_bonus_cap=avatar_bonus_cap(scard))
+
+        bb = bb_card or (self.get_avatar(prof.get('equipped_bit_beast')) if prof else None)
+        bb_bonuses = NULL_BONUSES
+        if bb:
+            scard_bb = scaled_card(prof, bb)
+            bb_slot = AS.active_slot(prof, scard_bb)
+            block_bb = AS.bonuses_for(scard_bb, bb_slot)
+            for stat, gain in selected_stats(scard_bb, bb_slot).items():
+                key = 'defence_flat' if stat == 'defense' else stat + '_flat'
+                block_bb[key] = block_bb.get(key, 0) + gain
+            level_bonus_bb = self._level_bonus_sync(player_id, scard_bb.get('id', ''), scard_bb, prof)
+            bb_bonuses = self.bonuses_from_block(block_bb, level_bonus_bb, stat_bonus_cap=avatar_bonus_cap(scard_bb))
+
+        if not blader_bonuses.has_any_bonus and not bb_bonuses.has_any_bonus:
+            return NULL_BONUSES
+        if not bb_bonuses.has_any_bonus:
+            return blader_bonuses
+        if not blader_bonuses.has_any_bonus:
+            return bb_bonuses
+
+        return combine_avatar_bonuses(blader_bonuses, bb_bonuses)
+
     def bonuses_from_block(self, block: Optional[dict],
                            level_bonus: Optional[dict] = None, *, stat_bonus_cap=1.0) -> AvatarBonuses:
         """Build an `AvatarBonuses` straight from a card's bonus block.
@@ -612,8 +676,9 @@ class AvatarEngine:
             charge_percent=b.get("charge_percent", 0.0),
             special_move_flat=b.get("special_move_flat", 0.0),
             special_move_percent=b.get("special_move_percent", 0.0),
-            hp_flat=0.0,
-            hp_percent=0.0,
+            hp_flat=float(b.get("hp_flat", 0.0) or 0.0),
+            hp_percent=min(AvatarBonuses.HP_PERCENT_CAP,
+                           max(0.0, float(b.get("hp_percent", 0.0) or 0.0))),
             crit_percent=b.get("crit_percent", 0.0),
             # Capped at load, so the number a card DISPLAYS is the number that
             # actually rolls. Capping only inside roll_dodge would leave the

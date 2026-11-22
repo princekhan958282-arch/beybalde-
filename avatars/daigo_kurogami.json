@@ -51,7 +51,7 @@
     },
     {
       "name": "Death Spiral",
-      "description": "Consecutive Attack wins build toward a crit — three in a row and the next one lands.",
+      "description": "Consecutive Attack wins build toward a crit \u2014 three in a row and the next one lands.",
       "rules": [
         {
           "when": "on_attack_win",
@@ -117,7 +117,7 @@
     "multi_hit_extra_hits": false,
     "resistance_damage_percent": 0,
     "resistance_status_chance": 0,
-    "hp_flat": 115,
+    "hp_flat": 60,
     "hp_percent": 0
   },
   "generation": null,

@@ -24,6 +24,7 @@ BASELINE = json.loads((ROOT / 'docs/component_migration_baseline.json').read_tex
 BEY_CORRECTIONS = json.loads((ROOT / 'docs/bey_skill_regression_baseline.json').read_text(encoding="utf-8"))['beys']
 HP_CORRECTIONS = json.loads((ROOT / 'docs/hp_balance_regression_baseline.json').read_text(encoding="utf-8"))['beys']
 SKILL_CORRECTIONS = json.loads((ROOT / 'docs/avatar_skill_regression_baseline.json').read_text(encoding="utf-8"))['avatars']
+AVATAR_HP_CORRECTIONS = json.loads((ROOT / 'docs/avatar_hp_regression_baseline.json').read_text(encoding="utf-8"))['avatars']
 DRANZER_ADDITIONS = {f'BB{132+i}': name for i, name in enumerate(
     ('Dranzer G', 'Black Dranzer', 'Dranzer F', 'Dranzer V', 'Dranzer V2', 'Dranzer GT', 'Dranzer MS'))}
 OCTOBER_ADDITIONS = {f'BB{139+i}': name for i, name in enumerate(
@@ -80,6 +81,10 @@ class MigrationTests(unittest.TestCase):
                     if hp_correction:
                         self.assertEqual(hp_correction['previous_sha256'], expected_hash)
                         expected_hash = hp_correction['sha256']
+                    avatar_hp_correction = AVATAR_HP_CORRECTIONS.get(value['id']) if kind == 'avatar' else None
+                    if avatar_hp_correction:
+                        self.assertEqual(avatar_hp_correction['previous_sha256'], expected_hash)
+                        expected_hash = avatar_hp_correction['sha256']
                     self.assertEqual(digest({field: value[field] for field in expected['fields']}), expected_hash)
         for folder, number in (('beys', 174), ('avatars', 59), ('parts/disks', 192), ('parts/drivers', 191)):
             self.assertEqual(len(list((ROOT / folder).glob('*.json'))), number)
@@ -91,6 +96,10 @@ class MigrationTests(unittest.TestCase):
     def test_skill_corrections_reference_existing_avatar_records(self):
         self.assertTrue(SKILL_CORRECTIONS)
         self.assertLessEqual(set(SKILL_CORRECTIONS), set(BASELINE['avatars']))
+
+    def test_avatar_hp_corrections_reference_existing_avatar_records(self):
+        self.assertTrue(AVATAR_HP_CORRECTIONS)
+        self.assertEqual(set(AVATAR_HP_CORRECTIONS), set(BASELINE['avatars']))
 
     def test_parts_preserve_verified_prices_and_tradeoffs(self):
         catalog = {p['name']: p for p in PARTS_CATALOG}
