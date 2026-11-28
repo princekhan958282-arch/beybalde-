@@ -128,40 +128,40 @@ class TestEclipseThunderbird(unittest.TestCase):
         self.assertIn("eclipse_thunderbird_dusk.png", dusk["image_url"])
 
     def test_03_dawn_mode_wrath_of_the_sun_and_order_of_operations(self):
-        """Verifies Wrath of the Sun stacking buff and order of operations with Eclipse Flight."""
+        """Verifies Wrath of the Sun stacking buff (4 stacks, 6.25%/stack) and Eclipse Flight."""
         dawn = resolve({"spin_mode": {"Eclipse Thunderbird": "Dawn"}}, self.blade)
         sess = DummySession(dawn, dawn)
         eng = sess.ability
 
-        # Force Wrath of the Sun to proc 5 times
+        # Attempt to proc Wrath of the Sun 5 times; stacking_buff must cap at 4 stacks
         rule = [r for ab in dawn["abilities"] if ab["name"] == "Wrath of the Sun" for r in ab["rules"]][0]
-        for i in range(5):
+        for _ in range(5):
             eng._run_ops(rule, "Wrath of the Sun", "p", "e", "", 0, 0, [])
 
-        self.assertEqual(eng.counters.get(("p", "solar_stack")), 5)
-        # Solar stacks grant +3% per stack = +15% of base attack (120 * 0.15 = 18 or 5 stacks of 4 = 20)
+        self.assertEqual(eng.counters.get(("p", "solar_stack")), 4)
+        # 4 stacks * 6.25% of 120 ATK = 4 * round(7.5) = +32 ATK (>= +25% = 30)
         stack_atk = sess.status.get_buff_bonus("p", "attack")
-        self.assertGreaterEqual(stack_atk, 18)
+        self.assertGreaterEqual(stack_atk, 30)
 
         # Trigger Eclipse Flight (+10% base attack = +12)
         flight_rule = [r for ab in dawn["abilities"] if ab["name"] == "Eclipse Flight" for r in ab["rules"]][0]
         eng._run_ops(flight_rule, "Eclipse Flight", "p", "e", "", 0, 0, [])
         self.assertTrue(eng.eclipse_phase.get("p"))
 
-        # Total buff bonus reflects both +10% base flight and +15% stacks:
-        # ATK_final = (ATK_base * 1.10) * (1.0 + 0.15) = 120 * 1.10 * 1.15 = 151.8 (~152)
+        # Total attack includes base (120) + 4 solar stacks (+32) + Eclipse Flight (+12) = 164
         total_atk = dawn["stats"]["attack"] + sess.status.get_buff_bonus("p", "attack")
-        self.assertAlmostEqual(total_atk, 152, delta=3)
+        self.assertAlmostEqual(total_atk, 164, delta=2)
 
     def test_04_dawn_mode_daytime_blitz(self):
-        """Verifies Daytime Blitz deals 8 hits, adds 20% ATK rider, and reduces enemy stability."""
+        """Verifies Daytime Blitz deals 160 + 20% ATK rider (184) and reduces enemy stability."""
         dawn = resolve({"spin_mode": {"Eclipse Thunderbird": "Dawn"}}, self.blade)
         sess = DummySession(dawn, dawn)
         sess.moves["p"] = "special"
 
-        # Resolve Daytime Blitz
+        # Resolve Daytime Blitz (160 base + 20% of 120 ATK = 184)
         total_dmg, logs = sess.attack_manager._resolve_special("p", "e", "special", dawn, dawn, [])
-        self.assertGreater(total_dmg, 0)
+        self.assertEqual(total_dmg, 184)
+        self.assertTrue(any("+24 damage" in l for l in logs))
         # Verify enemy stability was reduced by 30 (from 100 to 70)
         self.assertEqual(sess.stability_manager.stability["e"], 70)
         self.assertTrue(any("Daytime Blitz" in l for l in logs))
@@ -209,11 +209,12 @@ class TestEclipseThunderbird(unittest.TestCase):
         self.assertTrue(eng.eclipse_phase.get("p"))
         self.assertTrue(any("Eclipse Phase" in l for l in logs))
 
-        # Firing Special during Eclipse Phase triggers Final Eclipse Flight (Ω Special)
+        # Firing Special during Eclipse Phase triggers Final Eclipse Flight (Ω Special, +70% ATK in Dawn)
         omega_logs = []
         dmg, omega_logs = sess.attack_manager._resolve_special("p", "e", "special", dawn, dawn, [])
         self.assertGreater(dmg, 0)
         self.assertTrue(any("FINAL ECLIPSE FLIGHT" in l for l in omega_logs))
+        self.assertTrue(any("(70%)" in l for l in omega_logs))
         self.assertTrue(any("permanently sealed" in l for l in omega_logs))
 
         # Verify Eclipse Flight is permanently sealed
@@ -225,6 +226,17 @@ class TestEclipseThunderbird(unittest.TestCase):
         round_6_logs = []
         _, _ = eng._fire("turn_start", "p", "e", dawn, "", "", 0, 0, round_6_logs)
         self.assertFalse(eng.eclipse_phase.get("p", False))
+
+        # Dusk Mode Ω Special deals 190 + 90% modified ATK
+        dusk = resolve({"spin_mode": {"Eclipse Thunderbird": "Dusk"}}, self.blade)
+        dusk_sess = DummySession(dusk, dusk)
+        dusk_sess.round = 3
+        _, _ = dusk_sess.ability._fire("turn_start", "p", "e", dusk, "", "", 0, 0, [])
+        self.assertTrue(dusk_sess.ability.eclipse_phase.get("p"))
+        dusk_dmg, dusk_logs = dusk_sess.attack_manager._resolve_special("p", "e", "special", dusk, dusk, [])
+        self.assertGreater(dusk_dmg, 0)
+        self.assertTrue(any("(90%)" in l for l in dusk_logs))
+        self.assertTrue(dusk_sess.ability.eclipse_sealed.get("p"))
 
 
 if __name__ == "__main__":

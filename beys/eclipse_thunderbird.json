@@ -64,8 +64,8 @@
       "hits": 1,
       "damage_per_hit": 180,
       "total_damage": 180,
-      "atk_pct": 50,
-      "description": "Usable only during Eclipse Phase. Crashes into the opponent dealing 180 base damage plus 50% of its current modified Attack stat. Upon use, Eclipse Flight becomes permanently Sealed for the remainder of the battle.",
+      "atk_pct": 70,
+      "description": "Usable only during Eclipse Phase. Crashes into the opponent dealing 180 base damage plus 70% of its current modified Attack stat. Upon use, Eclipse Flight becomes permanently Sealed for the remainder of the battle.",
       "flavour_texts": [
         "🌌⚡ **FINAL ECLIPSE FLIGHT** — Eclipse Thunderbird dives from the cosmic zenith for total annihilation!"
       ]
@@ -143,7 +143,7 @@
     {
       "name": "Wrath of the Sun",
       "trigger": "turn_start",
-      "description": "On turn start, 40% chance to gain a Solar Stack. Each stack increases Attack by 3% (Capped at 5 stacks = max +15% ATK).",
+      "description": "On turn start, 40% chance to gain a Solar Stack. Each stack increases Attack by 6.25% (Capped at 4 stacks = max +25% ATK).",
       "rules": [
         {
           "when": "turn_start",
@@ -152,7 +152,7 @@
             {
               "cond": "counter_below",
               "name": "solar_stack",
-              "value": 5
+              "value": 4
             }
           ],
           "do": [
@@ -160,8 +160,8 @@
               "op": "stacking_buff",
               "name": "solar_stack",
               "stat": "attack",
-              "per_stack_pct": 3,
-              "max": 5,
+              "per_stack_pct": 6.25,
+              "max": 4,
               "label": "Wrath of the Sun"
             }
           ],
@@ -180,7 +180,7 @@
             {
               "op": "bonus_damage_stat",
               "stat": "attack",
-              "pct": 20,
+              "scale": 0.2,
               "label": "Daytime Blitz"
             },
             {
@@ -224,8 +224,8 @@
           "hits": 1,
           "damage_per_hit": 180,
           "total_damage": 180,
-          "atk_pct": 50,
-          "description": "Usable only during Eclipse Phase. Crashes into the opponent dealing 180 base damage plus 50% of its current modified Attack stat. Upon use, Eclipse Flight becomes permanently Sealed for the remainder of the battle.",
+          "atk_pct": 70,
+          "description": "Usable only during Eclipse Phase. Crashes into the opponent dealing 180 base damage plus 70% of its current modified Attack stat. Upon use, Eclipse Flight becomes permanently Sealed for the remainder of the battle.",
           "flavour_texts": [
             "🌌⚡ **FINAL ECLIPSE FLIGHT** — Eclipse Thunderbird dives from the cosmic zenith for total annihilation!"
           ]
@@ -269,7 +269,7 @@
         {
           "name": "Wrath of the Sun",
           "trigger": "turn_start",
-          "description": "On turn start, 40% chance to gain a Solar Stack. Each stack increases Attack by 3% (Capped at 5 stacks = max +15% ATK).",
+          "description": "On turn start, 40% chance to gain a Solar Stack. Each stack increases Attack by 6.25% (Capped at 4 stacks = max +25% ATK).",
           "rules": [
             {
               "when": "turn_start",
@@ -278,7 +278,7 @@
                 {
                   "cond": "counter_below",
                   "name": "solar_stack",
-                  "value": 5
+                  "value": 4
                 }
               ],
               "do": [
@@ -286,8 +286,8 @@
                   "op": "stacking_buff",
                   "name": "solar_stack",
                   "stat": "attack",
-                  "per_stack_pct": 3,
-                  "max": 5,
+                  "per_stack_pct": 6.25,
+                  "max": 4,
                   "label": "Wrath of the Sun"
                 }
               ],
@@ -306,7 +306,7 @@
                 {
                   "op": "bonus_damage_stat",
                   "stat": "attack",
-                  "pct": 20,
+                  "scale": 0.2,
                   "label": "Daytime Blitz"
                 },
                 {
@@ -351,8 +351,8 @@
           "hits": 1,
           "damage_per_hit": 190,
           "total_damage": 190,
-          "atk_pct": 70,
-          "description": "Usable only during Eclipse Phase. Crashes into the opponent dealing 190 base damage plus 70% of its current modified Attack stat. Upon use, Eclipse Flight becomes permanently Sealed for the remainder of the battle.",
+          "atk_pct": 90,
+          "description": "Usable only during Eclipse Phase. Crashes into the opponent dealing 190 base damage plus 90% of its current modified Attack stat. Upon use, Eclipse Flight becomes permanently Sealed for the remainder of the battle.",
           "flavour_texts": [
             "🌌⚡ **FINAL ECLIPSE FLIGHT** — Dusk Mode unleashes total darkness and crashes into the stadium floor!"
           ]
