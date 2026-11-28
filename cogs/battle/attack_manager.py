@@ -488,6 +488,13 @@ class AttackManager:
             actual = self.committed_damage[key]
             self.session.ability.commit_landed_effects(key, actual, logs)
             self.session.ability.commit_lifesteal(key, actual, logs)
+        for key, other, blade, move, matchup in (
+            (k1, k2, b1, m1, matchup_p1),
+            (k2, k1, b2, m2, matchup_p2),
+        ):
+            self.session.ability.commit_damage_dealt(
+                key, other, blade, move, matchup, self.committed_damage[key], logs
+            )
         for key in (k1, k2):
             self.session.ability.commit_reflections(key, self.committed_damage[key], logs)
 

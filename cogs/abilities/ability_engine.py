@@ -74,6 +74,7 @@ TRIGGERS = frozenset({
     "on_any_win", "on_any_loss",
     "on_attack_hit",    # owner's Attack landed (once per move)
     "on_hit",           # per-hit proc (each hit of Attack / multi-hit Special)
+    "on_damage_dealt",  # post-commit hook with actual HP damage dealt
     "on_special",       # owner fired their Special (once, on first hit)
     "on_special_last_hit",  # final hit of multi-hit Special
     "on_mirror",        # both picked the same move (any move)
@@ -150,6 +151,8 @@ class AbilityEngine:
         self.revive_pool:  dict[str, int]           = {}   # key -> revive HP
         self.revive_pool_pct: dict[str, float]      = {}   # key -> % of max HP
         self.special_pierce_pct: dict[str, float]   = {}   # key -> one-shot % DEF pierce for the next Special hit
+        self.special_guaranteed_crit: dict[str, bool] = {}  # key -> guaranteed crit armed for current Special
+        self.recoil_flat_mod: dict[str, int]        = {}   # key -> flat adjustment to self-recoil damage
         self.lifesteal_pct: dict[str, float]        = {}   # key -> pct of dmg healed
         self.regen_per_turn: dict[str, int]         = {}   # key -> stamina/turn
         self.hp_regen_per_turn: dict[str, int]      = {}   # key -> hp/turn
@@ -279,6 +282,8 @@ class AbilityEngine:
             ("revive_pool", dict),
             ("revive_pool_pct", dict),
             ("special_pierce_pct", dict),
+            ("special_guaranteed_crit", dict),
+            ("recoil_flat_mod", dict),
             ("lifesteal_pct", dict),
             ("regen_per_turn", dict),
             ("hp_regen_per_turn", dict),
@@ -895,6 +900,24 @@ class AbilityEngine:
         self.projected_hit_counters.pop(key, None)
         self.hit_counter_before.pop(key, None)
 
+    def commit_damage_dealt(self, key: str, other: str, blade: dict, move: str,
+                            matchup: str, actual: int, logs: list[str]) -> None:
+        """Fire post-commit damage-dealt rules using actual HP damage dealt."""
+        if actual <= 0 or (getattr(self.session, "hp", None) or {}).get(key, 0) <= 0:
+            return
+        self._fire("on_damage_dealt", key, other, blade, move, matchup, actual, 0, logs)
+
+    def _apply_self_recoil(self, key: str, raw_amount: int) -> int:
+        """Apply flat recoil adjustments and deduct bounded self-recoil HP."""
+        if raw_amount <= 0 or (getattr(self.session, "hp", None) or {}).get(key, 0) <= 0:
+            return 0
+        adj = int((getattr(self, "recoil_flat_mod", None) or {}).get(key, 0))
+        amt = max(0, int(raw_amount) + adj)
+        if amt <= 0:
+            return 0
+        self.session.hp[key] = max(0, self.session.hp.get(key, 0) - amt)
+        return amt
+
     def commit_reflections(self, key, actual, logs):
         hits = self.pending_reflection_hits.pop(key, [])
         engine = getattr(self.session, 'type_gimmicks', None)
@@ -1131,8 +1154,23 @@ class AbilityEngine:
                     self.dranzer.terminal(okey, int(val), logs)
                     logs.append(f"☠️ **{ab_name}** — execute! {int(val)} TRUE damage!")
             elif kind == "recoil":
-                self.session.hp[key] = self.session.hp.get(key, 0) - int(val)
-                logs.append(f"🩸 **{ab_name}** — {int(val)} recoil damage.")
+                amt = self._apply_self_recoil(key, int(val))
+                if amt > 0:
+                    logs.append(f"🩸 **{ab_name}** — {amt} recoil damage.")
+            elif kind in ("recoil_percent_of_damage", "recoil_pct"):
+                pct = float(op.get("percent", op.get("pct", val)) or 0)
+                if dmg_dealt > 0 and pct > 0:
+                    amt = self._apply_self_recoil(key, math.ceil(dmg_dealt * pct / 100.0))
+                    if amt > 0:
+                        logs.append(
+                            f"🩸 **{ab_name}** — {amt} recoil damage "
+                            f"({pct:g}% of {dmg_dealt} dealt)!"
+                        )
+            elif kind == "modify_recoil_flat":
+                delta = int(op.get("value", op.get("amount", 0)) or 0)
+                self.recoil_flat_mod[key] = self.recoil_flat_mod.get(key, 0) + delta
+                if delta != 0:
+                    logs.append(f"🛡️ **{ab_name}** — self-recoil adjusted by {delta:+d}!")
             elif kind == "prime_bonus":
                 total = self.primed_bonus.get(key, 0) + int(val)
                 self.primed_bonus[key] = min(total, int(op["cap"])) if "cap" in op else total
@@ -1627,9 +1665,14 @@ class AbilityEngine:
                     logs.append(f"💀 **{ab_name}** — Special damage "
                                 f"+{int(new * 100)}% (stacking)!")
             elif kind == "guaranteed_crit":
-                self.guaranteed_crit_turns[key] = max(
-                    self.guaranteed_crit_turns.get(key, 0), int(op.get("turns", val or 1)))
-                logs.append(f"🎯 **{ab_name}** — guaranteed CRIT!")
+                if op.get("special") or op.get("on_special"):
+                    if move == MOVE_SPECIAL:
+                        self.special_guaranteed_crit[key] = True
+                        logs.append(f"🎯 **{ab_name}** — guaranteed Special CRIT!")
+                else:
+                    self.guaranteed_crit_turns[key] = max(
+                        self.guaranteed_crit_turns.get(key, 0), int(op.get("turns", val or 1)))
+                    logs.append(f"🎯 **{ab_name}** — guaranteed CRIT!")
             elif kind == "prime_crit":
                 self.primed_crit[key] = max(self.primed_crit.get(key, 0), int(val or 1))
                 logs.append(f"🎯 **{ab_name}** — next Attack armed for a CRIT!")
@@ -2259,6 +2302,7 @@ class AbilityEngine:
             self.pending_lifesteal_hits[mover_key] = []
             self.pending_landed_hits[mover_key] = []
             self.pending_reflection_hits[mover_key] = []
+            self.special_guaranteed_crit.pop(mover_key, None)
         if move == MOVE_SPECIAL and is_first_hit:
             generated = getattr(self, 'generated_special_damage', None)
             if generated is None:
@@ -2422,17 +2466,30 @@ class AbilityEngine:
             # Offensive effects have completed; type crit precedes defenses.
             og = getattr(self.session, "skills_manager", None) or getattr(self.session, "original_generation", None)
             negate_crit = bool(og and og.effect(other_key, "obsidian_barrier") and og.effect(other_key, "obsidian_barrier").get("negate_crit"))
+            forced_special = bool(
+                move == MOVE_SPECIAL
+                and getattr(self, "special_guaranteed_crit", {}).get(mover_key, False)
+            )
             forced = self.guaranteed_crit_turns.get(mover_key, 0)
             natural = engine.critical_applies(mover_key, move)
             avatar_crit = False
             if move == MOVE_ATTACK and not natural and not forced:
                 from cogs.battle import avatar_combat
                 avatar_crit = avatar_combat.roll_extra_crit(self.session, mover_key, False)
-            if negate_crit and (forced or avatar_crit or natural):
+            if negate_crit and (forced_special or (move == MOVE_ATTACK and forced) or avatar_crit or natural):
                 self.last_hit_was_crit = False
                 logs.append("🔮 **Obsidian Barrier** — negated enemy critical hit bonus damage!")
-                if forced:
+                if move == MOVE_ATTACK and forced:
                     self.guaranteed_crit_turns[mover_key] = max(0, forced - 1)
+                if forced_special and is_last_hit:
+                    self.special_guaranteed_crit.pop(mover_key, None)
+            elif forced_special and not natural:
+                dmg_dealt *= 2.0
+                self.last_hit_was_crit = True
+                if dmg_dealt > 0:
+                    logs.append("💥 **CRITICAL!** — Special strike! Damage ×2!")
+                if is_last_hit:
+                    self.special_guaranteed_crit.pop(mover_key, None)
             elif move == MOVE_ATTACK and (forced or avatar_crit) and not natural:
                 dmg_dealt *= 2.0
                 self.last_hit_was_crit = True
@@ -2443,6 +2500,10 @@ class AbilityEngine:
             else:
                 dmg_dealt = engine.critical(mover_key, move, dmg_dealt, logs)
                 self.last_hit_was_crit |= natural
+                if move == MOVE_ATTACK and forced and natural:
+                    self.guaranteed_crit_turns[mover_key] = max(0, forced - 1)
+                if forced_special and is_last_hit:
+                    self.special_guaranteed_crit.pop(mover_key, None)
             true = self.st.get_duration("true_damage_turns", mover_key) > 0
             # A nullified normal hit must not consume shields or invoke reflects.
             if engine.nullifies(mover_key, other_key, hit_move, true_damage=true):
