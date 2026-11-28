@@ -158,7 +158,7 @@ check("Tartarus resolves to [110, 50], not [80, 80]",
 check("the old uniform path still averages — it is unchanged",
       resolve_special(TR)[1] == 80, resolve_special(TR)[1])
 check("a scalar blade repeats its value",
-      resolve_special_hits(BLADES["Bloody Longinus"]) == [128],
+      resolve_special_hits(BLADES["Bloody Longinus"]) == [200],
       resolve_special_hits(BLADES["Bloody Longinus"]))
 check("a multi-hit scalar blade repeats it per hit",
       resolve_special_hits(BLADES["Rage Longinus"])

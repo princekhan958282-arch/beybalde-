@@ -3,7 +3,7 @@
   "name": "Bloody Longinus",
   "rarity": "Rare",
   "image_url": "https://cdn.discordapp.com/attachments/1510856884943454208/1510857021598077078/Screenshot_20200924-134301.jpg?ex=6a1e56c0&is=6a1d0540&hm=e2e3930f56395be4413c3bf0ad244a0cb7cc44b5794588171e01f364bf88dcb9&",
-  "description": "A feared destroyer draped in dark lightning. Its jagged blades tear open wounds and drink what pours out. Paper-thin armour, endless thirst — the apex predator of Attack types.",
+  "description": "A ruthless left-spin destroyer armed with four metal dragons. Every strike builds violent momentum toward a devastating 5th-hit uppercut or an airborne Dragon Scream finisher.",
   "burst_height": "Mid",
   "type": "Attack",
   "stats": {
@@ -16,25 +16,46 @@
   "ability": {
     "name": "Bloody Squall",
     "trigger": "on_attack_win",
-    "description": "Each Attack win drains 20 HP from the enemy and heals Bloody Longinus the same amount, building a Bloody Squall stack (+10 ATK permanently, max 5). Every stack also loads Dragon Scream with +12 bonus damage — firing the Special spends them all. At 5 stacks BLOOD FRENZY erupts: guaranteed crits and defense pierce for 2 turns, but the open guard never closes — Longinus bleeds 15 recoil on every Attack win for the rest of the battle.",
+    "description": "Each Attack win builds a Bloody Squall stack (+14 ATK, max 4) with a 40% chance to deal +50% ATK bonus damage, while dealing 40% of damage dealt as self-recoil. At 4 stacks, the 5th hit deals 150% damage with a guaranteed crit and resets the cycle — or all 4 stacks can be consumed in Dragon Scream for 200 base damage, +100% bonus damage, a critical hit, and 50% defense ignore. VS Left-Spin: gains +0.3 extra stamina drain, +15 Stamina, +8 Defense, and -7 recoil.",
     "rules": [
+      {
+        "when": "setup",
+        "if": [
+          {
+            "cond": "enemy_spin_is",
+            "value": "Left"
+          }
+        ],
+        "do": [
+          {
+            "op": "buff",
+            "stat": "stamina",
+            "amount": 15,
+            "turns": 99
+          },
+          {
+            "op": "buff",
+            "stat": "defense",
+            "amount": 8,
+            "turns": 99
+          },
+          {
+            "op": "modify_recoil_flat",
+            "value": -7
+          },
+          {
+            "op": "log",
+            "text": "🌀 Left-Spin Clash — Longinus equalizes spin (+15 STA, +8 DEF, +0.3 Stamina Drain, -7 Recoil)!"
+          }
+        ],
+        "_name": "Bloody Squall"
+      },
       {
         "when": "on_attack_win",
         "do": [
           {
-            "op": "steal_hp",
-            "value": 20
-          },
-          {
-            "op": "stacking_buff",
-            "stat": "attack",
-            "per_stack": 10,
-            "max": 5,
-            "name": "squall"
-          },
-          {
             "op": "add_counter",
-            "name": "squall_load",
+            "name": "squall_cycle",
             "amount": 1,
             "max": 5
           }
@@ -45,28 +66,38 @@
         "when": "on_attack_win",
         "if": [
           {
-            "cond": "counter_at_least",
-            "name": "squall",
+            "cond": "counter_below",
+            "name": "squall_cycle",
             "value": 5
           }
         ],
-        "once": "battle",
         "do": [
           {
-            "op": "set_mode",
-            "name": "frenzy"
-          },
+            "op": "stacking_buff",
+            "stat": "attack",
+            "per_stack": 14,
+            "max": 4,
+            "name": "squall"
+          }
+        ],
+        "_name": "Bloody Squall"
+      },
+      {
+        "when": "on_attack_win",
+        "chance": 0.4,
+        "if": [
           {
-            "op": "guaranteed_crit",
-            "turns": 2
-          },
+            "cond": "counter_below",
+            "name": "squall_cycle",
+            "value": 5
+          }
+        ],
+        "do": [
           {
-            "op": "ignore_defense",
-            "turns": 2
-          },
-          {
-            "op": "log",
-            "text": "🩸 **BLOOD FRENZY** — Longinus tears its own guard wide open!"
+            "op": "bonus_damage_stat",
+            "stat": "attack",
+            "scale": 0.5,
+            "label": "Bloody Squall"
           }
         ],
         "_name": "Bloody Squall"
@@ -75,29 +106,95 @@
         "when": "on_attack_win",
         "if": [
           {
-            "cond": "mode_is",
-            "value": "frenzy"
+            "cond": "counter_at_least",
+            "name": "squall_cycle",
+            "value": 5
           }
         ],
         "do": [
           {
-            "op": "recoil",
-            "value": 15
+            "op": "bonus_damage_pct",
+            "value": 50
+          },
+          {
+            "op": "guaranteed_crit",
+            "turns": 1
+          },
+          {
+            "op": "reset_counter",
+            "name": "squall"
+          },
+          {
+            "op": "reset_counter",
+            "name": "squall_cycle"
+          },
+          {
+            "op": "log",
+            "text": "🐉 FOUR-DRAGON UPPER (5th Hit) — 150% damage critical strike! Bloody Squall cycle resets!"
+          }
+        ],
+        "_name": "Bloody Squall"
+      },
+      {
+        "when": "on_damage_dealt",
+        "do": [
+          {
+            "op": "recoil_percent_of_damage",
+            "percent": 40
+          }
+        ],
+        "_name": "Bloody Squall"
+      },
+      {
+        "when": "on_damage_dealt",
+        "if": [
+          {
+            "cond": "enemy_spin_is",
+            "value": "Left"
+          }
+        ],
+        "do": [
+          {
+            "op": "drain_stamina",
+            "value": 0.3
           }
         ],
         "_name": "Bloody Squall"
       },
       {
         "when": "on_special",
+        "if": [
+          {
+            "cond": "counter_at_least",
+            "name": "squall",
+            "value": 4
+          }
+        ],
         "do": [
           {
-            "op": "consume_counter",
-            "name": "squall_load",
-            "damage_per_stack": 12
+            "op": "bonus_damage_pct",
+            "value": 100
           },
           {
-            "op": "heal",
-            "value": 48
+            "op": "guaranteed_crit",
+            "turns": 1,
+            "special": true
+          },
+          {
+            "op": "ignore_defense_pct",
+            "value": 50
+          },
+          {
+            "op": "reset_counter",
+            "name": "squall"
+          },
+          {
+            "op": "reset_counter",
+            "name": "squall_cycle"
+          },
+          {
+            "op": "log",
+            "text": "🐉 AWAKENED DRAGON SCREAM — All 4 stacks unleashed! +100% damage, Critical Hit, and 50% Defense Ignore!"
           }
         ],
         "_name": "Dragon Scream"
@@ -106,37 +203,58 @@
   },
   "special_move": {
     "name": "Dragon Scream",
-    "description": "Longinus rears back and looses a single howling lance — every debt owed comes due in one breath.",
+    "description": "Longinus soars into the air and dives with all four metal dragons aligned — unleashing 200 base damage that doubles with a guaranteed crit and 50% defense ignore when all 4 Bloody Squall stacks are consumed.",
     "hits": 1,
-    "damage_per_hit": 128,
-    "total_damage": 128,
+    "damage_per_hit": 200,
+    "total_damage": 200,
     "flavour_texts": [
-      "🩸 **Dragon Scream** — one lance, one debt collected!"
+      "🐉 Dragon Scream — the four metal dragons roar as one!"
     ]
   },
   "abilities": [
     {
       "name": "Bloody Squall",
       "trigger": "on_attack_win",
-      "description": "Each Attack win drains 20 HP from the enemy and heals Bloody Longinus the same amount, building a Bloody Squall stack (+10 ATK permanently, max 5). Every stack also loads Dragon Scream with +12 bonus damage — firing the Special spends them all. At 5 stacks BLOOD FRENZY erupts: guaranteed crits and defense pierce for 2 turns, but the open guard never closes — Longinus bleeds 15 recoil on every Attack win for the rest of the battle.",
+      "description": "Each Attack win builds a Bloody Squall stack (+14 ATK, max 4) with a 40% chance to deal +50% ATK bonus damage, while dealing 40% of damage dealt as self-recoil. At 4 stacks, the 5th hit deals 150% damage with a guaranteed crit and resets the cycle — or all 4 stacks can be consumed in Dragon Scream for 200 base damage, +100% bonus damage, a critical hit, and 50% defense ignore. VS Left-Spin: gains +0.3 extra stamina drain, +15 Stamina, +8 Defense, and -7 recoil.",
       "rules": [
+        {
+          "when": "setup",
+          "if": [
+            {
+              "cond": "enemy_spin_is",
+              "value": "Left"
+            }
+          ],
+          "do": [
+            {
+              "op": "buff",
+              "stat": "stamina",
+              "amount": 15,
+              "turns": 99
+            },
+            {
+              "op": "buff",
+              "stat": "defense",
+              "amount": 8,
+              "turns": 99
+            },
+            {
+              "op": "modify_recoil_flat",
+              "value": -7
+            },
+            {
+              "op": "log",
+              "text": "🌀 Left-Spin Clash — Longinus equalizes spin (+15 STA, +8 DEF, +0.3 Stamina Drain, -7 Recoil)!"
+            }
+          ],
+          "_name": "Bloody Squall"
+        },
         {
           "when": "on_attack_win",
           "do": [
             {
-              "op": "steal_hp",
-              "value": 20
-            },
-            {
-              "op": "stacking_buff",
-              "stat": "attack",
-              "per_stack": 10,
-              "max": 5,
-              "name": "squall"
-            },
-            {
               "op": "add_counter",
-              "name": "squall_load",
+              "name": "squall_cycle",
               "amount": 1,
               "max": 5
             }
@@ -147,28 +265,38 @@
           "when": "on_attack_win",
           "if": [
             {
-              "cond": "counter_at_least",
-              "name": "squall",
+              "cond": "counter_below",
+              "name": "squall_cycle",
               "value": 5
             }
           ],
-          "once": "battle",
           "do": [
             {
-              "op": "set_mode",
-              "name": "frenzy"
-            },
+              "op": "stacking_buff",
+              "stat": "attack",
+              "per_stack": 14,
+              "max": 4,
+              "name": "squall"
+            }
+          ],
+          "_name": "Bloody Squall"
+        },
+        {
+          "when": "on_attack_win",
+          "chance": 0.4,
+          "if": [
             {
-              "op": "guaranteed_crit",
-              "turns": 2
-            },
+              "cond": "counter_below",
+              "name": "squall_cycle",
+              "value": 5
+            }
+          ],
+          "do": [
             {
-              "op": "ignore_defense",
-              "turns": 2
-            },
-            {
-              "op": "log",
-              "text": "🩸 **BLOOD FRENZY** — Longinus tears its own guard wide open!"
+              "op": "bonus_damage_stat",
+              "stat": "attack",
+              "scale": 0.5,
+              "label": "Bloody Squall"
             }
           ],
           "_name": "Bloody Squall"
@@ -177,29 +305,95 @@
           "when": "on_attack_win",
           "if": [
             {
-              "cond": "mode_is",
-              "value": "frenzy"
+              "cond": "counter_at_least",
+              "name": "squall_cycle",
+              "value": 5
             }
           ],
           "do": [
             {
-              "op": "recoil",
-              "value": 15
+              "op": "bonus_damage_pct",
+              "value": 50
+            },
+            {
+              "op": "guaranteed_crit",
+              "turns": 1
+            },
+            {
+              "op": "reset_counter",
+              "name": "squall"
+            },
+            {
+              "op": "reset_counter",
+              "name": "squall_cycle"
+            },
+            {
+              "op": "log",
+              "text": "🐉 FOUR-DRAGON UPPER (5th Hit) — 150% damage critical strike! Bloody Squall cycle resets!"
+            }
+          ],
+          "_name": "Bloody Squall"
+        },
+        {
+          "when": "on_damage_dealt",
+          "do": [
+            {
+              "op": "recoil_percent_of_damage",
+              "percent": 40
+            }
+          ],
+          "_name": "Bloody Squall"
+        },
+        {
+          "when": "on_damage_dealt",
+          "if": [
+            {
+              "cond": "enemy_spin_is",
+              "value": "Left"
+            }
+          ],
+          "do": [
+            {
+              "op": "drain_stamina",
+              "value": 0.3
             }
           ],
           "_name": "Bloody Squall"
         },
         {
           "when": "on_special",
+          "if": [
+            {
+              "cond": "counter_at_least",
+              "name": "squall",
+              "value": 4
+            }
+          ],
           "do": [
             {
-              "op": "consume_counter",
-              "name": "squall_load",
-              "damage_per_stack": 12
+              "op": "bonus_damage_pct",
+              "value": 100
             },
             {
-              "op": "heal",
-              "value": 48
+              "op": "guaranteed_crit",
+              "turns": 1,
+              "special": true
+            },
+            {
+              "op": "ignore_defense_pct",
+              "value": 50
+            },
+            {
+              "op": "reset_counter",
+              "name": "squall"
+            },
+            {
+              "op": "reset_counter",
+              "name": "squall_cycle"
+            },
+            {
+              "op": "log",
+              "text": "🐉 AWAKENED DRAGON SCREAM — All 4 stacks unleashed! +100% damage, Critical Hit, and 50% Defense Ignore!"
             }
           ],
           "_name": "Dragon Scream"
